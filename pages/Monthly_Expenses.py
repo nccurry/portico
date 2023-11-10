@@ -1,16 +1,13 @@
 import altair as alt
 import streamlit as st
-from utils import (
-    load_data,
-    initialize_session_state,
-    on_widget_change
-)
 from typing import List
 
-# Initialize state
+from utils import on_widget_change, initialize_session_state, load_data, clear_filtered_data
 
+# Initialize
 load_data()
 initialize_session_state()
+
 
 # Configure UI Widgets
 
@@ -18,7 +15,7 @@ lookback_months: int = st.sidebar.slider(
     label="Lookback (Months)",
     min_value=1,
     max_value=st.session_state.total_months,
-    value=3,
+    value=st.session_state.lookback_months,
     key="slider_lookback_months",
     on_change=on_widget_change
 )
@@ -44,6 +41,12 @@ ignored_categories: List[str] = st.sidebar.multiselect(
     default=st.session_state.ignored_categories,
     key="multiselect_ignored_categories",
     on_change=on_widget_change
+)
+
+reset = st.sidebar.button(
+    label="Clear",
+    type="primary",
+    on_click=clear_filtered_data
 )
 
 # Create chart
