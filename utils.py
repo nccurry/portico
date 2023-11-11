@@ -1,3 +1,4 @@
+import os
 from datetime import date
 from typing import List
 
@@ -15,14 +16,21 @@ def load_data(force: bool = False):
 
     if 'transactions_raw_data' not in st.session_state or 'transactions_scrubbed_data' not in st.session_state or force:
         conn = st.connection(name="transactions", type=GSheetsConnection)
-        df = conn.read()
-
+        transactions_spreadsheet_url = os.environ.get("TRANSACTIONS_SPREADSHEET_URL")
+        if transactions_spreadsheet_url:
+            df = conn.read(spreadsheet=transactions_spreadsheet_url)
+        else:
+            df = conn.read()
         st.session_state.transactions_raw_data = df
         st.session_state.transactions_scrubbed_data = scrub_transaction_data(df)
 
     if 'balance_history_raw_data' not in st.session_state or 'balance_history_scrubbed_data' not in st.session_state or force:
         conn = st.connection(name="balance_history", type=GSheetsConnection)
-        df = conn.read()
+        balance_history_spreadsheet_url = os.environ.get("BALANCE_HISTORY_SPREADSHEET_URL")
+        if balance_history_spreadsheet_url:
+            df = conn.read(spreadsheet=balance_history_spreadsheet_url)
+        else:
+            df = conn.read()
 
         st.session_state.balance_history_raw_data = df
         st.session_state.balances_scrubbed_data = scrub_balance_history_data(df)
@@ -67,6 +75,9 @@ def scrub_balance_history_data(
 
     # Drop empty column
     df = df.drop("Unnamed: 0", axis=1)
+
+    # Recast Amount column as float
+    df["Balance"] = df["Balance"].replace('[\$,]', '', regex=True).astype(float)
 
     # Recast dates as datetime
     df["Date"] = pd.to_datetime(df["Date"])
