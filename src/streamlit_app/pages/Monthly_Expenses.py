@@ -2,7 +2,7 @@ import altair as alt
 import streamlit as st
 from typing import List
 
-from utils import on_widget_change, initialize_session_state, load_data, clear_filtered_data
+from src.utils.utils import on_widget_change, initialize_session_state, load_data, clear_filtered_data
 
 # Initialize
 load_data()

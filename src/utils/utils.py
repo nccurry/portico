@@ -11,6 +11,10 @@ import math
 from dateutil.relativedelta import relativedelta
 
 
+
+
+
+
 def load_data(force: bool = False):
     """Load data from Google Sheets and set it in the session state"""
 
@@ -21,6 +25,7 @@ def load_data(force: bool = False):
             df = conn.read(spreadsheet=transactions_spreadsheet_url)
         else:
             df = conn.read()
+
         st.session_state.transactions_raw_data = df
         st.session_state.transactions_scrubbed_data = scrub_transaction_data(df)
 
@@ -33,7 +38,7 @@ def load_data(force: bool = False):
             df = conn.read()
 
         st.session_state.balance_history_raw_data = df
-        st.session_state.balances_scrubbed_data = scrub_balance_history_data(df)
+        st.session_state.balance_history_scrubbed_data = scrub_balance_history_data(df)
 
 
 def scrub_transaction_data(
@@ -205,3 +210,4 @@ def clear_filtered_data():
     """Reset session state"""
     initialize_session_state(force=True)
     update_filtered_data()
+
