@@ -86,3 +86,5 @@ class BalanceHistorySpreadsheet(Spreadsheet):
         # Use better strings for Month and Week columns
         df["Month"] = df["Month"].dt.strftime('%Y-%m')
         df["Week"] = df["Week"].dt.strftime('%U')
+
+        self.scrubbed_df = df
