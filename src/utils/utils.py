@@ -70,26 +70,22 @@ def scrub_balance_history_data(
 
 def initialize_session_state(force: bool = False) -> None:
     """Initialize streamlit session state with default values"""
-    if st.session_state.transactions_raw_data is None \
-            or st.session_state.transactions_scrubbed_data is None:
-        raise ValueError("Could not initialize session state. Please load data first...")
-
     if 'lookback_months' not in st.session_state or force:
         st.session_state.lookback_months = 3
 
     if 'total_months' not in st.session_state or force:
-        st.session_state.total_months = get_total_months(st.session_state.transactions_scrubbed_data)
+        st.session_state.total_months = get_total_months(st.session_state.ss_transactions_scrubbed_df)
 
     if 'selected_group' not in st.session_state or force:
-        st.session_state.selected_group = st.session_state.transactions_scrubbed_data["Group"].unique()[0]
+        st.session_state.selected_group = st.session_state.ss_transactions_scrubbed_df["Group"].unique()[0]
 
     if 'total_groups' not in st.session_state or force:
-        st.session_state.total_groups = st.session_state.transactions_scrubbed_data["Group"].unique()
+        st.session_state.total_groups = st.session_state.ss_transactions_scrubbed_df["Group"].unique()
 
     if 'group_categories' not in st.session_state or force:
         st.session_state.group_categories = get_group_categories(
-            group=st.session_state.transactions_scrubbed_data["Group"].unique()[0],
-            data_frame=st.session_state.transactions_scrubbed_data
+            group=st.session_state.ss_transactions_scrubbed_df["Group"].unique()[0],
+            data_frame=st.session_state.ss_transactions_scrubbed_df
         )
 
     if 'included_categories' not in st.session_state or force:
@@ -151,7 +147,7 @@ def on_widget_change():
 
 def update_filtered_data() -> None:
     """Filter data in session_state based on widget settings"""
-    df = st.session_state.transactions_scrubbed_data.copy()
+    df = st.session_state.ss_transactions_scrubbed_df.copy()
 
     # Filter by selected group
     df = df.loc[df["Group"] == st.session_state.selected_group]

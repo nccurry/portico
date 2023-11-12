@@ -3,7 +3,7 @@ from datetime import datetime
 import pandas as pd
 
 from src.utils.spreadsheet import TransactionSpreadsheet, BalanceHistorySpreadsheet
-from src.utils.utils import load_data, initialize_session_state
+from src.utils.utils import initialize_session_state
 import streamlit as st
 import os
 
@@ -20,32 +20,31 @@ bhs.cache(st.session_state)
 
 
 # Initialize
-load_data()
 initialize_session_state()
 
 # Data
-checking_df = st.session_state.balance_history_scrubbed_data
+checking_df = st.session_state.ss_balance_history_scrubbed_df
 checking_df = checking_df.sort_values(by='Date')
 checking_df = checking_df.drop_duplicates('Account ID', keep='last')
 checking_df = checking_df[checking_df["Group"] == "Checking"]
 checking_df = checking_df.filter(["Account", "Balance"])
 checking_total = float(checking_df["Balance"].sum())
 
-saving_df = st.session_state.balance_history_scrubbed_data
+saving_df = st.session_state.ss_balance_history_scrubbed_df
 saving_df = saving_df.sort_values(by='Date')
 saving_df = saving_df.drop_duplicates('Account ID', keep='last')
 saving_df = saving_df[saving_df["Group"] == "Saving"]
 saving_df = saving_df.filter(["Account", "Balance"])
 saving_total = float(saving_df["Balance"].sum())
 
-credit_df = st.session_state.balance_history_scrubbed_data
+credit_df = st.session_state.ss_balance_history_scrubbed_df
 credit_df = credit_df.sort_values(by='Date')
 credit_df = credit_df.drop_duplicates('Account ID', keep='last')
 credit_df = credit_df[credit_df["Group"] == "Credit Card"]
 credit_df = credit_df.filter(["Account", "Balance"])
 credit_total = credit_df["Balance"].sum()
 
-investment_df = st.session_state.balance_history_scrubbed_data
+investment_df = st.session_state.ss_balance_history_scrubbed_df
 investment_df = investment_df.sort_values(by='Date')
 investment_df = investment_df.drop_duplicates('Account ID', keep='last')
 investment_df = investment_df[investment_df["Group"] == "Investment"]
@@ -124,7 +123,7 @@ col3.dataframe(
 
 st.title("Recent Transactions")
 
-transactions_df = st.session_state.transactions_scrubbed_data
+transactions_df = st.session_state.ss_transactions_scrubbed_df
 transactions_df = transactions_df[transactions_df["Date"] > datetime.now() - pd.to_timedelta("10day")]
 transactions_df = transactions_df.sort_values(by='Date', ascending=False)
 transactions_df = transactions_df.filter(["Date", "Full Description", "Amount", "Account", "Category", "Group"])
