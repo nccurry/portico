@@ -29,7 +29,8 @@ class Spreadsheet(metaclass=ABCMeta):
         ...
 
     def cache(
-            self, session_state: SessionStateProxy,
+            self,
+            session_state: SessionStateProxy,
             state_prefix: str = "ss",
             force: bool = False
     ) -> None:

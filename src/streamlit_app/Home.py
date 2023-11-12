@@ -1,9 +1,23 @@
+import os
 from datetime import datetime
 import pandas as pd
+
+from src.utils.spreadsheet import TransactionSpreadsheet, BalanceHistorySpreadsheet
 from src.utils.utils import load_data, initialize_session_state
 import streamlit as st
+import os
 
 st.set_page_config(layout="wide", initial_sidebar_state="collapsed")
+
+transaction_spreadsheet_url = os.environ.get("TRANSACTIONS_SPREADSHEET_URL")
+ts = TransactionSpreadsheet(name="transactions", url=transaction_spreadsheet_url)
+ts.cache(st.session_state)
+
+balance_history_spreadsheet_url = os.environ.get("BALANCE_HISTORY_SPREADSHEET_URL")
+bhs = BalanceHistorySpreadsheet(name="balance_history", url=balance_history_spreadsheet_url)
+bhs.cache(st.session_state)
+
+
 
 # Initialize
 load_data()
