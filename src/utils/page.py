@@ -1,40 +1,80 @@
+import os
 from abc import ABCMeta, abstractmethod
-from typing import Optional
+from typing import Optional, Dict
 
 import streamlit as st
 from streamlit.commands.page_config import Layout, PageIcon, InitialSideBarState, MenuItems
-from streamlit.runtime.state import SessionStateProxy
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
+
+from src.utils.spreadsheet import Spreadsheet, TransactionSpreadsheet, BalanceHistorySpreadsheet
 
 
 @dataclass
 class PageConfig:
     """Configuration for a Streamlit Page. Expected to get passed to the set_page_config function"""
-    page_title: Optional[str] = None,
-    page_icon: Optional[PageIcon] = None,
-    layout: Layout = "centered",
-    initial_sidebar_state: InitialSideBarState = "auto",
+    page_title: Optional[str] = None
+    page_icon: Optional[PageIcon] = None
+    layout: Layout = "wide"
+    initial_sidebar_state: InitialSideBarState = "collapsed"
     menu_items: Optional[MenuItems] = None
+
+    def __dict__(self):
+        """Return the dict representation of this dataclass"""
+        d = {}
+        for k, v in asdict(self).items():
+            if v is not None:
+                d[k] = v
+        return d
 
 
 class Page(metaclass=ABCMeta):
-    config: Optional[PageConfig]
+    config: Optional[PageConfig] = PageConfig()
+    spreadsheets: Dict[str, Spreadsheet] = {}
 
     def __init__(
             self,
-            page_config: Optional[PageConfig] = None
+            config: Optional[PageConfig] = None
     ) -> None:
-        self.config = page_config
+        if config:
+            self.config = config
+        self.set_page_config()
+        self.load_spreadsheets()
+        self.initialize_session_state()
 
     def set_page_config(self) -> None:
         """Apply the Streamlit page configuration"""
         if self.config:
-            st.set_page_config(**self.config)
+            # Convert dataclass to key / value function args
+            st.set_page_config(**self.config.__dict__())
 
     @abstractmethod
+    def load_spreadsheets(self) -> None:
+        """Load the data from the Google Sheets spreadsheets"""
+
+    @abstractmethod
+    def initialize_session_state(self) -> None:
+        """Initialize Streamlit session state for this page"""
+
+
+class HomePage(Page):
+    def load_spreadsheets(self) -> None:
+        transaction_spreadsheet_url = os.environ.get("TRANSACTIONS_SPREADSHEET_URL")
+        self.spreadsheets["transactions"] = TransactionSpreadsheet(
+            name="transactions",
+            url=transaction_spreadsheet_url
+        )
+
+        balance_history_spreadsheet_url = os.environ.get("BALANCE_HISTORY_SPREADSHEET_URL")
+        self.spreadsheets["balance_history"] = BalanceHistorySpreadsheet(
+            name="balance_history",
+            url=balance_history_spreadsheet_url
+        )
+
     def initialize_session_state(
             self,
-            session_state: SessionStateProxy,
+            force: bool = False
     ) -> None:
-        """Initialize Streamlit session state for this page"""
-        ...
+        for v in self.spreadsheets.values():
+            v.cache(
+                force=force
+            )
