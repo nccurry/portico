@@ -2,25 +2,15 @@ import os
 from datetime import datetime
 import pandas as pd
 
+from src.utils.page import HomePage, PageConfig
 from src.utils.spreadsheet import TransactionSpreadsheet, BalanceHistorySpreadsheet
 from src.utils.utils import initialize_session_state
 import streamlit as st
 import os
 
-st.set_page_config(layout="wide", initial_sidebar_state="collapsed")
+# Initialize Page configuration
 
-transaction_spreadsheet_url = os.environ.get("TRANSACTIONS_SPREADSHEET_URL")
-ts = TransactionSpreadsheet(name="transactions", url=transaction_spreadsheet_url)
-ts.cache(st.session_state)
-
-balance_history_spreadsheet_url = os.environ.get("BALANCE_HISTORY_SPREADSHEET_URL")
-bhs = BalanceHistorySpreadsheet(name="balance_history", url=balance_history_spreadsheet_url)
-bhs.cache(st.session_state)
-
-
-
-# Initialize
-initialize_session_state()
+home_page = HomePage()
 
 # Data
 checking_df = st.session_state.ss_balance_history_scrubbed_df

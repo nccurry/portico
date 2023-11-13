@@ -1,5 +1,4 @@
 import streamlit as st
-from streamlit.runtime.state import SessionStateProxy
 from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 from abc import ABCMeta, abstractmethod
@@ -30,16 +29,15 @@ class Spreadsheet(metaclass=ABCMeta):
 
     def cache(
             self,
-            session_state: SessionStateProxy,
             state_prefix: str = "ss",
             force: bool = False
     ) -> None:
         """Cache the Spreadsheet data in the Streamlit session state"""
-        if f"{self.name}_raw_df" not in session_state or force:
-            session_state[f"{state_prefix}_{self.name}_raw_df"] = self.raw_df
+        if f"{self.name}_raw_df" not in st.session_state or force:
+            st.session_state[f"{state_prefix}_{self.name}_raw_df"] = self.raw_df
 
-        if f"{self.name}_scrubbed_df" not in session_state or force:
-            session_state[f"{state_prefix}_{self.name}_scrubbed_df"] = self.scrubbed_df
+        if f"{self.name}_scrubbed_df" not in st.session_state or force:
+            st.session_state[f"{state_prefix}_{self.name}_scrubbed_df"] = self.scrubbed_df
 
 
 class TransactionSpreadsheet(Spreadsheet):
