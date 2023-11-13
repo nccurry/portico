@@ -55,6 +55,10 @@ class Page(metaclass=ABCMeta):
     def initialize_session_state(self) -> None:
         """Initialize Streamlit session state for this page"""
 
+    @abstractmethod
+    def ui_widget_callback(self) -> None:
+        """Callback function for Streamlit UI widgets"""
+
 
 class HomePage(Page):
     def load_spreadsheets(self) -> None:
@@ -78,3 +82,6 @@ class HomePage(Page):
             v.cache(
                 force=force
             )
+
+    def ui_widget_callback(self) -> None:
+        ...
