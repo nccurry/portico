@@ -58,7 +58,7 @@ investment_balance_history_df = get_balance_history_by_group(
 
 col1, col2 = st.columns(2)
 
-col1.header("Checking")
+col1.header("Checking", divider="blue")
 col1.subheader(f'${"{:,.2f}".format(checking_total)}')
 col1.line_chart(
     data=checking_balance_history_df,
@@ -81,7 +81,7 @@ with col1.expander("Show Accounts"):
         }
     )
 
-col1.header("Saving")
+col1.header("Saving", divider="blue")
 col1.subheader(f'${"{:,.2f}".format(saving_total)}')
 col1.line_chart(
     data=saving_balance_history_df,
@@ -105,7 +105,7 @@ with col1.expander("Show Accounts"):
     )
 
 
-col2.header("Credit")
+col2.header("Credit", divider="blue")
 col2.subheader(f'-${"{:,.2f}".format(credit_total)}')
 col2.line_chart(
     data=credit_balance_history_df,
@@ -129,7 +129,7 @@ with col2.expander("Show Accounts"):
     )
 
 
-col2.header("Investments")
+col2.header("Investments", divider="blue")
 col2.subheader(f'${"{:,.2f}".format(investment_total)}')
 col2.line_chart(
     data=investment_balance_history_df,
