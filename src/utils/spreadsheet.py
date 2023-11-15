@@ -85,4 +85,6 @@ class BalanceHistorySpreadsheet(Spreadsheet):
         df["Month"] = df["Month"].dt.strftime('%Y-%m')
         df["Week"] = df["Week"].dt.strftime('%U')
 
+        df = df[df["Hide"] != "Hide"]
+
         self.scrubbed_df = df
