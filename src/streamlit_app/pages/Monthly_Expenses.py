@@ -50,13 +50,23 @@ reset = col2.button(
 )
 
 # Create chart
-fig = px.histogram(
-    data_frame=st.session_state.filtered_data,
-    x="Month",
-    y="Amount",
-    color='Category',
-    barmode='group'
+# fig = px.histogram(
+#     data_frame=st.session_state.filtered_data,
+#     x="Month",
+#     y="Amount",
+#     color='Category',
+#     barmode='group'
+# )
+# col1.plotly_chart(fig, use_container_width=True)
+
+test_chart = alt.Chart(st.session_state.filtered_data).mark_bar().encode(
+   x=alt.X('Month'),
+   xOffset='Category',
+   y=alt.Y('Amount'),
+   color='Category'
+).configure_view(
+    stroke=None,
 )
-col1.plotly_chart(fig, use_container_width=True)
+col1.altair_chart(test_chart)
 
 st.dataframe(st.session_state.filtered_data)
