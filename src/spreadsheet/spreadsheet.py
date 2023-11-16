@@ -6,13 +6,12 @@ from abc import ABCMeta, abstractmethod
 
 class Spreadsheet(metaclass=ABCMeta):
     """Class used to interact with Spreadsheet data in Google Sheets"""
-    name: str
+    name: str = "ss"
     url: str
     raw_df: pd.DataFrame
     scrubbed_df: pd.DataFrame
 
-    def __init__(self, name: str, url: str) -> None:
-        self.name = name
+    def __init__(self, url: str) -> None:
         self.url = url
         self.load()
         self.scrub()
@@ -27,20 +26,10 @@ class Spreadsheet(metaclass=ABCMeta):
         """Clean up the data stored in self.raw_df"""
         ...
 
-    def cache(
-            self,
-            state_prefix: str = "ss",
-            force: bool = False
-    ) -> None:
-        """Cache the Spreadsheet data in the Streamlit session state"""
-        if f"{self.name}_raw_df" not in st.session_state or force:
-            st.session_state[f"{state_prefix}_{self.name}_raw_df"] = self.raw_df
 
-        if f"{self.name}_scrubbed_df" not in st.session_state or force:
-            st.session_state[f"{state_prefix}_{self.name}_scrubbed_df"] = self.scrubbed_df
+class TransactionsSpreadsheet(Spreadsheet):
+    name = "ts"
 
-
-class TransactionSpreadsheet(Spreadsheet):
     def scrub(self) -> None:
         df = self.raw_df.copy()
 
@@ -61,10 +50,14 @@ class TransactionSpreadsheet(Spreadsheet):
         df["Month"] = df["Month"].dt.strftime('%Y-%m')
         df["Week"] = df["Week"].dt.strftime('%U')
 
+        df = df.filter(["Date", "Category", "Amount", "Account", "Month", "Full Description", "Group", "Type"])
+
         self.scrubbed_df = df
 
 
 class BalanceHistorySpreadsheet(Spreadsheet):
+    name = "bhs"
+
     def scrub(self) -> None:
         df = self.raw_df.copy()
 
