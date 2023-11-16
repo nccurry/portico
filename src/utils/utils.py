@@ -4,68 +4,10 @@ from typing import List
 
 import dateutil
 import streamlit as st
-from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 import numpy as np
 import math
 from dateutil.relativedelta import relativedelta
-
-
-def scrub_transaction_data(
-    data_frame: pd.DataFrame
-) -> pd.DataFrame:
-    """Clean up the data retrieved from the Tiller spreadsheet"""
-    df = data_frame.copy()
-
-    # Drop empty column
-    df = df.drop("Unnamed: 0", axis=1)
-
-    # Recast Amount column as float
-    df["Amount"] = df["Amount"].replace('[\$,]', '', regex=True).astype(float)
-
-    # Recast dates as datetime
-    df["Date"] = pd.to_datetime(df["Date"])
-    df["Month"] = pd.to_datetime(df["Month"])
-    df["Week"] = pd.to_datetime(df["Week"])
-    df["Date Added"] = pd.to_datetime(df["Date Added"])
-    df["Categorized Date"] = pd.to_datetime(df["Categorized Date"])
-
-    # Use better strings for Month and Week columns
-    df["Month"] = df["Month"].dt.strftime('%Y-%m')
-    df["Week"] = df["Week"].dt.strftime('%U')
-
-    # Only show expenses
-    df = df.loc[df["Type"] == "Expense"]
-
-    # Use positive values for amounts, since we are only focused on expenses
-    df.loc[:, 'Amount'] = df['Amount'] * -1
-    return df
-
-
-def scrub_balance_history_data(
-    data_frame: pd.DataFrame
-) -> pd.DataFrame:
-    """Clean up the data retrieved from the Tiller spreadsheet"""
-    df = data_frame.copy()
-
-    # Drop empty column
-    df = df.drop("Unnamed: 0", axis=1)
-
-    # Recast Amount column as float
-    df["Balance"] = df["Balance"].replace('[\$,]', '', regex=True).astype(float)
-
-    # Recast dates as datetime
-    df["Date"] = pd.to_datetime(df["Date"])
-    df["Time"] = pd.to_datetime(df["Time"])
-    df["Month"] = pd.to_datetime(df["Month"])
-    df["Week"] = pd.to_datetime(df["Week"])
-    df["Date Added"] = pd.to_datetime(df["Date Added"])
-
-    # Use better strings for Month and Week columns
-    df["Month"] = df["Month"].dt.strftime('%Y-%m')
-    df["Week"] = df["Week"].dt.strftime('%U')
-
-    return df
 
 
 def initialize_session_state(force: bool = False) -> None:
@@ -95,30 +37,6 @@ def initialize_session_state(force: bool = False) -> None:
         st.session_state.ignored_categories = []
 
     update_filtered_data()
-
-
-@st.cache_data
-def get_total_months(
-    data_frame: pd.DataFrame
-) -> int:
-    """Given Tiller data, return the total amount of months in the data set"""
-    oldest_date = data_frame["Date"].min()
-    latest_date = data_frame["Date"].max()
-    total_months = math.ceil((latest_date - oldest_date)/np.timedelta64(1, 'M'))
-
-    return total_months
-
-
-@st.cache_data
-def get_group_categories(
-    group: str,
-    data_frame: pd.DataFrame
-) -> List[str]:
-    """Return all categories from a given group"""
-    df = data_frame.copy()
-    df = df[df["Group"] == group]
-
-    return df["Category"].unique()
 
 
 def on_widget_change():

@@ -1,63 +1,62 @@
 import altair as alt
 import streamlit as st
 from typing import List
+from src.page.page import MonthlyExpensesPage
+import plotly.express as px
 
-from src.utils.utils import on_widget_change, initialize_session_state, load_data, clear_filtered_data
+# Initialize page
+mep = MonthlyExpensesPage()
 
-# Initialize
-load_data()
-initialize_session_state()
+# Configure UI
 
+col1, col2 = st.columns([0.6, 0.4])
 
-# Configure UI Widgets
-
-lookback_months: int = st.sidebar.slider(
+lookback_months: int = col2.slider(
     label="Lookback (Months)",
     min_value=1,
-    max_value=st.session_state.total_months,
-    value=st.session_state.lookback_months,
+    max_value=st.session_state[f'{mep.state_prefix}_total_months'],
+    value=st.session_state[f'{mep.state_prefix}_lookback_months'],
     key="slider_lookback_months",
-    on_change=on_widget_change
+    on_change=mep.ui_widget_callback
 )
 
-group: str = st.sidebar.selectbox(
+group: str = col2.selectbox(
     label="Group",
-    options=st.session_state.total_groups,
+    options=st.session_state[f'{mep.state_prefix}_total_groups'],
     key="selectbox_group",
-    on_change=on_widget_change
+    on_change=mep.ui_widget_callback
 )
 
-included_categories: List[str] = st.sidebar.multiselect(
+included_categories: List[str] = col2.multiselect(
     label="Included Categories",
-    options=st.session_state.group_categories,
-    default=st.session_state.included_categories,
+    options=st.session_state[f'{mep.state_prefix}_group_categories'],
+    default=st.session_state[f'{mep.state_prefix}_included_categories'],
     key="multiselect_included_categories",
-    on_change=on_widget_change
+    on_change=mep.ui_widget_callback
 )
 
-ignored_categories: List[str] = st.sidebar.multiselect(
+ignored_categories: List[str] = col2.multiselect(
     label="Ignored Categories",
-    options=st.session_state.group_categories,
-    default=st.session_state.ignored_categories,
+    options=st.session_state[f'{mep.state_prefix}_group_categories'],
+    default=st.session_state[f'{mep.state_prefix}_ignored_categories'],
     key="multiselect_ignored_categories",
-    on_change=on_widget_change
+    on_change=mep.ui_widget_callback
 )
 
-reset = st.sidebar.button(
+reset = col2.button(
     label="Clear",
     type="primary",
-    on_click=clear_filtered_data
+    on_click=mep.clear_filtered_data
 )
 
 # Create chart
-
-test_chart = alt.Chart(st.session_state.filtered_data).mark_bar().encode(
-   x=alt.X('Month'),
-   xOffset='Category',
-   y=alt.Y('Amount'),
-   color='Category'
-).configure_view(
-    stroke=None,
+fig = px.histogram(
+    data_frame=st.session_state.filtered_data,
+    x="Month",
+    y="Amount",
+    color='Category',
+    barmode='group'
 )
+col1.plotly_chart(fig, use_container_width=True)
 
-test_chart
+st.dataframe(st.session_state.filtered_data)
