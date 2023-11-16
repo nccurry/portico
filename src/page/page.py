@@ -139,7 +139,7 @@ class MonthlyExpensesPage(Page):
         df = df.loc[df["Group"] == st.session_state[f'{self.state_prefix}_selected_group']]
 
         # Set new group categories
-        st.session_state.group_categories = get_group_categories(
+        st.session_state[f'{self.state_prefix}_group_categories'] = get_group_categories(
             group=st.session_state[f'{self.state_prefix}_selected_group'],
             data_frame=df
         )
@@ -148,7 +148,7 @@ class MonthlyExpensesPage(Page):
         if st.session_state[f'{self.state_prefix}_included_categories']:
             df = df[df["Category"].isin(st.session_state[f'{self.state_prefix}_included_categories'])]
         if st.session_state[f'{self.state_prefix}_ignored_categories']:
-            df = df[df["Category"].isin(st.session_state[f'{self.state_prefix}_ignored_categories'])]
+            df = df[-df["Category"].isin(st.session_state[f'{self.state_prefix}_ignored_categories'])]
 
         # Filter by Month lookback
         first_of_the_month = date.today().replace(day=1)
@@ -173,6 +173,8 @@ class MonthlyExpensesPage(Page):
 
         if st.session_state[f'{self.state_prefix}_selected_group'] != st.session_state.selectbox_group:
             st.session_state[f'{self.state_prefix}_selected_group'] = st.session_state.selectbox_group
+            st.session_state.multiselect_included_categories = []
+            st.session_state.multiselect_ignored_categories = []
             update = True
 
         if st.session_state[f'{self.state_prefix}_included_categories'] != st.session_state.multiselect_included_categories:
