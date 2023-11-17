@@ -2,12 +2,13 @@ import altair as alt
 import streamlit as st
 from typing import List
 from src.page.page import MonthlyExpensesPage
-import plotly.express as px
 
 # Initialize page
 mep = MonthlyExpensesPage()
 
 # Configure UI
+
+st.header("Amount by Group", divider="blue")
 
 col1, col2 = st.columns([0.6, 0.4])
 
@@ -59,7 +60,7 @@ reset = col2.button(
 # )
 # col1.plotly_chart(fig, use_container_width=True)
 
-test_chart = alt.Chart(st.session_state.filtered_data).mark_bar().encode(
+chart = alt.Chart(st.session_state.filtered_data).mark_bar().encode(
    x=alt.X('Month'),
    xOffset='Category',
    y=alt.Y('Amount'),
@@ -67,6 +68,6 @@ test_chart = alt.Chart(st.session_state.filtered_data).mark_bar().encode(
 ).configure_view(
     stroke=None,
 )
-col1.altair_chart(test_chart)
-
-st.dataframe(st.session_state.filtered_data)
+col1.altair_chart(chart)
+st.subheader("Transactions", divider="blue")
+st.dataframe(data=st.session_state.filtered_data, hide_index=True)
