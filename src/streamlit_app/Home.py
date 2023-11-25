@@ -3,6 +3,7 @@ from typing import Dict
 
 import pandas as pd
 from src.data.balance_history import get_latest_balance_by_group, get_balance_history_by_group
+from src.data.transactions import get_amounts_by_group, get_amounts_by_group_category
 from src.page.page import HomePage
 import streamlit as st
 
@@ -33,8 +34,27 @@ for group in groups:
         balance_history_df=balance_history_df
     )
 
+amount_by_expense_group_df = get_amounts_by_group(
+    data_frame=home_page.spreadsheets["ts"].scrubbed_df
+)
+amount_by_income_categories_df = get_amounts_by_group_category(
+    data_frame=home_page.spreadsheets["ts"].scrubbed_df,
+    group="Income"
+)
+
 # Configure UI
 
+col1, col2 = st.columns(2)
+col1.subheader("Expenses by Group")
+col1.bar_chart(
+    data=amount_by_expense_group_df
+)
+col2.subheader("Income by Category")
+col2.bar_chart(
+    data=amount_by_income_categories_df
+)
+
+st.subheader("Balance Histories")
 for group in groups:
     with st.expander(f'# **{group}**: ${"{:,.2f}".format(data[group]["latest_balance_total"])}', expanded=True):
         col1, col2 = st.columns(2)

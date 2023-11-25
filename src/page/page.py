@@ -119,8 +119,8 @@ class MonthlyExpensesPage(Page):
 
         if f'{self.state_prefix}_group_categories' not in st.session_state or force:
             st.session_state[f'{self.state_prefix}_group_categories'] = get_group_categories(
-                group=ts_groups[0],
-                data_frame=ts_scrubbed_df
+                data_frame=ts_scrubbed_df,
+                group=ts_groups[0]
             )
 
         if f'{self.state_prefix}_included_categories' not in st.session_state or force:
@@ -140,8 +140,8 @@ class MonthlyExpensesPage(Page):
 
         # Set new group categories
         st.session_state[f'{self.state_prefix}_group_categories'] = get_group_categories(
-            group=st.session_state[f'{self.state_prefix}_selected_group'],
-            data_frame=df
+            data_frame=df,
+            group=st.session_state[f'{self.state_prefix}_selected_group']
         )
 
         # Filter by included / ignored categories
