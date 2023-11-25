@@ -1,3 +1,5 @@
+import datetime
+
 import pandas as pd
 import math
 from typing import List, Optional
@@ -41,8 +43,9 @@ def get_category_stats_by_group(
 def get_amounts_by_group(
         data_frame: pd.DataFrame,
         type: str = "Expense",
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None
+        start_date: Optional[datetime.datetime] = None,
+        end_date: Optional[datetime.datetime] = None,
+        ignore_groups: List[str] = []
 ) -> pd.DataFrame:
     """Get the total spending per group over a specified period"""
     df = data_frame.copy()
@@ -58,6 +61,10 @@ def get_amounts_by_group(
         end_date = data_frame["Date"].max()
 
     df = df[df["Date"].between(start_date, end_date)]
+
+    if ignore_groups:
+        df = df[-df["Group"].isin(ignore_groups)]
+
     df = df.groupby("Group").sum()
 
     return df
@@ -66,8 +73,9 @@ def get_amounts_by_group(
 def get_amounts_by_group_category(
         data_frame: pd.DataFrame,
         group: str,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None
+        start_date: Optional[datetime.datetime] = None,
+        end_date: Optional[datetime.datetime] = None,
+        ignore_categories: List[str] = []
 ) -> pd.DataFrame:
     """Get the total spending per group categories over a specified period"""
     df = data_frame.copy()
@@ -83,6 +91,10 @@ def get_amounts_by_group_category(
         end_date = data_frame["Date"].max()
 
     df = df[df["Date"].between(start_date, end_date)]
+
+    if ignore_categories:
+        df = df[-df["Category"].isin(ignore_categories)]
+
     df = df.groupby("Category").sum()
 
     return df
