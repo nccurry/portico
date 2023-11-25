@@ -139,5 +139,6 @@ st.dataframe(
         "Date": st.column_config.DateColumn(
             disabled=True,
         )
-    }
+    },
+    use_container_width=True
 )
