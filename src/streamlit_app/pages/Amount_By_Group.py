@@ -1,6 +1,8 @@
 import altair as alt
 import streamlit as st
 from typing import List
+
+from src.data.transactions import get_category_stats_by_group
 from src.page.page import MonthlyExpensesPage
 
 # Initialize page
@@ -50,16 +52,6 @@ reset = col2.button(
     on_click=mep.clear_filtered_data
 )
 
-# Create chart
-# fig = px.histogram(
-#     data_frame=st.session_state.filtered_data,
-#     x="Month",
-#     y="Amount",
-#     color='Category',
-#     barmode='group'
-# )
-# col1.plotly_chart(fig, use_container_width=True)
-
 chart = alt.Chart(st.session_state.filtered_data).mark_bar().encode(
    x=alt.X('Month'),
    xOffset='Category',
@@ -69,5 +61,18 @@ chart = alt.Chart(st.session_state.filtered_data).mark_bar().encode(
     stroke=None,
 )
 col1.altair_chart(chart)
+
 st.subheader("Transactions", divider="blue")
-st.dataframe(data=st.session_state.filtered_data, hide_index=True)
+transactions_stats = get_category_stats_by_group(
+    data_frame=st.session_state.filtered_data,
+    group=st.session_state.selectbox_group
+)
+st.text("Stats")
+st.dataframe(
+    data=transactions_stats
+)
+st.text("All Transactions")
+st.dataframe(
+    data=st.session_state.filtered_data,
+    hide_index=True
+)
