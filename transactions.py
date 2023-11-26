@@ -1,5 +1,4 @@
 import datetime
-
 import pandas as pd
 import math
 from typing import List, Optional

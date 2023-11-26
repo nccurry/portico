@@ -8,8 +8,8 @@ import streamlit as st
 from streamlit.commands.page_config import Layout, PageIcon, InitialSideBarState, MenuItems
 from dataclasses import dataclass, asdict
 
-from src.data.transactions import get_total_months, get_group_categories
-from src.spreadsheet.spreadsheet import Spreadsheet, TransactionsSpreadsheet, BalanceHistorySpreadsheet
+from transactions import get_total_months, get_group_categories
+from spreadsheet import Spreadsheet, TransactionsSpreadsheet, BalanceHistorySpreadsheet
 
 
 @dataclass
@@ -18,7 +18,7 @@ class PageConfig:
     page_title: Optional[str] = None
     page_icon: Optional[PageIcon] = None
     layout: Layout = "wide"
-    initial_sidebar_state: InitialSideBarState = "collapsed"
+    initial_sidebar_state: InitialSideBarState = "auto"
     menu_items: Optional[MenuItems] = None
 
     def __dict__(self):
