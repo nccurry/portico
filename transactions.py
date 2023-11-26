@@ -34,6 +34,7 @@ def get_category_stats_by_group(
     """Return a data frame summarizing the transaction amounts per group"""
     df = data_frame.copy()
     df = df[df["Group"] == group]
+    # TODO: There is a bug here when the dataframe has no rows
     df = df.groupby('Category').describe().unstack(1).reset_index().pivot(index='Category', values=0, columns='level_1')
 
     return df
@@ -95,5 +96,21 @@ def get_amounts_by_group_category(
         df = df[-df["Category"].isin(ignore_categories)]
 
     df = df.groupby("Category").sum()
+
+    return df
+
+
+def get_monthly_amounts_by_category(
+        data_frame: pd.DataFrame,
+        category: str,
+        start_date: Optional[datetime.datetime] = None,
+        end_date: Optional[datetime.datetime] = None
+) -> pd.DataFrame:
+    """Get the total monthly transaction amount by a specified category"""
+    df = data_frame.copy()
+    df = df.sort_values("Date")
+    df = df[df["Category"] == category]
+    df = df.filter(["Month", "Group", "Category", "Amount", "Type"])
+    df = df.groupby("Month").sum()
 
     return df
