@@ -2,12 +2,12 @@ from datetime import datetime
 from typing import Dict
 
 import pandas as pd
-from src.data.balance_history import get_latest_balance_by_group, get_balance_history_by_group
-from src.data.transactions import get_amounts_by_group, get_amounts_by_group_category
-from src.page.page import HomePage
+from balance_history import get_latest_balance_by_group, get_balance_history_by_group
+from transactions import get_amounts_by_group, get_amounts_by_group_category
+from page import HomePage
 import streamlit as st
 
-from src.utils.utils import first_day_of_the_month, last_day_of_the_month
+from utils import first_day_of_the_month, last_day_of_the_month
 
 home_page = HomePage()
 

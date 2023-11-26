@@ -2,8 +2,8 @@ import altair as alt
 import streamlit as st
 from typing import List
 
-from src.data.transactions import get_category_stats_by_group
-from src.page.page import MonthlyExpensesPage
+from transactions import get_category_stats_by_group
+from page import MonthlyExpensesPage
 
 # Initialize page
 mep = MonthlyExpensesPage()
