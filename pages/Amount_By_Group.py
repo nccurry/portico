@@ -72,10 +72,12 @@ transactions_stats = get_category_stats_by_group(
 )
 st.text("Stats")
 st.dataframe(
-    data=transactions_stats
+    data=transactions_stats,
+    use_container_width=True
 )
 st.text("All Transactions")
 st.dataframe(
     data=st.session_state.filtered_data,
-    hide_index=True
+    hide_index=True,
+    use_container_width=True
 )
