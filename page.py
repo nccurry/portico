@@ -187,3 +187,21 @@ class MonthlyExpensesPage(Page):
 
         if update:
             self.update_filtered_data()
+
+
+class BillsPage(Page):
+    state_prefix = "bp"
+
+    def load_spreadsheets(self) -> None:
+        ts_url = os.environ.get("TRANSACTIONS_SPREADSHEET_URL")
+        ts = TransactionsSpreadsheet(url=ts_url)
+        self.spreadsheets[ts.name] = ts
+
+    def initialize_session_state(
+            self,
+            force: bool = False
+    ) -> None:
+        ...
+
+    def ui_widget_callback(self) -> None:
+        ...
