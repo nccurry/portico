@@ -47,6 +47,12 @@ end_date_input_value = st.sidebar.date_input(
     disabled=custom_input_disabled
 )
 
+filtered_account_groups_multiselect = st.sidebar.multiselect(
+    label="Filtered Account Groups",
+    options=home_page.spreadsheets["bhs"].scrubbed_df["Group"].unique(),
+    default=["House", "Loan"]
+)
+
 if time_period_radio_value == "Custom":
     start_date = datetime(start_date_input_value.year, start_date_input_value.month, start_date_input_value.day)
     end_date = datetime(end_date_input_value.year, end_date_input_value.month, end_date_input_value.day)
@@ -65,22 +71,20 @@ amount_by_income_categories_df = get_amounts_by_group_category(
 )
 
 col1, col2 = st.columns(2)
-col1.subheader("Expenses by Group")
+col1.subheader("Expenses")
 col1.bar_chart(
     data=amount_by_expense_group_df,
     color="#d47468"
 )
-col2.subheader("Income by Category")
+col2.subheader("Income")
 col2.bar_chart(
     data=amount_by_income_categories_df,
     color="#7dc781"
 )
 
-# TODO: Include this in the sidebar
-group_filter = ["House", "Loan"]
 groups = []
 for group in home_page.spreadsheets["bhs"].scrubbed_df.sort_values("Group")["Group"].unique():
-    if group not in group_filter:
+    if group not in filtered_account_groups_multiselect:
         groups.append(group)
 
 data: Dict[str, Dict[str, pd.DataFrame]] = {}

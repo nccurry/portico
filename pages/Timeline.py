@@ -45,3 +45,9 @@ nvidia_stock = {
 
     }
 }
+
+mortgage = {
+    "": {
+
+    }
+}
