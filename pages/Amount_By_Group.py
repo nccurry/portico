@@ -60,7 +60,10 @@ chart = alt.Chart(st.session_state.filtered_data).mark_bar().encode(
 ).configure_view(
     stroke=None,
 )
-col1.altair_chart(chart)
+col1.altair_chart(
+    altair_chart=chart,
+    use_container_width=True
+)
 
 st.subheader("Transactions", divider="blue")
 transactions_stats = get_category_stats_by_group(
