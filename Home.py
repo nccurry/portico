@@ -1,15 +1,17 @@
+import os
 from datetime import datetime
 from typing import Dict
-
 import pandas as pd
 from balance_history import get_latest_balance_by_group, get_balance_history_by_group
+from spreadsheet import TransactionsSpreadsheet, BalanceHistorySpreadsheet
 from transactions import get_amounts_by_group, get_amounts_by_group_category
-from page import HomePage
 import streamlit as st
+from utils import first_day_of_the_month
 
-from utils import first_day_of_the_month, last_day_of_the_month
+st.set_page_config(layout="wide")
 
-home_page = HomePage()
+transaction_spreadsheet = TransactionsSpreadsheet()
+balance_history_spreadsheet = BalanceHistorySpreadsheet()
 
 time_period_radio_value = st.sidebar.radio(
     label="Time Period",
@@ -49,7 +51,7 @@ end_date_input_value = st.sidebar.date_input(
 
 filtered_account_groups_multiselect = st.sidebar.multiselect(
     label="Filtered Account Groups",
-    options=home_page.spreadsheets["bhs"].scrubbed_df["Group"].unique(),
+    options=balance_history_spreadsheet.scrubbed_df["Group"].unique(),
     default=["House", "Loan"]
 )
 
@@ -58,18 +60,22 @@ if time_period_radio_value == "Custom":
     end_date = datetime(end_date_input_value.year, end_date_input_value.month, end_date_input_value.day)
 
 amount_by_expense_group_df = get_amounts_by_group(
-    data_frame=home_page.spreadsheets["ts"].scrubbed_df,
+    data_frame=transaction_spreadsheet.scrubbed_df,
     start_date=start_date,
     end_date=end_date,
     ignore_groups=["Transfer"]
 )
 amount_by_income_categories_df = get_amounts_by_group_category(
-    data_frame=home_page.spreadsheets["ts"].scrubbed_df,
+    data_frame=transaction_spreadsheet.scrubbed_df,
     group="Income",
     start_date=start_date,
     end_date=end_date
 )
 
+st.header(f"Financial Summary")
+st.subheader(
+    body=f"{start_date.strftime('%m/%d/%Y')} - {end_date.strftime('%m/%d/%Y')}",
+    divider="blue")
 col1, col2 = st.columns(2)
 col1.subheader("Expenses")
 col1.bar_chart(
@@ -83,19 +89,19 @@ col2.bar_chart(
 )
 
 groups = []
-for group in home_page.spreadsheets["bhs"].scrubbed_df.sort_values("Group")["Group"].unique():
+for group in balance_history_spreadsheet.scrubbed_df.sort_values("Group")["Group"].unique():
     if group not in filtered_account_groups_multiselect:
         groups.append(group)
 
 data: Dict[str, Dict[str, pd.DataFrame]] = {}
 for group in groups:
     latest_balance_df, latest_balance_total = get_latest_balance_by_group(
-        scrubbed_data_frame=home_page.spreadsheets["bhs"].scrubbed_df,
+        scrubbed_data_frame=balance_history_spreadsheet.scrubbed_df,
         group=group,
         end_date=end_date
     )
     balance_history_df = get_balance_history_by_group(
-        scrubbed_data_frame=home_page.spreadsheets["bhs"].scrubbed_df,
+        scrubbed_data_frame=balance_history_spreadsheet.scrubbed_df,
         group=group,
         end_date=end_date
     )
@@ -105,34 +111,34 @@ for group in groups:
         balance_history_df=balance_history_df
     )
 
-st.subheader("Balance Histories")
+st.header("Account Balances")
 for group in groups:
-    with st.expander(f'# **{group}**: ${"{:,.2f}".format(data[group]["latest_balance_total"])}', expanded=True):
-        col1, col2 = st.columns(2)
-        col1.dataframe(
-            data=data[group]["latest_balance_df"].sort_values("Balance", ascending=False),
-            hide_index=True,
-            width=300,
-            column_config={
-                "Account": st.column_config.Column(
-                    width="small"
-                ),
-                "Balance": st.column_config.NumberColumn(
-                    format="$ %.2f"
-                )
-            }
-        )
-        col2.line_chart(
-            data=data[group]["balance_history_df"],
-            use_container_width=True,
-            height=200
-        )
+    st.subheader(group)
+    st.metric(label="Total", value="${:,.2f}".format(data[group]["latest_balance_total"]))
+    col1, col2 = st.columns(2)
+    col1.dataframe(
+        data=data[group]["latest_balance_df"].sort_values("Balance", ascending=False),
+        hide_index=True,
+        width=300,
+        column_config={
+            "Account": st.column_config.Column(
+                width="small"
+            ),
+            "Balance": st.column_config.NumberColumn(
+                format="$ %.2f"
+            )
+        }
+    )
+    col2.line_chart(
+        data=data[group]["balance_history_df"],
+        use_container_width=True,
+        height=200
+    )
 
 
-# TODO: Figure out how this interacts with the date selectors
 st.subheader("Transactions")
 
-transactions_df = home_page.spreadsheets["ts"].scrubbed_df
+transactions_df = transaction_spreadsheet.scrubbed_df
 transactions_df = transactions_df.sort_values(by='Date', ascending=False)
 transactions_df = transactions_df[transactions_df["Date"].between(start_date, end_date)]
 transactions_df = transactions_df.filter(["Date", "Full Description", "Amount", "Account", "Category", "Group"])
