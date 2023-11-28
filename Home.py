@@ -2,9 +2,7 @@ import os
 from datetime import datetime
 from typing import Dict
 import pandas as pd
-from balance_history import get_latest_balance_by_group, get_balance_history_by_group
 from spreadsheet import TransactionsSpreadsheet, BalanceHistorySpreadsheet
-from transactions import get_amounts_by_group, get_amounts_by_group_category
 import streamlit as st
 from utils import first_day_of_the_month
 
@@ -59,14 +57,12 @@ if time_period_radio_value == "Custom":
     start_date = datetime(start_date_input_value.year, start_date_input_value.month, start_date_input_value.day)
     end_date = datetime(end_date_input_value.year, end_date_input_value.month, end_date_input_value.day)
 
-amount_by_expense_group_df = get_amounts_by_group(
-    data_frame=transaction_spreadsheet.scrubbed_df,
+amount_by_expense_group_df = transaction_spreadsheet.get_amount_by_group(
     start_date=start_date,
     end_date=end_date,
     ignore_groups=["Transfer"]
 )
-amount_by_income_categories_df = get_amounts_by_group_category(
-    data_frame=transaction_spreadsheet.scrubbed_df,
+amount_by_income_categories_df = transaction_spreadsheet.get_group_amount_by_category(
     group="Income",
     start_date=start_date,
     end_date=end_date
@@ -89,19 +85,17 @@ col2.bar_chart(
 )
 
 groups = []
-for group in balance_history_spreadsheet.scrubbed_df.sort_values("Group")["Group"].unique():
+for group in balance_history_spreadsheet.get_groups():
     if group not in filtered_account_groups_multiselect:
         groups.append(group)
 
 data: Dict[str, Dict[str, pd.DataFrame]] = {}
 for group in groups:
-    latest_balance_df, latest_balance_total = get_latest_balance_by_group(
-        scrubbed_data_frame=balance_history_spreadsheet.scrubbed_df,
+    latest_balance_df, latest_balance_total = balance_history_spreadsheet.get_latest_balance_by_group(
         group=group,
         end_date=end_date
     )
-    balance_history_df = get_balance_history_by_group(
-        scrubbed_data_frame=balance_history_spreadsheet.scrubbed_df,
+    balance_history_df = balance_history_spreadsheet.get_balance_history_by_group(
         group=group,
         end_date=end_date
     )
@@ -114,7 +108,13 @@ for group in groups:
 st.header("Account Balances")
 for group in groups:
     st.subheader(group)
-    st.metric(label="Total", value="${:,.2f}".format(data[group]["latest_balance_total"]))
+    delta = data[group]["balance_history_df"].reset_index()["Balance"].iloc[-1] - data[group]["balance_history_df"].reset_index()["Balance"].iloc[0]
+    st.metric(
+        label="Total",
+        value="${:,.2f}".format(data[group]["latest_balance_total"]),
+        delta="{:,.2f}".format(delta),
+        delta_color="inverse" if group in ["Credit Card"] else "normal"
+    )
     col1, col2 = st.columns(2)
     col1.dataframe(
         data=data[group]["latest_balance_df"].sort_values("Balance", ascending=False),
