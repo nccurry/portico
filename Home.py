@@ -4,7 +4,7 @@ from typing import Dict
 import pandas as pd
 from spreadsheet import TransactionsSpreadsheet, BalanceHistorySpreadsheet
 import streamlit as st
-from utils import first_day_of_the_month
+from utils import first_day_of_the_month, last_day_of_the_month
 
 st.set_page_config(layout="wide")
 
@@ -15,6 +15,7 @@ time_period_radio_value = st.sidebar.radio(
     label="Time Period",
     options=[
         "This Month",
+        "Last Month",
         "Last 3 Months",
         "Last 12 Months",
         "Custom"
@@ -24,17 +25,24 @@ time_period_radio_value = st.sidebar.radio(
 if time_period_radio_value == "This Month":
     custom_input_disabled = True
     start_date = first_day_of_the_month(relative_months=0)
+    end_date = datetime.today()
+elif time_period_radio_value == "Last Month":
+    custom_input_disabled = True
+    start_date = first_day_of_the_month(relative_months=-1)
+    end_date = last_day_of_the_month(relative_months=-1)
 elif time_period_radio_value == "Last 3 Months":
     custom_input_disabled = True
     start_date = first_day_of_the_month(relative_months=-3)
+    end_date = datetime.today()
 elif time_period_radio_value == "Last 12 Months":
     custom_input_disabled = True
     start_date = first_day_of_the_month(relative_months=-12)
+    end_date = datetime.today()
 else:
     custom_input_disabled = False
     start_date = first_day_of_the_month(relative_months=0)
+    end_date = datetime.today()
 
-end_date = datetime.today()
 
 start_date_input_value = st.sidebar.date_input(
     label="Start Date",
@@ -97,6 +105,7 @@ for group in groups:
     )
     balance_history_df = balance_history_spreadsheet.get_balance_history_by_group(
         group=group,
+        start_date=start_date,
         end_date=end_date
     )
     data[group] = dict(
