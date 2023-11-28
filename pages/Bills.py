@@ -18,7 +18,7 @@ categories = [
 
 for category in categories:
     monthly_amounts_df = get_monthly_amounts_by_category(
-        data_frame=bills_page.spreadsheets["ts"].scrubbed_df,
+        data_frame=bills_page.spreadsheets["transactions_spreadsheet"].scrubbed_df,
         category=category
     )
     st.subheader(category)

@@ -102,8 +102,8 @@ class MonthlyExpensesPage(Page):
             self,
             force: bool = False
     ) -> None:
-        ts_scrubbed_df = self.spreadsheets["ts"].scrubbed_df
-        ts_groups = self.spreadsheets["ts"].scrubbed_df["Group"].unique()
+        ts_scrubbed_df = self.spreadsheets["transactions_spreadsheet"].scrubbed_df
+        ts_groups = self.spreadsheets["transactions_spreadsheet"].scrubbed_df["Group"].unique()
 
         if f'{self.state_prefix}_lookback_months' not in st.session_state or force:
             st.session_state[f'{self.state_prefix}_lookback_months'] = 3
@@ -133,7 +133,7 @@ class MonthlyExpensesPage(Page):
 
     def update_filtered_data(self) -> None:
         """Filter data in session_state based on widget settings"""
-        df = self.spreadsheets["ts"].scrubbed_df.copy()
+        df = self.spreadsheets["transactions_spreadsheet"].scrubbed_df.copy()
 
         # Filter by selected group
         df = df.loc[df["Group"] == st.session_state[f'{self.state_prefix}_selected_group']]
