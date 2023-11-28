@@ -212,6 +212,12 @@ class BalanceHistorySpreadsheet(Spreadsheet):
 
         self.scrubbed_df = df
 
+    def get_groups(
+            self
+    ) -> List[str]:
+        """Return the unique list of account group names"""
+        return self.scrubbed_df.sort_values("Group")["Group"].unique()
+
     def get_latest_balance_by_group(
             self,
             group: str,
@@ -287,3 +293,10 @@ class BalanceHistorySpreadsheet(Spreadsheet):
         df = df.fillna(method="ffill")
 
         return df
+
+    def get_balance_delta(
+            self,
+            start_date: Optional[datetime] = None,
+            end_date: Optional[datetime] = None
+    ) -> float:
+        """Get the difference in account balance at the beginning and ending of a period"""
