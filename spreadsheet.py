@@ -90,6 +90,12 @@ class TransactionsSpreadsheet(Spreadsheet):
 
         return total_months
 
+    def get_groups(
+            self
+    ) -> List[str]:
+        """Return the unique list of account group names"""
+        return self.scrubbed_df.sort_values("Group")["Group"].unique()
+
     def get_group_categories(
         self,
         group: str

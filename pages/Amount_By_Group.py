@@ -1,12 +1,14 @@
+from datetime import date
 import altair as alt
+import dateutil
 import streamlit as st
 from typing import List
-
+from spreadsheet import TransactionsSpreadsheet
 from transactions import get_category_stats_by_group
-from page import MonthlyExpensesPage
 
-# Initialize page
-mep = MonthlyExpensesPage()
+st.set_page_config(layout="wide")
+
+transaction_spreadsheet = TransactionsSpreadsheet()
 
 # Configure UI
 
@@ -14,45 +16,54 @@ st.header("Amount by Group", divider="blue")
 
 col1, col2 = st.columns([0.6, 0.4])
 
-lookback_months: int = col2.slider(
+lookback_months_slider: int = col2.slider(
     label="Lookback (Months)",
     min_value=1,
-    max_value=st.session_state[f'{mep.state_prefix}_total_months'],
-    value=st.session_state[f'{mep.state_prefix}_lookback_months'],
-    key="slider_lookback_months",
-    on_change=mep.ui_widget_callback
+    max_value=transaction_spreadsheet.get_total_months(),
+    value=3,
 )
 
-group: str = col2.selectbox(
+group_selectbox: str = col2.selectbox(
     label="Group",
-    options=st.session_state[f'{mep.state_prefix}_total_groups'],
-    key="selectbox_group",
-    on_change=mep.ui_widget_callback
+    options=transaction_spreadsheet.get_groups(),
 )
 
 included_categories: List[str] = col2.multiselect(
     label="Included Categories",
-    options=st.session_state[f'{mep.state_prefix}_group_categories'],
-    default=st.session_state[f'{mep.state_prefix}_included_categories'],
-    key="multiselect_included_categories",
-    on_change=mep.ui_widget_callback
+    options=transaction_spreadsheet.get_group_categories(group_selectbox),
+    default=[]
 )
 
 ignored_categories: List[str] = col2.multiselect(
     label="Ignored Categories",
-    options=st.session_state[f'{mep.state_prefix}_group_categories'],
-    default=st.session_state[f'{mep.state_prefix}_ignored_categories'],
-    key="multiselect_ignored_categories",
-    on_change=mep.ui_widget_callback
+    options=transaction_spreadsheet.get_group_categories(group_selectbox),
+    default=[]
 )
 
-reset = col2.button(
-    label="Clear",
-    type="primary",
-    on_click=mep.clear_filtered_data
-)
+# reset = col2.button(
+#     label="Clear",
+#     type="primary",
+#     on_click=mep.clear_filtered_data
+# )
 
-chart = alt.Chart(st.session_state.filtered_data).mark_bar().encode(
+filtered_df = transaction_spreadsheet.scrubbed_df.copy()
+
+# Filter by selected group
+filtered_df = filtered_df.loc[filtered_df["Group"] == group_selectbox]
+categories = transaction_spreadsheet.get_group_categories(group_selectbox)
+
+# Filter by included / ignored categories
+if included_categories:
+    filtered_df = filtered_df[filtered_df["Category"].isin(included_categories)]
+if ignored_categories:
+    filtered_df = filtered_df[-filtered_df["Category"].isin(ignored_categories)]
+
+# Filter by Month lookback
+first_of_the_month = date.today().replace(day=1)
+month_cutoff = first_of_the_month + dateutil.relativedelta.relativedelta(months=-(lookback_months_slider + 1))
+filtered_df = filtered_df[filtered_df["Date"].dt.date > month_cutoff]
+
+chart = alt.Chart(filtered_df).mark_bar().encode(
    x=alt.X('Month'),
    xOffset='Category',
    y=alt.Y('Amount'),
@@ -67,8 +78,8 @@ col1.altair_chart(
 
 st.subheader("Transactions", divider="blue")
 transactions_stats = get_category_stats_by_group(
-    data_frame=st.session_state.filtered_data,
-    group=st.session_state.selectbox_group
+    data_frame=filtered_df,
+    group=group_selectbox
 )
 st.text("Stats")
 st.dataframe(
@@ -77,7 +88,7 @@ st.dataframe(
 )
 st.text("All Transactions")
 st.dataframe(
-    data=st.session_state.filtered_data,
+    data=filtered_df,
     hide_index=True,
     use_container_width=True
 )
