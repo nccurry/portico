@@ -76,7 +76,7 @@ class TransactionsSpreadsheet(Spreadsheet):
         df["Month"] = df["Month"].dt.strftime('%Y-%m')
         df["Week"] = df["Week"].dt.strftime('%U')
 
-        df = df.filter(["Date", "Category", "Amount", "Account", "Month", "Full Description", "Group", "Type"])
+        df = df.filter(["Date", "Category", "Amount", "Account", "Month", "Full Description", "Group", "Type", "Institution", "Account #"])
 
         self.scrubbed_df = df
 
