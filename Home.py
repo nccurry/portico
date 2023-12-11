@@ -81,12 +81,12 @@ st.subheader(
     body=f"{start_date.strftime('%m/%d/%Y')} - {end_date.strftime('%m/%d/%Y')}",
     divider="blue")
 col1, col2 = st.columns(2)
-col1.subheader("Expenses")
+col1.subheader(f"Expenses: -${-amount_by_expense_group_df['Amount'].sum():,.2f}")
 col1.bar_chart(
     data=amount_by_expense_group_df,
     color="#d47468"
 )
-col2.subheader("Income")
+col2.subheader(f"Income: ${amount_by_income_categories_df['Amount'].sum():,.2f}")
 col2.bar_chart(
     data=amount_by_income_categories_df,
     color="#7dc781"

@@ -296,7 +296,9 @@ class BalanceHistorySpreadsheet(Spreadsheet):
         df.index = pd.DatetimeIndex(df["Date"])
         df = df.reindex(idx)
         df["Date"] = df.index
-        df = df.fillna(method="ffill")
+        df = df.bfill().fillna(method="ffill")
+
+        st.dataframe(df)
 
         return df
 
