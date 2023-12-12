@@ -95,7 +95,7 @@ col2.bar_chart(
 groups = []
 for group in balance_history_spreadsheet.get_groups():
     if group not in filtered_account_groups_multiselect:
-        groups.append(group)
+             groups.append(group) # TODO: This will fail if there is a nan
 
 data: Dict[str, Dict[str, pd.DataFrame]] = {}
 for group in groups:
