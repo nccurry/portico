@@ -1,0 +1,33 @@
+credit_cards:
+# Chase Amazon 6526
+- account_id: 65440a84a14656002f355cee
+  date: 18
+  statement_start_day: 22
+ # Chase Southwest 6403
+- account_id: 65440a84a14656002f355cba
+  date: 20
+  statement_start_day: 24
+# Chase Marriott 6426
+- account_id: 65440a84a14656002f355cd9
+  date: 13
+  statement_start_day: 17
+# American Express Blue Cash 1004
+- account_id: 65440eeaa14656002f361c2e
+  date: 9
+  statement_start_day: 25
+# Citi AAdvantage 6917
+- account_id: 65451a7ea14656002f63fe23
+  date: 3
+  statement_start_day: 8
+# Discover IT 9218
+- account_id: 000000000000000000000000
+  date: 14
+  statement_start_day: 20
+rsus:
+- date:
+  shares:
+espp:
+- date: 
+  shares: 
+mortgage:
+subscriptions:
