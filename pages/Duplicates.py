@@ -7,7 +7,7 @@ def configure_page(
         transactions_spreadsheet: TransactionsSpreadsheet,
         balance_history_spreadsheet: BalanceHistorySpreadsheet
 ) -> None:
-    transactions_df = transaction_spreadsheet.scrubbed_df
+    transactions_df = transactions_spreadsheet.scrubbed_df
 
     duplicate_transactions_df = transactions_df[transactions_df.duplicated(
         subset=["Amount", "Date", "Account", "Institution"],
