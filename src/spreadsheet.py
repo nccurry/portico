@@ -1,3 +1,4 @@
+"""Classes for interacting with Google Sheets spreadsheets."""
 import datetime
 import os
 from typing import Optional, List, Tuple
@@ -138,7 +139,7 @@ class TransactionsSpreadsheet(Spreadsheet):
 
         df = df[df["Date"].between(start_date, end_date)]
         df = df[-df["Group"].isin(ignore_groups)]
-        df = df.groupby("Group").sum()
+        df = df.groupby("Group").sum(numeric_only=True)
 
         return df
 
@@ -162,7 +163,7 @@ class TransactionsSpreadsheet(Spreadsheet):
 
         df = df[df["Date"].between(start_date, end_date)]
         df = df[-df["Category"].isin(ignore_categories)]
-        df = df.groupby("Category").sum()
+        df = df.groupby("Category").sum(numeric_only=True)
 
         return df
 
@@ -174,9 +175,10 @@ class TransactionsSpreadsheet(Spreadsheet):
     ) -> pd.DataFrame:
         """Get the total monthly transaction amount by a specified category"""
         df = self.scrubbed_df.copy()
-        df = df.sort_values("Date")
+        columns = df.columns.tolist()
+        df = df.sort_values(["Date"])
         df = df[df["Category"] == category]
-        df = df.filter(["Month", "Group", "Category", "Amount", "Type"])
+        df = df.filter(["Date", "Month", "Group", "Category", "Amount", "Type"])
 
         if start_date is None:
             start_date = df["Date"].min()
@@ -185,6 +187,18 @@ class TransactionsSpreadsheet(Spreadsheet):
 
         df = df[df["Date"].between(start_date, end_date)]
         df = df.groupby("Month").sum()
+
+        return df
+
+    def get_category_stats_by_group(
+            self,
+            group: str
+    ) -> pd.DataFrame:
+        """Return a data frame summarizing the transaction amounts per group"""
+        df = self.scrubbed_df.copy()
+        df = df[df["Group"] == group]
+        # TODO: There is a bug here when the dataframe has no rows
+        df = df.groupby('Category').describe().unstack(1).reset_index().pivot(index='Category', values=0, columns='level_1')
 
         return df
 
@@ -306,3 +320,6 @@ class BalanceHistorySpreadsheet(Spreadsheet):
             end_date: Optional[datetime] = None
     ) -> float:
         """Get the difference in account balance at the beginning and ending of a period"""
+
+
+

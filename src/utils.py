@@ -15,3 +15,8 @@ def last_day_of_the_month(relative_months: int = 0) -> datetime:
     next_month = first_day_of_the_relative_month.replace(day=28) + datetime.timedelta(days=4)
 
     return next_month - datetime.timedelta(days=next_month.day)
+
+
+def relative_date(relative_days: int = 30) -> datetime:
+    """Return the date relative_days from now as a datetime"""
+    return datetime.datetime.today() + datetime.timedelta(days=relative_days)
