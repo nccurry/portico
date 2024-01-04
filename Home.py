@@ -1,7 +1,6 @@
 from datetime import datetime
 from typing import Dict
 import pandas as pd
-
 from src.sidebar import configure_sidebar
 from src.spreadsheet import TransactionsSpreadsheet, BalanceHistorySpreadsheet
 import streamlit as st
@@ -52,7 +51,7 @@ def configure_page(
     groups = []
     for group in balance_history_spreadsheet.get_groups():
         if group not in filtered_account_groups_multiselect:
-                 groups.append(group) # TODO: This will fail if there is a nan
+             groups.append(group)  # TODO: This will fail if there is a nan
 
     data: Dict[str, Dict[str, pd.DataFrame]] = {}
     for group in groups:

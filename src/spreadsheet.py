@@ -297,7 +297,6 @@ class BalanceHistorySpreadsheet(Spreadsheet):
             columns: List[str] = ["Date", "Account", "Account ID", "Institution", "Group", "Balance"]
     ) -> pd.DataFrame:
         """Get the balance history for a balance_history group"""
-
         # Filter and sort
         df = self.scrubbed_df.copy()
         df = df[df["Account ID"] == account_id]
@@ -310,7 +309,7 @@ class BalanceHistorySpreadsheet(Spreadsheet):
         df.index = pd.DatetimeIndex(df["Date"])
         df = df.reindex(idx)
         df["Date"] = df.index
-        df = df.bfill().fillna(method="ffill") # bfill fills empty start dates, ffill fills empty middle dates
+        df = df.bfill().fillna(method="ffill")  # bfill fills empty start dates, ffill fills empty middle dates
 
         return df
 
