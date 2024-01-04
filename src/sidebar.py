@@ -27,6 +27,7 @@ def configure_sidebar(
     end_date = datetime.today()
     if time_period_radio == "Last 30 Days":
         start_date = relative_date(relative_days=-30)
+        start_date = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
     elif time_period_radio == "This Month":
         start_date = first_day_of_the_month(relative_months=0)
     elif time_period_radio == "Last Month":

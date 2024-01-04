@@ -3,6 +3,7 @@ import streamlit as st
 from src.sidebar import configure_sidebar
 from src.spreadsheet import TransactionsSpreadsheet, BalanceHistorySpreadsheet
 
+
 def configure_page(
         transactions_spreadsheet: TransactionsSpreadsheet,
         balance_history_spreadsheet: BalanceHistorySpreadsheet
