@@ -119,36 +119,88 @@ class TransactionsSpreadsheet(Spreadsheet):
 
         return df
 
-    def get_amount_by_group(
+    def filter_transactions(
             self,
-            transaction_type: str = "Expense",
+            include_categories: List[str] = [],
+            ignore_categories: List[str] = [],
+            include_groups: List[str] = [],
+            ignore_groups: List[str] = [],
+            include_types: List[str] = [],
+            ignore_types: List[str] = [],
             start_date: Optional[datetime.datetime] = None,
             end_date: Optional[datetime.datetime] = None,
-            ignore_groups: List[str] = []
+            filtered_columns: List[str] = [],
+            group_by_column: Optional[str] = None,
     ) -> pd.DataFrame:
-        """Get the total spending per group over a specified period"""
+        """Filter transactions based on various attributes. Optionally group by a given column"""
         df = self.scrubbed_df.copy()
-        df = df[df["Type"] == transaction_type]
-        df = df.filter(["Date", "Group", "Amount", "Type"])
         df = df.sort_values("Date")
+
+        if include_categories:
+            df = df[df["Category"].isin(include_categories)]
+        df = df[-df["Category"].isin(ignore_categories)]
+
+        if include_groups:
+            df = df[df["Group"].isin(include_groups)]
+        df = df[-df["Group"].isin(ignore_groups)]
+
+        if include_types:
+            df = df[df["Type"].isin(include_types)]
+        df = df[-df["Group"].isin(ignore_types)]
 
         if start_date is None:
             start_date = df["Date"].min()
         if end_date is None:
             end_date = df["Date"].max()
-
         df = df[df["Date"].between(start_date, end_date)]
+
+        if filtered_columns:
+            df = df.filter(filtered_columns)
+
+        if group_by_column:
+            df = df.groupby(group_by_column).sum(numeric_only=True)
+
+        return df
+
+    def get_amount_by_group(
+            self,
+            include_groups: List[str] = [],
+            ignore_groups: List[str] = [],
+            include_types: List[str] = [],
+            ignore_types: List[str] = [],
+            start_date: Optional[datetime.datetime] = None,
+            end_date: Optional[datetime.datetime] = None,
+    ) -> pd.DataFrame:
+        """Get the total spending per group over a specified period"""
+        df = self.scrubbed_df.copy()
+        df = df.filter(["Date", "Group", "Amount", "Type"])
+        df = df.sort_values("Date")
+
+        if include_groups:
+            df = df[df["Group"].isin(include_groups)]
         df = df[-df["Group"].isin(ignore_groups)]
+
+        if include_types:
+            df = df[df["Type"].isin(include_types)]
+        df = df[-df["Group"].isin(ignore_types)]
+
+        if start_date is None:
+            start_date = df["Date"].min()
+        if end_date is None:
+            end_date = df["Date"].max()
+        df = df[df["Date"].between(start_date, end_date)]
+
         df = df.groupby("Group").sum(numeric_only=True)
 
         return df
 
-    def get_group_amount_by_category(
+    def get_amount_by_group_category(
             self,
             group: str,
+            include_categories: List[str] = [],
+            ignore_categories: List[str] = [],
             start_date: Optional[datetime.datetime] = None,
             end_date: Optional[datetime.datetime] = None,
-            ignore_categories: List[str] = []
     ) -> pd.DataFrame:
         """Get the total group spending per categories over a specified period"""
         df = self.scrubbed_df.copy()
@@ -156,13 +208,17 @@ class TransactionsSpreadsheet(Spreadsheet):
         df = df.filter(["Date", "Group", "Category", "Amount", "Type"])
         df = df.sort_values("Date")
 
+        # If include_categories is empty, include all categories
+        if include_categories:
+            df = df[df["Category"].isin(include_categories)]
+        df = df[-df["Category"].isin(ignore_categories)]
+
         if start_date is None:
             start_date = df["Date"].min()
         if end_date is None:
             end_date = df["Date"].max()
-
         df = df[df["Date"].between(start_date, end_date)]
-        df = df[-df["Category"].isin(ignore_categories)]
+
         df = df.groupby("Category").sum(numeric_only=True)
 
         return df
@@ -175,7 +231,6 @@ class TransactionsSpreadsheet(Spreadsheet):
     ) -> pd.DataFrame:
         """Get the total monthly transaction amount by a specified category"""
         df = self.scrubbed_df.copy()
-        columns = df.columns.tolist()
         df = df.sort_values(["Date"])
         df = df[df["Category"] == category]
         df = df.filter(["Date", "Month", "Group", "Category", "Amount", "Type"])
