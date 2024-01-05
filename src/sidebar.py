@@ -1,7 +1,7 @@
 from datetime import datetime
 from src.spreadsheet import TransactionsSpreadsheet, BalanceHistorySpreadsheet
 import streamlit as st
-from src.utils import first_day_of_the_month, last_day_of_the_month, relative_date
+from src.utils import first_day_of_month, last_day_of_month, relative_date
 
 
 def configure_sidebar(
@@ -27,19 +27,18 @@ def configure_sidebar(
     end_date = datetime.today()
     if time_period_radio == "Last 30 Days":
         start_date = relative_date(relative_days=-30)
-        start_date = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
     elif time_period_radio == "This Month":
-        start_date = first_day_of_the_month(relative_months=0)
+        start_date = first_day_of_month(relative_months=0)
     elif time_period_radio == "Last Month":
-        start_date = first_day_of_the_month(relative_months=-1)
-        end_date = last_day_of_the_month(relative_months=-1)
+        start_date = first_day_of_month(relative_months=-1)
+        end_date = last_day_of_month(relative_months=-1)
     elif time_period_radio == "Last 3 Months":
-        start_date = first_day_of_the_month(relative_months=-3)
+        start_date = first_day_of_month(relative_months=-3)
     elif time_period_radio == "Last 12 Months":
-        start_date = first_day_of_the_month(relative_months=-12)
+        start_date = first_day_of_month(relative_months=-12)
     else:
         custom_input_disabled = False
-        start_date = first_day_of_the_month(relative_months=0)
+        start_date = first_day_of_month(relative_months=0)
 
     st.session_state["start_date"] = start_date
     st.session_state["end_date"] = end_date
