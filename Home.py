@@ -1,105 +1,65 @@
 import datetime
-from typing import Dict
+from typing import Dict, List
 import pandas as pd
 from src.sidebar import configure_sidebar
 from src.spreadsheet import TransactionsSpreadsheet, BalanceHistorySpreadsheet
 import streamlit as st
-from src.utils import relative_date, format_dollar_amount, first_day_of_month, last_day_of_month, this_day_of_month
+from src.utils import format_dollar_amount, SPENDING_PERIODS
 import altair as alt
 
 
-def configure_page(
+def generate_at_a_glance_spending(
         transaction_spreadsheet: TransactionsSpreadsheet,
-        balance_history_spreadsheet: BalanceHistorySpreadsheet
+        subheader: str,
+        periods: List[str],
+        include_groups: List[str] = [],
+        ignore_groups: List[str] = [],
+        include_types: List[str] = [],
+        ignore_types: List[str] = [],
 ) -> None:
-    time_period_radio = st.session_state["time_period_radio"]
-    start_date_input = st.session_state["start_date_input"]
-    end_date_input = st.session_state["end_date_input"]
-    start_date = st.session_state["start_date"]
-    end_date = st.session_state["end_date"]
-    filtered_account_groups_multiselect = st.session_state["filtered_account_groups_multiselect"]
-
-    st.header("At a Glance")
-    st.subheader("Discretionary Spending")
-    periods = [
-        {
-            "label": "Last 7 Days",
-            "start_date": relative_date(-7),
-            "end_date": relative_date(-1),
-            "start_date_previous": relative_date(-14),
-            "end_date_previous": relative_date(-8),
-        },
-        {
-            "label": "Last 14 Days",
-            "start_date": relative_date(-14),
-            "end_date": relative_date(-1),
-            "start_date_previous": relative_date(-28),
-            "end_date_previous": relative_date(-15),
-        },
-        {
-            "label": "Last 28 Days",
-            "start_date": relative_date(-28),
-            "end_date": relative_date(-1),
-            "start_date_previous": relative_date(-56),
-            "end_date_previous": relative_date(-29),
-        },
-        {
-            "label": "This Month",
-            "start_date": first_day_of_month(relative_months=0),
-            "end_date": relative_date(relative_days=0),
-            "start_date_previous": first_day_of_month(relative_months=-1),
-            "end_date_previous": this_day_of_month(relative_months=-1),
-        },
-        {
-            "label": "Last Month",
-            "start_date": first_day_of_month(relative_months=-1),
-            "end_date": last_day_of_month(relative_months=-1),
-            "start_date_previous": first_day_of_month(relative_months=-2),
-            "end_date_previous": last_day_of_month(relative_months=-2),
-        },
-        {
-            "label": "Last Quarter",
-            "start_date": first_day_of_month(relative_months=-3),
-            "end_date": last_day_of_month(relative_months=-1),
-            "start_date_previous": first_day_of_month(relative_months=-6),
-            "end_date_previous": last_day_of_month(relative_months=-4),
-        },
-    ]
+    """"""
+    st.subheader(subheader)
     columns = st.columns(4)
     for idx, period in enumerate(periods):
         column_value = 0 if idx < 3 else 2
         period_amount_by_group_df = transaction_spreadsheet.get_amount_by_group(
-            ignore_groups=["Transfer", "Bills"],
-            ignore_types=["Income"],
-            start_date=period["start_date"],
-            end_date=period["end_date"]
+            include_groups=include_groups,
+            ignore_groups=ignore_groups,
+            include_types=include_types,
+            ignore_types=ignore_types,
+            start_date=SPENDING_PERIODS[period]["start_date"],
+            end_date=SPENDING_PERIODS[period]["end_date"]
         )
         period_amount_by_group_total = period_amount_by_group_df["Amount"].sum()
         period_amount_by_group_last_df = transaction_spreadsheet.get_amount_by_group(
-            ignore_groups=["Transfer", "Bills"],
-            ignore_types=["Income"],
-            start_date=period["start_date_previous"],
-            end_date=period["end_date_previous"]
+            include_groups=include_groups,
+            ignore_groups=ignore_groups,
+            include_types=include_types,
+            ignore_types=ignore_types,
+            start_date=SPENDING_PERIODS[period]["start_date_previous"],
+            end_date=SPENDING_PERIODS[period]["end_date_previous"]
         )
         period_amount_by_group_last_total = period_amount_by_group_last_df["Amount"].sum()
         period_total_delta = period_amount_by_group_last_total - period_amount_by_group_total
         columns[column_value].metric(
-            label=period["label"],
+            label=period,
             value=format_dollar_amount(-period_amount_by_group_total),
             delta=format_dollar_amount(period_total_delta),
             delta_color="inverse"
         )
 
         period_transactions_df = transaction_spreadsheet.filter_transactions(
-            ignore_groups=["Transfer", "Bills"],
-            ignore_types=["Income"],
-            start_date=period["start_date"],
-            end_date=period["end_date"],
+            include_groups=include_groups,
+            ignore_groups=ignore_groups,
+            include_types=include_types,
+            ignore_types=ignore_types,
+            start_date=SPENDING_PERIODS[period]["start_date"],
+            end_date=SPENDING_PERIODS[period]["end_date"],
             filtered_columns=["Date", "Amount"]
         )
 
         summed_amount_by_day = period_transactions_df.groupby('Date').sum(numeric_only=True)
-        date_index = pd.date_range(period["start_date"], period["end_date"])
+        date_index = pd.date_range(SPENDING_PERIODS[period]["start_date"], SPENDING_PERIODS[period]["end_date"])
         summed_amount_by_day = summed_amount_by_day.reindex(index=date_index, fill_value=0)
         summed_amount_by_day = summed_amount_by_day.bfill().fillna(method="ffill")
         cumulative_amount_by_day = summed_amount_by_day.cumsum()
@@ -107,13 +67,15 @@ def configure_page(
         cumulative_amount_by_day["Day"] = range(len(cumulative_amount_by_day))
 
         period_transactions_previous_df = transaction_spreadsheet.filter_transactions(
-            ignore_groups=["Transfer", "Bills"],
-            ignore_types=["Income"],
-            start_date=period["start_date_previous"],
-            end_date=period["end_date_previous"],
+            include_groups=include_groups,
+            ignore_groups=ignore_groups,
+            include_types=include_types,
+            ignore_types=ignore_types,
+            start_date=SPENDING_PERIODS[period]["start_date_previous"],
+            end_date=SPENDING_PERIODS[period]["end_date_previous"],
         )
         summed_amount_by_day_previous = period_transactions_previous_df.groupby('Date').sum(numeric_only=True)
-        date_index_previous = pd.date_range(period["start_date_previous"], period["end_date_previous"])
+        date_index_previous = pd.date_range(SPENDING_PERIODS[period]["start_date_previous"], SPENDING_PERIODS[period]["end_date_previous"])
         summed_amount_by_day_previous = summed_amount_by_day_previous.reindex(index=date_index_previous, fill_value=0)
         summed_amount_by_day_previous = summed_amount_by_day_previous.bfill().fillna(method="ffill")
         cumulative_amount_by_day_previous = summed_amount_by_day_previous.cumsum()
@@ -137,6 +99,47 @@ def configure_page(
         )
 
         columns[column_value + 1].altair_chart(altair_chart=chart, use_container_width=True)
+
+
+def configure_page(
+        transaction_spreadsheet: TransactionsSpreadsheet,
+        balance_history_spreadsheet: BalanceHistorySpreadsheet
+) -> None:
+    time_period_radio = st.session_state["time_period_radio"]
+    start_date_input = st.session_state["start_date_input"]
+    end_date_input = st.session_state["end_date_input"]
+    start_date = st.session_state["start_date"]
+    end_date = st.session_state["end_date"]
+    filtered_account_groups_multiselect = st.session_state["filtered_account_groups_multiselect"]
+
+    st.header("Spending at a Glance")
+
+    generate_at_a_glance_spending(
+        transaction_spreadsheet=transaction_spreadsheet,
+        subheader="Discretionary",
+        periods=[
+            "Last 7 Days",
+            "Last 14 Days",
+            "Last 28 Days",
+            "This Month",
+            "Last Month",
+            "Last Quarter"
+        ],
+        ignore_groups=["Transfer", "Bills"],
+        ignore_types=["Income"]
+    )
+
+    generate_at_a_glance_spending(
+        transaction_spreadsheet=transaction_spreadsheet,
+        subheader="Bills",
+        periods=[
+            "Last Month",
+            "Last Quarter"
+        ],
+        include_groups=["Bills"],
+        ignore_groups=["Transfer"],
+        ignore_types=["Income"]
+    )
 
     # Category
     if time_period_radio == "Custom":
