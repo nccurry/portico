@@ -21,7 +21,6 @@ def generate_at_a_glance_spending(
     st.subheader(subheader)
     columns = st.columns(4)
     for idx, period in enumerate(periods):
-        column_value = 0 if idx < 3 else 2
         period_amount_by_group_df = transaction_spreadsheet.get_amount_by_group(
             include_groups=include_groups,
             ignore_groups=ignore_groups,
@@ -41,7 +40,7 @@ def generate_at_a_glance_spending(
         )
         period_amount_by_group_last_total = period_amount_by_group_last_df["Amount"].sum()
         period_total_delta = period_amount_by_group_last_total - period_amount_by_group_total
-        columns[column_value].metric(
+        columns[(idx % 2) * 2].metric(
             label=period,
             value=format_dollar_amount(-period_amount_by_group_total),
             delta=format_dollar_amount(period_total_delta),
@@ -98,7 +97,7 @@ def generate_at_a_glance_spending(
             tooltip=["Amount"]
         )
 
-        columns[column_value + 1].altair_chart(altair_chart=chart, use_container_width=True)
+        columns[((idx % 2) * 2) + 1].altair_chart(altair_chart=chart, use_container_width=True)
 
 
 def configure_page(
@@ -119,11 +118,11 @@ def configure_page(
         subheader="Discretionary",
         periods=[
             "Last 7 Days",
-            "Last 14 Days",
-            "Last 28 Days",
             "This Month",
+            "Last 14 Days",
             "Last Month",
-            "Last Quarter"
+            "Last 28 Days",
+            "Last 3 Months"
         ],
         ignore_groups=["Transfer", "Bills"],
         ignore_types=["Income"]
@@ -134,7 +133,7 @@ def configure_page(
         subheader="Bills",
         periods=[
             "Last Month",
-            "Last Quarter"
+            "Last 3 Months"
         ],
         include_groups=["Bills"],
         ignore_groups=["Transfer"],

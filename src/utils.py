@@ -143,25 +143,28 @@ SPENDING_PERIODS = {
     # "This Quarter": {
     # "This Half": {
     # "This Year": {
+    # "Last Quarter": {
+    # "Last Half": {
+    # "Last Year": {
     "Last Month": {
         "start_date": first_day_of_month(relative_months=-1),
         "end_date": last_day_of_month(relative_months=-1),
         "start_date_previous": first_day_of_month(relative_months=-2),
         "end_date_previous": last_day_of_month(relative_months=-2),
     },
-    "Last Quarter": {
+    "Last 3 Months": {
         "start_date": first_day_of_month(relative_months=-3),
         "end_date": last_day_of_month(relative_months=-1),
         "start_date_previous": first_day_of_month(relative_months=-6),
         "end_date_previous": last_day_of_month(relative_months=-4),
     },
-    "Last Half": {
+    "Last 6 Months": {
         "start_date": first_day_of_month(relative_months=-6),
         "end_date": last_day_of_month(relative_months=-1),
         "start_date_previous": first_day_of_month(relative_months=-12),
         "end_date_previous": last_day_of_month(relative_months=-7),
     },
-    "Last Year": {
+    "Last 12 Months": {
         "start_date": first_day_of_month(relative_months=-12),
         "end_date": last_day_of_month(relative_months=-1),
         "start_date_previous": first_day_of_month(relative_months=-24),
