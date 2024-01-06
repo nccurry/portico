@@ -1,11 +1,11 @@
-from datetime import datetime
+import datetime
 from typing import Dict
 import pandas as pd
 from src.sidebar import configure_sidebar
 from src.spreadsheet import TransactionsSpreadsheet, BalanceHistorySpreadsheet
 import streamlit as st
-
-from src.utils import relative_date, format_dollar_amount, first_day_of_month, last_day_of_month
+from src.utils import relative_date, format_dollar_amount, first_day_of_month, last_day_of_month, this_day_of_month
+import altair as alt
 
 
 def configure_page(
@@ -19,19 +19,11 @@ def configure_page(
     end_date = st.session_state["end_date"]
     filtered_account_groups_multiselect = st.session_state["filtered_account_groups_multiselect"]
 
-    if time_period_radio == "Custom":
-        start_date = datetime(start_date_input.year, start_date_input.month, start_date_input.day)
-        end_date = datetime(end_date_input.year, end_date_input.month, end_date_input.day)
-
     st.header("At a Glance")
     st.subheader("Discretionary Spending")
     periods = [
         {
             "label": "Last 7 Days",
-            "relative_start_date": -7,
-            "relative_end_date": -1,
-            "relative_start_date_previous": -14,
-            "relative_end_date_previous": -8,
             "start_date": relative_date(-7),
             "end_date": relative_date(-1),
             "start_date_previous": relative_date(-14),
@@ -52,6 +44,13 @@ def configure_page(
             "end_date_previous": relative_date(-29),
         },
         {
+            "label": "This Month",
+            "start_date": first_day_of_month(relative_months=0),
+            "end_date": relative_date(relative_days=0),
+            "start_date_previous": first_day_of_month(relative_months=-1),
+            "end_date_previous": this_day_of_month(relative_months=-1),
+        },
+        {
             "label": "Last Month",
             "start_date": first_day_of_month(relative_months=-1),
             "end_date": last_day_of_month(relative_months=-1),
@@ -66,8 +65,9 @@ def configure_page(
             "end_date_previous": last_day_of_month(relative_months=-4),
         },
     ]
-    for period in periods:
-        columns = st.columns(3)
+    columns = st.columns(4)
+    for idx, period in enumerate(periods):
+        column_value = 0 if idx < 3 else 2
         period_amount_by_group_df = transaction_spreadsheet.get_amount_by_group(
             ignore_groups=["Transfer", "Bills"],
             ignore_types=["Income"],
@@ -83,7 +83,7 @@ def configure_page(
         )
         period_amount_by_group_last_total = period_amount_by_group_last_df["Amount"].sum()
         period_total_delta = period_amount_by_group_last_total - period_amount_by_group_total
-        columns[0].metric(
+        columns[column_value].metric(
             label=period["label"],
             value=format_dollar_amount(-period_amount_by_group_total),
             delta=format_dollar_amount(period_total_delta),
@@ -99,11 +99,12 @@ def configure_page(
         )
 
         summed_amount_by_day = period_transactions_df.groupby('Date').sum(numeric_only=True)
-        idx = pd.date_range(period["start_date"], period["end_date"])
-        summed_amount_by_day = summed_amount_by_day.reindex(index=idx, fill_value=0)
+        date_index = pd.date_range(period["start_date"], period["end_date"])
+        summed_amount_by_day = summed_amount_by_day.reindex(index=date_index, fill_value=0)
         summed_amount_by_day = summed_amount_by_day.bfill().fillna(method="ffill")
         cumulative_amount_by_day = summed_amount_by_day.cumsum()
-        cumulative_amount_by_day.index = range(0, len(cumulative_amount_by_day))
+        cumulative_amount_by_day["Series"] = "Now"
+        cumulative_amount_by_day["Day"] = range(len(cumulative_amount_by_day))
 
         period_transactions_previous_df = transaction_spreadsheet.filter_transactions(
             ignore_groups=["Transfer", "Bills"],
@@ -112,23 +113,36 @@ def configure_page(
             end_date=period["end_date_previous"],
         )
         summed_amount_by_day_previous = period_transactions_previous_df.groupby('Date').sum(numeric_only=True)
-        idx = pd.date_range(period["start_date_previous"], period["end_date_previous"])
-        summed_amount_by_day_previous = summed_amount_by_day_previous.reindex(index=idx, fill_value=0)
+        date_index_previous = pd.date_range(period["start_date_previous"], period["end_date_previous"])
+        summed_amount_by_day_previous = summed_amount_by_day_previous.reindex(index=date_index_previous, fill_value=0)
         summed_amount_by_day_previous = summed_amount_by_day_previous.bfill().fillna(method="ffill")
         cumulative_amount_by_day_previous = summed_amount_by_day_previous.cumsum()
-        cumulative_amount_by_day_previous.index = range(0, len(cumulative_amount_by_day_previous))
+        cumulative_amount_by_day_previous["Series"] = "Previous"
+        cumulative_amount_by_day_previous["Day"] = range(len(cumulative_amount_by_day_previous))
 
-        agg_df = pd.DataFrame()
-        agg_df.index = range(len(cumulative_amount_by_day))
-        agg_df["Amount"] = cumulative_amount_by_day["Amount"]
-        agg_df["Amount Previous"] = cumulative_amount_by_day_previous["Amount"]
+        agg_df = cumulative_amount_by_day.copy()
+        agg_df = pd.concat([agg_df, cumulative_amount_by_day_previous])
+        agg_df["Amount"] = agg_df["Amount"] * -1
 
-        columns[1].line_chart(
-            data=agg_df,
-            color=["#33cc33", "#cccccc"]
+        domain = ['Previous', "Now"]
+        range_ = ['gray', 'lightgreen']
+        chart = alt.Chart(
+            data=agg_df.reset_index(),
+            height=90
+        ).mark_line().encode(
+            x=alt.X("Day", axis=alt.Axis(labels=False, tickCount=0), title=""),
+            y=alt.Y("Amount", axis=alt.Axis(tickCount=5), title=""),
+            color=alt.Color('Series', legend=None).scale(domain=domain, range=range_),
+            tooltip=["Amount"]
         )
 
+        columns[column_value + 1].altair_chart(altair_chart=chart, use_container_width=True)
+
     # Category
+    if time_period_radio == "Custom":
+        start_date = datetime.datetime(start_date_input.year, start_date_input.month, start_date_input.day)
+        end_date = datetime.datetime(end_date_input.year, end_date_input.month, end_date_input.day)
+
     amount_by_expense_groups_df = transaction_spreadsheet.get_amount_by_group(
         ignore_groups=["Transfer"],
         include_types=["Expense"],
@@ -160,7 +174,7 @@ def configure_page(
     groups = []
     for group in balance_history_spreadsheet.get_groups():
         if group not in filtered_account_groups_multiselect:
-             groups.append(group)  # TODO: This will fail if there is a nan
+            groups.append(group)  # TODO: This will fail if there is a nan
 
     data: Dict[str, Dict[str, pd.DataFrame]] = {}
     for group in groups:
