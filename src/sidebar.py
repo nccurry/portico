@@ -12,33 +12,45 @@ def configure_sidebar(
     time_period_radio = st.sidebar.radio(
         label="Time Period",
         options=[
-            "Last 30 Days",
+            "Last 7 Days",
+            "Last 14 Days",
+            "Last 28 Days",
             "This Month",
             "Last Month",
             "Last 3 Months",
             "Last 12 Months",
             "Custom"
         ],
-        index=1,
+        index=3,
         key="time_period_radio"
     )
 
     custom_input_disabled = True
-    end_date = datetime.today()
-    if time_period_radio == "Last 30 Days":
-        start_date = relative_date(relative_days=-30)
+    if time_period_radio == "Last 7 Days":
+        start_date = relative_date(relative_days=-7)
+        end_date = relative_date(relative_days=-1)
+    elif time_period_radio == "Last 14 Days":
+        start_date = relative_date(relative_days=-14)
+        end_date = relative_date(relative_days=-1)
+    elif time_period_radio == "Last 28 Days":
+        start_date = relative_date(relative_days=-28)
+        end_date = relative_date(relative_days=-1)
     elif time_period_radio == "This Month":
         start_date = first_day_of_month(relative_months=0)
+        end_date = relative_date(relative_days=-1)
     elif time_period_radio == "Last Month":
         start_date = first_day_of_month(relative_months=-1)
         end_date = last_day_of_month(relative_months=-1)
     elif time_period_radio == "Last 3 Months":
         start_date = first_day_of_month(relative_months=-3)
+        end_date = last_day_of_month(relative_months=-1)
     elif time_period_radio == "Last 12 Months":
         start_date = first_day_of_month(relative_months=-12)
+        end_date = last_day_of_month(relative_months=-1)
     else:
         custom_input_disabled = False
         start_date = first_day_of_month(relative_months=0)
+        end_date = relative_date(relative_days=-1)
 
     st.session_state["start_date"] = start_date
     st.session_state["end_date"] = end_date
