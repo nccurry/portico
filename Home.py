@@ -111,6 +111,7 @@ def configure_page(
     end_date = st.session_state["end_date"]
     filtered_account_groups_multiselect = st.session_state["filtered_account_groups_multiselect"]
 
+    # Spending at a Glance
     st.header("Spending at a Glance")
 
     generate_at_a_glance_spending(
@@ -140,7 +141,8 @@ def configure_page(
         ignore_types=["Income"]
     )
 
-    # Category
+    st.header(f"By Category")
+
     if time_period_radio == "Custom":
         start_date = datetime.datetime(start_date_input.year, start_date_input.month, start_date_input.day)
         end_date = datetime.datetime(end_date_input.year, end_date_input.month, end_date_input.day)
@@ -150,14 +152,14 @@ def configure_page(
         include_types=["Expense"],
         start_date=start_date,
         end_date=end_date,
+        invert_amount=True
     )
     amount_by_income_groups_df = transaction_spreadsheet.get_amount_by_group_category(
         group="Income",
         start_date=start_date,
-        end_date=end_date,
+        end_date=end_date
     )
 
-    st.header(f"By Category")
     st.subheader(
         body=f"{start_date.strftime('%m/%d/%Y')} - {end_date.strftime('%m/%d/%Y')}",
         divider="blue")
@@ -224,7 +226,6 @@ def configure_page(
             use_container_width=True,
             height=200
         )
-
 
     st.subheader("Transactions")
 
