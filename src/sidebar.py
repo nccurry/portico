@@ -75,4 +75,11 @@ def configure_sidebar(
         key="filtered_account_groups_multiselect"
     )
 
+    filtered_account_categories_multiselect = st.sidebar.multiselect(
+        label="Filtered Account Categories",
+        options=transaction_spreadsheet.scrubbed_df["Category"].unique(),
+        default=["Transfer", "Returned Purchase", "Returned Purchase Income", "Tax Return Payment"],
+        key="filtered_account_categories_multiselect"
+    )
+
     st.session_state["sidebar_configured"] = True
