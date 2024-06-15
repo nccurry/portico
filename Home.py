@@ -110,6 +110,7 @@ def configure_page(
     start_date = st.session_state["start_date"]
     end_date = st.session_state["end_date"]
     filtered_account_groups_multiselect = st.session_state["filtered_account_groups_multiselect"]
+    filtered_account_categories_multiselect = st.session_state["filtered_account_categories_multiselect"]
 
     # Spending at a Glance
     st.header("Spending at a Glance")
@@ -148,7 +149,7 @@ def configure_page(
         end_date = datetime.datetime(end_date_input.year, end_date_input.month, end_date_input.day)
 
     amount_by_expense_groups_df = transaction_spreadsheet.get_amount_by_group(
-        ignore_groups=["Transfer"],
+        ignore_groups=filtered_account_groups_multiselect,
         include_types=["Expense"],
         start_date=start_date,
         end_date=end_date,
