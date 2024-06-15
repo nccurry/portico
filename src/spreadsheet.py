@@ -170,6 +170,7 @@ class TransactionsSpreadsheet(Spreadsheet):
             ignore_types: List[str] = [],
             start_date: Optional[datetime.datetime] = None,
             end_date: Optional[datetime.datetime] = None,
+            invert_amount: bool = False
     ) -> pd.DataFrame:
         """Get the total spending per group over a specified period"""
         df = self.scrubbed_df.copy()
@@ -190,6 +191,9 @@ class TransactionsSpreadsheet(Spreadsheet):
             end_date = df["Date"].max()
         df = df[df["Date"].between(start_date, end_date)]
 
+        if invert_amount:
+            df["Amount"] = df["Amount"] * -1
+
         df = df.groupby("Group").sum(numeric_only=True)
 
         return df
@@ -201,6 +205,7 @@ class TransactionsSpreadsheet(Spreadsheet):
             ignore_categories: List[str] = [],
             start_date: Optional[datetime.datetime] = None,
             end_date: Optional[datetime.datetime] = None,
+            invert_amount: bool = False,
     ) -> pd.DataFrame:
         """Get the total group spending per categories over a specified period"""
         df = self.scrubbed_df.copy()
@@ -219,6 +224,9 @@ class TransactionsSpreadsheet(Spreadsheet):
             end_date = df["Date"].max()
         df = df[df["Date"].between(start_date, end_date)]
 
+        if invert_amount:
+            df["Amount"] = df["Amount"] * -1
+
         df = df.groupby("Category").sum(numeric_only=True)
 
         return df
@@ -227,7 +235,8 @@ class TransactionsSpreadsheet(Spreadsheet):
             self,
             category: str,
             start_date: Optional[datetime.datetime] = None,
-            end_date: Optional[datetime.datetime] = None
+            end_date: Optional[datetime.datetime] = None,
+            invert_amount: bool = False
     ) -> pd.DataFrame:
         """Get the total monthly transaction amount by a specified category"""
         df = self.scrubbed_df.copy()
@@ -241,6 +250,10 @@ class TransactionsSpreadsheet(Spreadsheet):
             end_date = df["Date"].max()
 
         df = df[df["Date"].between(start_date, end_date)]
+
+        if invert_amount:
+            df["Amount"] = df["Amount"] * -1
+
         df = df.groupby("Month").sum()
 
         return df

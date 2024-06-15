@@ -19,7 +19,8 @@ def configure_page(
 
     for category in categories:
         monthly_amounts_df = transactions_spreadsheet.get_monthly_amounts_by_category(
-            category=category
+            category=category,
+            invert_amount=True
         )
         st.subheader(category)
         col1, col2 = st.columns([1, 4])
