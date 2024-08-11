@@ -12,16 +12,21 @@ def generate_at_a_glance_spending(
         transaction_spreadsheet: TransactionsSpreadsheet,
         subheader: str,
         periods: List[str],
+        include_categories: List[str] = [],
+        ignore_categories: List[str] = [],
         include_groups: List[str] = [],
         ignore_groups: List[str] = [],
         include_types: List[str] = [],
         ignore_types: List[str] = [],
 ) -> None:
     """"""
-    st.subheader(subheader)
+    st.subheader(subheader, divider="grey")
     columns = st.columns(4)
     for idx, period in enumerate(periods):
+        # Totals / metric
         period_amount_by_group_df = transaction_spreadsheet.get_amount_by_group(
+            include_categories=include_categories,
+            ignore_categories=ignore_categories,
             include_groups=include_groups,
             ignore_groups=ignore_groups,
             include_types=include_types,
@@ -30,7 +35,10 @@ def generate_at_a_glance_spending(
             end_date=SPENDING_PERIODS[period]["end_date"]
         )
         period_amount_by_group_total = period_amount_by_group_df["Amount"].sum()
+
         period_amount_by_group_last_df = transaction_spreadsheet.get_amount_by_group(
+            include_categories=include_categories,
+            ignore_categories=ignore_categories,
             include_groups=include_groups,
             ignore_groups=ignore_groups,
             include_types=include_types,
@@ -39,6 +47,7 @@ def generate_at_a_glance_spending(
             end_date=SPENDING_PERIODS[period]["end_date_previous"]
         )
         period_amount_by_group_last_total = period_amount_by_group_last_df["Amount"].sum()
+
         period_total_delta = period_amount_by_group_last_total - period_amount_by_group_total
         columns[(idx % 2) * 2].metric(
             label=period,
@@ -47,16 +56,18 @@ def generate_at_a_glance_spending(
             delta_color="inverse"
         )
 
+        # Value by day
         period_transactions_df = transaction_spreadsheet.filter_transactions(
             include_groups=include_groups,
             ignore_groups=ignore_groups,
+            include_categories=include_categories,
+            ignore_categories=ignore_categories,
             include_types=include_types,
             ignore_types=ignore_types,
             start_date=SPENDING_PERIODS[period]["start_date"],
             end_date=SPENDING_PERIODS[period]["end_date"],
             filtered_columns=["Date", "Amount"]
         )
-
         summed_amount_by_day = period_transactions_df.groupby('Date').sum(numeric_only=True)
         date_index = pd.date_range(SPENDING_PERIODS[period]["start_date"], SPENDING_PERIODS[period]["end_date"])
         summed_amount_by_day = summed_amount_by_day.reindex(index=date_index, fill_value=0)
@@ -68,6 +79,8 @@ def generate_at_a_glance_spending(
         period_transactions_previous_df = transaction_spreadsheet.filter_transactions(
             include_groups=include_groups,
             ignore_groups=ignore_groups,
+            include_categories=include_categories,
+            ignore_categories=ignore_categories,
             include_types=include_types,
             ignore_types=ignore_types,
             start_date=SPENDING_PERIODS[period]["start_date_previous"],
@@ -137,7 +150,56 @@ def configure_page(
             "Last Month",
             "Last 3 Months"
         ],
+        ignore_categories=["Tax Return Payment"],
         include_groups=["Bills"],
+        ignore_groups=["Transfer"],
+        ignore_types=["Income"]
+    )
+
+    generate_at_a_glance_spending(
+        transaction_spreadsheet=transaction_spreadsheet,
+        subheader="Groceries",
+        periods=[
+            "Last Month",
+            "Last 3 Months"
+        ],
+        include_categories=["Groceries"],
+        ignore_groups=["Transfer"],
+        ignore_types=["Income"]
+    )
+
+    generate_at_a_glance_spending(
+        transaction_spreadsheet=transaction_spreadsheet,
+        subheader="Restaurants / Bars",
+        periods=[
+            "Last Month",
+            "Last 3 Months"
+        ],
+        include_categories=["Restaurants / Bars"],
+        ignore_groups=["Transfer"],
+        ignore_types=["Income"]
+    )
+
+    generate_at_a_glance_spending(
+        transaction_spreadsheet=transaction_spreadsheet,
+        subheader="Shopping / Entertainment",
+        periods=[
+            "Last Month",
+            "Last 3 Months"
+        ],
+        include_groups=["Shopping", "Entertainment"],
+        ignore_groups=["Transfer"],
+        ignore_types=["Income"]
+    )
+
+    generate_at_a_glance_spending(
+        transaction_spreadsheet=transaction_spreadsheet,
+        subheader="Travel",
+        periods=[
+            "Last 3 Months",
+            "Last 6 Months"
+        ],
+        include_groups=["Travel"],
         ignore_groups=["Transfer"],
         ignore_types=["Income"]
     )
