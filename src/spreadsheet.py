@@ -164,6 +164,8 @@ class TransactionsSpreadsheet(Spreadsheet):
 
     def get_amount_by_group(
             self,
+            include_categories: List[str] = [],
+            ignore_categories: List[str] = [],
             include_groups: List[str] = [],
             ignore_groups: List[str] = [],
             include_types: List[str] = [],
@@ -174,8 +176,12 @@ class TransactionsSpreadsheet(Spreadsheet):
     ) -> pd.DataFrame:
         """Get the total spending per group over a specified period"""
         df = self.scrubbed_df.copy()
-        df = df.filter(["Date", "Group", "Amount", "Type"])
+        df = df.filter(["Date", "Category", "Group", "Amount", "Type"])
         df = df.sort_values("Date")
+
+        if include_categories:
+            df = df[df["Category"].isin(include_categories)]
+        df = df[-df["Category"].isin(ignore_categories)]
 
         if include_groups:
             df = df[df["Group"].isin(include_groups)]
