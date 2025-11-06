@@ -26,8 +26,8 @@ pip3 install -r requirements.txt
 ```shell
 mkdir -p .streamlit
 
-TRANSACTIONS_URL=""
-BALANCE_HISTORY_URL=""
+TRANSACTIONS_URL="" # e.g. https://docs.google.com/spreadsheets/d/.../edit#gid=...
+BALANCE_HISTORY_URL="" # e.g. https://docs.google.com/spreadsheets/d/.../edit#gid=...
 
 cat <<EOF >> .streamlit/secrets.toml
 [connections.transactions]
@@ -44,7 +44,8 @@ EOF
 
 Configure PyCharm to run the following command: 
 
-`python -m streamlit run Home.py`
+* Script: ../tiller-streamlit/.venv/Scripts/streamlit.exe
+* Script Parameters: run Home.py
 
 Based on [Run streamlit from PyCharm](https://discuss.streamlit.io/t/run-streamlit-from-pycharm/21624).
 
