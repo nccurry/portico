@@ -1,6 +1,5 @@
 """Classes for interacting with Google Sheets spreadsheets."""
 import datetime
-import os
 from typing import Optional, List, Tuple
 import streamlit as st
 from streamlit_gsheets import GSheetsConnection
@@ -12,39 +11,23 @@ import numpy as np
 
 class Spreadsheet(metaclass=ABCMeta):
     """Class used to interact with Spreadsheet data in Google Sheets"""
-    # Friendly name for this spreadsheet
+    # Friendly name for this spreadsheet (must match the connection name in secrets.toml)
     name: str
-
-    # The environment variable string to use when looking up the spreadsheet url
-    url_env_var_str: str
-
-    # The spreadsheet url
-    url: str
 
     # The raw, unscrubbed, data from the spreadsheet
     raw_df: pd.DataFrame
 
-    # THe scrubbed data from the spreadsheet
+    # The scrubbed data from the spreadsheet
     scrubbed_df: pd.DataFrame
 
-    def __init__(
-            self,
-            url: Optional[str] = None
-    ) -> None:
-        if url:
-            self.url = url
-        else:
-            url = os.environ.get(self.url_env_var_str)
-            if not url:
-                raise ValueError(f"You must supply a value for environment variable {self.url_env_var_str}")
-            self.url = url
+    def __init__(self) -> None:
         self.load()
         self.scrub()
 
     def load(self) -> None:
         """Load data from the external spreadsheet"""
         conn = st.connection(name=self.name, type=GSheetsConnection)
-        self.raw_df = conn.read(spreadsheet=self.url)
+        self.raw_df = conn.read()
 
     @abstractmethod
     def scrub(self) -> None:
@@ -54,7 +37,6 @@ class Spreadsheet(metaclass=ABCMeta):
 
 class TransactionsSpreadsheet(Spreadsheet):
     name = "transactions_spreadsheet"
-    url_env_var_str: str = "TRANSACTIONS_SPREADSHEET_URL"
 
     def scrub(self) -> None:
         """Clean up the data stored in self.raw_df"""
@@ -279,7 +261,6 @@ class TransactionsSpreadsheet(Spreadsheet):
 
 class BalanceHistorySpreadsheet(Spreadsheet):
     name = "balance_history_spreadsheet"
-    url_env_var_str: str = "BALANCE_HISTORY_SPREADSHEET_URL"
 
     def scrub(self) -> None:
         """Clean up the data stored in self.raw_df"""
@@ -315,7 +296,7 @@ class BalanceHistorySpreadsheet(Spreadsheet):
     def get_latest_balance_by_group(
             self,
             group: str,
-            end_date: Optional[datetime] = None
+            end_date: Optional[datetime.datetime] = None
     ) -> Tuple[pd.DataFrame, float]:
         """Summarize balance information by balance_history group"""
         df = self.scrubbed_df.copy()
@@ -337,8 +318,8 @@ class BalanceHistorySpreadsheet(Spreadsheet):
     def get_balance_history_by_group(
             self,
             group: str,
-            start_date: Optional[datetime] = None,
-            end_date: Optional[datetime] = None
+            start_date: Optional[datetime.datetime] = None,
+            end_date: Optional[datetime.datetime] = None
     ) -> pd.DataFrame:
         """Get the balance history for all accounts under a single group"""
         df = self.scrubbed_df.copy()
@@ -389,8 +370,8 @@ class BalanceHistorySpreadsheet(Spreadsheet):
 
     def get_balance_delta(
             self,
-            start_date: Optional[datetime] = None,
-            end_date: Optional[datetime] = None
+            start_date: Optional[datetime.datetime] = None,
+            end_date: Optional[datetime.datetime] = None
     ) -> float:
         """Get the difference in account balance at the beginning and ending of a period"""
 
