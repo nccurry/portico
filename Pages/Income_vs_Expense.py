@@ -13,23 +13,40 @@ def configure_page(
 ) -> None:
     st.header("Income vs Expense")
     
-    # Get all transactions
+    # Get all transactions, excluding transfers
     df = transactions_spreadsheet.scrubbed_df.copy()
+    df = df[df['Group'] != 'Transfer']  # Exclude transfers
     
-    # Group by month and type (Income vs Expense)
-    df_monthly = df.groupby(['Month', 'Type'])['Amount'].sum().reset_index()
+    # Separate income and expenses
+    df_income = df[df['Type'] == 'Income'].copy()
+    df_expense = df[df['Type'] == 'Expense'].copy()
     
-    # Pivot so Income and Expense are separate columns
-    df_pivot = df_monthly.pivot(index='Month', columns='Type', values='Amount').fillna(0).reset_index()
+    # Calculate monthly totals
+    monthly_income = df_income.groupby('Month')['Amount'].sum()
+    monthly_expense = df_expense.groupby('Month')['Amount'].sum()
     
-    # Ensure we have both Income and Expense columns
-    if 'Income' not in df_pivot.columns:
-        df_pivot['Income'] = 0
-    if 'Expense' not in df_pivot.columns:
-        df_pivot['Expense'] = 0
+    # Combine into one dataframe
+    df_pivot = pd.DataFrame({
+        'Month': monthly_income.index.union(monthly_expense.index)
+    })
+    df_pivot = df_pivot.merge(
+        monthly_income.to_frame('Income'), 
+        left_on='Month', 
+        right_index=True, 
+        how='left'
+    ).merge(
+        monthly_expense.to_frame('Expense'), 
+        left_on='Month', 
+        right_index=True, 
+        how='left'
+    ).fillna(0)
     
-    # Calculate net (Income - Expense, inverted because expenses are negative)
-    df_pivot['Net'] = df_pivot['Income'] + df_pivot['Expense']  # Expense is already negative
+    # Make sure Income is positive, Expense is positive (for display)
+    df_pivot['Income'] = df_pivot['Income'].abs()
+    df_pivot['Expense'] = df_pivot['Expense'].abs()
+    
+    # Calculate net (Income - Expenses)
+    df_pivot['Net'] = df_pivot['Income'] - df_pivot['Expense']
     
     # Sort by month
     df_pivot = df_pivot.sort_values('Month')
