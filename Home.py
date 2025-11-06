@@ -1,7 +1,8 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
+from typing import List, Dict, Tuple
 
 from src.sidebar import configure_sidebar
 from src.spreadsheet import load_transactions_data, load_balance_history_data, TransactionsSpreadsheet, BalanceHistorySpreadsheet
@@ -58,51 +59,50 @@ def configure_page(
     end_date = pd.Timestamp.now(tz='UTC')
     start_date = end_date - timedelta(days=365)
     
-    # Get all snapshot dates across all accounts
+    # Get all balance data in date range
     df_all = balance_history_spreadsheet.scrubbed_df.copy()
-    all_snapshot_dates = df_all[df_all["Date"].between(start_date, end_date)]["Date"].unique()
-    all_snapshot_dates = sorted(all_snapshot_dates)
+    df_filtered = df_all[df_all["Date"].between(start_date, end_date)].copy()
     
-    # Calculate net worth for each snapshot date
-    net_worth_by_date = []
-    for date in all_snapshot_dates:
-        net_worth_at_date = 0
+    if not df_filtered.empty:
+        # Create multiplier: Assets = +1, Liabilities = -1
+        df_filtered['Multiplier'] = df_filtered['Class'].map({'Liability': -1, 'Asset': 1}).fillna(1)
+        df_filtered['SignedBalance'] = df_filtered['Balance'] * df_filtered['Multiplier']
         
-        for group in groups:
-            # Get accounts for this group
-            group_data = df_all[df_all["Group"] == group]
-            account_ids = group_data["Account ID"].unique()
-            
-            # Sum balances for all accounts in this group at this date
-            group_total = 0
-            for account_id in account_ids:
-                account_data = group_data[
-                    (group_data["Account ID"] == account_id) & 
-                    (group_data["Date"] <= date)
-                ].sort_values("Date")
-                
-                if not account_data.empty:
-                    group_total += account_data.iloc[-1]["Balance"]
-            
-            # Add or subtract based on class
-            if group_classes.get(group) == "Liability":
-                net_worth_at_date -= group_total
-            else:
-                net_worth_at_date += group_total
+        # For each account, get the latest balance up to each date
+        # Group by Account ID and Date to get one balance per account per date
+        df_filtered = df_filtered.sort_values(['Account ID', 'Date'])
         
-        net_worth_by_date.append({"Date": date, "NetWorth": net_worth_at_date})
-    
-    df_net_worth = pd.DataFrame(net_worth_by_date)
+        # Get all unique dates in the range
+        all_snapshot_dates = sorted(df_filtered["Date"].unique())
+        
+        # Calculate net worth for each date
+        net_worth_by_date = []
+        for date in all_snapshot_dates:
+            # Get latest balance for each account up to this date
+            latest_balances = df_all[df_all["Date"] <= date].sort_values("Date").groupby("Account ID").last()
+            
+            # Apply multiplier based on class
+            latest_balances['Multiplier'] = latest_balances['Class'].map({'Liability': -1, 'Asset': 1}).fillna(1)
+            net_worth = (latest_balances['Balance'] * latest_balances['Multiplier']).sum()
+            
+            net_worth_by_date.append({"Date": date, "NetWorth": net_worth})
+        
+        df_net_worth = pd.DataFrame(net_worth_by_date)
+    else:
+        df_net_worth = pd.DataFrame()
     
     # Display net worth sparkline
     if not df_net_worth.empty and len(df_net_worth) > 1:
+        # Calculate min value with some padding for better visualization
+        min_value = df_net_worth['NetWorth'].min() * 0.95
+        
         nw_chart = alt.Chart(df_net_worth).mark_line(
             color='gold',
             strokeWidth=3,
             interpolate='monotone'
         ).encode(
             x=alt.X('Date:T', axis=None),
-            y=alt.Y('NetWorth:Q', axis=None, scale=alt.Scale(domainMin=1500000))
+            y=alt.Y('NetWorth:Q', axis=None, scale=alt.Scale(domainMin=min_value))
         ).properties(
             height=60
         ).configure_view(

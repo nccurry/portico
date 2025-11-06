@@ -31,68 +31,6 @@ def this_day_of_month(
     return first_day_of_month(relative_months=relative_months).replace(day=today.day)
 
 
-def first_day_of_quarter(
-        relative_quarters: int = 0
-) -> datetime.datetime:
-    """"""
-    ...
-
-
-def last_day_of_quarter(
-        relative_quarters: int = 0
-) -> datetime.datetime:
-    """"""
-    ...
-
-
-def this_day_of_quarter(
-        relative_quarters: int = 0
-) -> datetime.datetime:
-    """Return the same day of a relative quarter as a datetime"""
-    ...
-
-
-def first_day_of_half(
-        relative_halves: int = 0
-) -> datetime.datetime:
-    """"""
-    ...
-
-
-def last_day_of_half(
-        relative_halves: int = 0
-) -> datetime.datetime:
-    """"""
-    ...
-
-
-def this_day_of_half(
-        relative_halves: int = 0
-) -> datetime.datetime:
-    """Return the same day of a relative half as a datetime"""
-    ...
-
-
-def first_day_of_year(
-        relative_year: int = 0
-) -> datetime.datetime:
-    """"""
-    ...
-
-
-def last_day_of_year(
-        relative_year: int = 0
-) -> datetime.datetime:
-    """"""
-    ...
-
-
-def this_day_of_year(
-        relative_years: int = 0
-) -> datetime.datetime:
-    """Return the same day of a relative year as a datetime"""
-    # Make sure to handle leap years
-    ...
 
 
 def relative_date(
@@ -139,13 +77,6 @@ SPENDING_PERIODS = {
         "start_date_previous": first_day_of_month(relative_months=-1),
         "end_date_previous": this_day_of_month(relative_months=-1),
     },
-    # TODO
-    # "This Quarter": {
-    # "This Half": {
-    # "This Year": {
-    # "Last Quarter": {
-    # "Last Half": {
-    # "Last Year": {
     "Last Month": {
         "start_date": first_day_of_month(relative_months=-1),
         "end_date": last_day_of_month(relative_months=-1),
