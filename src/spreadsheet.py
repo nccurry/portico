@@ -48,12 +48,12 @@ class TransactionsSpreadsheet(Spreadsheet):
         # Recast Amount column as float
         df["Amount"] = df["Amount"].replace('[\$,]', '', regex=True).astype(float)
 
-        # Recast dates as datetime
-        df["Date"] = pd.to_datetime(df["Date"])
-        df["Month"] = pd.to_datetime(df["Month"])
-        df["Week"] = pd.to_datetime(df["Week"])
-        df["Date Added"] = pd.to_datetime(df["Date Added"])
-        df["Categorized Date"] = pd.to_datetime(df["Categorized Date"])
+        # Recast dates as datetime (utc=True handles mixed timezones)
+        df["Date"] = pd.to_datetime(df["Date"], format='mixed', utc=True)
+        df["Month"] = pd.to_datetime(df["Month"], format='mixed', utc=True)
+        df["Week"] = pd.to_datetime(df["Week"], format='mixed', utc=True)
+        df["Date Added"] = pd.to_datetime(df["Date Added"], format='mixed', utc=True)
+        df["Categorized Date"] = pd.to_datetime(df["Categorized Date"], format='mixed', utc=True)
 
         # Use better strings for Month and Week columns
         df["Month"] = df["Month"].dt.strftime('%Y-%m')
@@ -272,12 +272,12 @@ class BalanceHistorySpreadsheet(Spreadsheet):
         # Recast Amount column as float
         df["Balance"] = df["Balance"].replace('[\$,]', '', regex=True).astype(float)
 
-        # Recast dates as datetime
-        df["Date"] = pd.to_datetime(df["Date"])
-        df["Time"] = pd.to_datetime(df["Time"])
-        df["Month"] = pd.to_datetime(df["Month"])
-        df["Week"] = pd.to_datetime(df["Week"])
-        df["Date Added"] = pd.to_datetime(df["Date Added"])
+        # Recast dates as datetime (utc=True handles mixed timezones)
+        df["Date"] = pd.to_datetime(df["Date"], format='mixed', utc=True)
+        df["Time"] = pd.to_datetime(df["Time"], format='mixed', utc=True)
+        df["Month"] = pd.to_datetime(df["Month"], format='mixed', utc=True)
+        df["Week"] = pd.to_datetime(df["Week"], format='mixed', utc=True)
+        df["Date Added"] = pd.to_datetime(df["Date Added"], format='mixed', utc=True)
 
         # Use better strings for Month and Week columns
         df["Month"] = df["Month"].dt.strftime('%Y-%m')
