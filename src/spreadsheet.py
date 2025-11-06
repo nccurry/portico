@@ -36,7 +36,7 @@ class Spreadsheet(metaclass=ABCMeta):
 
 
 class TransactionsSpreadsheet(Spreadsheet):
-    name = "transactions_spreadsheet"
+    name = "transactions"
 
     def scrub(self) -> None:
         """Clean up the data stored in self.raw_df"""
@@ -96,7 +96,10 @@ class TransactionsSpreadsheet(Spreadsheet):
         """Return a data frame summarizing the transaction amounts per group"""
         df = self.scrubbed_df.copy()
         df = df[df["Group"] == group]
-        # TODO: There is a bug here when the dataframe has no rows
+        
+        if df.empty:
+            return pd.DataFrame()
+        
         df = df.groupby('Category').describe().unstack(1).reset_index().pivot(index='Category', values=0, columns='level_1')
 
         return df
@@ -306,14 +309,17 @@ class TransactionsSpreadsheet(Spreadsheet):
         """Return a data frame summarizing the transaction amounts per group"""
         df = self.scrubbed_df.copy()
         df = df[df["Group"] == group]
-        # TODO: There is a bug here when the dataframe has no rows
+        
+        if df.empty:
+            return pd.DataFrame()
+        
         df = df.groupby('Category').describe().unstack(1).reset_index().pivot(index='Category', values=0, columns='level_1')
 
         return df
 
 
 class BalanceHistorySpreadsheet(Spreadsheet):
-    name = "balance_history_spreadsheet"
+    name = "balance_history"
 
     def scrub(self) -> None:
         """Clean up the data stored in self.raw_df"""
@@ -417,7 +423,7 @@ class BalanceHistorySpreadsheet(Spreadsheet):
         df.index = pd.DatetimeIndex(df["Date"])
         df = df.reindex(idx)
         df["Date"] = df.index
-        df = df.bfill().fillna(method="ffill")  # bfill fills empty start dates, ffill fills empty middle dates
+        df = df.bfill().ffill()  # bfill fills empty start dates, ffill fills empty middle dates
 
         return df
 
