@@ -131,12 +131,8 @@ def configure_page(
         balance_history_spreadsheet: BalanceHistorySpreadsheet
 ) -> None:
     categories = [
-        "Electric Bill",
-        "Gas Bill",
-        "Water Bill",
-        "Phone Bill",
-        "Internet Bill",
-        "Automobile Fuel"
+        "Groceries",
+        "Restaurants / Bars"
     ]
 
     for category in categories:
@@ -176,3 +172,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

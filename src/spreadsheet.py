@@ -246,6 +246,59 @@ class TransactionsSpreadsheet(Spreadsheet):
 
         return df
 
+    def get_monthly_amounts_by_group(
+            self,
+            group: str,
+            start_date: Optional[datetime.datetime] = None,
+            end_date: Optional[datetime.datetime] = None,
+            invert_amount: bool = False
+    ) -> pd.DataFrame:
+        """Get the total monthly transaction amount by a specified group"""
+        df = self.scrubbed_df.copy()
+        df = df.sort_values(["Date"])
+        df = df[df["Group"] == group]
+        df = df.filter(["Date", "Month", "Group", "Category", "Amount", "Type"])
+
+        if start_date is None:
+            start_date = df["Date"].min()
+        if end_date is None:
+            end_date = df["Date"].max()
+
+        df = df[df["Date"].between(start_date, end_date)]
+
+        if invert_amount:
+            df["Amount"] = df["Amount"] * -1
+
+        df = df.groupby("Month").sum(numeric_only=True)
+
+        return df
+
+    def get_transactions_by_category(
+            self,
+            category: str,
+            start_date: Optional[datetime.datetime] = None,
+            end_date: Optional[datetime.datetime] = None
+    ) -> pd.DataFrame:
+        """Get all transactions for a specific category"""
+        return self.filter_transactions(
+            include_categories=[category],
+            start_date=start_date,
+            end_date=end_date
+        )
+
+    def get_transactions_by_group(
+            self,
+            group: str,
+            start_date: Optional[datetime.datetime] = None,
+            end_date: Optional[datetime.datetime] = None
+    ) -> pd.DataFrame:
+        """Get all transactions for a specific group"""
+        return self.filter_transactions(
+            include_groups=[group],
+            start_date=start_date,
+            end_date=end_date
+        )
+
     def get_category_stats_by_group(
             self,
             group: str

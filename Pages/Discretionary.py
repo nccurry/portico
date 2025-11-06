@@ -31,7 +31,7 @@ def prepare_year_comparison_data(monthly_amounts_df: pd.DataFrame) -> pd.DataFra
     return pivoted
 
 
-def create_year_comparison_chart(pivoted_df: pd.DataFrame, category: str) -> alt.Chart:
+def create_year_comparison_chart(pivoted_df: pd.DataFrame, group: str) -> alt.Chart:
     """Create an Altair chart showing year-over-year comparison.
     
     Current year is shown in green, previous years in shades of gray.
@@ -86,7 +86,7 @@ def create_year_comparison_chart(pivoted_df: pd.DataFrame, category: str) -> alt
         ]
     ).properties(
         height=300,
-        title=f'{category} - Year over Year Comparison'
+        title=f'{group} - Year over Year Comparison'
     )
     
     return chart
@@ -130,37 +130,34 @@ def configure_page(
         transactions_spreadsheet: TransactionsSpreadsheet,
         balance_history_spreadsheet: BalanceHistorySpreadsheet
 ) -> None:
-    categories = [
-        "Electric Bill",
-        "Gas Bill",
-        "Water Bill",
-        "Phone Bill",
-        "Internet Bill",
-        "Automobile Fuel"
+    groups = [
+        "Shopping",
+        "Travel",
+        "Entertainment"
     ]
 
-    for category in categories:
-        monthly_amounts_df = transactions_spreadsheet.get_monthly_amounts_by_category(
-            category=category,
+    for group in groups:
+        monthly_amounts_df = transactions_spreadsheet.get_monthly_amounts_by_group(
+            group=group,
             invert_amount=True
         )
         
         # Transform data for year-over-year comparison
         pivoted_df = prepare_year_comparison_data(monthly_amounts_df)
         
-        st.subheader(category)
+        st.subheader(group)
         col1, col2 = st.columns([1, 4])
         
         # Show pivoted data table (years as columns)
         col1.dataframe(pivoted_df)
         
         # Show year-over-year comparison chart
-        chart = create_year_comparison_chart(pivoted_df, category)
+        chart = create_year_comparison_chart(pivoted_df, group)
         col2.altair_chart(chart, use_container_width=True)
         
         # Show expandable transaction table
-        transactions_df = transactions_spreadsheet.get_transactions_by_category(category)
-        display_transaction_table(transactions_df, category)
+        transactions_df = transactions_spreadsheet.get_transactions_by_group(group)
+        display_transaction_table(transactions_df, group)
 
 
 def main() -> None:
@@ -176,3 +173,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
