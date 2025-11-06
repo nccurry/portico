@@ -242,7 +242,7 @@ class TransactionsSpreadsheet(Spreadsheet):
         if invert_amount:
             df["Amount"] = df["Amount"] * -1
 
-        df = df.groupby("Month").sum()
+        df = df.groupby("Month").sum(numeric_only=True)
 
         return df
 
