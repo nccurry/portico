@@ -429,4 +429,14 @@ class BalanceHistorySpreadsheet(Spreadsheet):
         """Get the difference in account balance at the beginning and ending of a period"""
 
 
+# Cached data loading functions
+@st.cache_data(ttl=300)  # Cache for 5 minutes
+def load_transactions_data():
+    """Load and cache transactions spreadsheet data"""
+    return TransactionsSpreadsheet()
 
+
+@st.cache_data(ttl=300)  # Cache for 5 minutes
+def load_balance_history_data():
+    """Load and cache balance history spreadsheet data"""
+    return BalanceHistorySpreadsheet()

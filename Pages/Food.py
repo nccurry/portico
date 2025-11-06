@@ -4,7 +4,7 @@ import altair as alt
 from datetime import datetime
 
 from src.sidebar import configure_sidebar
-from src.spreadsheet import TransactionsSpreadsheet, BalanceHistorySpreadsheet
+from src.spreadsheet import load_transactions_data, load_balance_history_data, TransactionsSpreadsheet, BalanceHistorySpreadsheet
 
 
 def prepare_year_comparison_data(monthly_amounts_df: pd.DataFrame) -> pd.DataFrame:
@@ -174,8 +174,8 @@ def main() -> None:
     """Page entrypoint"""
     st.set_page_config(layout="wide")
 
-    transactions_spreadsheet = TransactionsSpreadsheet()
-    balance_history_spreadsheet = BalanceHistorySpreadsheet()
+    transactions_spreadsheet = load_transactions_data()
+    balance_history_spreadsheet = load_balance_history_data()
 
     configure_sidebar(transactions_spreadsheet, balance_history_spreadsheet)
     configure_page(transactions_spreadsheet, balance_history_spreadsheet)
