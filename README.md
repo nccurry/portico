@@ -13,7 +13,7 @@ sudo apt install -y \
   python3-pip
 
 # Create /activate .venv directory
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
 
 # Install python packages
