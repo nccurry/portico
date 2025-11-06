@@ -3,4 +3,3 @@ streamlit
 st-gsheets-connection
 altair
 pyyaml
-streamlit-aggrid

@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import altair as alt
 from datetime import datetime
-from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 
 from src.sidebar import configure_sidebar
 from src.spreadsheet import TransactionsSpreadsheet, BalanceHistorySpreadsheet
@@ -65,10 +64,30 @@ def create_year_comparison_chart(pivoted_df: pd.DataFrame, category: str) -> alt
             else:
                 color_range.append('lightgray')
     
-    # Filter out zero values - don't show them at all
-    df_long = df_long[df_long['Amount'] > 0]
+    # For each year, trim leading and trailing zeros but keep middle zeros
+    filtered_rows = []
+    for year in df_long['Year'].unique():
+        year_data = df_long[df_long['Year'] == year].copy()
+        
+        # Find first and last non-zero month for this year
+        non_zero = year_data[year_data['Amount'] > 0]
+        if not non_zero.empty:
+            min_month = non_zero['Month'].min()
+            max_month = non_zero['Month'].max()
+            
+            # Keep only data between first and last non-zero months (inclusive)
+            year_data = year_data[
+                (year_data['Month'] >= min_month) & 
+                (year_data['Month'] <= max_month)
+            ]
+            filtered_rows.append(year_data)
     
-    # Create the chart - only with non-zero data
+    if filtered_rows:
+        df_long = pd.concat(filtered_rows, ignore_index=True)
+    else:
+        df_long = pd.DataFrame()
+    
+    # Create the chart
     chart = alt.Chart(df_long).mark_line(point=True).encode(
         x=alt.X('Month:O', 
                 axis=alt.Axis(title='Month', labelAngle=0),
@@ -93,36 +112,28 @@ def create_year_comparison_chart(pivoted_df: pd.DataFrame, category: str) -> alt
 
 
 def display_transaction_table(transactions_df: pd.DataFrame, label: str) -> None:
-    """Display an interactive aggrid table in an expander"""
+    """Display an interactive dataframe table in an expander"""
     with st.expander(f"📊 View {label} Transactions ({len(transactions_df)} rows)"):
         if transactions_df.empty:
             st.info("No transactions found")
             return
         
-        # Configure grid options
-        gb = GridOptionsBuilder.from_dataframe(transactions_df)
-        gb.configure_pagination(paginationAutoPageSize=False, paginationPageSize=20)
-        gb.configure_side_bar()
-        gb.configure_default_column(
-            filterable=True,
-            sortable=True,
-            resizable=True,
-            editable=False
-        )
-        
-        # Enable multi-column sorting
-        gb.configure_grid_options(enableRangeSelection=True)
-        
-        grid_options = gb.build()
-        
-        # Display the grid
-        AgGrid(
+        # Display interactive dataframe with sorting, filtering, search
+        st.dataframe(
             transactions_df,
-            gridOptions=grid_options,
-            update_mode=GridUpdateMode.SELECTION_CHANGED,
-            fit_columns_on_grid_load=True,
+            width='stretch',
             height=400,
-            allow_unsafe_jscode=True
+            hide_index=True,
+            column_config={
+                "Amount": st.column_config.NumberColumn(
+                    "Amount",
+                    format="$%.2f"
+                ),
+                "Date": st.column_config.DateColumn(
+                    "Date",
+                    format="YYYY-MM-DD"
+                )
+            }
         )
 
 
@@ -156,7 +167,7 @@ def configure_page(
         
         # Show year-over-year comparison chart
         chart = create_year_comparison_chart(pivoted_df, category)
-        col2.altair_chart(chart, use_container_width=True)
+        col2.altair_chart(chart, width='stretch')
         
         # Show expandable transaction table
         transactions_df = transactions_spreadsheet.get_transactions_by_category(category)
