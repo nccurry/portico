@@ -49,3 +49,69 @@ Configure PyCharm to run the following command:
 
 Based on [Run streamlit from PyCharm](https://discuss.streamlit.io/t/run-streamlit-from-pycharm/21624).
 
+## Google Sheets Setup
+
+### Automatic Column Population with VLOOKUP
+
+The Transactions sheet uses ARRAYFORMULA with VLOOKUP to automatically populate the `Group`, `Type`, and `Hide From Reports` columns based on the Category column.
+
+**Prerequisites:**
+- A `Categories` sheet with columns:
+  - Column A: Category name (e.g., "Groceries", "Electric Bill")
+  - Column B: Group (e.g., "Food", "Bills")
+  - Column C: Type (e.g., "Expense", "Income")
+  - Column D: Hide From Reports (e.g., "Hide" or blank)
+
+**Formulas (place these in row 1 of each column):**
+
+**Group column:**
+```excel
+={"Group";
+   ARRAYFORMULA(
+      IF(D2:D="", "",
+         IFERROR(
+            VLOOKUP(D2:D, Categories!$A$2:$B, 2, FALSE),
+            "Uncategorized"
+         )
+      )
+   )
+}
+```
+
+**Type column:**
+```excel
+={"Type";
+   ARRAYFORMULA(
+      IF(D2:D="", "",
+         IFERROR(
+            VLOOKUP(D2:D, Categories!$A$2:$C, 3, FALSE),
+            ""
+         )
+      )
+   )
+}
+```
+
+**Hide From Reports column:**
+```excel
+={"Hide From Reports";
+   ARRAYFORMULA(
+      IF(D2:D="", "",
+         IFERROR(
+            VLOOKUP(D2:D, Categories!$A$2:$D, 4, FALSE),
+            ""
+         )
+      )
+   )
+}
+```
+
+**How it works:**
+1. The formula starts in row 1 with a header (e.g., "Group")
+2. `ARRAYFORMULA` applies the formula to all rows automatically
+3. `IF(D2:D="", "", ...)` checks if the Category column (D) is empty; if so, leaves the cell blank
+4. `VLOOKUP(D2:D, Categories!$A$2:$B, 2, FALSE)` looks up the category in column D against the Categories sheet and returns the corresponding value
+5. `IFERROR(..., "Uncategorized")` provides a default value if the category isn't found in the lookup table
+
+This approach ensures that when new transactions are added, their Group, Type, and Hide From Reports values are automatically populated based on the Category.
+
