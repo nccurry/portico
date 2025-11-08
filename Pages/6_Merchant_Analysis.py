@@ -115,7 +115,7 @@ def create_top_merchants_chart(merchant_stats: pd.DataFrame, top_n: int = 20) ->
     
     chart = alt.Chart(top_merchants).mark_bar().encode(
         x=alt.X('Total_Spent:Q', title='Total Spent ($)'),
-        y=alt.Y('Merchant:N', sort='-x', title='Merchant'),
+        y=alt.Y('Merchant:N', sort='-x', title='Merchant', axis=alt.Axis(labelLimit=200)),
         color=alt.Color('Primary_Category:N',
                        scale=alt.Scale(range=COLOR_PALETTE),
                        legend=alt.Legend(title='Category')),
@@ -129,6 +129,8 @@ def create_top_merchants_chart(merchant_stats: pd.DataFrame, top_n: int = 20) ->
     ).properties(
         height=max(CHART_HEIGHT_STANDARD, top_n * 20),
         title=f'Top {top_n} Merchants by Total Spending'
+    ).configure_axis(
+        labelLimit=200
     )
     
     return chart
