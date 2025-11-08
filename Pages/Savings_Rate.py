@@ -38,9 +38,29 @@ def configure_page(
                     'Home Improvements',
                     'Stock Purchase',
                 ],
-                default=['Tax Return Payment', 'Given Gift', 'Christmas', '401k', "HSA", "ESPP", "RSU", "Stock Purchase"],
+                default=['Tax Return Payment', 'Given Gift', 'Christmas', '401k', "HSA", "Stock Purchase"],
                 help="Exclude specific one-time or non-recurring transaction categories"
             )
+        
+        with col_filter2:
+            # Filter large income
+            filter_large_income = st.checkbox(
+                "Filter Large Income",
+                value=False,
+                help="Exclude individual large income transactions above a threshold (bonuses, stock gains)"
+            )
+            
+            income_threshold = 20000  # Default
+            
+            if filter_large_income:
+                income_threshold = st.number_input(
+                    "Income Threshold ($)",
+                    min_value=5000,
+                    max_value=100000,
+                    value=10000,
+                    step=1000,
+                    help="Exclude individual income transactions larger than this amount"
+                )
             
             # Filter large expenses
             filter_large_expenses = st.checkbox(
@@ -50,7 +70,6 @@ def configure_page(
             )
             
             expense_threshold = 3000  # Default
-            filter_categories = []
             
             if filter_large_expenses:
                 expense_threshold = st.number_input(
@@ -59,17 +78,7 @@ def configure_page(
                     max_value=100000,
                     value=3000,
                     step=500,
-                    help="Exclude individual transactions larger than this amount"
-                )
-        
-        with col_filter2:
-            # Category-specific large expense filter
-            if filter_large_expenses:
-                filter_categories = st.multiselect(
-                    "Apply Large Expense Filter To",
-                    options=['Shopping', 'Travel', 'All Categories'],
-                    default=['All Categories'],
-                    help="Which categories to apply the large expense threshold to"
+                    help="Exclude individual expense transactions larger than this amount"
                 )
             
             # Savings rate target
@@ -93,15 +102,13 @@ def configure_page(
     if exclude_categories:
         df = df[~df['Category'].isin(exclude_categories)]
     
-    # Filter out large expenses if enabled (only filter expenses, not income!)
+    # Filter out large expenses if enabled (applies to all categories)
     if filter_large_expenses:
-        if 'All Categories' in filter_categories:
-            # Apply to all expense categories
-            df = df[(df['Type'] != 'Expense') | (df['Amount'].abs() <= expense_threshold)]
-        elif filter_categories:
-            # Apply only to specific categories
-            mask = (df['Type'] != 'Expense') | ~df['Category'].isin(filter_categories) | (df['Amount'].abs() <= expense_threshold)
-            df = df[mask]
+        df = df[(df['Type'] != 'Expense') | (df['Amount'].abs() <= expense_threshold)]
+    
+    # Filter out large income if enabled
+    if filter_large_income:
+        df = df[(df['Type'] != 'Income') | (df['Amount'].abs() <= income_threshold)]
     
     # Separate income and expenses
     df_income = df[df['Type'] == 'Income'].copy()
