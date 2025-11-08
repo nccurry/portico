@@ -438,40 +438,80 @@ class BalanceHistorySpreadsheet(Spreadsheet):
 # Helper function for efficient sparkline calculation
 @st.cache_data(ttl=300)
 def calculate_group_sparkline(df_all: pd.DataFrame, group: str, start_date, end_date):
-    """Calculate sparkline data for a specific group (cached for performance)"""
-    # Sample weekly dates
-    sample_dates = pd.date_range(start=start_date, end=end_date, freq='W', tz='UTC')
+    """Calculate sparkline data for a specific group (cached for performance).
     
+    Optimized to use pandas resampling instead of iteration.
+    """
     df_group = df_all[df_all["Group"] == group].copy()
-    df_group_sorted = df_group.sort_values(['Account ID', 'Date'])
     
-    balances_by_date = []
-    for date in sample_dates:
-        daily_balances = df_group_sorted[df_group_sorted["Date"] <= date].groupby("Account ID", as_index=False).last()
-        if not daily_balances.empty:
-            total = daily_balances["Balance"].sum()
-            balances_by_date.append({"Date": date, "Balance": total})
+    if df_group.empty:
+        return pd.DataFrame()
     
-    return pd.DataFrame(balances_by_date)
+    # Sort by account and date
+    df_group = df_group.sort_values(['Account ID', 'Date'])
+    
+    # For each account, get the last balance for each week
+    # Set Date as index for resampling
+    df_group_indexed = df_group.set_index('Date')
+    
+    # Group by Account ID and resample to weekly, taking last balance
+    balances_by_date = (
+        df_group_indexed
+        .groupby('Account ID')['Balance']
+        .resample('W')
+        .last()
+        .groupby('Date')
+        .sum()
+        .reset_index()
+        .rename(columns={'Balance': 'Balance', 'Date': 'Date'})
+    )
+    
+    # Filter to date range
+    balances_by_date = balances_by_date[
+        (balances_by_date['Date'] >= start_date) & 
+        (balances_by_date['Date'] <= end_date)
+    ]
+    
+    return balances_by_date
 
 
 @st.cache_data(ttl=300)
 def calculate_net_worth_sparkline(df_all: pd.DataFrame, start_date, end_date):
-    """Calculate net worth sparkline (cached for performance)"""
-    sample_dates = pd.date_range(start=start_date, end=end_date, freq='W', tz='UTC')
+    """Calculate net worth sparkline (cached for performance).
     
+    Optimized to use pandas resampling instead of iteration.
+    """
     df_all_copy = df_all.copy()
+    
+    # Add signed balance (assets positive, liabilities negative)
     df_all_copy['Multiplier'] = df_all_copy['Class'].map({'Liability': -1, 'Asset': 1}).fillna(1)
     df_all_copy['SignedBalance'] = df_all_copy['Balance'] * df_all_copy['Multiplier']
-    df_all_sorted = df_all_copy.sort_values(['Account ID', 'Date'])
     
-    net_worth_by_date = []
-    for date in sample_dates:
-        daily_balances = df_all_sorted[df_all_sorted["Date"] <= date].groupby("Account ID", as_index=False).last()
-        net_worth = daily_balances['SignedBalance'].sum()
-        net_worth_by_date.append({"Date": date, "NetWorth": net_worth})
+    # Sort by account and date
+    df_all_copy = df_all_copy.sort_values(['Account ID', 'Date'])
     
-    return pd.DataFrame(net_worth_by_date)
+    # Set Date as index for resampling
+    df_indexed = df_all_copy.set_index('Date')
+    
+    # For each account, get the last balance for each week, then sum across accounts
+    net_worth_by_date = (
+        df_indexed
+        .groupby('Account ID')['SignedBalance']
+        .resample('W')
+        .last()
+        .groupby('Date')
+        .sum()
+        .reset_index()
+        .rename(columns={'SignedBalance': 'NetWorth'})
+    )
+    
+    # Filter to date range
+    net_worth_by_date = net_worth_by_date[
+        (net_worth_by_date['Date'] >= start_date) & 
+        (net_worth_by_date['Date'] <= end_date)
+    ]
+    
+    return net_worth_by_date
 
 
 # Cached data loading functions

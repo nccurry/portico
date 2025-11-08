@@ -1,143 +1,39 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
-from datetime import datetime, timedelta
 
 from src.sidebar import configure_sidebar
 from src.spreadsheet import load_transactions_data, load_balance_history_data, TransactionsSpreadsheet, BalanceHistorySpreadsheet
+from src.filters import render_spending_filters, apply_transaction_filters, calculate_date_range
+from src.page_helpers import get_transaction_column_config, display_transactions_expander
+from src.constants import (
+    TIME_PERIODS,
+    CHART_HEIGHT_STANDARD,
+    COLOR_PALETTE,
+    DEFAULT_LARGE_TRANSACTION_THRESHOLD
+)
 
 
-def configure_page(
-        transactions_spreadsheet: TransactionsSpreadsheet,
-        balance_history_spreadsheet: BalanceHistorySpreadsheet
-) -> None:
-    st.header("Spending by Category")
+def process_spending_data(
+    transactions_spreadsheet: TransactionsSpreadsheet,
+    filters: dict,
+    start_date: pd.Timestamp,
+    end_date: pd.Timestamp
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Apply filters and calculate spending by category.
     
-    # Add filter controls
-    with st.expander("⚙️ Filter Settings", expanded=False):
-        col_filter1, col_filter2 = st.columns(2)
+    Args:
+        transactions_spreadsheet: Transactions data
+        filters: Dictionary of filter settings
+        start_date: Period start date
+        end_date: Period end date
         
-        with col_filter1:
-            include_groups = st.multiselect(
-                "Include Only These Groups",
-                options=['Travel', 'Investment', 'Entertainment', 'Shopping', 'Donations', 'Bills', 'Food', 'Income', 'Maintenance', 'Work'],
-                default=[],
-                help="If set, ONLY show these groups (ignores all exclude filters)"
-            )
-            
-            # Get all categories for the include dropdown
-            all_categories = transactions_spreadsheet.scrubbed_df['Category'].unique()
-            all_categories = [str(c) for c in all_categories if pd.notna(c) and str(c).strip() != '']
-            all_categories = sorted(all_categories)
-            
-            include_categories = st.multiselect(
-                "Include Only These Categories",
-                options=all_categories,
-                default=[],
-                help="If set, ONLY show these categories (ignores all filters)"
-            )
-            
-            st.divider()
-            
-            exclude_groups = st.multiselect(
-                "Exclude Groups",
-                options=['Travel', 'Investment', 'Entertainment', 'Shopping', 'Donations', 'Bills', 'Food', 'Income', 'Maintenance', 'Work'],
-                default=["Bills", "Income", "Work", "Donations", "Investment"],
-                help="Exclude entire transaction groups (Transfer always excluded)"
-            )
-            
-            exclude_categories = st.multiselect(
-                "Exclude Categories",
-                options=[
-                    'Christmas',
-                    'Investment',
-                    'Home Improvements',
-                ],
-                default=[
-                    'Christmas',
-                    'Investment',
-                    'Home Improvements',
-                ],
-                help="Exclude specific one-time or non-recurring transaction categories"
-            )
-        
-        with col_filter2:
-            # Filter large expenses
-            filter_large_expenses = st.checkbox(
-                "Filter Large Expenses",
-                value=True,
-                help="Exclude individual large expense transactions above a threshold"
-            )
-            
-            expense_threshold = 3000  # Default
-            
-            if filter_large_expenses:
-                expense_threshold = st.number_input(
-                    "Expense Threshold ($)",
-                    min_value=1000,
-                    max_value=100000,
-                    value=3000,
-                    step=500,
-                    help="Exclude individual expense transactions larger than this amount"
-                )
-    
-    # Time period selector
-    period = st.selectbox(
-        "Time Period",
-        ["This Month", "Last Month", "Last 3 Months", "Last 6 Months", "Last 12 Months", "Year to Date", "All Time"],
-        index=2  # Default to Last 3 Months
-    )
-    
-    # Calculate date range based on selection
-    now = pd.Timestamp.now(tz='UTC')
-    
-    if period == "This Month":
-        start_date = now.replace(day=1)
-        end_date = now
-    elif period == "Last Month":
-        start_date = (now.replace(day=1) - timedelta(days=1)).replace(day=1)
-        end_date = now.replace(day=1) - timedelta(days=1)
-    elif period == "Last 3 Months":
-        start_date = now - timedelta(days=90)
-        end_date = now
-    elif period == "Last 6 Months":
-        start_date = now - timedelta(days=180)
-        end_date = now
-    elif period == "Last 12 Months":
-        start_date = now - timedelta(days=365)
-        end_date = now
-    elif period == "Year to Date":
-        start_date = now.replace(month=1, day=1)
-        end_date = now
-    else:  # All Time
-        df = transactions_spreadsheet.scrubbed_df.copy()
-        start_date = df['Date'].min()
-        end_date = now
-    
-    # Get all transactions for the period
+    Returns:
+        Tuple of (filtered_df, category_summary_df)
+    """
+    # Get all transactions and apply filters
     df = transactions_spreadsheet.scrubbed_df.copy()
-    
-    # Always exclude Transfer group (silently)
-    df = df[df['Group'] != 'Transfer']
-    
-    # Apply INCLUDE filters first (they override excludes)
-    if include_groups:
-        # If include groups specified, ONLY show those groups
-        df = df[df['Group'].isin(include_groups)]
-    elif include_categories:
-        # If include categories specified, ONLY show those categories
-        df = df[df['Category'].isin(include_categories)]
-    else:
-        # No include filters - apply exclude filters
-        if exclude_groups:
-            df = df[~df['Group'].isin(exclude_groups)]
-        
-        if exclude_categories:
-            df = df[~df['Category'].isin(exclude_categories)]
-    
-    # Filter out large expenses if enabled
-    if filter_large_expenses:
-        df = df[(df['Type'] != 'Expense') | (df['Amount'].abs() <= expense_threshold)]
+    df = apply_transaction_filters(df, filters)
     
     # Filter to date range and expenses only
     df_period = df[
@@ -151,11 +47,24 @@ def configure_page(
     df_by_category['Amount'] = df_by_category['Amount'].abs()
     df_by_category = df_by_category.sort_values('Amount', ascending=False)
     
-    # Calculate totals
+    # Calculate totals and percentages
     total_spending = df_by_category['Amount'].sum()
-    df_by_category['Percentage'] = (df_by_category['Amount'] / total_spending * 100).round(1)
+    if total_spending > 0:
+        df_by_category['Percentage'] = (df_by_category['Amount'] / total_spending * 100).round(1)
+    else:
+        df_by_category['Percentage'] = 0
     
-    # Show summary metrics
+    return df_period, df_by_category
+
+
+def display_summary_metrics(df_by_category: pd.DataFrame) -> None:
+    """Display summary metrics for spending.
+    
+    Args:
+        df_by_category: Category summary dataframe
+    """
+    total_spending = df_by_category['Amount'].sum()
+    
     col1, col2, col3 = st.columns(3)
     
     with col1:
@@ -178,89 +87,86 @@ def configure_page(
             label="Active Categories",
             value=num_categories
         )
+
+
+def create_spending_trend_chart(
+    df_period: pd.DataFrame,
+    top_categories: list,
+    color_scale: alt.Scale
+) -> alt.Chart:
+    """Create line chart showing monthly spending trend for top categories.
     
-    st.divider()
-    
-    # Create shared color scale for consistent colors across both charts
-    if not df_by_category.empty:
-        # Get top 10 categories for color mapping
-        top_10_categories = df_by_category.head(10)['Category'].tolist()
+    Args:
+        df_period: Filtered transaction data
+        top_categories: List of top category names
+        color_scale: Altair color scale for consistency
         
-        # Define color palette (using Tableau10 colors for distinctiveness)
-        color_palette = ['#4e79a7', '#f28e2b', '#e15759', '#76b7b2', '#59a14f', 
-                        '#edc948', '#b07aa1', '#ff9da7', '#9c755f', '#bab0ac']
+    Returns:
+        Altair chart
+    """
+    # Get monthly spending for top categories
+    df_monthly = df_period[df_period['Category'].isin(top_categories)].copy()
+    df_monthly['Amount'] = df_monthly['Amount'].abs()
+    df_monthly_grouped = df_monthly.groupby(['Month', 'Category'])['Amount'].sum().reset_index()
+    
+    # Create line chart with shared color scale
+    chart = alt.Chart(df_monthly_grouped).mark_line(point=True, strokeWidth=3).encode(
+        x=alt.X('Month:O', axis=alt.Axis(labelAngle=-45), title='Month'),
+        y=alt.Y('Amount:Q', title='Amount ($)'),
+        color=alt.Color('Category:N', scale=color_scale, legend=None),
+        tooltip=[
+            alt.Tooltip('Month:O', title='Month'),
+            alt.Tooltip('Category:N', title='Category'),
+            alt.Tooltip('Amount:Q', title='Amount', format='$,.2f')
+        ]
+    ).properties(
+        height=CHART_HEIGHT_STANDARD,
+        title='Top 5 Categories - Monthly Trend'
+    )
+    
+    return chart
+
+
+def create_top_categories_chart(
+    df_by_category: pd.DataFrame,
+    color_scale: alt.Scale
+) -> alt.Chart:
+    """Create horizontal bar chart for top 10 categories.
+    
+    Args:
+        df_by_category: Category summary data
+        color_scale: Altair color scale for consistency
         
-        # Create color scale
-        color_scale = alt.Scale(
-            domain=top_10_categories,
-            range=color_palette[:len(top_10_categories)]
-        )
+    Returns:
+        Altair chart
+    """
+    df_top10 = df_by_category.head(10)
     
-    # Create two columns for visualizations
-    viz_col1, viz_col2 = st.columns(2)
+    chart = alt.Chart(df_top10).mark_bar().encode(
+        x=alt.X('Amount:Q', title='Amount ($)'),
+        y=alt.Y('Category:N', sort=df_top10['Category'].tolist(), title='Category'),
+        color=alt.Color('Category:N', scale=color_scale, legend=None),
+        tooltip=[
+            alt.Tooltip('Category:N', title='Category'),
+            alt.Tooltip('Amount:Q', title='Amount', format='$,.2f'),
+            alt.Tooltip('Percentage:Q', title='% of Total', format='.1f')
+        ]
+    ).properties(
+        height=CHART_HEIGHT_STANDARD,
+        title='Top 10 Categories by Amount'
+    )
     
-    with viz_col1:
-        st.subheader("Spending Over Time")
-        
-        # Line chart showing monthly spending for top categories
-        if not df_by_category.empty:
-            # Get top 5 categories
-            top_5_categories = df_by_category.head(5)['Category'].tolist()
-            
-            # Get monthly spending for these categories
-            df_monthly = df_period[df_period['Category'].isin(top_5_categories)].copy()
-            df_monthly['Amount'] = df_monthly['Amount'].abs()
-            df_monthly_grouped = df_monthly.groupby(['Month', 'Category'])['Amount'].sum().reset_index()
-            
-            # Create line chart with shared color scale
-            lines = alt.Chart(df_monthly_grouped).mark_line(point=True, strokeWidth=3).encode(
-                x=alt.X('Month:O', axis=alt.Axis(labelAngle=-45), title='Month'),
-                y=alt.Y('Amount:Q', title='Amount ($)'),
-                color=alt.Color('Category:N', 
-                               scale=color_scale,
-                               legend=None),  # No legend - bar chart serves as legend
-                tooltip=[
-                    alt.Tooltip('Month:O', title='Month'),
-                    alt.Tooltip('Category:N', title='Category'),
-                    alt.Tooltip('Amount:Q', title='Amount', format='$,.2f')
-                ]
-            ).properties(
-                height=400,
-                title='Top 5 Categories - Monthly Trend'
-            )
-            
-            st.altair_chart(lines, width='stretch')
+    return chart
+
+
+def display_data_tables(df_period: pd.DataFrame, df_by_category: pd.DataFrame) -> None:
+    """Display expandable data tables for categories and transactions.
     
-    with viz_col2:
-        st.subheader("Top 10 Categories")
-        
-        # Horizontal bar chart with shared color scale
-        if not df_by_category.empty:
-            df_top10 = df_by_category.head(10)
-            
-            bars = alt.Chart(df_top10).mark_bar().encode(
-                x=alt.X('Amount:Q', title='Amount ($)'),
-                y=alt.Y('Category:N', 
-                       sort=df_top10['Category'].tolist(),
-                       title='Category'),
-                color=alt.Color('Category:N',
-                               scale=color_scale,
-                               legend=None),  # No legend - shown on left chart
-                tooltip=[
-                    alt.Tooltip('Category:N', title='Category'),
-                    alt.Tooltip('Amount:Q', title='Amount', format='$,.2f'),
-                    alt.Tooltip('Percentage:Q', title='% of Total', format='.1f')
-                ]
-            ).properties(
-                height=400,
-                title='Top 10 Categories by Amount'
-            )
-            
-            st.altair_chart(bars, width='stretch')
-    
-    st.divider()
-    
-    # Show detailed category table
+    Args:
+        df_period: Filtered transaction data
+        df_by_category: Category summary data
+    """
+    # Category summary table
     with st.expander("📊 View All Categories"):
         st.dataframe(
             df_by_category,
@@ -273,13 +179,13 @@ def configure_page(
             }
         )
     
-    # Show large transactions
+    # Large transactions table
     with st.expander("💰 View Large Transactions"):
         large_transaction_threshold = st.slider(
             "Minimum Amount to Show ($)",
             min_value=100,
             max_value=5000,
-            value=500,
+            value=DEFAULT_LARGE_TRANSACTION_THRESHOLD,
             step=100,
             help="Show transactions larger than this amount"
         )
@@ -287,7 +193,6 @@ def configure_page(
         df_large = df_period[df_period['Amount'].abs() > large_transaction_threshold].copy()
         st.caption(f"Showing {len(df_large)} transactions >${large_transaction_threshold:,}")
         
-        # Sort by date descending
         df_large_display = df_large.sort_values('Date', ascending=False)
         
         st.dataframe(
@@ -295,40 +200,80 @@ def configure_page(
             width='stretch',
             height=600,
             hide_index=True,
-            column_config={
-                'Date': st.column_config.DateColumn('Date', format='YYYY-MM-DD'),
-                'Month': st.column_config.TextColumn('Month'),
-                'Amount': st.column_config.NumberColumn('Amount', format='$%.2f'),
-                'Category': st.column_config.TextColumn('Category'),
-                'Group': st.column_config.TextColumn('Group'),
-                'Type': st.column_config.TextColumn('Type'),
-                'Account': st.column_config.TextColumn('Account'),
-                'Full Description': st.column_config.TextColumn('Description')
-            }
+            column_config=get_transaction_column_config()
         )
     
-    # Show all transactions
-    with st.expander("📋 View All Transactions"):
-        st.caption(f"Showing {len(df_period)} expense transactions")
-        
-        # Sort by date descending
-        df_all_display = df_period.sort_values('Date', ascending=False)
-        
-        st.dataframe(
-            df_all_display,
-            width='stretch',
-            height=600,
-            hide_index=True,
-            column_config={
-                'Date': st.column_config.DateColumn('Date', format='YYYY-MM-DD'),
-                'Amount': st.column_config.NumberColumn('Amount', format='$%.2f'),
-                'Category': st.column_config.TextColumn('Category'),
-                'Group': st.column_config.TextColumn('Group'),
-                'Type': st.column_config.TextColumn('Type'),
-                'Account': st.column_config.TextColumn('Account'),
-                'Full Description': st.column_config.TextColumn('Description')
-            }
+    # All transactions table
+    display_transactions_expander(df_period, "View All Transactions")
+
+
+def configure_page(
+    transactions_spreadsheet: TransactionsSpreadsheet,
+    balance_history_spreadsheet: BalanceHistorySpreadsheet
+) -> None:
+    """Main page configuration - orchestrates all components."""
+    st.header("Spending by Category")
+    
+    # Get all categories for filter options
+    all_categories = transactions_spreadsheet.scrubbed_df['Category'].unique()
+    all_categories = [str(c) for c in all_categories if pd.notna(c) and str(c).strip() != '']
+    all_categories = sorted(all_categories)
+    
+    # Render filter controls
+    filters = render_spending_filters(all_categories)
+    
+    # Time period selector
+    period = st.selectbox(
+        "Time Period",
+        TIME_PERIODS,
+        index=2  # Default to Last 3 Months
+    )
+    
+    # Calculate date range based on selection
+    start_date, end_date = calculate_date_range(period, transactions_spreadsheet.scrubbed_df)
+    
+    # Process data
+    df_period, df_by_category = process_spending_data(
+        transactions_spreadsheet,
+        filters,
+        start_date,
+        end_date
+    )
+    
+    # Display summary metrics
+    display_summary_metrics(df_by_category)
+    
+    st.divider()
+    
+    # Create visualizations
+    if not df_by_category.empty:
+        # Create shared color scale for consistent colors across both charts
+        top_10_categories = df_by_category.head(10)['Category'].tolist()
+        color_scale = alt.Scale(
+            domain=top_10_categories,
+            range=COLOR_PALETTE[:len(top_10_categories)]
         )
+        
+        # Display charts side by side
+        viz_col1, viz_col2 = st.columns(2)
+        
+        with viz_col1:
+            st.subheader("Spending Over Time")
+            top_5_categories = df_by_category.head(5)['Category'].tolist()
+            trend_chart = create_spending_trend_chart(df_period, top_5_categories, color_scale)
+            st.altair_chart(trend_chart, width='stretch')
+        
+        with viz_col2:
+            st.subheader("Top 10 Categories")
+            categories_chart = create_top_categories_chart(df_by_category, color_scale)
+            st.altair_chart(categories_chart, width='stretch')
+        
+        st.divider()
+        
+        # Display data tables
+        display_data_tables(df_period, df_by_category)
+    else:
+        st.info("No spending data found for the selected filters and time period")
 
 
 def main() -> None:
@@ -344,4 +289,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

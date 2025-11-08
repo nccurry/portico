@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import altair as alt
 from datetime import timedelta
-from typing import List, Dict, Tuple
 
 from src.sidebar import configure_sidebar
 from src.spreadsheet import (
@@ -12,6 +11,15 @@ from src.spreadsheet import (
     calculate_net_worth_sparkline,
     TransactionsSpreadsheet, 
     BalanceHistorySpreadsheet
+)
+from src.page_helpers import create_sparkline_chart
+from src.constants import (
+    SPARKLINE_HISTORY_DAYS,
+    CHART_HEIGHT_SPARKLINE,
+    CHART_HEIGHT_NET_WORTH_SPARKLINE,
+    COLOR_NET_WORTH,
+    COLOR_ASSET,
+    COLOR_LIABILITY
 )
 
 
@@ -64,7 +72,7 @@ def configure_page(
     
     # Calculate net worth sparkline (cached for performance)
     end_date = pd.Timestamp.now(tz='UTC')
-    start_date = end_date - timedelta(days=365)
+    start_date = end_date - timedelta(days=SPARKLINE_HISTORY_DAYS)
     
     df_net_worth = calculate_net_worth_sparkline(
         balance_history_spreadsheet.scrubbed_df,
@@ -72,43 +80,17 @@ def configure_page(
         end_date
     )
     
-    # Display net worth sparkline
-    if not df_net_worth.empty and len(df_net_worth) > 1:
-        # Calculate min value with some padding for better visualization
-        min_value = df_net_worth['NetWorth'].min() * 0.95
-        
-        nw_chart = alt.Chart(df_net_worth).mark_line(
-            color='gold',
-            strokeWidth=3,
-            interpolate='monotone'
-        ).encode(
-            x=alt.X('Date:T', axis=None),
-            y=alt.Y('NetWorth:Q', axis=None, scale=alt.Scale(domainMin=min_value))
-        ).properties(
-            height=60
-        ).configure_view(
-            strokeWidth=0
-        )
-        st.altair_chart(nw_chart, width='stretch')
-    else:
-        # Flat line at current net worth
-        flat_line_data = pd.DataFrame([
-            {'x': 0, 'y': total_net_worth},
-            {'x': 1, 'y': total_net_worth}
-        ])
-        nw_chart = alt.Chart(flat_line_data).mark_line(
-            color='lightgray',
-            strokeWidth=3,
-            strokeDash=[5, 5]
-        ).encode(
-            x=alt.X('x:Q', axis=None),
-            y=alt.Y('y:Q', axis=None, scale=alt.Scale(zero=False))
-        ).properties(
-            height=60
-        ).configure_view(
-            strokeWidth=0
-        )
-        st.altair_chart(nw_chart, width='stretch')
+    # Display net worth sparkline using helper function
+    nw_chart = create_sparkline_chart(
+        df=df_net_worth,
+        value_column='NetWorth',
+        date_column='Date',
+        color=COLOR_NET_WORTH,
+        height=CHART_HEIGHT_NET_WORTH_SPARKLINE,
+        current_value=total_net_worth,
+        use_min_scale=True
+    )
+    st.altair_chart(nw_chart, width='stretch')
     
     st.divider()
     
@@ -127,7 +109,7 @@ def configure_page(
             
             # Get 12-month balance history for sparkline (cached)
             end_date = pd.Timestamp.now(tz='UTC')
-            start_date = end_date - timedelta(days=365)
+            start_date = end_date - timedelta(days=SPARKLINE_HISTORY_DAYS)
             
             df_sparkline = calculate_group_sparkline(
                 balance_history_spreadsheet.scrubbed_df,
@@ -138,43 +120,19 @@ def configure_page(
             
             # Determine color based on account class (red for liabilities, green for assets)
             is_liability = group_classes.get(group) == "Liability"
-            sparkline_color = 'lightcoral' if is_liability else 'lightgreen'
+            sparkline_color = COLOR_LIABILITY if is_liability else COLOR_ASSET
             
-            # Create sparkline chart
-            if not df_sparkline.empty and len(df_sparkline) > 1:
-                # Have historical data - show trend line
-                chart = alt.Chart(df_sparkline).mark_line(
-                    color=sparkline_color,
-                    strokeWidth=2,
-                    interpolate='monotone'
-                ).encode(
-                    x=alt.X('Date:T', axis=None),
-                    y=alt.Y('Balance:Q', axis=None, scale=alt.Scale(zero=False))
-                ).properties(
-                    height=50
-                ).configure_view(
-                    strokeWidth=0
-                )
-                st.altair_chart(chart, width='stretch')
-            else:
-                # Not enough history - show flat line at current balance
-                flat_line_data = pd.DataFrame([
-                    {'x': 0, 'y': group_total},
-                    {'x': 1, 'y': group_total}
-                ])
-                chart = alt.Chart(flat_line_data).mark_line(
-                    color='lightgray',
-                    strokeWidth=2,
-                    strokeDash=[5, 5]  # Dashed line to indicate it's not real data
-                ).encode(
-                    x=alt.X('x:Q', axis=None),
-                    y=alt.Y('y:Q', axis=None, scale=alt.Scale(zero=False))
-                ).properties(
-                    height=50
-                ).configure_view(
-                    strokeWidth=0
-                )
-                st.altair_chart(chart, width='stretch')
+            # Create sparkline chart using helper function
+            chart = create_sparkline_chart(
+                df=df_sparkline,
+                value_column='Balance',
+                date_column='Date',
+                color=sparkline_color,
+                height=CHART_HEIGHT_SPARKLINE,
+                current_value=group_total,
+                use_min_scale=False
+            )
+            st.altair_chart(chart, width='stretch')
             
             # Show individual accounts in an expander
             with st.expander(f"View {group} Accounts"):
