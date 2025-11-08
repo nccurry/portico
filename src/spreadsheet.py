@@ -435,14 +435,54 @@ class BalanceHistorySpreadsheet(Spreadsheet):
         """Get the difference in account balance at the beginning and ending of a period"""
 
 
+# Helper function for efficient sparkline calculation
+@st.cache_data(ttl=300)
+def calculate_group_sparkline(df_all: pd.DataFrame, group: str, start_date, end_date):
+    """Calculate sparkline data for a specific group (cached for performance)"""
+    # Sample weekly dates
+    sample_dates = pd.date_range(start=start_date, end=end_date, freq='W', tz='UTC')
+    
+    df_group = df_all[df_all["Group"] == group].copy()
+    df_group_sorted = df_group.sort_values(['Account ID', 'Date'])
+    
+    balances_by_date = []
+    for date in sample_dates:
+        daily_balances = df_group_sorted[df_group_sorted["Date"] <= date].groupby("Account ID", as_index=False).last()
+        if not daily_balances.empty:
+            total = daily_balances["Balance"].sum()
+            balances_by_date.append({"Date": date, "Balance": total})
+    
+    return pd.DataFrame(balances_by_date)
+
+
+@st.cache_data(ttl=300)
+def calculate_net_worth_sparkline(df_all: pd.DataFrame, start_date, end_date):
+    """Calculate net worth sparkline (cached for performance)"""
+    sample_dates = pd.date_range(start=start_date, end=end_date, freq='W', tz='UTC')
+    
+    df_all_copy = df_all.copy()
+    df_all_copy['Multiplier'] = df_all_copy['Class'].map({'Liability': -1, 'Asset': 1}).fillna(1)
+    df_all_copy['SignedBalance'] = df_all_copy['Balance'] * df_all_copy['Multiplier']
+    df_all_sorted = df_all_copy.sort_values(['Account ID', 'Date'])
+    
+    net_worth_by_date = []
+    for date in sample_dates:
+        daily_balances = df_all_sorted[df_all_sorted["Date"] <= date].groupby("Account ID", as_index=False).last()
+        net_worth = daily_balances['SignedBalance'].sum()
+        net_worth_by_date.append({"Date": date, "NetWorth": net_worth})
+    
+    return pd.DataFrame(net_worth_by_date)
+
+
 # Cached data loading functions
-@st.cache_data(ttl=300)  # Cache for 5 minutes
+# Use cache_resource for objects that should be reused across sessions
+@st.cache_resource(ttl=300)  # Cache for 5 minutes
 def load_transactions_data():
     """Load and cache transactions spreadsheet data"""
     return TransactionsSpreadsheet()
 
 
-@st.cache_data(ttl=300)  # Cache for 5 minutes
+@st.cache_resource(ttl=300)  # Cache for 5 minutes
 def load_balance_history_data():
     """Load and cache balance history spreadsheet data"""
     return BalanceHistorySpreadsheet()

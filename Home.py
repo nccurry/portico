@@ -5,7 +5,14 @@ from datetime import timedelta
 from typing import List, Dict, Tuple
 
 from src.sidebar import configure_sidebar
-from src.spreadsheet import load_transactions_data, load_balance_history_data, TransactionsSpreadsheet, BalanceHistorySpreadsheet
+from src.spreadsheet import (
+    load_transactions_data, 
+    load_balance_history_data, 
+    calculate_group_sparkline,
+    calculate_net_worth_sparkline,
+    TransactionsSpreadsheet, 
+    BalanceHistorySpreadsheet
+)
 
 
 def configure_page(
@@ -55,41 +62,15 @@ def configure_page(
         value=f"${total_net_worth:,.2f}"
     )
     
-    # Calculate net worth sparkline (last 12 months)
+    # Calculate net worth sparkline (cached for performance)
     end_date = pd.Timestamp.now(tz='UTC')
     start_date = end_date - timedelta(days=365)
     
-    # Get all balance data in date range
-    df_all = balance_history_spreadsheet.scrubbed_df.copy()
-    df_filtered = df_all[df_all["Date"].between(start_date, end_date)].copy()
-    
-    if not df_filtered.empty:
-        # Create multiplier: Assets = +1, Liabilities = -1
-        df_filtered['Multiplier'] = df_filtered['Class'].map({'Liability': -1, 'Asset': 1}).fillna(1)
-        df_filtered['SignedBalance'] = df_filtered['Balance'] * df_filtered['Multiplier']
-        
-        # For each account, get the latest balance up to each date
-        # Group by Account ID and Date to get one balance per account per date
-        df_filtered = df_filtered.sort_values(['Account ID', 'Date'])
-        
-        # Get all unique dates in the range
-        all_snapshot_dates = sorted(df_filtered["Date"].unique())
-        
-        # Calculate net worth for each date
-        net_worth_by_date = []
-        for date in all_snapshot_dates:
-            # Get latest balance for each account up to this date
-            latest_balances = df_all[df_all["Date"] <= date].sort_values("Date").groupby("Account ID").last()
-            
-            # Apply multiplier based on class
-            latest_balances['Multiplier'] = latest_balances['Class'].map({'Liability': -1, 'Asset': 1}).fillna(1)
-            net_worth = (latest_balances['Balance'] * latest_balances['Multiplier']).sum()
-            
-            net_worth_by_date.append({"Date": date, "NetWorth": net_worth})
-        
-        df_net_worth = pd.DataFrame(net_worth_by_date)
-    else:
-        df_net_worth = pd.DataFrame()
+    df_net_worth = calculate_net_worth_sparkline(
+        balance_history_spreadsheet.scrubbed_df,
+        start_date,
+        end_date
+    )
     
     # Display net worth sparkline
     if not df_net_worth.empty and len(df_net_worth) > 1:
@@ -144,36 +125,16 @@ def configure_page(
                 value=f"${group_total:,.2f}"
             )
             
-            # Get 12-month balance history for sparkline
+            # Get 12-month balance history for sparkline (cached)
             end_date = pd.Timestamp.now(tz='UTC')
             start_date = end_date - timedelta(days=365)
             
-            # Get all accounts in this group
-            df_raw = balance_history_spreadsheet.scrubbed_df.copy()
-            df_raw = df_raw[df_raw["Group"] == group]
-            account_ids = df_raw["Account ID"].unique()
-            
-            # Get unique snapshot dates across all accounts in the group
-            snapshot_dates = df_raw[df_raw["Date"].between(start_date, end_date)]["Date"].unique()
-            snapshot_dates = sorted(snapshot_dates)
-            
-            # For each snapshot date, calculate total balance for the group
-            balances_by_date = []
-            for date in snapshot_dates:
-                # For each account, get the latest balance up to this date
-                total = 0
-                for account_id in account_ids:
-                    account_data = df_raw[
-                        (df_raw["Account ID"] == account_id) & 
-                        (df_raw["Date"] <= date)
-                    ].sort_values("Date")
-                    
-                    if not account_data.empty:
-                        total += account_data.iloc[-1]["Balance"]
-                
-                balances_by_date.append({"Date": date, "Balance": total})
-            
-            df_sparkline = pd.DataFrame(balances_by_date)
+            df_sparkline = calculate_group_sparkline(
+                balance_history_spreadsheet.scrubbed_df,
+                group,
+                start_date,
+                end_date
+            )
             
             # Determine color based on account class (red for liabilities, green for assets)
             is_liability = group_classes.get(group) == "Liability"

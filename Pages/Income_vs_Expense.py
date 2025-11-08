@@ -41,15 +41,20 @@ def configure_page(
         how='left'
     ).fillna(0)
     
-    # Make sure Income is positive, Expense is positive (for display)
-    df_pivot['Income'] = df_pivot['Income'].abs()
-    df_pivot['Expense'] = df_pivot['Expense'].abs()
+    # Income is positive, Expense is negative - keep original signs
+    # Net = Income + Expense (adds negative expense, effectively subtracting)
+    df_pivot['Net'] = df_pivot['Income'] + df_pivot['Expense']
     
-    # Calculate net (Income - Expenses)
-    df_pivot['Net'] = df_pivot['Income'] - df_pivot['Expense']
+    # For display: create absolute value columns
+    df_pivot['Income_Display'] = df_pivot['Income'].abs()
+    df_pivot['Expense_Display'] = df_pivot['Expense'].abs()
     
     # Sort by month
     df_pivot = df_pivot.sort_values('Month')
+    
+    # Exclude current incomplete month
+    current_month = pd.Timestamp.now(tz='UTC').strftime('%Y-%m')
+    df_pivot = df_pivot[df_pivot['Month'] < current_month]
     
     # Show key metrics for current month
     if not df_pivot.empty:
@@ -60,13 +65,13 @@ def configure_page(
         with col1:
             st.metric(
                 label=f"Income ({latest_month['Month']})",
-                value=f"${abs(latest_month['Income']):,.2f}"
+                value=f"${latest_month['Income_Display']:,.2f}"
             )
         
         with col2:
             st.metric(
                 label=f"Expenses ({latest_month['Month']})",
-                value=f"${abs(latest_month['Expense']):,.2f}"
+                value=f"${latest_month['Expense_Display']:,.2f}"
             )
         
         with col3:
@@ -80,16 +85,16 @@ def configure_page(
     st.divider()
     
     # Create visualization - reshape for Altair
-    df_long = df_pivot.melt(
-        id_vars=['Month'], 
-        value_vars=['Income', 'Expense', 'Net'],
+    # Use display columns for bars (both positive)
+    df_bars = df_pivot[['Month', 'Income_Display', 'Expense_Display']].copy()
+    df_long_bars = df_bars.melt(
+        id_vars=['Month'],
+        value_vars=['Income_Display', 'Expense_Display'],
         var_name='Category',
         value_name='Amount'
     )
-    
-    # Income should be positive, Expense should be negative for visualization
-    df_long_bars = df_long[df_long['Category'].isin(['Income', 'Expense'])].copy()
-    df_long_bars.loc[df_long_bars['Category'] == 'Expense', 'Amount'] = df_long_bars.loc[df_long_bars['Category'] == 'Expense', 'Amount'] * -1
+    # Clean up category names
+    df_long_bars['Category'] = df_long_bars['Category'].str.replace('_Display', '')
     
     # Create bar chart for Income and Expense
     bars = alt.Chart(df_long_bars).mark_bar().encode(
@@ -112,17 +117,17 @@ def configure_page(
     )
     
     # Create line chart for Net
-    df_net = df_long[df_long['Category'] == 'Net'].copy()
+    df_net = df_pivot[['Month', 'Net']].copy()
     line = alt.Chart(df_net).mark_line(
         color='gold',
         strokeWidth=3,
         point=True
     ).encode(
         x=alt.X('Month:O'),
-        y=alt.Y('Amount:Q'),
+        y=alt.Y('Net:Q'),
         tooltip=[
             alt.Tooltip('Month:O', title='Month'),
-            alt.Tooltip('Amount:Q', title='Net', format='$,.2f')
+            alt.Tooltip('Net:Q', title='Net', format='$,.2f')
         ]
     )
     
@@ -133,9 +138,7 @@ def configure_page(
     
     # Show data table
     with st.expander("📊 View Monthly Data"):
-        display_df = df_pivot.copy()
-        display_df['Income'] = display_df['Income'].abs()
-        display_df['Expense'] = display_df['Expense'].abs()
+        display_df = df_pivot[['Month', 'Income_Display', 'Expense_Display', 'Net']].copy()
         
         st.dataframe(
             display_df,
@@ -143,8 +146,8 @@ def configure_page(
             hide_index=True,
             column_config={
                 'Month': st.column_config.TextColumn('Month'),
-                'Income': st.column_config.NumberColumn('Income', format='$%.2f'),
-                'Expense': st.column_config.NumberColumn('Expenses', format='$%.2f'),
+                'Income_Display': st.column_config.NumberColumn('Income', format='$%.2f'),
+                'Expense_Display': st.column_config.NumberColumn('Expenses', format='$%.2f'),
                 'Net': st.column_config.NumberColumn('Net', format='$%.2f')
             }
         )
