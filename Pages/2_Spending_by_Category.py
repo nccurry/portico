@@ -144,7 +144,8 @@ def create_top_categories_chart(
     
     chart = alt.Chart(df_top10).mark_bar().encode(
         x=alt.X('Amount:Q', title='Amount ($)'),
-        y=alt.Y('Category:N', sort=df_top10['Category'].tolist(), title='Category'),
+        y=alt.Y('Category:N', sort=df_top10['Category'].tolist(), title='Category', 
+                axis=alt.Axis(labelLimit=200)),
         color=alt.Color('Category:N', scale=color_scale, legend=None),
         tooltip=[
             alt.Tooltip('Category:N', title='Category'),
@@ -154,31 +155,289 @@ def create_top_categories_chart(
     ).properties(
         height=CHART_HEIGHT_STANDARD,
         title='Top 10 Categories by Amount'
+    ).configure_axis(
+        labelLimit=200
     )
     
     return chart
 
 
-def display_data_tables(df_period: pd.DataFrame, df_by_category: pd.DataFrame) -> None:
-    """Display expandable data tables for categories and transactions.
+def create_amount_histogram(df_period: pd.DataFrame) -> alt.Chart:
+    """Create histogram showing distribution of transaction amounts.
+    
+    Args:
+        df_period: Filtered transaction data
+        
+    Returns:
+        Altair chart
+    """
+    if df_period.empty:
+        return alt.Chart(pd.DataFrame()).mark_text().encode(
+            text=alt.value("No transaction data available")
+        )
+    
+    # Create amount bins
+    df_hist = df_period.copy()
+    df_hist['Amount_Abs'] = df_hist['Amount'].abs()
+    
+    # Define bin edges (exponential spacing works well for wide ranges)
+    bins = [0, 10, 25, 50, 100, 250, 500, 1000, 5000, 100000]
+    labels = ['$0-10', '$10-25', '$25-50', '$50-100', '$100-250', 
+              '$250-500', '$500-1K', '$1K-5K', '$5K+']
+    
+    df_hist['Amount_Range'] = pd.cut(df_hist['Amount_Abs'], bins=bins, labels=labels, include_lowest=True)
+    
+    # Count transactions in each bin
+    bin_counts = df_hist.groupby('Amount_Range', observed=True).size().reset_index(name='Count')
+    
+    chart = alt.Chart(bin_counts).mark_bar().encode(
+        x=alt.X('Amount_Range:N', 
+               title='Transaction Amount Range',
+               sort=labels,
+               axis=alt.Axis(labelAngle=-45)),
+        y=alt.Y('Count:Q', title='Number of Transactions'),
+        color=alt.value(COLOR_PALETTE[0]),
+        tooltip=[
+            alt.Tooltip('Amount_Range:N', title='Amount Range'),
+            alt.Tooltip('Count:Q', title='# Transactions', format=',')
+        ]
+    ).properties(
+        height=CHART_HEIGHT_STANDARD,
+        title='Transaction Count by Amount Range'
+    )
+    
+    return chart
+
+
+def create_category_boxplot(df_period: pd.DataFrame) -> alt.Chart:
+    """Create box plot showing amount distribution by category.
+    
+    Args:
+        df_period: Filtered transaction data
+        
+    Returns:
+        Altair chart
+    """
+    if df_period.empty:
+        return alt.Chart(pd.DataFrame()).mark_text().encode(
+            text=alt.value("No transaction data available")
+        )
+    
+    # Get top 10 categories by total spending
+    top_categories = (df_period.groupby('Category')['Amount']
+                     .sum()
+                     .abs()
+                     .nlargest(10)
+                     .index.tolist())
+    
+    df_box = df_period[df_period['Category'].isin(top_categories)].copy()
+    df_box['Amount_Abs'] = df_box['Amount'].abs()
+    
+    # Create box plot
+    chart = alt.Chart(df_box).mark_boxplot(size=30).encode(
+        x=alt.X('Amount_Abs:Q', 
+               title='Transaction Amount ($)',
+               scale=alt.Scale(type='log', base=10)),
+        y=alt.Y('Category:N', 
+               title='Category',
+               sort='-x',
+               axis=alt.Axis(labelLimit=200)),
+        color=alt.Color('Category:N', 
+                       scale=alt.Scale(range=COLOR_PALETTE),
+                       legend=None),
+        tooltip=[
+            alt.Tooltip('Category:N', title='Category')
+        ]
+    ).properties(
+        height=max(300, len(top_categories) * 40),
+        title='Amount Distribution by Category (Top 10)'
+    )
+    
+    return chart
+
+
+def calculate_distribution_stats(df_period: pd.DataFrame) -> dict:
+    """Calculate summary statistics about transaction amount distribution.
+    
+    Args:
+        df_period: Filtered transaction data
+        
+    Returns:
+        Dictionary of statistics
+    """
+    amounts = df_period['Amount'].abs()
+    
+    # Calculate percentiles
+    p25 = amounts.quantile(0.25)
+    p50 = amounts.quantile(0.50)  # Median
+    p75 = amounts.quantile(0.75)
+    p80 = amounts.quantile(0.80)
+    p90 = amounts.quantile(0.90)
+    
+    # Calculate mean
+    mean = amounts.mean()
+    
+    # Count transactions in different ranges
+    small_count = len(amounts[amounts < 25])
+    medium_count = len(amounts[(amounts >= 25) & (amounts < 250)])
+    large_count = len(amounts[amounts >= 250])
+    
+    # Calculate what % of spending each represents
+    total_spending = amounts.sum()
+    small_pct = (amounts[amounts < 25].sum() / total_spending * 100) if total_spending > 0 else 0
+    medium_pct = (amounts[(amounts >= 25) & (amounts < 250)].sum() / total_spending * 100) if total_spending > 0 else 0
+    large_pct = (amounts[amounts >= 250].sum() / total_spending * 100) if total_spending > 0 else 0
+    
+    # Pareto analysis - what % of transactions account for 80% of spending
+    sorted_amounts = amounts.sort_values(ascending=False)
+    cumsum = sorted_amounts.cumsum()
+    threshold_80 = total_spending * 0.8
+    transactions_for_80 = len(cumsum[cumsum <= threshold_80])
+    pareto_pct = (transactions_for_80 / len(amounts) * 100) if len(amounts) > 0 else 0
+    
+    return {
+        'median': p50,
+        'mean': mean,
+        'p25': p25,
+        'p75': p75,
+        'p80': p80,
+        'p90': p90,
+        'small_count': small_count,
+        'medium_count': medium_count,
+        'large_count': large_count,
+        'small_pct': small_pct,
+        'medium_pct': medium_pct,
+        'large_pct': large_pct,
+        'pareto_pct': pareto_pct
+    }
+
+
+def display_distribution_tab(df_period: pd.DataFrame, df_by_category: pd.DataFrame) -> None:
+    """Display the amount distribution analysis tab.
     
     Args:
         df_period: Filtered transaction data
         df_by_category: Category summary data
     """
-    # Category summary table
-    with st.expander("📊 View All Categories"):
-        st.dataframe(
-            df_by_category,
-            width='stretch',
-            hide_index=True,
-            column_config={
-                'Category': st.column_config.TextColumn('Category'),
-                'Amount': st.column_config.NumberColumn('Amount', format='$%.2f'),
-                'Percentage': st.column_config.NumberColumn('% of Total', format='%.1f%%')
-            }
+    if df_period.empty:
+        st.info("No transaction data available for the selected filters and time period")
+        return
+    
+    # Calculate statistics
+    stats = calculate_distribution_stats(df_period)
+    
+    # Display summary metrics
+    st.subheader("Transaction Amount Summary")
+    col1, col2, col3, col4, col5 = st.columns(5)
+    
+    with col1:
+        st.metric(
+            label="Median Transaction",
+            value=f"${stats['median']:.2f}"
         )
     
+    with col2:
+        st.metric(
+            label="Average Transaction",
+            value=f"${stats['mean']:.2f}"
+        )
+    
+    with col3:
+        st.metric(
+            label="75th Percentile",
+            value=f"${stats['p75']:.2f}"
+        )
+    
+    with col4:
+        st.metric(
+            label="90th Percentile",
+            value=f"${stats['p90']:.2f}"
+        )
+    
+    with col5:
+        st.metric(
+            label="Total Transactions",
+            value=f"{len(df_period):,}"
+        )
+    
+    st.divider()
+    
+    # Small vs Medium vs Large breakdown
+    st.subheader("Spending Distribution Analysis")
+    
+    breakdown_col1, breakdown_col2, breakdown_col3 = st.columns(3)
+    
+    with breakdown_col1:
+        st.markdown("### Small (<$25)")
+        st.metric("# Transactions", f"{stats['small_count']:,}")
+        st.metric("% of Total $", f"{stats['small_pct']:.1f}%")
+        pct_of_count = (stats['small_count'] / len(df_period) * 100) if len(df_period) > 0 else 0
+        st.caption(f"{pct_of_count:.1f}% of all transactions")
+    
+    with breakdown_col2:
+        st.markdown("### Medium ($25-$250)")
+        st.metric("# Transactions", f"{stats['medium_count']:,}")
+        st.metric("% of Total $", f"{stats['medium_pct']:.1f}%")
+        pct_of_count = (stats['medium_count'] / len(df_period) * 100) if len(df_period) > 0 else 0
+        st.caption(f"{pct_of_count:.1f}% of all transactions")
+    
+    with breakdown_col3:
+        st.markdown("### Large (>$250)")
+        st.metric("# Transactions", f"{stats['large_count']:,}")
+        st.metric("% of Total $", f"{stats['large_pct']:.1f}%")
+        pct_of_count = (stats['large_count'] / len(df_period) * 100) if len(df_period) > 0 else 0
+        st.caption(f"{pct_of_count:.1f}% of all transactions")
+    
+    st.divider()
+    
+    # Pareto insight
+    st.subheader("80/20 Analysis (Pareto Principle)")
+    st.info(
+        f"💡 **Key Insight:** The top {stats['pareto_pct']:.1f}% of your transactions "
+        f"account for 80% of your total spending.\n\n"
+        f"This means {100 - stats['pareto_pct']:.1f}% of transactions are smaller purchases "
+        f"that make up only 20% of your spending."
+    )
+    
+    st.divider()
+    
+    # Visualizations
+    viz_col1, viz_col2 = st.columns(2)
+    
+    with viz_col1:
+        st.subheader("Transaction Count by Amount")
+        histogram = create_amount_histogram(df_period)
+        st.altair_chart(histogram, width='stretch')
+    
+    with viz_col2:
+        st.subheader("Distribution by Category")
+        boxplot = create_category_boxplot(df_period)
+        st.altair_chart(boxplot, width='stretch')
+    
+    # Explanation
+    with st.expander("ℹ️ How to Read These Charts"):
+        st.markdown("""
+        **Histogram (Left):**
+        - Shows how many transactions fall in each dollar amount range
+        - Taller bars = more transactions in that range
+        - Most spending patterns show many small transactions and few large ones
+        
+        **Box Plot (Right):**
+        - Each box shows the distribution for one category
+        - The line in the box = median (50th percentile)
+        - The box edges = 25th and 75th percentiles (where middle 50% of transactions fall)
+        - Dots outside = outliers (unusually large/small transactions)
+        - Log scale on X-axis allows easier comparison across wide ranges
+        """)
+
+
+def display_data_tables(df_period: pd.DataFrame, df_by_category: pd.DataFrame) -> None:
+    """Display expandable data tables for transactions.
+    
+    Args:
+        df_period: Filtered transaction data
+        df_by_category: Category summary data
+    """
     # Large transactions table
     with st.expander("💰 View Large Transactions"):
         large_transaction_threshold = st.slider(
@@ -245,7 +504,7 @@ def configure_page(
     
     st.divider()
     
-    # Create visualizations
+    # Create visualizations with tabs
     if not df_by_category.empty:
         # Create shared color scale for consistent colors across both charts
         top_10_categories = df_by_category.head(10)['Category'].tolist()
@@ -254,24 +513,44 @@ def configure_page(
             range=COLOR_PALETTE[:len(top_10_categories)]
         )
         
-        # Display charts side by side
-        viz_col1, viz_col2 = st.columns(2)
+        # Create tabs for different views
+        tab1, tab2, tab3 = st.tabs(["📊 Category Analysis", "💰 Amount Distribution", "📋 Transaction Details"])
         
-        with viz_col1:
-            st.subheader("Spending Over Time")
-            top_5_categories = df_by_category.head(5)['Category'].tolist()
-            trend_chart = create_spending_trend_chart(df_period, top_5_categories, color_scale)
-            st.altair_chart(trend_chart, width='stretch')
+        with tab1:
+            # Display charts side by side
+            viz_col1, viz_col2 = st.columns(2)
+            
+            with viz_col1:
+                st.subheader("Spending Over Time")
+                top_5_categories = df_by_category.head(5)['Category'].tolist()
+                trend_chart = create_spending_trend_chart(df_period, top_5_categories, color_scale)
+                st.altair_chart(trend_chart, width='stretch')
+            
+            with viz_col2:
+                st.subheader("Top 10 Categories")
+                categories_chart = create_top_categories_chart(df_by_category, color_scale)
+                st.altair_chart(categories_chart, width='stretch')
+            
+            # Category summary table
+            with st.expander("📊 View All Categories"):
+                st.dataframe(
+                    df_by_category,
+                    width='stretch',
+                    hide_index=True,
+                    column_config={
+                        'Category': st.column_config.TextColumn('Category'),
+                        'Amount': st.column_config.NumberColumn('Amount', format='$%.2f'),
+                        'Percentage': st.column_config.NumberColumn('% of Total', format='%.1f%%')
+                    }
+                )
         
-        with viz_col2:
-            st.subheader("Top 10 Categories")
-            categories_chart = create_top_categories_chart(df_by_category, color_scale)
-            st.altair_chart(categories_chart, width='stretch')
+        with tab2:
+            # Amount distribution analysis
+            display_distribution_tab(df_period, df_by_category)
         
-        st.divider()
-        
-        # Display data tables
-        display_data_tables(df_period, df_by_category)
+        with tab3:
+            # Display data tables
+            display_data_tables(df_period, df_by_category)
     else:
         st.info("No spending data found for the selected filters and time period")
 

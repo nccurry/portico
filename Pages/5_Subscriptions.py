@@ -27,8 +27,27 @@ def detect_recurring_transactions(
     Returns:
         DataFrame of detected subscriptions with summary info
     """
-    # Filter to expenses only
-    df_expenses = df[df['Type'] == 'Expense'].copy()
+    # Filter to expenses only, excluding mortgage, loans, investments, and other non-subscription categories
+    excluded_categories = [
+        'Mortgage Payment',
+        'Auto Loan Payment', 
+        'Student Loan Payment',
+        'Personal Loan Payment',
+        'Car Payment',
+        'Rent',
+        'Investment',
+        'Stock Purchase',
+        '401k',
+        'HSA',
+        'RSU',
+        'ESPP'
+    ]
+    
+    df_expenses = df[
+        (df['Type'] == 'Expense') & 
+        (~df['Category'].isin(excluded_categories)) &
+        (~df['Category'].str.contains('Mortgage|Loan|Investment|401k|HSA|RSU|ESPP', case=False, na=False, regex=True))
+    ].copy()
     
     # Extract merchant name (first few words of description)
     df_expenses['Merchant'] = df_expenses['Full Description'].str.split().str[:3].str.join(' ')
@@ -159,7 +178,8 @@ def create_subscription_cost_chart(subscriptions: pd.DataFrame) -> alt.Chart:
         x=alt.X('Avg_Amount:Q', title='Monthly Cost ($)'),
         y=alt.Y('Merchant_Short:N', 
                sort='-x',
-               title='Subscription'),
+               title='Subscription',
+               axis=alt.Axis(labelLimit=200)),
         color=alt.value(COLOR_EXPENSE),
         tooltip=[
             alt.Tooltip('Merchant:N', title='Merchant'),
@@ -171,6 +191,8 @@ def create_subscription_cost_chart(subscriptions: pd.DataFrame) -> alt.Chart:
     ).properties(
         height=CHART_HEIGHT_STANDARD,
         title='Monthly Subscription Costs (Top 15)'
+    ).configure_axis(
+        labelLimit=200
     )
     
     return chart
@@ -210,7 +232,8 @@ def configure_page(
                 "Subscriptions are detected by finding recurring charges with:\n"
                 "- Same merchant and amount\n"
                 "- Roughly monthly cadence (20-40 days apart)\n"
-                "- Minimum number of occurrences and months"
+                "- Minimum number of occurrences and months\n\n"
+                "**Excluded:** Mortgage, loans, rent, investments (401k, HSA, stock purchases)"
             )
     
     # Get all transactions
