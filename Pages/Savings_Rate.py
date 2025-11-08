@@ -19,8 +19,8 @@ def configure_page(
         with col_filter1:
             exclude_groups = st.multiselect(
                 "Exclude Groups",
-                options=['Transfer', 'Travel', 'Investment', 'Entertainment'],
-                default=['Transfer', 'Travel'],
+                options=['Transfer', 'Travel', 'Investment', 'Entertainment', "Shopping", "Donations"],
+                default=['Transfer', 'Travel', "Donations"],
                 help="Exclude entire transaction groups (Transfer = money movements, Travel = vacations)"
             )
             
@@ -30,15 +30,15 @@ def configure_page(
                     'Tax Return Payment',
                     'Given Gift',
                     'Christmas',
+                    '401k',
+                    'HSA',
+                    'Investment',
                     'RSU',
                     'ESPP',
                     'Home Improvements',
                     'Stock Purchase',
-                    'Car Payment',
-                    'Medical Bill',
-                    'Charity Donation'
                 ],
-                default=['Tax Return Payment', 'Given Gift', 'Christmas'],
+                default=['Tax Return Payment', 'Given Gift', 'Christmas', '401k', "HSA", "ESPP", "RSU", "Stock Purchase"],
                 help="Exclude specific one-time or non-recurring transaction categories"
             )
             
@@ -202,10 +202,13 @@ def configure_page(
     st.divider()
     
     # Create visualization
-    # Common x-axis for both charts (ensures alignment)
+    # Common axis settings for both charts (ensures perfect alignment)
     x_axis = alt.X('Month:O', 
                    axis=alt.Axis(labelAngle=-45, title='Month'),
                    sort=None)
+    
+    # Set consistent Y-axis label formatting for alignment
+    y_axis_config = {'labelLimit': 100, 'labelPadding': 5}
     
     # Line chart for savings rate
     line = alt.Chart(df_pivot).mark_line(
@@ -215,7 +218,7 @@ def configure_page(
     ).encode(
         x=x_axis,
         y=alt.Y('Savings_Rate:Q', 
-                axis=alt.Axis(title='Savings Rate (%)', labelLimit=150),
+                axis=alt.Axis(title='Savings Rate (%)', **y_axis_config),
                 scale=alt.Scale(zero=True)),
         tooltip=[
             alt.Tooltip('Month:O', title='Month'),
@@ -258,7 +261,7 @@ def configure_page(
     bars = alt.Chart(df_long_bars).mark_bar().encode(
         x=x_axis,  # Use same x-axis as savings rate chart
         y=alt.Y('Amount:Q', 
-                axis=alt.Axis(title='Amount ($)', labelLimit=150)),
+                axis=alt.Axis(title='Amount ($)', **y_axis_config)),
         color=alt.Color('Category:N',
                        scale=alt.Scale(
                            domain=['Income', 'Expense'],
