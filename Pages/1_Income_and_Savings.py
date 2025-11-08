@@ -19,9 +19,9 @@ def configure_page(
         with col_filter1:
             exclude_groups = st.multiselect(
                 "Exclude Groups",
-                options=['Transfer', 'Travel', 'Investment', 'Entertainment', "Shopping", "Donations"],
-                default=['Transfer', 'Travel', "Donations"],
-                help="Exclude entire transaction groups (Transfer = money movements, Travel = vacations)"
+                options=['Travel', 'Investment', 'Entertainment', 'Shopping', 'Donations', 'Bills', 'Food', 'Income', 'Maintainence', 'Work'],
+                default=['Travel', 'Donations'],
+                help="Exclude entire transaction groups (Transfer always excluded)"
             )
             
             exclude_categories = st.multiselect(
@@ -46,7 +46,7 @@ def configure_page(
             # Filter large income
             filter_large_income = st.checkbox(
                 "Filter Large Income",
-                value=False,
+                value=True,
                 help="Exclude individual large income transactions above a threshold (bonuses, stock gains)"
             )
             
@@ -94,7 +94,10 @@ def configure_page(
     # Get all transactions
     df = transactions_spreadsheet.scrubbed_df.copy()
     
-    # Apply group exclusions
+    # Always exclude Transfer group (silently - money movements aren't income/expense)
+    df = df[df['Group'] != 'Transfer']
+    
+    # Apply additional group exclusions
     if exclude_groups:
         df = df[~df['Group'].isin(exclude_groups)]
     
