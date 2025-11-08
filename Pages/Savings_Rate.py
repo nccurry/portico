@@ -10,7 +10,7 @@ def configure_page(
         transactions_spreadsheet: TransactionsSpreadsheet,
         balance_history_spreadsheet: BalanceHistorySpreadsheet
 ) -> None:
-    st.header("Savings Rate")
+    st.header("Income, Expenses & Savings")
     
     # Add filter controls
     with st.expander("⚙️ Filter Settings", expanded=False):
@@ -131,6 +131,7 @@ def configure_page(
     # Keep them in original signs for correct calculation
     # Savings = Income + Expense (since Expense is negative, this subtracts it)
     df_pivot['Savings'] = df_pivot['Income'] + df_pivot['Expense']
+    df_pivot['Net'] = df_pivot['Savings']  # Net and Savings are the same
     
     # For display purposes, create absolute value columns
     df_pivot['Income_Display'] = df_pivot['Income'].abs()
@@ -201,15 +202,20 @@ def configure_page(
     st.divider()
     
     # Create visualization
+    # Common x-axis for both charts (ensures alignment)
+    x_axis = alt.X('Month:O', 
+                   axis=alt.Axis(labelAngle=-45, title='Month'),
+                   sort=None)
+    
     # Line chart for savings rate
     line = alt.Chart(df_pivot).mark_line(
         color='lightgreen',
         strokeWidth=3,
         point=True
     ).encode(
-        x=alt.X('Month:O', axis=alt.Axis(labelAngle=-45), title='Month'),
+        x=x_axis,
         y=alt.Y('Savings_Rate:Q', 
-                axis=alt.Axis(title='Savings Rate (%)'),
+                axis=alt.Axis(title='Savings Rate (%)', labelLimit=150),
                 scale=alt.Scale(zero=True)),
         tooltip=[
             alt.Tooltip('Month:O', title='Month'),
@@ -218,9 +224,6 @@ def configure_page(
             alt.Tooltip('Income:Q', title='Income', format='$,.2f'),
             alt.Tooltip('Expense:Q', title='Expenses', format='$,.2f')
         ]
-    ).properties(
-        height=400,
-        title='Savings Rate Over Time'
     )
     
     # Add zero line (break-even point)
@@ -236,9 +239,68 @@ def configure_page(
         strokeWidth=2
     ).encode(y='y:Q')
     
-    combined = (line + zero_line + target_line)
+    combined_savings = (line + zero_line + target_line).properties(
+        height=350,
+        title='Savings Rate Over Time',
+        width='container'
+    )
     
-    st.altair_chart(combined, width='stretch')
+    # Create Income vs Expense bar chart
+    df_bars = df_pivot[['Month', 'Income_Display', 'Expense_Display']].copy()
+    df_long_bars = df_bars.melt(
+        id_vars=['Month'],
+        value_vars=['Income_Display', 'Expense_Display'],
+        var_name='Category',
+        value_name='Amount'
+    )
+    df_long_bars['Category'] = df_long_bars['Category'].str.replace('_Display', '')
+    
+    bars = alt.Chart(df_long_bars).mark_bar().encode(
+        x=x_axis,  # Use same x-axis as savings rate chart
+        y=alt.Y('Amount:Q', 
+                axis=alt.Axis(title='Amount ($)', labelLimit=150)),
+        color=alt.Color('Category:N',
+                       scale=alt.Scale(
+                           domain=['Income', 'Expense'],
+                           range=['lightgreen', 'lightcoral']
+                       ),
+                       legend=None),  # Remove legend - colors are self-explanatory
+        tooltip=[
+            alt.Tooltip('Month:O', title='Month'),
+            alt.Tooltip('Category:N', title='Type'),
+            alt.Tooltip('Amount:Q', title='Amount', format='$,.2f')
+        ]
+    )
+    
+    # Create net cash flow line overlay
+    df_net = df_pivot[['Month', 'Net']].copy()
+    net_line = alt.Chart(df_net).mark_line(
+        color='gold',
+        strokeWidth=3,
+        point=True
+    ).encode(
+        x=x_axis,  # Use same x-axis for alignment
+        y=alt.Y('Net:Q'),
+        tooltip=[
+            alt.Tooltip('Month:O', title='Month'),
+            alt.Tooltip('Net:Q', title='Net Cash Flow', format='$,.2f')
+        ]
+    )
+    
+    combined_income_expense = (bars + net_line).resolve_scale(color='independent').properties(
+        height=350,
+        title='Monthly Income vs Expenses',
+        width='container'
+    )
+    
+    # Display charts stacked vertically
+    st.subheader("Savings Rate %")
+    st.altair_chart(combined_savings, width='stretch')
+    
+    st.divider()
+    
+    st.subheader("Income vs Expenses $")
+    st.altair_chart(combined_income_expense, width='stretch')
     
     # Show data table
     with st.expander("📊 View Monthly Savings Data"):
