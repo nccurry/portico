@@ -2,9 +2,10 @@ import streamlit as st
 import pandas as pd
 import altair as alt
 from datetime import datetime
-from typing import List, Callable
+from typing import List, Dict, Optional
 
 from src.spreadsheet import TransactionsSpreadsheet
+from src.constants import COLOR_PLACEHOLDER
 
 
 def prepare_year_comparison_data(monthly_amounts_df: pd.DataFrame) -> pd.DataFrame:
@@ -193,4 +194,125 @@ def render_group_page(
         # Show expandable transaction table
         transactions_df = transactions_spreadsheet.get_transactions_by_group(group)
         display_transaction_table(transactions_df, group)
+
+
+def create_sparkline_chart(
+    df: pd.DataFrame,
+    value_column: str,
+    date_column: str,
+    color: str,
+    height: int = 50,
+    current_value: Optional[float] = None,
+    use_min_scale: bool = False
+) -> alt.Chart:
+    """Create a sparkline chart or flat line if insufficient data.
+    
+    Args:
+        df: DataFrame containing the data
+        value_column: Name of the column containing values
+        date_column: Name of the column containing dates
+        color: Color for the line
+        height: Height of the chart in pixels
+        current_value: Current value to use for flat line fallback
+        use_min_scale: If True, set domain minimum to 95% of min value
+        
+    Returns:
+        Altair chart object
+    """
+    if not df.empty and len(df) > 1:
+        # Have historical data - show trend line
+        scale_params = {'zero': False}
+        if use_min_scale:
+            min_value = df[value_column].min() * 0.95
+            scale_params['domainMin'] = min_value
+        
+        chart = alt.Chart(df).mark_line(
+            color=color,
+            strokeWidth=2 if height <= 50 else 3,
+            interpolate='monotone'
+        ).encode(
+            x=alt.X(f'{date_column}:T', axis=None),
+            y=alt.Y(f'{value_column}:Q', axis=None, scale=alt.Scale(**scale_params))
+        ).properties(
+            height=height
+        ).configure_view(
+            strokeWidth=0
+        )
+    else:
+        # Not enough history - show flat line at current value
+        if current_value is None and not df.empty:
+            current_value = df[value_column].iloc[0]
+        elif current_value is None:
+            current_value = 0
+        
+        flat_line_data = pd.DataFrame([
+            {'x': 0, 'y': current_value},
+            {'x': 1, 'y': current_value}
+        ])
+        chart = alt.Chart(flat_line_data).mark_line(
+            color=COLOR_PLACEHOLDER,
+            strokeWidth=2 if height <= 50 else 3,
+            strokeDash=[5, 5]
+        ).encode(
+            x=alt.X('x:Q', axis=None),
+            y=alt.Y('y:Q', axis=None, scale=alt.Scale(zero=False))
+        ).properties(
+            height=height
+        ).configure_view(
+            strokeWidth=0
+        )
+    
+    return chart
+
+
+def get_transaction_column_config() -> Dict:
+    """Standard column configuration for transaction dataframes.
+    
+    Returns:
+        Dictionary of column configurations for st.dataframe
+    """
+    return {
+        'Date': st.column_config.DateColumn('Date', format='YYYY-MM-DD'),
+        'Amount': st.column_config.NumberColumn('Amount', format='$%.2f'),
+        'Category': st.column_config.TextColumn('Category'),
+        'Group': st.column_config.TextColumn('Group'),
+        'Type': st.column_config.TextColumn('Type'),
+        'Account': st.column_config.TextColumn('Account'),
+        'Month': st.column_config.TextColumn('Month'),
+        'Full Description': st.column_config.TextColumn('Description'),
+        'Institution': st.column_config.TextColumn('Institution')
+    }
+
+
+def display_transactions_expander(
+    df: pd.DataFrame,
+    title: str,
+    height: int = 600,
+    default_sort_column: str = 'Date',
+    default_sort_ascending: bool = False
+) -> None:
+    """Display transactions in an expandable section.
+    
+    Args:
+        df: Transaction dataframe to display
+        title: Title for the expander
+        height: Height of the dataframe in pixels
+        default_sort_column: Column to sort by before display
+        default_sort_ascending: Sort order
+    """
+    with st.expander(f"📋 {title} ({len(df)} transactions)"):
+        if df.empty:
+            st.info("No transactions found")
+            return
+        
+        # Sort by specified column
+        df_display = df.sort_values(default_sort_column, ascending=default_sort_ascending)
+        
+        st.dataframe(
+            df_display,
+            width='stretch',
+            height=height,
+            hide_index=True,
+            column_config=get_transaction_column_config()
+        )
 

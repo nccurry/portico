@@ -4,6 +4,80 @@ from datetime import timedelta
 
 from src.sidebar import configure_sidebar
 from src.spreadsheet import load_transactions_data, load_balance_history_data, TransactionsSpreadsheet, BalanceHistorySpreadsheet
+from src.constants import MIN_DUPLICATE_AMOUNT, DEFAULT_DUPLICATE_DAYS_THRESHOLD
+
+
+def find_duplicates_efficient(
+    df: pd.DataFrame,
+    days_threshold: int,
+    min_amount: float,
+    check_same_account: bool,
+    check_same_category: bool
+) -> pd.DataFrame:
+    """Efficiently find potential duplicate transactions using vectorized operations.
+    
+    This replaces the O(n²) nested loop with pandas merge operations for much better performance.
+    
+    Args:
+        df: Transaction dataframe
+        days_threshold: Maximum days apart to consider duplicates
+        min_amount: Minimum transaction amount to check
+        check_same_account: Only flag if same account
+        check_same_category: Only flag if same category
+        
+    Returns:
+        DataFrame of potential duplicate pairs
+    """
+    # Filter to reasonable amounts
+    df_filtered = df[df['Amount'].abs() >= min_amount].copy()
+    
+    if df_filtered.empty:
+        return pd.DataFrame()
+    
+    df_filtered = df_filtered.sort_values(['Amount', 'Date']).reset_index(drop=True)
+    
+    # Self-join on amount to find matching transaction amounts
+    duplicates = df_filtered.merge(
+        df_filtered,
+        on='Amount',
+        suffixes=('_1', '_2')
+    )
+    
+    # Filter to only pairs where first transaction comes before second
+    # Use the original index to ensure we don't match a transaction with itself
+    duplicates = duplicates[duplicates.index_1 < duplicates.index_2]
+    
+    # Calculate date difference in days
+    duplicates['Days_Apart'] = (
+        duplicates['Date_2'] - duplicates['Date_1']
+    ).dt.days.abs()
+    
+    # Apply date threshold filter
+    duplicates = duplicates[duplicates['Days_Apart'] <= days_threshold]
+    
+    # Apply account filter if requested
+    if check_same_account:
+        duplicates = duplicates[duplicates['Account_1'] == duplicates['Account_2']]
+    
+    # Apply category filter if requested
+    if check_same_category:
+        duplicates = duplicates[duplicates['Category_1'] == duplicates['Category_2']]
+    
+    # Format output dataframe
+    result = pd.DataFrame({
+        'Date1': duplicates['Date_1'],
+        'Date2': duplicates['Date_2'],
+        'Days_Apart': duplicates['Days_Apart'],
+        'Amount': duplicates['Amount'],
+        'Category': duplicates['Category_1'],
+        'Account1': duplicates['Account_1'],
+        'Account2': duplicates['Account_2'],
+        'Description1': duplicates['Full Description_1'],
+        'Description2': duplicates['Full Description_2'],
+        'Month': duplicates['Month_1']
+    })
+    
+    return result
 
 
 def configure_page(
@@ -21,7 +95,7 @@ def configure_page(
                 "Days Apart (Max)",
                 min_value=0,
                 max_value=7,
-                value=1,
+                value=DEFAULT_DUPLICATE_DAYS_THRESHOLD,
                 help="Consider transactions duplicates if within this many days"
             )
             
@@ -29,7 +103,7 @@ def configure_page(
                 "Minimum Amount ($)",
                 min_value=0.0,
                 max_value=1000.0,
-                value=10.0,
+                value=MIN_DUPLICATE_AMOUNT,
                 step=10.0,
                 help="Only check for duplicates above this amount"
             )
@@ -50,52 +124,14 @@ def configure_page(
     # Get transactions
     df = transactions_spreadsheet.scrubbed_df.copy()
     
-    # Filter to reasonable amount
-    df = df[df['Amount'].abs() >= min_amount]
-    
-    # Sort by date and amount for comparison
-    df = df.sort_values(['Date', 'Amount']).reset_index(drop=True)
-    
-    # Find potential duplicates
-    duplicates = []
-    
-    for i in range(len(df)):
-        for j in range(i + 1, len(df)):
-            row1 = df.iloc[i]
-            row2 = df.iloc[j]
-            
-            # Check if amounts match (exactly)
-            if row1['Amount'] != row2['Amount']:
-                continue
-            
-            # Check if dates are close
-            date_diff = abs((row2['Date'] - row1['Date']).days)
-            if date_diff > days_threshold:
-                break  # Sorted by date, so no more matches possible
-            
-            # Check account if required
-            if check_same_account and row1['Account'] != row2['Account']:
-                continue
-            
-            # Check category if required
-            if check_same_category and row1['Category'] != row2['Category']:
-                continue
-            
-            # Found a potential duplicate
-            duplicates.append({
-                'Date1': row1['Date'],
-                'Date2': row2['Date'],
-                'Days_Apart': date_diff,
-                'Amount': row1['Amount'],
-                'Category': row1['Category'],
-                'Account1': row1['Account'],
-                'Account2': row2['Account'],
-                'Description1': row1['Full Description'],
-                'Description2': row2['Full Description'],
-                'Month': row1['Month']
-            })
-    
-    df_duplicates = pd.DataFrame(duplicates)
+    # Find potential duplicates using efficient vectorized method
+    df_duplicates = find_duplicates_efficient(
+        df=df,
+        days_threshold=days_threshold,
+        min_amount=min_amount,
+        check_same_account=check_same_account,
+        check_same_category=check_same_category
+    )
     
     # Show summary
     col1, col2, col3 = st.columns(3)
