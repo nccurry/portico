@@ -57,7 +57,7 @@ def configure_page(
                     "Income Threshold ($)",
                     min_value=5000,
                     max_value=100000,
-                    value=10000,
+                    value=income_threshold,
                     step=1000,
                     help="Exclude individual income transactions larger than this amount"
                 )
@@ -76,7 +76,7 @@ def configure_page(
                     "Expense Threshold ($)",
                     min_value=1000,
                     max_value=100000,
-                    value=3000,
+                    value=expense_threshold,
                     step=500,
                     help="Exclude individual expense transactions larger than this amount"
                 )
