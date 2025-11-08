@@ -12,9 +12,96 @@ def configure_page(
 ) -> None:
     st.header("Savings Rate")
     
-    # Get all transactions, excluding transfers (they aren't real income/expense)
+    # Add filter controls
+    with st.expander("⚙️ Filter Settings", expanded=False):
+        col_filter1, col_filter2 = st.columns(2)
+        
+        with col_filter1:
+            exclude_groups = st.multiselect(
+                "Exclude Groups",
+                options=['Transfer', 'Travel', 'Investment', 'Entertainment'],
+                default=['Transfer', 'Travel'],
+                help="Exclude entire transaction groups (Transfer = money movements, Travel = vacations)"
+            )
+            
+            exclude_categories = st.multiselect(
+                "Exclude Categories",
+                options=[
+                    'Tax Return Payment',
+                    'Given Gift',
+                    'Christmas',
+                    'RSU',
+                    'ESPP',
+                    'Home Improvements',
+                    'Stock Purchase',
+                    'Car Payment',
+                    'Medical Bill',
+                    'Charity Donation'
+                ],
+                default=['Tax Return Payment', 'Given Gift', 'Christmas'],
+                help="Exclude specific one-time or non-recurring transaction categories"
+            )
+            
+            # Filter large expenses
+            filter_large_expenses = st.checkbox(
+                "Filter Large Expenses",
+                value=True,
+                help="Exclude individual large expense transactions above a threshold"
+            )
+            
+            expense_threshold = 3000  # Default
+            filter_categories = []
+            
+            if filter_large_expenses:
+                expense_threshold = st.number_input(
+                    "Expense Threshold ($)",
+                    min_value=1000,
+                    max_value=100000,
+                    value=3000,
+                    step=500,
+                    help="Exclude individual transactions larger than this amount"
+                )
+        
+        with col_filter2:
+            # Category-specific large expense filter
+            if filter_large_expenses:
+                filter_categories = st.multiselect(
+                    "Apply Large Expense Filter To",
+                    options=['Shopping', 'Travel', 'All Categories'],
+                    default=['All Categories'],
+                    help="Which categories to apply the large expense threshold to"
+                )
+            
+            # Savings rate target
+            target_rate = st.number_input(
+                "Savings Rate Target (%)",
+                min_value=0,
+                max_value=100,
+                value=20,
+                step=5,
+                help="Your goal savings rate - shown as gold dashed line on chart"
+            )
+    
+    # Get all transactions
     df = transactions_spreadsheet.scrubbed_df.copy()
-    df = df[df['Group'] != 'Transfer']  # Exclude transfers
+    
+    # Apply group exclusions
+    if exclude_groups:
+        df = df[~df['Group'].isin(exclude_groups)]
+    
+    # Apply category exclusions
+    if exclude_categories:
+        df = df[~df['Category'].isin(exclude_categories)]
+    
+    # Filter out large expenses if enabled (only filter expenses, not income!)
+    if filter_large_expenses:
+        if 'All Categories' in filter_categories:
+            # Apply to all expense categories
+            df = df[(df['Type'] != 'Expense') | (df['Amount'].abs() <= expense_threshold)]
+        elif filter_categories:
+            # Apply only to specific categories
+            mask = (df['Type'] != 'Expense') | ~df['Category'].isin(filter_categories) | (df['Amount'].abs() <= expense_threshold)
+            df = df[mask]
     
     # Separate income and expenses
     df_income = df[df['Type'] == 'Income'].copy()
@@ -40,50 +127,68 @@ def configure_page(
         how='left'
     ).fillna(0)
     
-    # Make sure Income is positive, Expense is negative
-    df_pivot['Income'] = df_pivot['Income'].abs()
-    df_pivot['Expense'] = df_pivot['Expense'].abs()
+    # Income should already be positive, Expense should be negative
+    # Keep them in original signs for correct calculation
+    # Savings = Income + Expense (since Expense is negative, this subtracts it)
+    df_pivot['Savings'] = df_pivot['Income'] + df_pivot['Expense']
     
-    # Calculate savings (Income - Expenses)
-    df_pivot['Savings'] = df_pivot['Income'] - df_pivot['Expense']
+    # For display purposes, create absolute value columns
+    df_pivot['Income_Display'] = df_pivot['Income'].abs()
+    df_pivot['Expense_Display'] = df_pivot['Expense'].abs()
     
     # Calculate savings rate percentage
-    # Avoid division by zero
+    # Avoid division by zero - use Income_Display (absolute value) for calculation
     df_pivot['Savings_Rate'] = df_pivot.apply(
-        lambda row: (row['Savings'] / row['Income'] * 100) if row['Income'] > 0 else 0,
+        lambda row: (row['Savings'] / row['Income_Display'] * 100) if row['Income_Display'] > 0.01 else 0,
         axis=1
     )
     
     # Sort by month
     df_pivot = df_pivot.sort_values('Month')
     
+    # Filter to 2024 onwards (where we have good data)
+    df_pivot = df_pivot[df_pivot['Month'] >= '2024-01']
+    
+    # Exclude current incomplete month
+    current_month = pd.Timestamp.now(tz='UTC').strftime('%Y-%m')
+    df_pivot = df_pivot[df_pivot['Month'] < current_month]
+    
     # Show current month metrics
     if not df_pivot.empty:
         latest = df_pivot.iloc[-1]
         prev = df_pivot.iloc[-2] if len(df_pivot) > 1 else None
         
-        col1, col2, col3, col4 = st.columns(4)
+        metric_col1, metric_col2, metric_col3, metric_col4, metric_col5 = st.columns(5)
         
-        with col1:
+        with metric_col1:
             st.metric(
-                label=f"Current Month ({latest['Month']})",
+                label=f"Latest Month ({latest['Month']})",
                 value=f"{latest['Savings_Rate']:.1f}%"
             )
         
-        with col2:
+        with metric_col2:
             avg_rate = df_pivot['Savings_Rate'].mean()
             st.metric(
-                label="Average Savings Rate",
+                label="Avg Savings Rate",
                 value=f"{avg_rate:.1f}%"
             )
         
-        with col3:
+        with metric_col3:
+            avg_savings = df_pivot['Savings'].mean()
             st.metric(
-                label="Saved This Month",
-                value=f"${abs(latest['Savings']):,.2f}"
+                label="Avg $ Saved/Month",
+                value=f"${avg_savings:,.0f}"
             )
         
-        with col4:
+        with metric_col4:
+            saved_amt = latest['Savings']
+            st.metric(
+                label="Saved (Latest)",
+                value=f"${saved_amt:,.2f}",
+                delta="Surplus" if saved_amt > 0 else "Deficit"
+            )
+        
+        with metric_col5:
             # Calculate trend (vs previous month)
             if prev is not None:
                 delta = latest['Savings_Rate'] - prev['Savings_Rate']
@@ -118,24 +223,26 @@ def configure_page(
         title='Savings Rate Over Time'
     )
     
-    # Add target line (optional - can set your goal)
-    target_rate = 20  # 20% savings rate target
+    # Add zero line (break-even point)
+    zero_line = alt.Chart(pd.DataFrame({'y': [0]})).mark_rule(
+        color='lightgray',
+        strokeWidth=2
+    ).encode(y='y:Q')
+    
+    # Add target line (configurable savings rate goal)
     target_line = alt.Chart(pd.DataFrame({'y': [target_rate]})).mark_rule(
         color='gold',
         strokeDash=[5, 5],
         strokeWidth=2
     ).encode(y='y:Q')
     
-    combined = (line + target_line)
+    combined = (line + zero_line + target_line)
     
     st.altair_chart(combined, width='stretch')
     
     # Show data table
     with st.expander("📊 View Monthly Savings Data"):
-        display_df = df_pivot.copy()
-        display_df['Income'] = display_df['Income'].abs()
-        display_df['Expense'] = display_df['Expense'].abs()
-        display_df['Savings'] = display_df['Savings'].abs()
+        display_df = df_pivot[['Month', 'Income_Display', 'Expense_Display', 'Savings', 'Savings_Rate']].copy()
         
         st.dataframe(
             display_df,
@@ -143,10 +250,68 @@ def configure_page(
             hide_index=True,
             column_config={
                 'Month': st.column_config.TextColumn('Month'),
-                'Income': st.column_config.NumberColumn('Income', format='$%.2f'),
-                'Expense': st.column_config.NumberColumn('Expenses', format='$%.2f'),
+                'Income_Display': st.column_config.NumberColumn('Income', format='$%.2f'),
+                'Expense_Display': st.column_config.NumberColumn('Expenses', format='$%.2f'),
                 'Savings': st.column_config.NumberColumn('Saved', format='$%.2f'),
                 'Savings_Rate': st.column_config.NumberColumn('Savings Rate', format='%.1f%%')
+            }
+        )
+    
+    # Show large transactions
+    with st.expander("💰 View Large Transactions"):
+        large_transaction_threshold = st.slider(
+            "Minimum Amount to Show ($)",
+            min_value=100,
+            max_value=5000,
+            value=500,
+            step=100,
+            help="Show transactions larger than this amount"
+        )
+        
+        df_large = df[df['Amount'].abs() > large_transaction_threshold].copy()
+        st.caption(f"Showing {len(df_large)} transactions >${large_transaction_threshold:,} (included in savings calculation)")
+        
+        # Sort by date descending for most recent first
+        df_large_display = df_large.copy()
+        df_large_display = df_large_display.sort_values('Date', ascending=False)
+        
+        st.dataframe(
+            df_large_display,
+            width='stretch',
+            height=600,
+            hide_index=True,
+            column_config={
+                'Date': st.column_config.DateColumn('Date', format='YYYY-MM-DD'),
+                'Month': st.column_config.TextColumn('Month'),
+                'Amount': st.column_config.NumberColumn('Amount', format='$%.2f'),
+                'Category': st.column_config.TextColumn('Category'),
+                'Group': st.column_config.TextColumn('Group'),
+                'Type': st.column_config.TextColumn('Type'),
+                'Account': st.column_config.TextColumn('Account'),
+                'Full Description': st.column_config.TextColumn('Description')
+            }
+        )
+    
+    # Show all filtered transactions
+    with st.expander("📋 View All Included Transactions"):
+        st.caption(f"Showing {len(df)} transactions after filters (from 2024-01 onwards, excluding current month)")
+        
+        # Sort by date descending for most recent first
+        df_display = df.sort_values('Date', ascending=False).copy()
+        
+        st.dataframe(
+            df_display,
+            width='stretch',
+            height=600,
+            hide_index=True,
+            column_config={
+                'Date': st.column_config.DateColumn('Date', format='YYYY-MM-DD'),
+                'Amount': st.column_config.NumberColumn('Amount', format='$%.2f'),
+                'Category': st.column_config.TextColumn('Category'),
+                'Group': st.column_config.TextColumn('Group'),
+                'Type': st.column_config.TextColumn('Type'),
+                'Account': st.column_config.TextColumn('Account'),
+                'Full Description': st.column_config.TextColumn('Description')
             }
         )
 
