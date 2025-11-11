@@ -7,7 +7,6 @@ from src.spreadsheet import load_transactions_data, load_balance_history_data, T
 from src.filters import render_income_expense_filters, apply_transaction_filters
 from src.page_helpers import get_transaction_column_config, display_transactions_expander
 from src.constants import (
-    DATA_START_YEAR,
     CHART_HEIGHT_STANDARD,
     COLOR_INCOME,
     COLOR_EXPENSE,
@@ -75,11 +74,6 @@ def process_income_expense_data(
     # Sort by month
     df_pivot = df_pivot.sort_values('Month')
     
-    # Filter to 2024 onwards and exclude current incomplete month
-    df_pivot = df_pivot[df_pivot['Month'] >= DATA_START_YEAR]
-    current_month = pd.Timestamp.now(tz='UTC').strftime('%Y-%m')
-    df_pivot = df_pivot[df_pivot['Month'] < current_month]
-    
     return df_pivot
 
 
@@ -93,47 +87,43 @@ def display_summary_metrics(df_pivot: pd.DataFrame) -> None:
         st.warning("No data available for the selected filters")
         return
     
-    latest = df_pivot.iloc[-1]
-    prev = df_pivot.iloc[-2] if len(df_pivot) > 1 else None
-    
-    metric_col1, metric_col2, metric_col3, metric_col4, metric_col5 = st.columns(5)
+    metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
     
     with metric_col1:
+        # Average of monthly rates (current method)
+        avg_rate = df_pivot['Savings_Rate'].mean()
         st.metric(
-            label=f"Latest Month ({latest['Month']})",
-            value=f"{latest['Savings_Rate']:.1f}%"
+            label="Monthly Avg Rate",
+            value=f"{avg_rate:.1f}%",
+            help="Average of each month's savings rate (treats each month equally)"
         )
     
     with metric_col2:
-        avg_rate = df_pivot['Savings_Rate'].mean()
+        # Rate of averages (more accurate)
+        total_income = df_pivot['Income_Display'].sum()
+        total_savings = df_pivot['Savings'].sum()
+        overall_rate = (total_savings / total_income * 100) if total_income > 0 else 0
         st.metric(
-            label="Avg Savings Rate",
-            value=f"{avg_rate:.1f}%"
+            label="Overall Rate",
+            value=f"{overall_rate:.1f}%",
+            help="Total saved / Total income (weighted by income amount)"
         )
     
     with metric_col3:
         avg_savings = df_pivot['Savings'].mean()
         st.metric(
-            label="Avg $ Saved/Month",
+            label="Monthly Avg Amount",
             value=f"${avg_savings:,.0f}"
         )
     
     with metric_col4:
-        saved_amt = latest['Savings']
+        total_saved = df_pivot['Savings'].sum()
+        num_months = len(df_pivot)
         st.metric(
-            label="Saved (Latest)",
-            value=f"${saved_amt:,.2f}",
-            delta="Surplus" if saved_amt > 0 else "Deficit"
+            label="Overall Amount",
+            value=f"${total_saved:,.0f}",
+            help=f"Total saved over {num_months} months"
         )
-    
-    with metric_col5:
-        if prev is not None:
-            delta = latest['Savings_Rate'] - prev['Savings_Rate']
-            st.metric(
-                label="vs Last Month",
-                value=f"{latest['Savings_Rate']:.1f}%",
-                delta=f"{delta:+.1f}%"
-            )
 
 
 def create_savings_rate_chart(df_pivot: pd.DataFrame, target_rate: int) -> alt.Chart:
@@ -251,12 +241,13 @@ def create_income_expense_chart(df_pivot: pd.DataFrame) -> alt.Chart:
     )
 
 
-def display_data_tables(df: pd.DataFrame, df_pivot: pd.DataFrame) -> None:
+def display_data_tables(df: pd.DataFrame, df_pivot: pd.DataFrame, df_filtered_by_amount: pd.DataFrame) -> None:
     """Display expandable data tables for monthly summary and transactions.
     
     Args:
-        df: Filtered transactions dataframe
+        df: Fully filtered transactions dataframe (including amount filters)
         df_pivot: Monthly summary dataframe
+        df_filtered_by_amount: Transactions filtered out by amount thresholds only
     """
     # Monthly summary table
     with st.expander("📊 View Monthly Savings Data"):
@@ -274,6 +265,38 @@ def display_data_tables(df: pd.DataFrame, df_pivot: pd.DataFrame) -> None:
                 'Savings_Rate': st.column_config.NumberColumn('Savings Rate', format='%.1f%%')
             }
         )
+    
+    # Transactions filtered out by amount thresholds
+    if not df_filtered_by_amount.empty:
+        with st.expander(f"🚫 Filtered Large Transactions ({len(df_filtered_by_amount)} excluded from savings calculation)"):
+            st.caption(
+                "These transactions match your category/group filters but were excluded due to "
+                "exceeding the income or expense thresholds. They are NOT included in the savings rate calculation above."
+            )
+            
+            # Show summary stats
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                total_filtered = df_filtered_by_amount['Amount'].sum()
+                st.metric("Total Amount Filtered", f"${abs(total_filtered):,.2f}")
+            with col2:
+                income_filtered = df_filtered_by_amount[df_filtered_by_amount['Type'] == 'Income']['Amount'].sum()
+                st.metric("Large Income Excluded", f"${abs(income_filtered):,.2f}")
+            with col3:
+                expense_filtered = df_filtered_by_amount[df_filtered_by_amount['Type'] == 'Expense']['Amount'].sum()
+                st.metric("Large Expenses Excluded", f"${abs(expense_filtered):,.2f}")
+            
+            st.divider()
+            
+            df_filtered_display = df_filtered_by_amount.sort_values('Date', ascending=False)
+            
+            st.dataframe(
+                df_filtered_display,
+                width='stretch',
+                height=400,
+                hide_index=True,
+                column_config=get_transaction_column_config()
+            )
     
     # Large transactions table
     with st.expander("💰 View Large Transactions"):
@@ -310,18 +333,58 @@ def configure_page(
     """Main page configuration - orchestrates all components."""
     st.header("Income, Expenses & Savings")
     
+    # Time frame selector
+    time_frame_col1, time_frame_col2 = st.columns([1, 4])
+    with time_frame_col1:
+        time_frame_months = st.selectbox(
+            "Time Frame",
+            options=[3, 6, 12, 24],
+            index=2,  # Default to 12 months
+            format_func=lambda x: f"Last {x} Months"
+        )
+    
     # Render filter controls and get selections
     filters = render_income_expense_filters()
+    
+    # Calculate date range based on time frame
+    current_month = pd.Timestamp.now(tz='UTC').strftime('%Y-%m')
+    start_month = (pd.Timestamp.now(tz='UTC') - pd.DateOffset(months=time_frame_months)).strftime('%Y-%m')
     
     # Process data with filters
     df_pivot = process_income_expense_data(transactions_spreadsheet, filters)
     
+    # Apply time frame filter to monthly data
+    df_pivot = df_pivot[
+        (df_pivot['Month'] >= start_month) & 
+        (df_pivot['Month'] < current_month)
+    ]
+    
     # Get filtered transactions for detail tables
     df = transactions_spreadsheet.scrubbed_df.copy()
     df = apply_transaction_filters(df, filters)
-    df = df[df['Month'] >= DATA_START_YEAR]
-    current_month = pd.Timestamp.now(tz='UTC').strftime('%Y-%m')
-    df = df[df['Month'] < current_month]
+    df = df[
+        (df['Month'] >= start_month) & 
+        (df['Month'] < current_month)
+    ]
+    
+    # Calculate transactions that were filtered out by amount thresholds only
+    # Apply filters WITHOUT amount thresholds to see what would have been included
+    filters_no_amount = filters.copy()
+    filters_no_amount['filter_large_income'] = False
+    filters_no_amount['filter_large_expenses'] = False
+    
+    df_without_amount_filter = transactions_spreadsheet.scrubbed_df.copy()
+    df_without_amount_filter = apply_transaction_filters(df_without_amount_filter, filters_no_amount)
+    df_without_amount_filter = df_without_amount_filter[
+        (df_without_amount_filter['Month'] >= start_month) & 
+        (df_without_amount_filter['Month'] < current_month)
+    ]
+    
+    # Find transactions that were excluded by amount filters
+    # These are in df_without_amount_filter but not in df
+    df_filtered_by_amount = df_without_amount_filter[
+        ~df_without_amount_filter.index.isin(df.index)
+    ].copy()
     
     # Display summary metrics
     display_summary_metrics(df_pivot)
@@ -340,7 +403,7 @@ def configure_page(
     st.altair_chart(income_expense_chart, width='stretch')
     
     # Display data tables
-    display_data_tables(df, df_pivot)
+    display_data_tables(df, df_pivot, df_filtered_by_amount)
 
 
 def main() -> None:
