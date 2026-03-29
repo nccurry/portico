@@ -1,4 +1,4 @@
-pandas
-streamlit
-st-gsheets-connection
-altair
+pandas~=2.3
+streamlit~=1.55
+st-gsheets-connection~=0.1.0
+altair~=6.0

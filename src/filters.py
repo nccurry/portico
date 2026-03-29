@@ -1,6 +1,6 @@
 """Common filter UI components used across multiple pages."""
 import streamlit as st
-from typing import Dict, List, Tuple
+
 import pandas as pd
 from datetime import timedelta
 
@@ -17,11 +17,11 @@ from src.constants import (
 )
 
 
-def render_income_expense_filters(all_groups: List[str]) -> Dict:
+def render_income_expense_filters(all_groups: list[str]) -> dict:
     """Render filter controls for Income & Savings page.
     
     Returns:
-        Dictionary containing all filter selections
+        dictionary containing all filter selections
     """
     with st.expander("⚙️ Filter Settings", expanded=False):
         col_filter1, col_filter2 = st.columns(2)
@@ -96,14 +96,14 @@ def render_income_expense_filters(all_groups: List[str]) -> Dict:
     }
 
 
-def render_spending_filters(all_categories: List[str], all_groups: List[str]) -> Dict:
+def render_spending_filters(all_categories: list[str], all_groups: list[str]) -> dict:
     """Render filter controls for Spending by Category page.
     
     Args:
         all_categories: List of all available categories for inclusion filter
         
     Returns:
-        Dictionary containing all filter selections
+        dictionary containing all filter selections
     """
     with st.expander("⚙️ Filter Settings", expanded=False):
         col_filter1, col_filter2 = st.columns(2)
@@ -134,8 +134,8 @@ def render_spending_filters(all_categories: List[str], all_groups: List[str]) ->
             
             exclude_categories = st.multiselect(
                 "Exclude Categories",
-                options=['Christmas', 'Investment', 'Home Improvements'],
-                default=['Christmas', 'Investment', 'Home Improvements'],
+                options=DEFAULT_EXCLUDE_CATEGORIES,
+                default=[c for c in DEFAULT_EXCLUDE_CATEGORIES if c in ['Christmas', 'Investment', 'Home Improvements']],
                 help="Exclude specific one-time or non-recurring transaction categories"
             )
         
@@ -167,7 +167,7 @@ def render_spending_filters(all_categories: List[str], all_groups: List[str]) ->
     }
 
 
-def calculate_date_range(period: str, df: pd.DataFrame = None) -> Tuple[pd.Timestamp, pd.Timestamp]:
+def calculate_date_range(period: str, df: pd.DataFrame = None) -> tuple[pd.Timestamp, pd.Timestamp]:
     """Calculate start and end dates for a given period string.
     
     Args:
@@ -202,12 +202,12 @@ def calculate_date_range(period: str, df: pd.DataFrame = None) -> Tuple[pd.Times
         return now - timedelta(days=90), now
 
 
-def apply_transaction_filters(df: pd.DataFrame, filters: Dict) -> pd.DataFrame:
+def apply_transaction_filters(df: pd.DataFrame, filters: dict) -> pd.DataFrame:
     """Apply standard filters to a transaction dataframe.
     
     Args:
         df: Transaction dataframe to filter
-        filters: Dictionary of filter settings from render_*_filters()
+        filters: dictionary of filter settings from render_*_filters()
         
     Returns:
         Filtered dataframe

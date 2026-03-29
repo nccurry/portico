@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import altair as alt
 from datetime import datetime
-from typing import List, Dict, Optional
+
 
 from src.spreadsheet import TransactionsSpreadsheet
 from src.constants import COLOR_PLACEHOLDER
@@ -139,7 +139,7 @@ def display_transaction_table(transactions_df: pd.DataFrame, label: str) -> None
 
 
 def render_category_page(
-        categories: List[str],
+        categories: list[str],
         transactions_spreadsheet: TransactionsSpreadsheet
 ) -> None:
     """Render a page showing year-over-year comparisons for a list of categories."""
@@ -168,7 +168,7 @@ def render_category_page(
 
 
 def render_group_page(
-        groups: List[str],
+        groups: list[str],
         transactions_spreadsheet: TransactionsSpreadsheet
 ) -> None:
     """Render a page showing year-over-year comparisons for a list of groups."""
@@ -202,7 +202,7 @@ def create_sparkline_chart(
     date_column: str,
     color: str,
     height: int = 50,
-    current_value: Optional[float] = None,
+    current_value: float | None = None,
     use_min_scale: bool = False
 ) -> alt.Chart:
     """Create a sparkline chart or flat line if insufficient data.
@@ -292,11 +292,11 @@ def extract_merchant_name(description: str, method: str = 'first_word') -> str:
         return words[0]
 
 
-def get_transaction_column_config() -> Dict:
+def get_transaction_column_config() -> dict:
     """Standard column configuration for transaction dataframes.
     
     Returns:
-        Dictionary of column configurations for st.dataframe
+        dictionary of column configurations for st.dataframe
     """
     return {
         'Date': st.column_config.DateColumn('Date', format='YYYY-MM-DD'),
