@@ -1,0 +1,8 @@
+{
+  "model": "opus",
+  "plansDirectory": "./.claude/plans",
+  "statusLine": {
+    "type": "command",
+    "command": "pwsh.exe -File .claude/scripts/context-bar.ps1"
+  }
+}
