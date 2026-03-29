@@ -46,22 +46,20 @@ def create_year_comparison_chart(pivoted_df: pd.DataFrame, label: str) -> alt.Ch
     df_long = df_long.melt(id_vars='Month', var_name='Year', value_name='Amount')
     df_long['Year'] = df_long['Year'].astype(str)
 
-    # Current year gets green, previous years in progressively lighter gray
+    # Current year is green, last year off-white, older years progressively darker
     years = sorted(df_long['Year'].unique(), reverse=True)
     color_domain = years
 
+    # Brightness scale: 1 year ago = light grey, 5+ years ago = very dark (but visible)
     color_range = []
     for year in years:
-        if int(year) == current_year:
-            color_range.append('lightgreen')
+        years_ago = current_year - int(year)
+        if years_ago == 0:
+            color_range.append('#57cc57')  # green for current year
         else:
-            years_ago = current_year - int(year)
-            if years_ago == 1:
-                color_range.append('darkgray')
-            elif years_ago == 2:
-                color_range.append('gray')
-            else:
-                color_range.append('lightgray')
+            # Map 1 year ago -> light grey (180) down to 5+ years ago -> dark (50)
+            brightness = max(50, 180 - (years_ago - 1) * 33)
+            color_range.append(f'rgb({brightness},{brightness},{brightness})')
     
     # For each year, trim leading and trailing zeros but keep middle zeros
     filtered_rows = []
