@@ -4,9 +4,8 @@ import pandas as pd
 import altair as alt
 from datetime import datetime
 
-from src.sidebar import configure_sidebar
 from src.spreadsheet import load_transactions_data, load_balance_history_data, TransactionsSpreadsheet, BalanceHistorySpreadsheet
-from src.page_helpers import get_transaction_column_config
+from src.page_helpers import get_transaction_column_config, extract_merchant_name
 from src.constants import CHART_HEIGHT_STANDARD, COLOR_EXPENSE
 
 
@@ -50,7 +49,7 @@ def detect_recurring_transactions(
     ].copy()
     
     # Extract merchant name (first few words of description)
-    df_expenses['Merchant'] = df_expenses['Full Description'].str.split().str[:3].str.join(' ')
+    df_expenses['Merchant'] = df_expenses['Full Description'].apply(lambda x: extract_merchant_name(x, 'first_three'))
     
     # Round amounts to avoid minor differences (e.g., tax variations)
     df_expenses['Amount_Rounded'] = df_expenses['Amount'].abs().round(2)
@@ -60,17 +59,18 @@ def detect_recurring_transactions(
         'Date': ['count', 'min', 'max'],
         'Month': 'nunique',
         'Amount': 'mean',
-        'Category': lambda x: x.mode()[0] if not x.empty else '',
-        'Account': lambda x: x.mode()[0] if not x.empty else ''
+        'Category': lambda x: x.mode().iloc[0] if not x.mode().empty else (x.iloc[0] if not x.empty else ''),
+        'Account': lambda x: x.mode().iloc[0] if not x.mode().empty else (x.iloc[0] if not x.empty else '')
     }).reset_index()
     
     # Flatten column names
     grouped.columns = ['Merchant', 'Amount_Rounded', 'Count', 'First_Date', 'Last_Date', 
                       'Unique_Months', 'Avg_Amount', 'Category', 'Account']
     
-    # Calculate days between transactions
-    grouped['Days_Between'] = (grouped['Last_Date'] - grouped['First_Date']).dt.days / (grouped['Count'] - 1)
-    grouped['Days_Between'] = grouped['Days_Between'].fillna(0)
+    # Calculate days between transactions (guard against Count == 1)
+    count_minus_1 = (grouped['Count'] - 1).replace(0, 1)
+    grouped['Days_Between'] = (grouped['Last_Date'] - grouped['First_Date']).dt.days / count_minus_1
+    grouped.loc[grouped['Count'] == 1, 'Days_Between'] = 0
     
     # Flag as subscription if:
     # - Appears min_occurrences+ times
@@ -367,7 +367,6 @@ def main() -> None:
     transactions_spreadsheet = load_transactions_data()
     balance_history_spreadsheet = load_balance_history_data()
 
-    configure_sidebar(transactions_spreadsheet, balance_history_spreadsheet)
     configure_page(transactions_spreadsheet, balance_history_spreadsheet)
 
 

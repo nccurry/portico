@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 from datetime import timedelta
 
-from src.sidebar import configure_sidebar
 from src.spreadsheet import load_transactions_data, load_balance_history_data, TransactionsSpreadsheet, BalanceHistorySpreadsheet
 from src.constants import MIN_DUPLICATE_AMOUNT, DEFAULT_DUPLICATE_DAYS_THRESHOLD
 
@@ -35,17 +34,17 @@ def find_duplicates_efficient(
         return pd.DataFrame()
     
     df_filtered = df_filtered.sort_values(['Amount', 'Date']).reset_index(drop=True)
-    
+    df_filtered['_row_id'] = range(len(df_filtered))
+
     # Self-join on amount to find matching transaction amounts
     duplicates = df_filtered.merge(
         df_filtered,
         on='Amount',
         suffixes=('_1', '_2')
     )
-    
+
     # Filter to only pairs where first transaction comes before second
-    # Use the original index to ensure we don't match a transaction with itself
-    duplicates = duplicates[duplicates.index_1 < duplicates.index_2]
+    duplicates = duplicates[duplicates['_row_id_1'] < duplicates['_row_id_2']]
     
     # Calculate date difference in days
     duplicates['Days_Apart'] = (
@@ -216,7 +215,6 @@ def main() -> None:
     transactions_spreadsheet = load_transactions_data()
     balance_history_spreadsheet = load_balance_history_data()
 
-    configure_sidebar(transactions_spreadsheet, balance_history_spreadsheet)
     configure_page(transactions_spreadsheet, balance_history_spreadsheet)
 
 

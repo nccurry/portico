@@ -5,8 +5,6 @@ import streamlit as st
 from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 from abc import ABCMeta, abstractmethod
-import math
-import numpy as np
 
 
 class Spreadsheet(metaclass=ABCMeta):
@@ -43,10 +41,10 @@ class TransactionsSpreadsheet(Spreadsheet):
         df = self.raw_df.copy()
 
         # Drop empty column
-        df = df.drop("Unnamed: 0", axis=1)
+        df = df.drop("Unnamed: 0", axis=1, errors='ignore')
 
         # Recast Amount column as float
-        df["Amount"] = df["Amount"].replace('[\$,]', '', regex=True).astype(float)
+        df["Amount"] = df["Amount"].replace(r'[\$,]', '', regex=True).astype(float)
 
         # Recast dates as datetime (utc=True handles mixed timezones)
         df["Date"] = pd.to_datetime(df["Date"], format='mixed', utc=True)
@@ -69,7 +67,7 @@ class TransactionsSpreadsheet(Spreadsheet):
         """Return the total amount of months in the data set as an int"""
         oldest_date = self.scrubbed_df["Date"].min()
         latest_date = self.scrubbed_df["Date"].max()
-        total_months = math.ceil((latest_date - oldest_date)/np.timedelta64(1, 'M'))
+        total_months = (latest_date.year - oldest_date.year) * 12 + (latest_date.month - oldest_date.month)
 
         return total_months
 
@@ -88,21 +86,6 @@ class TransactionsSpreadsheet(Spreadsheet):
         df = df[df["Group"] == group]
 
         return df["Category"].unique()
-
-    def get_group_category_stats(
-            self,
-            group: str
-    ) -> pd.DataFrame:
-        """Return a data frame summarizing the transaction amounts per group"""
-        df = self.scrubbed_df.copy()
-        df = df[df["Group"] == group]
-        
-        if df.empty:
-            return pd.DataFrame()
-        
-        df = df.groupby('Category').describe().unstack(1).reset_index().pivot(index='Category', values=0, columns='level_1')
-
-        return df
 
     def filter_transactions(
             self,
@@ -123,15 +106,15 @@ class TransactionsSpreadsheet(Spreadsheet):
 
         if include_categories:
             df = df[df["Category"].isin(include_categories)]
-        df = df[-df["Category"].isin(ignore_categories)]
+        df = df[~df["Category"].isin(ignore_categories)]
 
         if include_groups:
             df = df[df["Group"].isin(include_groups)]
-        df = df[-df["Group"].isin(ignore_groups)]
+        df = df[~df["Group"].isin(ignore_groups)]
 
         if include_types:
             df = df[df["Type"].isin(include_types)]
-        df = df[-df["Group"].isin(ignore_types)]
+        df = df[~df["Type"].isin(ignore_types)]
 
         if start_date is None:
             start_date = df["Date"].min()
@@ -160,34 +143,22 @@ class TransactionsSpreadsheet(Spreadsheet):
             invert_amount: bool = False
     ) -> pd.DataFrame:
         """Get the total spending per group over a specified period"""
-        df = self.scrubbed_df.copy()
-        df = df.filter(["Date", "Category", "Group", "Amount", "Type"])
-        df = df.sort_values("Date")
-
-        if include_categories:
-            df = df[df["Category"].isin(include_categories)]
-        df = df[-df["Category"].isin(ignore_categories)]
-
-        if include_groups:
-            df = df[df["Group"].isin(include_groups)]
-        df = df[-df["Group"].isin(ignore_groups)]
-
-        if include_types:
-            df = df[df["Type"].isin(include_types)]
-        df = df[-df["Group"].isin(ignore_types)]
-
-        if start_date is None:
-            start_date = df["Date"].min()
-        if end_date is None:
-            end_date = df["Date"].max()
-        df = df[df["Date"].between(start_date, end_date)]
+        df = self.filter_transactions(
+            include_categories=include_categories,
+            ignore_categories=ignore_categories,
+            include_groups=include_groups,
+            ignore_groups=ignore_groups,
+            include_types=include_types,
+            ignore_types=ignore_types,
+            start_date=start_date,
+            end_date=end_date,
+            filtered_columns=["Date", "Category", "Group", "Amount", "Type"],
+        )
 
         if invert_amount:
             df["Amount"] = df["Amount"] * -1
 
-        df = df.groupby("Group").sum(numeric_only=True)
-
-        return df
+        return df.groupby("Group").sum(numeric_only=True)
 
     def get_amount_by_group_category(
             self,
@@ -199,28 +170,19 @@ class TransactionsSpreadsheet(Spreadsheet):
             invert_amount: bool = False,
     ) -> pd.DataFrame:
         """Get the total group spending per categories over a specified period"""
-        df = self.scrubbed_df.copy()
-        df = df[df["Group"] == group]
-        df = df.filter(["Date", "Group", "Category", "Amount", "Type"])
-        df = df.sort_values("Date")
-
-        # If include_categories is empty, include all categories
-        if include_categories:
-            df = df[df["Category"].isin(include_categories)]
-        df = df[-df["Category"].isin(ignore_categories)]
-
-        if start_date is None:
-            start_date = df["Date"].min()
-        if end_date is None:
-            end_date = df["Date"].max()
-        df = df[df["Date"].between(start_date, end_date)]
+        df = self.filter_transactions(
+            include_groups=[group],
+            include_categories=include_categories,
+            ignore_categories=ignore_categories,
+            start_date=start_date,
+            end_date=end_date,
+            filtered_columns=["Date", "Group", "Category", "Amount", "Type"],
+        )
 
         if invert_amount:
             df["Amount"] = df["Amount"] * -1
 
-        df = df.groupby("Category").sum(numeric_only=True)
-
-        return df
+        return df.groupby("Category").sum(numeric_only=True)
 
     def get_monthly_amounts_by_category(
             self,
@@ -302,20 +264,6 @@ class TransactionsSpreadsheet(Spreadsheet):
             end_date=end_date
         )
 
-    def get_category_stats_by_group(
-            self,
-            group: str
-    ) -> pd.DataFrame:
-        """Return a data frame summarizing the transaction amounts per group"""
-        df = self.scrubbed_df.copy()
-        df = df[df["Group"] == group]
-        
-        if df.empty:
-            return pd.DataFrame()
-        
-        df = df.groupby('Category').describe().unstack(1).reset_index().pivot(index='Category', values=0, columns='level_1')
-
-        return df
 
 
 class BalanceHistorySpreadsheet(Spreadsheet):
@@ -326,10 +274,10 @@ class BalanceHistorySpreadsheet(Spreadsheet):
         df = self.raw_df.copy()
 
         # Drop empty column
-        df = df.drop("Unnamed: 0", axis=1)
+        df = df.drop("Unnamed: 0", axis=1, errors='ignore')
 
         # Recast Amount column as float
-        df["Balance"] = df["Balance"].replace('[\$,]', '', regex=True).astype(float)
+        df["Balance"] = df["Balance"].replace(r'[\$,]', '', regex=True).astype(float)
 
         # Recast dates as datetime (utc=True handles mixed timezones)
         df["Date"] = pd.to_datetime(df["Date"], format='mixed', utc=True)
@@ -383,25 +331,26 @@ class BalanceHistorySpreadsheet(Spreadsheet):
         """Get the balance history for all accounts under a single group"""
         df = self.scrubbed_df.copy()
         df = df[df["Group"] == group]
-        account_ids = df["Account ID"].unique()
 
         if start_date is None:
             start_date = df["Date"].min()
         if end_date is None:
             end_date = df["Date"].max()
 
-        columns = ["Date", "Account", "Account ID", "Institution", "Group", "Balance"]
-        agg_df = pd.DataFrame(columns=columns)
-        for account_id in account_ids:
-            account_df = self.get_balance_history_by_account_id(
-                account_id=account_id,
-                start_date=start_date,
-                end_date=end_date,
-                columns=columns
-            )
-            agg_df = pd.concat([agg_df, account_df])
+        # Sort and keep the last balance entry per account per date
+        df = df.sort_values(["Account ID", "Date"])
+        df = df.drop_duplicates(subset=["Account ID", "Date"], keep="last")
 
-        return agg_df.groupby(agg_df["Date"])["Balance"].sum()
+        # Pivot so each account is a column, dates are rows
+        pivot = df.pivot_table(index="Date", columns="Account ID", values="Balance", aggfunc="last")
+
+        # Reindex to the full date range and fill missing values
+        idx = pd.date_range(start_date, end_date)
+        pivot = pivot.reindex(idx)
+        pivot = pivot.bfill().ffill()
+
+        # Sum across all accounts for each date
+        return pivot.sum(axis=1).rename("Balance")
 
     def get_balance_history_by_account_id(
             self,
@@ -426,13 +375,6 @@ class BalanceHistorySpreadsheet(Spreadsheet):
         df = df.bfill().ffill()  # bfill fills empty start dates, ffill fills empty middle dates
 
         return df
-
-    def get_balance_delta(
-            self,
-            start_date: Optional[datetime.datetime] = None,
-            end_date: Optional[datetime.datetime] = None
-    ) -> float:
-        """Get the difference in account balance at the beginning and ending of a period"""
 
 
 # Helper function for efficient sparkline calculation
