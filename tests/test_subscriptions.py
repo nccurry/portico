@@ -92,7 +92,7 @@ class TestDetectRecurringTransactions:
         import warnings
         with warnings.catch_warnings():
             warnings.simplefilter("error")
-            result = detect_recurring_transactions(df, min_occurrences=1, min_months=1)
+            detect_recurring_transactions(df, min_occurrences=1, min_months=1)
 
     def test_annual_cost_calculation(self):
         df = _make_recurring_df(amount=-25.00, months=6)

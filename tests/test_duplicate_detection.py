@@ -1,5 +1,4 @@
 """Tests for Pages/4_Duplicate_Detection.py - find_duplicates_efficient."""
-import pytest
 import pandas as pd
 
 from importlib import import_module

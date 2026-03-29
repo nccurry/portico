@@ -2,7 +2,6 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
-from datetime import datetime
 
 from src.spreadsheet import load_transactions_data, load_balance_history_data, TransactionsSpreadsheet, BalanceHistorySpreadsheet
 from src.page_helpers import get_transaction_column_config, extract_merchant_name

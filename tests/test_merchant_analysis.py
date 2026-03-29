@@ -1,5 +1,4 @@
 """Tests for Pages/6_Merchant_Analysis.py - extract_merchant_name and analyze_merchants."""
-import pytest
 import pandas as pd
 import numpy as np
 

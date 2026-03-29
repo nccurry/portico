@@ -1,5 +1,4 @@
 """Tests for src/filters.py — calculate_date_range and apply_transaction_filters."""
-import pytest
 import pandas as pd
 from datetime import timedelta
 
@@ -218,3 +217,52 @@ class TestApplyTransactionFilters:
         """An empty DataFrame passes through without error."""
         result = apply_transaction_filters(empty_transactions_df, {})
         assert len(result) == 0
+
+    def test_nan_group_kept_after_transfer_exclusion(self):
+        """NaN in Group: 'Group != Transfer' is True for NaN, so NaN-group rows survive."""
+        df = _df_from_rows(
+            _make_row("2024-01-01", "Groceries", -50.0, "Food", "Expense"),
+            _make_row("2024-01-02", "Mystery", -25.0, None, "Expense"),
+        )
+        # Set the Group to actual NaN (not the string "None")
+        df.loc[1, "Group"] = float('nan')
+        result = apply_transaction_filters(df, {})
+        # NaN != "Transfer" evaluates to True, so the row is kept
+        assert len(result) == 2
+
+    def test_nan_type_bypasses_large_expense_filter(self):
+        """NaN in Type: 'Type != Expense' is True for NaN, so the large-expense filter
+        doesn't apply and the row is kept regardless of amount."""
+        df = _df_from_rows(
+            _make_row("2024-01-01", "Normal", -50.0, "Food", "Expense"),
+            _make_row("2024-01-02", "BigMystery", -99999.0, "Food", None),
+        )
+        df.loc[1, "Type"] = float('nan')
+        filters = {"filter_large_expenses": True, "expense_threshold": 1000}
+        result = apply_transaction_filters(df, filters)
+        # NaN Type != "Expense" is True, so the OR short-circuits and the row is kept
+        assert "BigMystery" in result["Category"].values
+
+    def test_nan_amount_with_large_expense_filter(self):
+        """NaN in Amount: abs(NaN) is NaN, and NaN <= threshold is False,
+        but Type != 'Expense' is False, so the whole condition is False and the row is dropped."""
+        df = _df_from_rows(
+            _make_row("2024-01-01", "Normal", -50.0, "Food", "Expense"),
+            _make_row("2024-01-02", "NanAmount", float('nan'), "Food", "Expense"),
+        )
+        filters = {"filter_large_expenses": True, "expense_threshold": 1000}
+        result = apply_transaction_filters(df, filters)
+        # NaN amount: (Type != "Expense") is False, abs(NaN) <= 1000 is False => row dropped
+        assert "NanAmount" not in result["Category"].values
+        assert len(result) == 1
+
+    def test_nan_category_excluded_by_include_filter(self):
+        """NaN category is not in any include list, so it's excluded by include_categories."""
+        df = _df_from_rows(
+            _make_row("2024-01-01", "Groceries", -50.0, "Food", "Expense"),
+            _make_row("2024-01-02", None, -25.0, "Food", "Expense"),
+        )
+        df.loc[1, "Category"] = float('nan')
+        filters = {"include_categories": ["Groceries"]}
+        result = apply_transaction_filters(df, filters)
+        assert len(result) == 1

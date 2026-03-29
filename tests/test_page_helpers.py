@@ -1,8 +1,15 @@
-"""Tests for src/page_helpers.py - prepare_year_comparison_data and extract_merchant_name."""
+"""Tests for src/page_helpers.py - prepare_year_comparison_data, extract_merchant_name,
+create_year_comparison_chart, and create_sparkline_chart."""
 import pytest
 import pandas as pd
+import altair as alt
 
-from src.page_helpers import prepare_year_comparison_data, extract_merchant_name
+from src.page_helpers import (
+    prepare_year_comparison_data,
+    extract_merchant_name,
+    create_year_comparison_chart,
+    create_sparkline_chart,
+)
 
 
 @pytest.fixture
@@ -80,3 +87,113 @@ class TestExtractMerchantName:
     def test_unknown_method_falls_back_to_first_word(self):
         """An unrecognized method returns the first word."""
         assert extract_merchant_name("FOO BAR BAZ", "bad_method") == "FOO"
+
+    def test_nan_input_returns_unknown(self):
+        """NaN description returns 'Unknown'."""
+        assert extract_merchant_name(float('nan')) == 'Unknown'
+        assert extract_merchant_name(None) == 'Unknown'
+
+    def test_empty_string_returns_unknown(self):
+        """Empty string returns 'Unknown' (split produces empty list)."""
+        assert extract_merchant_name("") == 'Unknown'
+        assert extract_merchant_name("   ") == 'Unknown'
+
+    def test_first_two_method(self):
+        """first_two returns the first two words."""
+        assert extract_merchant_name("WHOLE FOODS MARKET", "first_two") == "WHOLE FOODS"
+
+    def test_first_three_method(self):
+        """first_three returns the first three words."""
+        assert extract_merchant_name("THE HOME DEPOT STORE", "first_three") == "THE HOME DEPOT"
+
+    def test_first_word_default(self):
+        """Default method returns first word."""
+        assert extract_merchant_name("AMAZON MARKETPLACE") == "AMAZON"
+
+    def test_unicode_characters(self):
+        """Unicode characters in description don't crash."""
+        assert extract_merchant_name("CAFÉ MOCHA HOUSE") == "CAFÉ"
+
+    def test_special_characters(self):
+        """Special characters are preserved."""
+        assert extract_merchant_name("7-ELEVEN #12345") == "7-ELEVEN"
+
+
+class TestCreateYearComparisonChart:
+
+    @pytest.fixture
+    def two_year_pivoted(self, monthly_amounts_df):
+        return prepare_year_comparison_data(monthly_amounts_df)
+
+    def test_empty_pivoted_returns_text_chart(self):
+        """Empty DataFrame produces a text mark chart."""
+        result = create_year_comparison_chart(pd.DataFrame(), "Test")
+        assert isinstance(result, alt.Chart)
+
+    def test_normal_data_returns_line_chart(self, two_year_pivoted):
+        """Multi-year pivoted data produces a line chart."""
+        result = create_year_comparison_chart(two_year_pivoted, "Groceries")
+        assert isinstance(result, alt.Chart)
+
+    def test_single_year_pivoted(self):
+        """Single year data still produces a valid chart."""
+        data = {'Amount': [100, 200, 300]}
+        index = pd.Index(['2024-01', '2024-03', '2024-05'], name='Month')
+        df = pd.DataFrame(data, index=index)
+        pivoted = prepare_year_comparison_data(df)
+        result = create_year_comparison_chart(pivoted, "Test")
+        assert isinstance(result, alt.Chart)
+
+    def test_all_zero_year_trimmed(self):
+        """A year with all-zero amounts is excluded from the chart data."""
+        # Build pivoted data where 2023 is all zeros
+        pivoted = pd.DataFrame(
+            {2023: [0, 0, 0], 2024: [100, 200, 300]},
+            index=pd.Index([1, 2, 3], name='Month')
+        )
+        result = create_year_comparison_chart(pivoted, "Test")
+        assert isinstance(result, alt.Chart)
+
+
+class TestCreateSparklineChart:
+
+    def test_normal_data_returns_line_chart(self):
+        """DataFrame with multiple rows returns a line chart."""
+        df = pd.DataFrame({
+            'Date': pd.date_range('2024-01-01', periods=5, freq='W'),
+            'Balance': [1000, 1100, 1050, 1200, 1150]
+        })
+        result = create_sparkline_chart(df, 'Balance', 'Date', '#57cc57')
+        assert isinstance(result, alt.Chart)
+
+    def test_single_row_falls_to_flat_line(self):
+        """Single-row DataFrame uses the flat-line fallback."""
+        df = pd.DataFrame({
+            'Date': [pd.Timestamp('2024-01-01')],
+            'Balance': [5000.0]
+        })
+        result = create_sparkline_chart(df, 'Balance', 'Date', '#57cc57')
+        assert isinstance(result, alt.Chart)
+
+    def test_empty_df_with_current_value(self):
+        """Empty DataFrame with explicit current_value uses flat line at that value."""
+        df = pd.DataFrame({'Date': [], 'Balance': []})
+        result = create_sparkline_chart(df, 'Balance', 'Date', '#57cc57', current_value=5000)
+        assert isinstance(result, alt.Chart)
+
+    def test_empty_df_no_current_value(self):
+        """Empty DataFrame with no current_value defaults to 0."""
+        df = pd.DataFrame({'Date': [], 'Balance': []})
+        result = create_sparkline_chart(df, 'Balance', 'Date', '#57cc57')
+        assert isinstance(result, alt.Chart)
+
+    def test_use_min_scale(self):
+        """use_min_scale=True should not crash."""
+        df = pd.DataFrame({
+            'Date': pd.date_range('2024-01-01', periods=5, freq='W'),
+            'Balance': [1000, 1100, 1050, 1200, 1150]
+        })
+        result = create_sparkline_chart(
+            df, 'Balance', 'Date', '#57cc57', use_min_scale=True
+        )
+        assert isinstance(result, alt.Chart)
