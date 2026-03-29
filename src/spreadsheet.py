@@ -1,6 +1,6 @@
 """Classes for interacting with Google Sheets spreadsheets."""
 import datetime
-from typing import Optional, List, Tuple
+
 import streamlit as st
 from streamlit_gsheets import GSheetsConnection
 import pandas as pd
@@ -24,8 +24,13 @@ class Spreadsheet(metaclass=ABCMeta):
 
     def load(self) -> None:
         """Load data from the external spreadsheet"""
-        conn = st.connection(name=self.name, type=GSheetsConnection)
-        self.raw_df = conn.read()
+        try:
+            conn = st.connection(name=self.name, type=GSheetsConnection)
+            self.raw_df = conn.read()
+        except Exception as e:
+            st.error(f"Failed to load data from Google Sheets ({self.name}): {e}")
+            st.info("Check your .streamlit/secrets.toml configuration and network connection.")
+            st.stop()
 
     @abstractmethod
     def scrub(self) -> None:
@@ -73,14 +78,14 @@ class TransactionsSpreadsheet(Spreadsheet):
 
     def get_groups(
             self
-    ) -> List[str]:
+    ) -> list[str]:
         """Return the unique list of account group names"""
         return self.scrubbed_df.sort_values("Group")["Group"].unique()
 
     def get_group_categories(
         self,
         group: str
-    ) -> List[str]:
+    ) -> list[str]:
         """Return all unique category names from a given group"""
         df = self.scrubbed_df.copy()
         df = df[df["Group"] == group]
@@ -89,16 +94,16 @@ class TransactionsSpreadsheet(Spreadsheet):
 
     def filter_transactions(
             self,
-            include_categories: List[str] = [],
-            ignore_categories: List[str] = [],
-            include_groups: List[str] = [],
-            ignore_groups: List[str] = [],
-            include_types: List[str] = [],
-            ignore_types: List[str] = [],
-            start_date: Optional[datetime.datetime] = None,
-            end_date: Optional[datetime.datetime] = None,
-            filtered_columns: List[str] = [],
-            group_by_column: Optional[str] = None,
+            include_categories: list[str] = [],
+            ignore_categories: list[str] = [],
+            include_groups: list[str] = [],
+            ignore_groups: list[str] = [],
+            include_types: list[str] = [],
+            ignore_types: list[str] = [],
+            start_date: datetime.datetime | None = None,
+            end_date: datetime.datetime | None = None,
+            filtered_columns: list[str] = [],
+            group_by_column: str | None = None,
     ) -> pd.DataFrame:
         """Filter transactions based on various attributes. Optionally group by a given column"""
         df = self.scrubbed_df.copy()
@@ -132,14 +137,14 @@ class TransactionsSpreadsheet(Spreadsheet):
 
     def get_amount_by_group(
             self,
-            include_categories: List[str] = [],
-            ignore_categories: List[str] = [],
-            include_groups: List[str] = [],
-            ignore_groups: List[str] = [],
-            include_types: List[str] = [],
-            ignore_types: List[str] = [],
-            start_date: Optional[datetime.datetime] = None,
-            end_date: Optional[datetime.datetime] = None,
+            include_categories: list[str] = [],
+            ignore_categories: list[str] = [],
+            include_groups: list[str] = [],
+            ignore_groups: list[str] = [],
+            include_types: list[str] = [],
+            ignore_types: list[str] = [],
+            start_date: datetime.datetime | None = None,
+            end_date: datetime.datetime | None = None,
             invert_amount: bool = False
     ) -> pd.DataFrame:
         """Get the total spending per group over a specified period"""
@@ -163,10 +168,10 @@ class TransactionsSpreadsheet(Spreadsheet):
     def get_amount_by_group_category(
             self,
             group: str,
-            include_categories: List[str] = [],
-            ignore_categories: List[str] = [],
-            start_date: Optional[datetime.datetime] = None,
-            end_date: Optional[datetime.datetime] = None,
+            include_categories: list[str] = [],
+            ignore_categories: list[str] = [],
+            start_date: datetime.datetime | None = None,
+            end_date: datetime.datetime | None = None,
             invert_amount: bool = False,
     ) -> pd.DataFrame:
         """Get the total group spending per categories over a specified period"""
@@ -187,8 +192,8 @@ class TransactionsSpreadsheet(Spreadsheet):
     def get_monthly_amounts_by_category(
             self,
             category: str,
-            start_date: Optional[datetime.datetime] = None,
-            end_date: Optional[datetime.datetime] = None,
+            start_date: datetime.datetime | None = None,
+            end_date: datetime.datetime | None = None,
             invert_amount: bool = False
     ) -> pd.DataFrame:
         """Get the total monthly transaction amount by a specified category"""
@@ -214,8 +219,8 @@ class TransactionsSpreadsheet(Spreadsheet):
     def get_monthly_amounts_by_group(
             self,
             group: str,
-            start_date: Optional[datetime.datetime] = None,
-            end_date: Optional[datetime.datetime] = None,
+            start_date: datetime.datetime | None = None,
+            end_date: datetime.datetime | None = None,
             invert_amount: bool = False
     ) -> pd.DataFrame:
         """Get the total monthly transaction amount by a specified group"""
@@ -241,8 +246,8 @@ class TransactionsSpreadsheet(Spreadsheet):
     def get_transactions_by_category(
             self,
             category: str,
-            start_date: Optional[datetime.datetime] = None,
-            end_date: Optional[datetime.datetime] = None
+            start_date: datetime.datetime | None = None,
+            end_date: datetime.datetime | None = None
     ) -> pd.DataFrame:
         """Get all transactions for a specific category"""
         return self.filter_transactions(
@@ -254,8 +259,8 @@ class TransactionsSpreadsheet(Spreadsheet):
     def get_transactions_by_group(
             self,
             group: str,
-            start_date: Optional[datetime.datetime] = None,
-            end_date: Optional[datetime.datetime] = None
+            start_date: datetime.datetime | None = None,
+            end_date: datetime.datetime | None = None
     ) -> pd.DataFrame:
         """Get all transactions for a specific group"""
         return self.filter_transactions(
@@ -296,15 +301,15 @@ class BalanceHistorySpreadsheet(Spreadsheet):
 
     def get_groups(
             self
-    ) -> List[str]:
+    ) -> list[str]:
         """Return the unique list of account group names"""
         return self.scrubbed_df.sort_values("Group")["Group"].unique()
 
     def get_latest_balance_by_group(
             self,
             group: str,
-            end_date: Optional[datetime.datetime] = None
-    ) -> Tuple[pd.DataFrame, float]:
+            end_date: datetime.datetime | None = None
+    ) -> tuple[pd.DataFrame, float]:
         """Summarize balance information by balance_history group"""
         df = self.scrubbed_df.copy()
 
@@ -325,8 +330,8 @@ class BalanceHistorySpreadsheet(Spreadsheet):
     def get_balance_history_by_group(
             self,
             group: str,
-            start_date: Optional[datetime.datetime] = None,
-            end_date: Optional[datetime.datetime] = None
+            start_date: datetime.datetime | None = None,
+            end_date: datetime.datetime | None = None
     ) -> pd.DataFrame:
         """Get the balance history for all accounts under a single group"""
         df = self.scrubbed_df.copy()
@@ -357,7 +362,7 @@ class BalanceHistorySpreadsheet(Spreadsheet):
             account_id: str,
             start_date: datetime,
             end_date: datetime,
-            columns: List[str] = ["Date", "Account", "Account ID", "Institution", "Group", "Balance"]
+            columns: list[str] = ["Date", "Account", "Account ID", "Institution", "Group", "Balance"]
     ) -> pd.DataFrame:
         """Get the balance history for a balance_history group"""
         # Filter and sort
