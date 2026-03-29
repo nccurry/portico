@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import altair as alt
 
-from src.sidebar import configure_sidebar
 from src.spreadsheet import load_transactions_data, load_balance_history_data, TransactionsSpreadsheet, BalanceHistorySpreadsheet
 from src.filters import render_income_expense_filters, apply_transaction_filters
 from src.page_helpers import get_transaction_column_config, display_transactions_expander
@@ -343,8 +342,12 @@ def configure_page(
             format_func=lambda x: f"Last {x} Months"
         )
     
+    # Derive all groups from data
+    all_groups = sorted([str(g) for g in transactions_spreadsheet.scrubbed_df['Group'].unique()
+                         if pd.notna(g) and str(g).strip() and g != 'Transfer'])
+
     # Render filter controls and get selections
-    filters = render_income_expense_filters()
+    filters = render_income_expense_filters(all_groups)
     
     # Calculate date range based on time frame
     current_month = pd.Timestamp.now(tz='UTC').strftime('%Y-%m')
@@ -413,7 +416,6 @@ def main() -> None:
     transactions_spreadsheet = load_transactions_data()
     balance_history_spreadsheet = load_balance_history_data()
 
-    configure_sidebar(transactions_spreadsheet, balance_history_spreadsheet)
     configure_page(transactions_spreadsheet, balance_history_spreadsheet)
 
 

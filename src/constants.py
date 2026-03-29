@@ -14,12 +14,8 @@ MAX_SAVINGS_RATE = 100
 SAVINGS_RATE_STEP = 5
 
 # Date filtering
-DATA_START_YEAR = '2024-01'
 SPARKLINE_HISTORY_DAYS = 365
 SPARKLINE_SAMPLE_FREQUENCY = 'W'  # Weekly
-
-# Cache settings
-CACHE_TTL_SECONDS = 300  # 5 minutes
 
 # Display settings
 TRANSACTION_TABLE_HEIGHT = 600
@@ -66,19 +62,6 @@ DEFAULT_EXCLUDE_GROUPS_SPENDING = [
     'Work',
     'Donations',
     'Investment',
-]
-
-ALL_GROUPS = [
-    'Travel',
-    'Investment',
-    'Entertainment',
-    'Shopping',
-    'Donations',
-    'Bills',
-    'Food',
-    'Income',
-    'Maintenance',
-    'Work'
 ]
 
 # Time period options
