@@ -141,12 +141,12 @@ tasks:
   lint:
     desc: "Check code formatting with ruff"
     cmds:
-      - '{{.PYTHON}} -m ruff check src/ Pages/ Home.py'
+      - '{{.PYTHON}} -m ruff check src/ Pages/ tests/ Home.py'
 
   lint:fix:
     desc: "Auto-fix formatting issues with ruff"
     cmds:
-      - '{{.PYTHON}} -m ruff check --fix src/ Pages/ Home.py'
+      - '{{.PYTHON}} -m ruff check --fix src/ Pages/ tests/ Home.py'
 
   # ========================================
   # Run

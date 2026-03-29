@@ -125,7 +125,10 @@ def display_summary_metrics(df_pivot: pd.DataFrame) -> None:
         )
 
 
-def create_savings_rate_chart(df_pivot: pd.DataFrame, target_rate: int) -> alt.Chart:
+def create_savings_rate_chart(
+        df_pivot: pd.DataFrame,
+        target_rate: int,
+) -> alt.LayerChart:
     """Create savings rate line chart with target line.
     
     Args:
@@ -178,7 +181,9 @@ def create_savings_rate_chart(df_pivot: pd.DataFrame, target_rate: int) -> alt.C
     )
 
 
-def create_income_expense_chart(df_pivot: pd.DataFrame) -> alt.Chart:
+def create_income_expense_chart(
+        df_pivot: pd.DataFrame,
+) -> alt.LayerChart:
     """Create income vs expense bar chart with net cash flow overlay.
     
     Args:
@@ -240,7 +245,11 @@ def create_income_expense_chart(df_pivot: pd.DataFrame) -> alt.Chart:
     )
 
 
-def display_data_tables(df: pd.DataFrame, df_pivot: pd.DataFrame, df_filtered_by_amount: pd.DataFrame) -> None:
+def display_data_tables(
+        df: pd.DataFrame,
+        df_pivot: pd.DataFrame,
+        df_filtered_by_amount: pd.DataFrame,
+) -> None:
     """Display expandable data tables for monthly summary and transactions.
     
     Args:

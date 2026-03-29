@@ -1,8 +1,6 @@
 """Tests for src/spreadsheet.py."""
-import datetime
 import pytest
 import pandas as pd
-import numpy as np
 from unittest.mock import patch
 from src.spreadsheet import (
     Spreadsheet,
@@ -644,3 +642,128 @@ class TestSparklines:
         # Without ffill, later weeks would omit the liability, inflating net worth.
         # Week 1: 5000 - 2000 = 3000.  Week 3: 5500 - 2000 = 3500.
         assert (result["NetWorth"] <= 3500).all()
+
+
+# ===================================================================
+# NaN / null handling
+# ===================================================================
+
+class TestNaNHandling:
+
+    def test_filter_transactions_nan_amount(self, make_transactions_spreadsheet):
+        """NaN in Amount column should not crash filter_transactions."""
+        df = _transactions_df([
+            {"Date": "2024-01-10", "Category": "Groceries", "Amount": -50,
+             "Account": "Checking", "Month": "2024-01", "Group": "Food", "Type": "Expense"},
+            {"Date": "2024-01-15", "Category": "Dining", "Amount": float('nan'),
+             "Account": "Checking", "Month": "2024-01", "Group": "Food", "Type": "Expense"},
+        ])
+        ts = make_transactions_spreadsheet(df)
+        result = ts.filter_transactions()
+        # Both rows should be returned (NaN amount is not filtered out)
+        assert len(result) == 2
+
+    def test_get_amount_by_group_nan_amount(self, make_transactions_spreadsheet):
+        """NaN amounts propagate through sum — group total includes NaN contribution."""
+        df = _transactions_df([
+            {"Date": "2024-01-10", "Category": "Groceries", "Amount": -50,
+             "Account": "Checking", "Month": "2024-01", "Group": "Food", "Type": "Expense"},
+            {"Date": "2024-01-15", "Category": "Dining", "Amount": float('nan'),
+             "Account": "Checking", "Month": "2024-01", "Group": "Food", "Type": "Expense"},
+        ])
+        ts = make_transactions_spreadsheet(df)
+        result = ts.get_amount_by_group()
+        # pandas sum() with min_count default skips NaN: -50 + NaN = -50
+        assert result.loc["Food", "Amount"] == pytest.approx(-50)
+
+    def test_filter_transactions_nan_category(self, make_transactions_spreadsheet):
+        """NaN in Category column: isin() excludes NaN, so include_categories filter drops NaN rows."""
+        df = _transactions_df([
+            {"Date": "2024-01-10", "Category": "Groceries", "Amount": -50,
+             "Account": "Checking", "Month": "2024-01", "Group": "Food", "Type": "Expense"},
+            {"Date": "2024-01-15", "Category": None, "Amount": -30,
+             "Account": "Checking", "Month": "2024-01", "Group": "Food", "Type": "Expense"},
+        ])
+        ts = make_transactions_spreadsheet(df)
+        result = ts.filter_transactions(include_categories=["Groceries"])
+        # NaN category is not in ["Groceries"], so it's excluded
+        assert len(result) == 1
+        assert result.iloc[0]["Category"] == "Groceries"
+
+    def test_filter_transactions_nan_group(self, make_transactions_spreadsheet):
+        """NaN in Group column: isin() excludes NaN, so include_groups filter drops NaN rows."""
+        df = _transactions_df([
+            {"Date": "2024-01-10", "Category": "Groceries", "Amount": -50,
+             "Account": "Checking", "Month": "2024-01", "Group": "Food", "Type": "Expense"},
+            {"Date": "2024-01-15", "Category": "Dining", "Amount": -30,
+             "Account": "Checking", "Month": "2024-01", "Group": None, "Type": "Expense"},
+        ])
+        ts = make_transactions_spreadsheet(df)
+        result = ts.filter_transactions(include_groups=["Food"])
+        assert len(result) == 1
+
+    def test_filter_transactions_nan_date(self, make_transactions_spreadsheet):
+        """NaN/NaT in Date column: between() returns False for NaT, so those rows are dropped."""
+        df = _transactions_df([
+            {"Date": "2024-01-10", "Category": "Groceries", "Amount": -50,
+             "Account": "Checking", "Month": "2024-01", "Group": "Food", "Type": "Expense"},
+        ])
+        # Append a row with NaT date
+        nan_row = pd.DataFrame([{
+            "Date": pd.NaT, "Category": "Dining", "Amount": -30,
+            "Account": "Checking", "Month": "2024-01", "Group": "Food",
+            "Type": "Expense", "Full Description": "", "Institution": "", "Account #": "",
+        }])
+        df = pd.concat([df, nan_row], ignore_index=True)
+        ts = make_transactions_spreadsheet(df)
+        result = ts.filter_transactions(
+            start_date=_utc(2024, 1, 1),
+            end_date=_utc(2024, 12, 31)
+        )
+        # NaT date is not between any range
+        assert len(result) == 1
+
+    def test_get_monthly_amounts_by_category_nan_amount(self, make_transactions_spreadsheet):
+        """NaN in Amount is skipped by groupby sum, so monthly total only includes valid amounts."""
+        df = _transactions_df([
+            {"Date": "2024-01-10", "Category": "Groceries", "Amount": -50,
+             "Account": "Checking", "Month": "2024-01", "Group": "Food", "Type": "Expense"},
+            {"Date": "2024-01-20", "Category": "Groceries", "Amount": float('nan'),
+             "Account": "Checking", "Month": "2024-01", "Group": "Food", "Type": "Expense"},
+        ])
+        ts = make_transactions_spreadsheet(df)
+        result = ts.get_monthly_amounts_by_category("Groceries")
+        assert result.loc["2024-01", "Amount"] == pytest.approx(-50)
+
+    def test_get_total_months_single_row(self, make_transactions_spreadsheet):
+        """A single transaction should return 0 total months (min == max)."""
+        df = _transactions_df([
+            {"Date": "2024-03-15", "Category": "Groceries", "Amount": -50,
+             "Account": "Checking", "Month": "2024-03", "Group": "Food", "Type": "Expense"},
+        ])
+        ts = make_transactions_spreadsheet(df)
+        assert ts.get_total_months() == 0
+
+    def test_get_monthly_amounts_nonexistent_category(self, make_transactions_spreadsheet):
+        """Querying a category that doesn't exist returns an empty DataFrame."""
+        df = _transactions_df([
+            {"Date": "2024-01-10", "Category": "Groceries", "Amount": -50,
+             "Account": "Checking", "Month": "2024-01", "Group": "Food", "Type": "Expense"},
+        ])
+        ts = make_transactions_spreadsheet(df)
+        result = ts.get_monthly_amounts_by_category("NonExistent")
+        assert result.empty
+
+    def test_groupby_nan_group_key(self, make_transactions_spreadsheet):
+        """Rows with NaN Group are excluded from groupby results by default."""
+        df = _transactions_df([
+            {"Date": "2024-01-10", "Category": "Groceries", "Amount": -50,
+             "Account": "Checking", "Month": "2024-01", "Group": "Food", "Type": "Expense"},
+            {"Date": "2024-01-15", "Category": "Dining", "Amount": -30,
+             "Account": "Checking", "Month": "2024-01", "Group": None, "Type": "Expense"},
+        ])
+        ts = make_transactions_spreadsheet(df)
+        result = ts.get_amount_by_group()
+        # NaN group key is dropped by groupby
+        assert "Food" in result.index
+        assert len(result) == 1
