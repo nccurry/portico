@@ -135,7 +135,7 @@ def render_spending_filters(all_categories: list[str], all_groups: list[str]) ->
             exclude_categories = st.multiselect(
                 "Exclude Categories",
                 options=DEFAULT_EXCLUDE_CATEGORIES,
-                default=[c for c in DEFAULT_EXCLUDE_CATEGORIES if c in ['Christmas', 'Investment', 'Home Improvements']],
+                default=DEFAULT_EXCLUDE_CATEGORIES,
                 help="Exclude specific one-time or non-recurring transaction categories"
             )
         

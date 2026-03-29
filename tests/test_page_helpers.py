@@ -1,8 +1,8 @@
-"""Tests for src/page_helpers.py - prepare_year_comparison_data."""
+"""Tests for src/page_helpers.py - prepare_year_comparison_data and extract_merchant_name."""
 import pytest
 import pandas as pd
 
-from src.page_helpers import prepare_year_comparison_data
+from src.page_helpers import prepare_year_comparison_data, extract_merchant_name
 
 
 @pytest.fixture
@@ -69,3 +69,14 @@ class TestPrepareYearComparisonData:
         assert result.loc[2, 2023] == 0
         # 2024 only has months 1 and 2; month 1 for 2023 should be present
         assert result.loc[1, 2023] == 100
+
+
+class TestExtractMerchantName:
+
+    def test_single_word_with_multi_word_method(self):
+        """A single-word description with first_three should return that word."""
+        assert extract_merchant_name("NETFLIX", "first_three") == "NETFLIX"
+
+    def test_unknown_method_falls_back_to_first_word(self):
+        """An unrecognized method returns the first word."""
+        assert extract_merchant_name("FOO BAR BAZ", "bad_method") == "FOO"

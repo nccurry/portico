@@ -165,6 +165,41 @@ class TestTransactionsScrub:
 
 
 # ===================================================================
+# BalanceHistorySpreadsheet.scrub() — missing column
+# ===================================================================
+
+class TestBalanceScrubMissingColumn:
+
+    def test_scrub_missing_unnamed_column(self, raw_balance_df):
+        """scrub() should not crash when 'Unnamed: 0' column is absent."""
+        df_no_unnamed = raw_balance_df.drop("Unnamed: 0", axis=1)
+        with patch.object(Spreadsheet, 'load', lambda self: setattr(self, 'raw_df', df_no_unnamed)):
+            bs = BalanceHistorySpreadsheet()
+        assert "Unnamed: 0" not in bs.scrubbed_df.columns
+
+
+# ===================================================================
+# Spreadsheet.load() error handling
+# ===================================================================
+
+class TestLoadErrorHandling:
+
+    def test_load_calls_st_stop_on_failure(self):
+        """When st.connection raises, load() shows an error and calls st.stop()."""
+        with (
+            patch("src.spreadsheet.st.connection", side_effect=RuntimeError("no creds")),
+            patch("src.spreadsheet.st.error") as mock_error,
+            patch("src.spreadsheet.st.info"),
+            patch("src.spreadsheet.st.stop") as mock_stop,
+            patch.object(TransactionsSpreadsheet, "scrub"),
+        ):
+            TransactionsSpreadsheet()
+            mock_error.assert_called_once()
+            assert "no creds" in mock_error.call_args[0][0]
+            mock_stop.assert_called_once()
+
+
+# ===================================================================
 # get_total_months / get_groups / get_group_categories
 # ===================================================================
 
@@ -245,6 +280,16 @@ class TestFilterTransactions:
         result = ts.filter_transactions(ignore_types=["Transfer"])
         # After ignoring Transfer type, no Transfer rows should remain
         assert "Transfer" not in result["Type"].values
+
+    def test_include_and_ignore_same_axis(self, sample_transactions_df, make_transactions_spreadsheet):
+        """ignore_categories is applied after include_categories, so ignore wins."""
+        ts = make_transactions_spreadsheet(sample_transactions_df)
+        result = ts.filter_transactions(
+            include_categories=["Groceries", "Rent"],
+            ignore_categories=["Rent"],
+        )
+        assert "Groceries" in result["Category"].values
+        assert "Rent" not in result["Category"].values
 
     def test_date_range(self, sample_transactions_df, make_transactions_spreadsheet):
         ts = make_transactions_spreadsheet(sample_transactions_df)
@@ -338,6 +383,25 @@ class TestGetAmountByGroupCategory:
         ts = make_transactions_spreadsheet(sample_transactions_df)
         result = ts.get_amount_by_group_category("Food", invert_amount=True)
         assert result.loc["Groceries", "Amount"] == pytest.approx(110)
+
+    def test_empty_group(self, sample_transactions_df, make_transactions_spreadsheet):
+        """A group that doesn't exist returns an empty DataFrame."""
+        ts = make_transactions_spreadsheet(sample_transactions_df)
+        result = ts.get_amount_by_group_category("NonExistent")
+        assert result.empty
+
+    def test_include_categories_narrows_within_group(self, sample_transactions_df, make_transactions_spreadsheet):
+        """include_categories combined with group filter returns only matching categories."""
+        ts = make_transactions_spreadsheet(sample_transactions_df)
+        result = ts.get_amount_by_group_category("Food", include_categories=["Groceries"])
+        assert "Groceries" in result.index
+        assert "Dining" not in result.index
+
+    def test_include_categories_outside_group_returns_empty(self, sample_transactions_df, make_transactions_spreadsheet):
+        """A category not in the requested group returns nothing."""
+        ts = make_transactions_spreadsheet(sample_transactions_df)
+        result = ts.get_amount_by_group_category("Food", include_categories=["Rent"])
+        assert result.empty
 
 
 # ===================================================================
@@ -468,6 +532,40 @@ class TestBalanceHistory:
         # Jan 1 has balance 5000; days 2-10 forward-filled to 5000
         assert result["Balance"].iloc[0] == pytest.approx(5000)
         assert result["Balance"].isna().sum() == 0
+
+    def test_balance_history_by_group_empty_group(self, sample_balance_df, make_balance_spreadsheet):
+        """A group with no matching data returns an empty series."""
+        bs = make_balance_spreadsheet(sample_balance_df)
+        result = bs.get_balance_history_by_group("NonExistent")
+        assert result.empty
+
+    def test_balance_history_by_group_overlapping_entries(self, make_balance_spreadsheet):
+        """Multiple entries per account per date keeps the last one."""
+        df = _balance_df([
+            {"Date": "2024-01-01", "Account": "Checking", "Account ID": "a1",
+             "Institution": "Bank", "Group": "Assets", "Class": "Asset",
+             "Balance": 1000, "Hide": ""},
+            {"Date": "2024-01-01", "Account": "Checking", "Account ID": "a1",
+             "Institution": "Bank", "Group": "Assets", "Class": "Asset",
+             "Balance": 1500, "Hide": ""},
+            {"Date": "2024-01-02", "Account": "Checking", "Account ID": "a1",
+             "Institution": "Bank", "Group": "Assets", "Class": "Asset",
+             "Balance": 2000, "Hide": ""},
+        ])
+        bs = make_balance_spreadsheet(df)
+        start = _utc(2024, 1, 1)
+        end = _utc(2024, 1, 2)
+        result = bs.get_balance_history_by_group("Assets", start, end)
+        # Jan 1 should use the last entry (1500), Jan 2 should be 2000
+        assert result.iloc[0] == pytest.approx(1500)
+        assert result.iloc[1] == pytest.approx(2000)
+
+    def test_latest_balance_empty_group(self, sample_balance_df, make_balance_spreadsheet):
+        """A group with no accounts returns empty df and total 0."""
+        bs = make_balance_spreadsheet(sample_balance_df)
+        df_result, total = bs.get_latest_balance_by_group("NonExistent")
+        assert df_result.empty
+        assert total == pytest.approx(0.0)
 
 
 # ===================================================================

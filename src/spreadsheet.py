@@ -337,6 +337,9 @@ class BalanceHistorySpreadsheet(Spreadsheet):
         df = self.scrubbed_df.copy()
         df = df[df["Group"] == group]
 
+        if df.empty:
+            return pd.Series(dtype=float, name="Balance")
+
         if start_date is None:
             start_date = df["Date"].min()
         if end_date is None:
