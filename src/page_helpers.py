@@ -40,23 +40,21 @@ def create_year_comparison_chart(pivoted_df: pd.DataFrame, label: str) -> alt.Ch
         return alt.Chart(pd.DataFrame()).mark_text().encode(text=alt.value("No data available"))
     
     current_year = datetime.now().year
-    
+
     # Reshape data for Altair (need long format)
     df_long = pivoted_df.reset_index()
     df_long = df_long.melt(id_vars='Month', var_name='Year', value_name='Amount')
     df_long['Year'] = df_long['Year'].astype(str)
-    
-    # Create color mapping: current year = green, others = gray shades
+
+    # Current year gets green, previous years in progressively lighter gray
     years = sorted(df_long['Year'].unique(), reverse=True)
     color_domain = years
-    
-    # Current year gets green, previous years get progressively lighter gray
+
     color_range = []
     for year in years:
         if int(year) == current_year:
             color_range.append('lightgreen')
         else:
-            # Older years get progressively lighter gray
             years_ago = current_year - int(year)
             if years_ago == 1:
                 color_range.append('darkgray')
@@ -71,7 +69,7 @@ def create_year_comparison_chart(pivoted_df: pd.DataFrame, label: str) -> alt.Ch
         year_data = df_long[df_long['Year'] == year].copy()
         
         # Find first and last non-zero month for this year
-        non_zero = year_data[year_data['Amount'] > 0]
+        non_zero = year_data[year_data['Amount'] != 0]
         if not non_zero.empty:
             min_month = non_zero['Month'].min()
             max_month = non_zero['Month'].max()

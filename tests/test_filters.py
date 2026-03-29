@@ -197,6 +197,23 @@ class TestApplyTransactionFilters:
         result = apply_transaction_filters(scrubbed_transactions_df, {})
         assert len(result) == len(scrubbed_transactions_df)
 
+    def test_include_categories_only(self, scrubbed_transactions_df):
+        """When only include_categories is set (no include_groups), matching rows are kept."""
+        filters = {"include_categories": ["Electric", "Internet"]}
+        result = apply_transaction_filters(scrubbed_transactions_df, filters)
+        assert set(result["Category"].unique()) == {"Electric", "Internet"}
+        assert len(result) == 2
+
+    def test_empty_include_lists_fall_through_to_excludes(self, scrubbed_transactions_df):
+        """Empty include lists are falsy and should fall through to exclude logic."""
+        filters = {
+            "include_groups": [],
+            "include_categories": [],
+            "exclude_groups": ["Food"],
+        }
+        result = apply_transaction_filters(scrubbed_transactions_df, filters)
+        assert "Food" not in result["Group"].values
+
     def test_empty_dataframe(self, empty_transactions_df):
         """An empty DataFrame passes through without error."""
         result = apply_transaction_filters(empty_transactions_df, {})

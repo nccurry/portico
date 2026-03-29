@@ -104,6 +104,39 @@ class TestFindDuplicatesEfficient:
         assert 'Date1' in result.columns
         assert 'Date2' in result.columns
 
+    def test_beyond_days_threshold(self):
+        """Identical amounts beyond the days threshold are not flagged."""
+        df = _make_df([
+            {'Date': '2024-01-01', 'Amount': -50.00},
+            {'Date': '2024-01-15', 'Amount': -50.00},
+        ])
+        result = find_duplicates_efficient(df, days_threshold=3, min_amount=10,
+                                           check_same_account=False, check_same_category=False)
+        assert len(result) == 0
+
+    def test_three_way_duplicates(self):
+        """Three matching transactions produce multiple pairs."""
+        df = _make_df([
+            {'Date': '2024-01-15', 'Amount': -50.00},
+            {'Date': '2024-01-15', 'Amount': -50.00},
+            {'Date': '2024-01-16', 'Amount': -50.00},
+        ])
+        result = find_duplicates_efficient(df, days_threshold=3, min_amount=10,
+                                           check_same_account=False, check_same_category=False)
+        # 3 transactions produce 3 pairs: (0,1), (0,2), (1,2)
+        assert len(result) == 3
+
+    def test_same_account_and_category_combined(self):
+        """Both account and category checks applied simultaneously."""
+        df = _make_df([
+            {'Date': '2024-01-15', 'Amount': -100.00, 'Account': 'Checking', 'Category': 'Groceries'},
+            {'Date': '2024-01-15', 'Amount': -100.00, 'Account': 'Checking', 'Category': 'Dining'},
+        ])
+        result = find_duplicates_efficient(df, days_threshold=3, min_amount=10,
+                                           check_same_account=True, check_same_category=True)
+        # Same account but different category — should not match
+        assert len(result) == 0
+
     def test_empty_input(self):
         df = pd.DataFrame({
             'Date': pd.Series([], dtype='datetime64[ns, UTC]'),

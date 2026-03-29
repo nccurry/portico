@@ -5,8 +5,9 @@ import numpy as np
 
 from importlib import import_module
 
+from src.page_helpers import extract_merchant_name
+
 _mod = import_module('Pages.6_Merchant_Analysis')
-extract_merchant_name = _mod.extract_merchant_name
 analyze_merchants = _mod.analyze_merchants
 
 
@@ -91,3 +92,63 @@ class TestAnalyzeMerchants:
 
         assert (result['Total_Spent'] > 0).all()
         assert (result['Avg_Transaction'] > 0).all()
+
+    def test_empty_input(self):
+        """Empty DataFrame returns empty DataFrame."""
+        df = pd.DataFrame({
+            'Date': pd.Series([], dtype='datetime64[ns, UTC]'),
+            'Amount': pd.Series([], dtype=float),
+            'Type': pd.Series([], dtype=str),
+            'Category': pd.Series([], dtype=str),
+            'Group': pd.Series([], dtype=str),
+            'Account': pd.Series([], dtype=str),
+            'Month': pd.Series([], dtype=str),
+            'Full Description': pd.Series([], dtype=str),
+            'Institution': pd.Series([], dtype=str),
+            'Account #': pd.Series([], dtype=str),
+        })
+        result = analyze_merchants(df, extraction_method='first_word', min_transactions=1)
+        assert result.empty
+
+    def test_all_income_returns_empty(self):
+        """A DataFrame with only income transactions returns empty."""
+        df = pd.DataFrame({
+            'Date': pd.to_datetime(['2024-01-05'], utc=True),
+            'Amount': [3000],
+            'Type': ['Income'],
+            'Category': ['Salary'],
+            'Group': ['Income'],
+            'Account': ['Checking'],
+            'Month': ['2024-01'],
+            'Full Description': ['EMPLOYER PAYROLL'],
+            'Institution': ['Bank'],
+            'Account #': ['1234'],
+        })
+        result = analyze_merchants(df, extraction_method='first_word', min_transactions=1)
+        assert result.empty
+
+    def test_days_active_calculated(self):
+        """Days_Active column reflects the span between first and last transaction."""
+        df = _make_merchant_df()
+        result = analyze_merchants(df, extraction_method='first_word', min_transactions=1)
+        kroger = result[result['Merchant'] == 'KROGER'].iloc[0]
+        # KROGER transactions: Jan 10, Jan 15, Feb 1 -> 22 days
+        assert kroger['Days_Active'] == 22
+
+    def test_mode_empty_fallback(self):
+        """When all categories are unique per merchant, mode() should not crash."""
+        df = pd.DataFrame({
+            'Date': pd.to_datetime(['2024-01-05', '2024-01-10', '2024-01-15'], utc=True),
+            'Amount': [-50, -60, -70],
+            'Type': ['Expense'] * 3,
+            'Category': ['CatA', 'CatB', 'CatC'],
+            'Group': ['Food'] * 3,
+            'Account': ['Checking'] * 3,
+            'Month': ['2024-01'] * 3,
+            'Full Description': ['STORE ABC', 'STORE DEF', 'STORE GHI'],
+            'Institution': ['Bank'] * 3,
+            'Account #': ['1234'] * 3,
+        })
+        result = analyze_merchants(df, extraction_method='first_word', min_transactions=1)
+        store_row = result[result['Merchant'] == 'STORE'].iloc[0]
+        assert isinstance(store_row['Primary_Category'], str)
