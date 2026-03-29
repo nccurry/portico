@@ -8,7 +8,6 @@ from src.constants import (
     DEFAULT_EXCLUDE_CATEGORIES,
     DEFAULT_EXCLUDE_GROUPS_INCOME_SAVINGS,
     DEFAULT_EXCLUDE_GROUPS_SPENDING,
-    ALL_GROUPS,
     DEFAULT_EXPENSE_THRESHOLD,
     DEFAULT_INCOME_THRESHOLD,
     DEFAULT_SAVINGS_RATE_TARGET,
@@ -18,7 +17,7 @@ from src.constants import (
 )
 
 
-def render_income_expense_filters() -> Dict:
+def render_income_expense_filters(all_groups: List[str]) -> Dict:
     """Render filter controls for Income & Savings page.
     
     Returns:
@@ -30,11 +29,11 @@ def render_income_expense_filters() -> Dict:
         with col_filter1:
             exclude_groups = st.multiselect(
                 "Exclude Groups",
-                options=ALL_GROUPS,
-                default=DEFAULT_EXCLUDE_GROUPS_INCOME_SAVINGS,
+                options=all_groups,
+                default=[g for g in DEFAULT_EXCLUDE_GROUPS_INCOME_SAVINGS if g in all_groups],
                 help="Exclude entire transaction groups (Transfer always excluded)"
             )
-            
+
             exclude_categories = st.multiselect(
                 "Exclude Categories",
                 options=DEFAULT_EXCLUDE_CATEGORIES,
@@ -97,7 +96,7 @@ def render_income_expense_filters() -> Dict:
     }
 
 
-def render_spending_filters(all_categories: List[str]) -> Dict:
+def render_spending_filters(all_categories: List[str], all_groups: List[str]) -> Dict:
     """Render filter controls for Spending by Category page.
     
     Args:
@@ -112,7 +111,7 @@ def render_spending_filters(all_categories: List[str]) -> Dict:
         with col_filter1:
             include_groups = st.multiselect(
                 "Include Only These Groups",
-                options=ALL_GROUPS,
+                options=all_groups,
                 default=[],
                 help="If set, ONLY show these groups (ignores all exclude filters)"
             )
@@ -128,8 +127,8 @@ def render_spending_filters(all_categories: List[str]) -> Dict:
             
             exclude_groups = st.multiselect(
                 "Exclude Groups",
-                options=ALL_GROUPS,
-                default=DEFAULT_EXCLUDE_GROUPS_SPENDING,
+                options=all_groups,
+                default=[g for g in DEFAULT_EXCLUDE_GROUPS_SPENDING if g in all_groups],
                 help="Exclude entire transaction groups (Transfer always excluded)"
             )
             
@@ -216,16 +215,21 @@ def apply_transaction_filters(df: pd.DataFrame, filters: Dict) -> pd.DataFrame:
     # Always exclude Transfer group
     df = df[df['Group'] != 'Transfer']
     
-    # Apply include filters first (they override excludes)
-    if filters.get('include_groups'):
-        df = df[df['Group'].isin(filters['include_groups'])]
-    elif filters.get('include_categories'):
-        df = df[df['Category'].isin(filters['include_categories'])]
+    # Apply include filters (union/OR when both set), or exclude filters
+    if filters.get('include_groups') or filters.get('include_categories'):
+        masks = []
+        if filters.get('include_groups'):
+            masks.append(df['Group'].isin(filters['include_groups']))
+        if filters.get('include_categories'):
+            masks.append(df['Category'].isin(filters['include_categories']))
+        combined = masks[0]
+        for m in masks[1:]:
+            combined = combined | m
+        df = df[combined]
     else:
-        # Apply exclude filters
+        # No include filters — apply excludes
         if filters.get('exclude_groups'):
             df = df[~df['Group'].isin(filters['exclude_groups'])]
-        
         if filters.get('exclude_categories'):
             df = df[~df['Category'].isin(filters['exclude_categories'])]
     

@@ -3,38 +3,10 @@ import streamlit as st
 import pandas as pd
 import altair as alt
 
-from src.sidebar import configure_sidebar
 from src.spreadsheet import load_transactions_data, load_balance_history_data, TransactionsSpreadsheet, BalanceHistorySpreadsheet
-from src.page_helpers import get_transaction_column_config
+from src.page_helpers import get_transaction_column_config, extract_merchant_name
 from src.filters import calculate_date_range
 from src.constants import TIME_PERIODS, CHART_HEIGHT_STANDARD, COLOR_PALETTE
-
-
-def extract_merchant_name(description: str, method: str = 'first_word') -> str:
-    """Extract merchant name from transaction description.
-    
-    Args:
-        description: Full transaction description
-        method: Extraction method ('first_word', 'first_two', 'first_three')
-        
-    Returns:
-        Extracted merchant name
-    """
-    if pd.isna(description):
-        return 'Unknown'
-    
-    words = str(description).split()
-    if not words:
-        return 'Unknown'
-    
-    if method == 'first_word':
-        return words[0]
-    elif method == 'first_two':
-        return ' '.join(words[:2])
-    elif method == 'first_three':
-        return ' '.join(words[:3])
-    else:
-        return words[0]
 
 
 def analyze_merchants(
@@ -68,8 +40,8 @@ def analyze_merchants(
     merchant_stats = df_expenses.groupby('Merchant').agg({
         'Amount': ['sum', 'mean', 'count'],
         'Date': ['min', 'max'],
-        'Category': lambda x: x.mode()[0] if not x.empty else 'Unknown',
-        'Account': lambda x: x.mode()[0] if not x.empty else 'Unknown'
+        'Category': lambda x: x.mode().iloc[0] if not x.mode().empty else (x.iloc[0] if not x.empty else 'Unknown'),
+        'Account': lambda x: x.mode().iloc[0] if not x.mode().empty else (x.iloc[0] if not x.empty else 'Unknown')
     }).reset_index()
     
     # Flatten column names
@@ -422,7 +394,6 @@ def main() -> None:
     transactions_spreadsheet = load_transactions_data()
     balance_history_spreadsheet = load_balance_history_data()
 
-    configure_sidebar(transactions_spreadsheet, balance_history_spreadsheet)
     configure_page(transactions_spreadsheet, balance_history_spreadsheet)
 
 

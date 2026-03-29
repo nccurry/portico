@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import altair as alt
 
-from src.sidebar import configure_sidebar
 from src.spreadsheet import load_transactions_data, load_balance_history_data, TransactionsSpreadsheet, BalanceHistorySpreadsheet
 from src.filters import render_spending_filters, apply_transaction_filters, calculate_date_range
 from src.page_helpers import get_transaction_column_config, display_transactions_expander
@@ -292,7 +291,7 @@ def calculate_distribution_stats(df_period: pd.DataFrame) -> dict:
     sorted_amounts = amounts.sort_values(ascending=False)
     cumsum = sorted_amounts.cumsum()
     threshold_80 = total_spending * 0.8
-    transactions_for_80 = len(cumsum[cumsum <= threshold_80])
+    transactions_for_80 = min(len(cumsum[cumsum <= threshold_80]) + 1, len(amounts))
     pareto_pct = (transactions_for_80 / len(amounts) * 100) if len(amounts) > 0 else 0
     
     return {
@@ -473,13 +472,14 @@ def configure_page(
     """Main page configuration - orchestrates all components."""
     st.header("Spending by Category")
     
-    # Get all categories for filter options
-    all_categories = transactions_spreadsheet.scrubbed_df['Category'].unique()
-    all_categories = [str(c) for c in all_categories if pd.notna(c) and str(c).strip() != '']
-    all_categories = sorted(all_categories)
-    
+    # Get all categories and groups for filter options
+    all_categories = sorted([str(c) for c in transactions_spreadsheet.scrubbed_df['Category'].unique()
+                             if pd.notna(c) and str(c).strip()])
+    all_groups = sorted([str(g) for g in transactions_spreadsheet.scrubbed_df['Group'].unique()
+                         if pd.notna(g) and str(g).strip() and g != 'Transfer'])
+
     # Render filter controls
-    filters = render_spending_filters(all_categories)
+    filters = render_spending_filters(all_categories, all_groups)
     
     # Time period selector
     period = st.selectbox(
@@ -562,7 +562,6 @@ def main() -> None:
     transactions_spreadsheet = load_transactions_data()
     balance_history_spreadsheet = load_balance_history_data()
 
-    configure_sidebar(transactions_spreadsheet, balance_history_spreadsheet)
     configure_page(transactions_spreadsheet, balance_history_spreadsheet)
 
 
