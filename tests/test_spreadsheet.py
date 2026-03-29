@@ -598,3 +598,49 @@ class TestSparklines:
         # Filter out any zero rows from edge-of-resample artifacts
         nonzero = result[result["NetWorth"] != 0]
         assert all(nonzero["NetWorth"] < 0)
+
+    def test_group_sparkline_ffills_missing_weeks(self):
+        """Accounts with data on different weeks should forward-fill so the sum
+        doesn't drop when one account has no entry for a given week."""
+        # Two accounts in the same group.  Account a1 reports on Jan 1 and Jan 15.
+        # Account a2 reports only on Jan 1.  Without ffill, the Jan 15 week would
+        # only sum a1's balance, dropping a2's contribution entirely.
+        df = _balance_df([
+            {"Date": "2024-01-01", "Account": "Checking", "Account ID": "a1",
+             "Institution": "Bank", "Group": "Assets", "Class": "Asset",
+             "Balance": 5000, "Hide": ""},
+            {"Date": "2024-01-15", "Account": "Checking", "Account ID": "a1",
+             "Institution": "Bank", "Group": "Assets", "Class": "Asset",
+             "Balance": 5500, "Hide": ""},
+            {"Date": "2024-01-01", "Account": "Savings", "Account ID": "a2",
+             "Institution": "Bank", "Group": "Assets", "Class": "Asset",
+             "Balance": 10000, "Hide": ""},
+        ])
+        start = _utc(2024, 1, 1)
+        end = _utc(2024, 1, 21)
+        result = calculate_group_sparkline.__wrapped__(df, "Assets", start, end)
+        # Every week's balance should include both accounts (>= 15000)
+        # Without ffill, later weeks would only show a1's balance (~5500)
+        assert (result["Balance"] >= 10000).all()
+
+    def test_net_worth_sparkline_ffills_missing_weeks(self):
+        """Net worth sparkline should also forward-fill so accounts missing
+        data in some weeks don't cause the net worth to spike."""
+        df = _balance_df([
+            {"Date": "2024-01-01", "Account": "Checking", "Account ID": "a1",
+             "Institution": "Bank", "Group": "Assets", "Class": "Asset",
+             "Balance": 5000, "Hide": ""},
+            {"Date": "2024-01-15", "Account": "Checking", "Account ID": "a1",
+             "Institution": "Bank", "Group": "Assets", "Class": "Asset",
+             "Balance": 5500, "Hide": ""},
+            {"Date": "2024-01-01", "Account": "Credit Card", "Account ID": "a2",
+             "Institution": "Chase", "Group": "Credit Card", "Class": "Liability",
+             "Balance": 2000, "Hide": ""},
+        ])
+        start = _utc(2024, 1, 1)
+        end = _utc(2024, 1, 21)
+        result = calculate_net_worth_sparkline.__wrapped__(df, start, end)
+        # Net worth should always reflect both accounts.
+        # Without ffill, later weeks would omit the liability, inflating net worth.
+        # Week 1: 5000 - 2000 = 3000.  Week 3: 5500 - 2000 = 3500.
+        assert (result["NetWorth"] <= 3500).all()

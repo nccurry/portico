@@ -404,16 +404,23 @@ def calculate_group_sparkline(df_all: pd.DataFrame, group: str, start_date, end_
     # Set Date as index for resampling
     df_group_indexed = df_group.set_index('Date')
     
-    # Group by Account ID and resample to weekly, taking last balance
-    balances_by_date = (
+    # Group by Account ID and resample to weekly, taking last balance.
+    # Unstack into account columns, then forward-fill so weeks where an account
+    # has no data carry the last known balance. This prevents partial sums when
+    # only some accounts report in a given week.
+    weekly = (
         df_group_indexed
         .groupby('Account ID')['Balance']
         .resample('W')
         .last()
-        .groupby('Date')
-        .sum()
+        .unstack('Account ID')
+        .ffill()
+    )
+    balances_by_date = (
+        weekly
+        .sum(axis=1)
         .reset_index()
-        .rename(columns={'Balance': 'Balance', 'Date': 'Date'})
+        .rename(columns={'index': 'Date', 0: 'Balance'})
     )
     
     # Filter to date range
@@ -443,16 +450,21 @@ def calculate_net_worth_sparkline(df_all: pd.DataFrame, start_date, end_date):
     # Set Date as index for resampling
     df_indexed = df_all_copy.set_index('Date')
     
-    # For each account, get the last balance for each week, then sum across accounts
-    net_worth_by_date = (
+    # For each account, get the last balance for each week, then sum across accounts.
+    # Unstack and forward-fill so weeks without data carry the last known balance.
+    weekly = (
         df_indexed
         .groupby('Account ID')['SignedBalance']
         .resample('W')
         .last()
-        .groupby('Date')
-        .sum()
+        .unstack('Account ID')
+        .ffill()
+    )
+    net_worth_by_date = (
+        weekly
+        .sum(axis=1)
         .reset_index()
-        .rename(columns={'SignedBalance': 'NetWorth'})
+        .rename(columns={'index': 'Date', 0: 'NetWorth'})
     )
     
     # Filter to date range
