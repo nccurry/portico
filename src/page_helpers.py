@@ -265,6 +265,33 @@ def create_sparkline_chart(
     return chart
 
 
+def extract_merchant_name(description: str, method: str = 'first_word') -> str:
+    """Extract merchant name from transaction description.
+
+    Args:
+        description: Full transaction description
+        method: Extraction method ('first_word', 'first_two', 'first_three')
+
+    Returns:
+        Extracted merchant name
+    """
+    if pd.isna(description):
+        return 'Unknown'
+
+    words = str(description).split()
+    if not words:
+        return 'Unknown'
+
+    if method == 'first_word':
+        return words[0]
+    elif method == 'first_two':
+        return ' '.join(words[:2])
+    elif method == 'first_three':
+        return ' '.join(words[:3])
+    else:
+        return words[0]
+
+
 def get_transaction_column_config() -> Dict:
     """Standard column configuration for transaction dataframes.
     

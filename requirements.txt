@@ -2,4 +2,3 @@ pandas
 streamlit
 st-gsheets-connection
 altair
-pyyaml

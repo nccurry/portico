@@ -3,7 +3,6 @@ import pandas as pd
 import altair as alt
 from datetime import timedelta
 
-from src.sidebar import configure_sidebar
 from src.spreadsheet import (
     load_transactions_data, 
     load_balance_history_data, 
@@ -38,9 +37,11 @@ def configure_page(
     total_net_worth = 0.0
     group_balances = {}
     group_classes = {}  # Track whether each group is Asset or Liability
-    
+    group_accounts = {}  # Cache accounts_df to avoid redundant calls
+
     for group in groups:
         accounts_df, total = balance_history_spreadsheet.get_latest_balance_by_group(group)
+        group_accounts[group] = accounts_df
         
         # Check if this group contains liabilities (debt)
         account_class = "Asset"  # Default
@@ -99,7 +100,8 @@ def configure_page(
     
     for idx, group in enumerate(sorted(groups)):
         with cols[idx % 3]:
-            accounts_df, group_total = balance_history_spreadsheet.get_latest_balance_by_group(group)
+            accounts_df = group_accounts[group]
+            group_total = group_balances[group]
             
             # Show group total as a metric
             st.metric(
@@ -158,7 +160,6 @@ def main() -> None:
     transactions_spreadsheet = load_transactions_data()
     balance_history_spreadsheet = load_balance_history_data()
 
-    configure_sidebar(transactions_spreadsheet, balance_history_spreadsheet)
     configure_page(transactions_spreadsheet, balance_history_spreadsheet)
 
 if __name__ == "__main__":
