@@ -40,6 +40,26 @@ spreadsheet = "${BALANCE_HISTORY_URL}"
 EOF
 ```
 
+## Development with Task
+
+This project uses [Task](https://taskfile.dev) as a task runner. Install it via your package manager (e.g. `winget install Task.Task`, `brew install go-task`, or `snap install task`).
+
+Run `task --list` to see all available commands. Common tasks:
+
+| Command | Description |
+|---------|-------------|
+| `task setup` | Set up the development environment (auto-detects platform) |
+| `task test` | Run all tests |
+| `task test:verbose` | Run tests with verbose output |
+| `task test:file -- test_spreadsheet.py` | Run tests for a specific file |
+| `task test:match -- test_filter` | Run tests matching a pattern |
+| `task test:coverage` | Run tests with coverage report |
+| `task lint` | Check code with ruff |
+| `task lint:fix` | Auto-fix lint issues |
+| `task run` | Run the Streamlit app |
+| `task pkg:check` | Check for outdated packages |
+| `task pkg:update` | Update all packages |
+
 ## Create PyCharm Configuration
 
 Configure PyCharm to run the following command: 
