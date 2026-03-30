@@ -124,11 +124,6 @@ tasks:
     cmds:
       - '{{.PYTHON}} -m pytest -k "{{.CLI_ARGS}}" -v'
 
-  test:bugs:
-    desc: "Run only known bug tests (expected to fail before fixes)"
-    cmds:
-      - '{{.PYTHON}} -m pytest -m known_bug -v'
-
   test:coverage:
     desc: "Run tests with coverage report"
     cmds:

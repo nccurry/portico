@@ -42,9 +42,7 @@ EOF
 
 ## Development with Task
 
-This project uses [Task](https://taskfile.dev) as a task runner. Install it via your package manager (e.g. `winget install Task.Task`, `brew install go-task`, or `snap install task`).
-
-Run `task --list` to see all available commands. Common tasks:
+This project uses [Task](https://taskfile.dev) as a task runner. Run `task --list` to see all available commands.
 
 | Command | Description |
 |---------|-------------|
