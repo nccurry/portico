@@ -23,20 +23,33 @@ pip3 install -r requirements.txt
 
 ### Configure Streamlit
 
+The app reads four sheets from your Tiller spreadsheet: Transactions, Balance History, Categories, and Accounts. Each needs its own connection with the appropriate `gid` parameter.
+
 ```shell
 mkdir -p .streamlit
 
-TRANSACTIONS_URL="" # e.g. https://docs.google.com/spreadsheets/d/.../edit#gid=...
-BALANCE_HISTORY_URL="" # e.g. https://docs.google.com/spreadsheets/d/.../edit#gid=...
+SPREADSHEET_ID="" # e.g. 1xJ7CTtL3cKBmNYayrDMim13keuqnDWrD312UIu6ZAjE
+TRANSACTIONS_GID="" # gid from the Transactions sheet tab URL
+BALANCE_HISTORY_GID="" # gid from the Balance History sheet tab URL
+CATEGORIES_GID="" # gid from the Categories sheet tab URL
+ACCOUNTS_GID="" # gid from the Accounts sheet tab URL
 
 cat <<EOF >> .streamlit/secrets.toml
 [connections.transactions]
 type = "gsheets"
-spreadsheet = "${TRANSACTIONS_URL}"
+spreadsheet = "https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/edit?gid=${TRANSACTIONS_GID}"
 
 [connections.balance_history]
 type = "gsheets"
-spreadsheet = "${BALANCE_HISTORY_URL}"
+spreadsheet = "https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/edit?gid=${BALANCE_HISTORY_GID}"
+
+[connections.categories]
+type = "gsheets"
+spreadsheet = "https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/edit?gid=${CATEGORIES_GID}"
+
+[connections.accounts]
+type = "gsheets"
+spreadsheet = "https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/edit?gid=${ACCOUNTS_GID}"
 EOF
 ```
 
@@ -69,67 +82,8 @@ Based on [Run streamlit from PyCharm](https://discuss.streamlit.io/t/run-streaml
 
 ## Google Sheets Setup
 
-### Automatic Column Population with VLOOKUP
+The app reads the `Categories` and `Accounts` sheets and joins them in Python to populate derived columns. This means you don't need VLOOKUP formulas in your Google Sheet — just maintain the Categories and Accounts sheets as normal through Tiller.
 
-The Transactions sheet uses ARRAYFORMULA with VLOOKUP to automatically populate the `Group`, `Type`, and `Hide From Reports` columns based on the Category column.
-
-**Prerequisites:**
-- A `Categories` sheet with columns:
-  - Column A: Category name (e.g., "Groceries", "Electric Bill")
-  - Column B: Group (e.g., "Food", "Bills")
-  - Column C: Type (e.g., "Expense", "Income")
-  - Column D: Hide From Reports (e.g., "Hide" or blank)
-
-**Formulas (place these in row 1 of each column):**
-
-**Group column:**
-```excel
-={"Group";
-   ARRAYFORMULA(
-      IF(D2:D="", "",
-         IFERROR(
-            VLOOKUP(D2:D, Categories!$A$2:$B, 2, FALSE),
-            "Uncategorized"
-         )
-      )
-   )
-}
-```
-
-**Type column:**
-```excel
-={"Type";
-   ARRAYFORMULA(
-      IF(D2:D="", "",
-         IFERROR(
-            VLOOKUP(D2:D, Categories!$A$2:$C, 3, FALSE),
-            ""
-         )
-      )
-   )
-}
-```
-
-**Hide From Reports column:**
-```excel
-={"Hide From Reports";
-   ARRAYFORMULA(
-      IF(D2:D="", "",
-         IFERROR(
-            VLOOKUP(D2:D, Categories!$A$2:$D, 4, FALSE),
-            ""
-         )
-      )
-   )
-}
-```
-
-**How it works:**
-1. The formula starts in row 1 with a header (e.g., "Group")
-2. `ARRAYFORMULA` applies the formula to all rows automatically
-3. `IF(D2:D="", "", ...)` checks if the Category column (D) is empty; if so, leaves the cell blank
-4. `VLOOKUP(D2:D, Categories!$A$2:$B, 2, FALSE)` looks up the category in column D against the Categories sheet and returns the corresponding value
-5. `IFERROR(..., "Uncategorized")` provides a default value if the category isn't found in the lookup table
-
-This approach ensures that when new transactions are added, their Group, Type, and Hide From Reports values are automatically populated based on the Category.
+- **Transactions** are joined with **Categories** on `Category` to populate `Group`, `Type`, and `Hide From Reports`
+- **Balance History** is joined with **Accounts** using a composite key (`Account - Account # (last 4 of Account ID)`) to populate `Group` and `Hide`
 

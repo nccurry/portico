@@ -38,6 +38,32 @@ class Spreadsheet(metaclass=ABCMeta):
         ...
 
 
+class CategoriesSpreadsheet(Spreadsheet):
+    name = "categories"
+
+    def scrub(self) -> None:
+        """Clean up the data stored in self.raw_df"""
+        df = self.raw_df.copy()
+        df = df.filter(["Category", "Group", "Type", "Hide From Reports"])
+        df = df.dropna(subset=["Category"])
+        self.scrubbed_df = df
+
+
+class AccountsSpreadsheet(Spreadsheet):
+    name = "accounts"
+
+    def scrub(self) -> None:
+        """Clean up the data stored in self.raw_df"""
+        df = self.raw_df.copy()
+        # Columns A-D are user-managed: Account (composite key), Class Override, Group, Hide
+        df = df.iloc[:, :4]
+        df.columns = ["Account", "Class Override", "Group", "Hide"]
+        df = df.dropna(subset=["Account"])
+        df = df.filter(["Account", "Group", "Hide"])
+        self.scrubbed_df = df
+
+
+
 class TransactionsSpreadsheet(Spreadsheet):
     name = "transactions"
 
@@ -61,6 +87,14 @@ class TransactionsSpreadsheet(Spreadsheet):
         # Use better strings for Month and Week columns
         df["Month"] = df["Month"].dt.strftime('%Y-%m')
         df["Week"] = df["Week"].dt.strftime('%U')
+
+        # Join with Categories to populate Group, Type, and Hide From Reports
+        df = df.drop(columns=["Group", "Type", "Hide From Reports"], errors="ignore")
+        categories = load_categories_data()
+        df = df.merge(categories.scrubbed_df, on="Category", how="left")
+        df["Group"] = df["Group"].fillna("Uncategorized")
+        df["Type"] = df["Type"].fillna("")
+        df["Hide From Reports"] = df["Hide From Reports"].fillna("")
 
         df = df.filter(["Date", "Category", "Amount", "Account", "Month", "Full Description", "Group", "Type", "Institution", "Account #"])
 
@@ -295,6 +329,26 @@ class BalanceHistorySpreadsheet(Spreadsheet):
         df["Month"] = df["Month"].dt.strftime('%Y-%m')
         df["Week"] = df["Week"].dt.strftime('%U')
 
+        # Join with Accounts to populate Group and Hide.
+        # The Accounts sheet uses a composite key: "Account - Account # (XXXX)"
+        # where XXXX is the uppercased last 4 characters of Account ID.
+        # Google Sheets VLOOKUP is case-insensitive, so we lowercase both sides.
+        df = df.drop(columns=["Group", "Hide"], errors="ignore")
+        acct_num = df["Account #"].fillna("").astype(str)
+        acct_id_suffix = df["Account ID"].astype(str).str[-4:].str.upper()
+        df["_account_key"] = (
+            df["Account"].astype(str) + " - " + acct_num +
+            " (" + acct_id_suffix + ")"
+        ).str.lower()
+        accounts = load_accounts_data()
+        accounts_df = accounts.scrubbed_df.copy()
+        accounts_df["_account_key"] = accounts_df["Account"].str.lower()
+        accounts_df = accounts_df.drop(columns=["Account"])
+        df = df.merge(accounts_df, on="_account_key", how="left")
+        df = df.drop(columns=["_account_key"])
+        df["Group"] = df["Group"].fillna("")
+        df["Hide"] = df["Hide"].fillna("")
+
         df = df[df["Hide"] != "Hide"]
 
         self.scrubbed_df = df
@@ -318,7 +372,7 @@ class BalanceHistorySpreadsheet(Spreadsheet):
             end_date = df["Date"].max()
         df = df[df["Date"].between(start_date, end_date)]
 
-        df = df.sort_values(by='Date')
+        df = df.sort_values(by=['Date', 'Time'])
         df = df.drop_duplicates('Account ID', keep='last')
         df = df[df["Group"] == group]
         df = df.filter(["Account", "Balance"])
@@ -478,13 +532,25 @@ def calculate_net_worth_sparkline(df_all: pd.DataFrame, start_date, end_date):
 
 # Cached data loading functions
 # Use cache_resource for objects that should be reused across sessions
-@st.cache_resource(ttl=300)  # Cache for 5 minutes
+@st.cache_resource(ttl=300)
+def load_categories_data():
+    """Load and cache categories spreadsheet data"""
+    return CategoriesSpreadsheet()
+
+
+@st.cache_resource(ttl=300)
+def load_accounts_data():
+    """Load and cache accounts spreadsheet data"""
+    return AccountsSpreadsheet()
+
+
+@st.cache_resource(ttl=300)
 def load_transactions_data():
     """Load and cache transactions spreadsheet data"""
     return TransactionsSpreadsheet()
 
 
-@st.cache_resource(ttl=300)  # Cache for 5 minutes
+@st.cache_resource(ttl=300)
 def load_balance_history_data():
     """Load and cache balance history spreadsheet data"""
     return BalanceHistorySpreadsheet()

@@ -42,6 +42,8 @@ def _balance_df(rows):
     """Build a minimal scrubbed balance-history DataFrame from a list of dicts."""
     df = pd.DataFrame(rows)
     df["Date"] = pd.to_datetime(df["Date"], utc=True)
+    if "Time" in df.columns:
+        df["Time"] = pd.to_datetime(df["Time"], utc=True)
     df["Balance"] = df["Balance"].astype(float)
     return df
 
@@ -62,8 +64,6 @@ def raw_transactions_df():
         "Month": ["2024-01-01", "2024-02-01"],
         "Week": ["2024-01-15", "2024-02-19"],
         "Full Description": ["STORE", "LANDLORD"],
-        "Group": ["Food", "Housing"],
-        "Type": ["Expense", "Expense"],
         "Institution": ["Bank", "Bank"],
         "Account #": ["1234", "5678"],
         "Date Added": ["2024-01-15", "2024-02-20"],
@@ -80,15 +80,47 @@ def raw_balance_df():
         "Time": ["2024-01-15 10:00", "2024-02-20 11:00", "2024-03-01 09:00"],
         "Balance": ["$1,000.00", "$2,000.00", "$500.00"],
         "Account": ["Checking", "Savings", "Hidden"],
-        "Account ID": ["a1", "a2", "a3"],
+        "Account #": ["xxxx1234", "xxxx5678", "xxxx9999"],
+        "Account ID": ["65440a84a14656002f35ab01", "65440a84a14656002f35cd02", "65440a84a14656002f35ef03"],
         "Institution": ["Bank", "Bank", "Bank"],
-        "Group": ["Assets", "Assets", "Secret"],
         "Class": ["Asset", "Asset", "Asset"],
         "Month": ["2024-01-01", "2024-02-01", "2024-03-01"],
         "Week": ["2024-01-15", "2024-02-19", "2024-02-26"],
         "Date Added": ["2024-01-15", "2024-02-20", "2024-03-01"],
+    })
+
+
+@pytest.fixture
+def categories_for_scrub():
+    """Categories lookup for scrub tests."""
+    from src.spreadsheet import CategoriesSpreadsheet
+    cat = CategoriesSpreadsheet.__new__(CategoriesSpreadsheet)
+    cat.scrubbed_df = pd.DataFrame({
+        "Category": ["Groceries", "Rent"],
+        "Group": ["Food", "Housing"],
+        "Type": ["Expense", "Expense"],
+        "Hide From Reports": ["", ""],
+    })
+    return cat
+
+
+@pytest.fixture
+def accounts_for_scrub():
+    """Accounts lookup for scrub tests. Keys match the composite key format."""
+    from src.spreadsheet import AccountsSpreadsheet
+    acct = AccountsSpreadsheet.__new__(AccountsSpreadsheet)
+    # Column A from Accounts sheet (composite key format, mixed case like real data)
+    acct.scrubbed_df = pd.DataFrame({
+        "Account": [
+            "Checking - xxxx1234 (AB01)",
+            "SAVINGS - xxxx5678 (CD02)",
+            "Hidden - xxxx9999 (EF03)",
+        ],
+        "Group": ["Assets", "Assets", "Secret"],
         "Hide": ["", "", "Hide"],
     })
+    return acct
+
 
 
 # ---------------------------------------------------------------------------
@@ -110,12 +142,12 @@ def sample_transactions_df():
 @pytest.fixture
 def sample_balance_df():
     return _balance_df([
-        {"Date": "2024-01-01", "Account": "Checking", "Account ID": "a1", "Institution": "Bank", "Group": "Assets",      "Class": "Asset",     "Balance": 5000, "Hide": ""},
-        {"Date": "2024-01-15", "Account": "Checking", "Account ID": "a1", "Institution": "Bank", "Group": "Assets",      "Class": "Asset",     "Balance": 4500, "Hide": ""},
-        {"Date": "2024-01-01", "Account": "Savings",  "Account ID": "a2", "Institution": "Bank", "Group": "Assets",      "Class": "Asset",     "Balance": 10000,"Hide": ""},
-        {"Date": "2024-01-15", "Account": "Savings",  "Account ID": "a2", "Institution": "Bank", "Group": "Assets",      "Class": "Asset",     "Balance": 10500,"Hide": ""},
-        {"Date": "2024-01-01", "Account": "Mortgage",  "Account ID": "a3", "Institution": "Lender","Group": "Liabilities","Class": "Liability", "Balance": 200000,"Hide": ""},
-        {"Date": "2024-01-15", "Account": "Mortgage",  "Account ID": "a3", "Institution": "Lender","Group": "Liabilities","Class": "Liability", "Balance": 199500,"Hide": ""},
+        {"Date": "2024-01-01", "Time": "2024-01-01 08:00:00", "Account": "Checking", "Account ID": "a1", "Institution": "Bank", "Group": "Assets",      "Class": "Asset",     "Balance": 5000, "Hide": ""},
+        {"Date": "2024-01-15", "Time": "2024-01-15 08:00:00", "Account": "Checking", "Account ID": "a1", "Institution": "Bank", "Group": "Assets",      "Class": "Asset",     "Balance": 4500, "Hide": ""},
+        {"Date": "2024-01-01", "Time": "2024-01-01 08:00:00", "Account": "Savings",  "Account ID": "a2", "Institution": "Bank", "Group": "Assets",      "Class": "Asset",     "Balance": 10000,"Hide": ""},
+        {"Date": "2024-01-15", "Time": "2024-01-15 08:00:00", "Account": "Savings",  "Account ID": "a2", "Institution": "Bank", "Group": "Assets",      "Class": "Asset",     "Balance": 10500,"Hide": ""},
+        {"Date": "2024-01-01", "Time": "2024-01-01 08:00:00", "Account": "Mortgage",  "Account ID": "a3", "Institution": "Lender","Group": "Liabilities","Class": "Liability", "Balance": 200000,"Hide": ""},
+        {"Date": "2024-01-15", "Time": "2024-01-15 08:00:00", "Account": "Mortgage",  "Account ID": "a3", "Institution": "Lender","Group": "Liabilities","Class": "Liability", "Balance": 199500,"Hide": ""},
     ])
 
 
@@ -125,40 +157,68 @@ def sample_balance_df():
 
 class TestTransactionsScrub:
 
-    def test_scrub_drops_unnamed_column(self, raw_transactions_df):
-        with patch.object(Spreadsheet, 'load', lambda self: setattr(self, 'raw_df', raw_transactions_df)):
-            ts = TransactionsSpreadsheet()
+    def _make(self, raw_df, categories_for_scrub):
+        with (
+            patch.object(Spreadsheet, 'load', lambda self: setattr(self, 'raw_df', raw_df)),
+            patch("src.spreadsheet.load_categories_data", return_value=categories_for_scrub),
+        ):
+            return TransactionsSpreadsheet()
+
+    def test_scrub_drops_unnamed_column(self, raw_transactions_df, categories_for_scrub):
+        ts = self._make(raw_transactions_df, categories_for_scrub)
         assert "Unnamed: 0" not in ts.scrubbed_df.columns
 
-    def test_scrub_amount_parsed_as_float(self, raw_transactions_df):
-        with patch.object(Spreadsheet, 'load', lambda self: setattr(self, 'raw_df', raw_transactions_df)):
-            ts = TransactionsSpreadsheet()
+    def test_scrub_amount_parsed_as_float(self, raw_transactions_df, categories_for_scrub):
+        ts = self._make(raw_transactions_df, categories_for_scrub)
         assert ts.scrubbed_df["Amount"].dtype == float
         assert ts.scrubbed_df["Amount"].iloc[0] == pytest.approx(1234.56)
 
-    def test_scrub_date_is_datetime(self, raw_transactions_df):
-        with patch.object(Spreadsheet, 'load', lambda self: setattr(self, 'raw_df', raw_transactions_df)):
-            ts = TransactionsSpreadsheet()
+    def test_scrub_date_is_datetime(self, raw_transactions_df, categories_for_scrub):
+        ts = self._make(raw_transactions_df, categories_for_scrub)
         assert pd.api.types.is_datetime64_any_dtype(ts.scrubbed_df["Date"])
 
-    def test_scrub_month_format(self, raw_transactions_df):
-        with patch.object(Spreadsheet, 'load', lambda self: setattr(self, 'raw_df', raw_transactions_df)):
-            ts = TransactionsSpreadsheet()
-        # Month should be formatted as YYYY-MM string
+    def test_scrub_month_format(self, raw_transactions_df, categories_for_scrub):
+        ts = self._make(raw_transactions_df, categories_for_scrub)
         assert ts.scrubbed_df["Month"].iloc[0] == "2024-01"
 
-    def test_scrub_output_columns(self, raw_transactions_df):
-        with patch.object(Spreadsheet, 'load', lambda self: setattr(self, 'raw_df', raw_transactions_df)):
-            ts = TransactionsSpreadsheet()
+    def test_scrub_output_columns(self, raw_transactions_df, categories_for_scrub):
+        ts = self._make(raw_transactions_df, categories_for_scrub)
         expected = {"Date", "Category", "Amount", "Account", "Month",
                     "Full Description", "Group", "Type", "Institution", "Account #"}
         assert set(ts.scrubbed_df.columns) == expected
 
-    def test_scrub_missing_unnamed_column(self, raw_transactions_df):
+    def test_scrub_joins_group_from_categories(self, raw_transactions_df, categories_for_scrub):
+        ts = self._make(raw_transactions_df, categories_for_scrub)
+        assert ts.scrubbed_df.iloc[0]["Group"] == "Food"       # Groceries -> Food
+        assert ts.scrubbed_df.iloc[1]["Group"] == "Housing"    # Rent -> Housing
+
+    def test_scrub_joins_type_from_categories(self, raw_transactions_df, categories_for_scrub):
+        ts = self._make(raw_transactions_df, categories_for_scrub)
+        assert ts.scrubbed_df.iloc[0]["Type"] == "Expense"
+
+    def test_scrub_uncategorized_fallback(self, categories_for_scrub):
+        """Categories not in the lookup get Group='Uncategorized'."""
+        raw = pd.DataFrame({
+            "Unnamed: 0": [None],
+            "Date": ["2024-01-15"],
+            "Category": ["UnknownCategory"],
+            "Amount": ["$100.00"],
+            "Account": ["Checking"],
+            "Month": ["2024-01-01"],
+            "Week": ["2024-01-15"],
+            "Full Description": ["TEST"],
+            "Institution": ["Bank"],
+            "Account #": ["1234"],
+            "Date Added": ["2024-01-15"],
+            "Categorized Date": ["2024-01-15"],
+        })
+        ts = self._make(raw, categories_for_scrub)
+        assert ts.scrubbed_df.iloc[0]["Group"] == "Uncategorized"
+
+    def test_scrub_missing_unnamed_column(self, raw_transactions_df, categories_for_scrub):
         """scrub() should not crash when 'Unnamed: 0' column is absent."""
         df_no_unnamed = raw_transactions_df.drop("Unnamed: 0", axis=1)
-        with patch.object(Spreadsheet, 'load', lambda self: setattr(self, 'raw_df', df_no_unnamed)):
-            ts = TransactionsSpreadsheet()
+        ts = self._make(df_no_unnamed, categories_for_scrub)
         assert "Unnamed: 0" not in ts.scrubbed_df.columns
 
 
@@ -166,14 +226,33 @@ class TestTransactionsScrub:
 # BalanceHistorySpreadsheet.scrub() — missing column
 # ===================================================================
 
-class TestBalanceScrubMissingColumn:
+class TestBalanceScrub:
 
-    def test_scrub_missing_unnamed_column(self, raw_balance_df):
+    def _make(self, raw_df, accounts_for_scrub):
+        with (
+            patch.object(Spreadsheet, 'load', lambda self: setattr(self, 'raw_df', raw_df)),
+            patch("src.spreadsheet.load_accounts_data", return_value=accounts_for_scrub),
+        ):
+            return BalanceHistorySpreadsheet()
+
+    def test_scrub_missing_unnamed_column(self, raw_balance_df, accounts_for_scrub):
         """scrub() should not crash when 'Unnamed: 0' column is absent."""
         df_no_unnamed = raw_balance_df.drop("Unnamed: 0", axis=1)
-        with patch.object(Spreadsheet, 'load', lambda self: setattr(self, 'raw_df', df_no_unnamed)):
-            bs = BalanceHistorySpreadsheet()
+        bs = self._make(df_no_unnamed, accounts_for_scrub)
         assert "Unnamed: 0" not in bs.scrubbed_df.columns
+
+    def test_scrub_joins_group_from_accounts(self, raw_balance_df, accounts_for_scrub):
+        bs = self._make(raw_balance_df, accounts_for_scrub)
+        checking_rows = bs.scrubbed_df[bs.scrubbed_df["Account"] == "Checking"]
+        assert all(checking_rows["Group"] == "Assets")
+
+    def test_scrub_filters_hidden(self, raw_balance_df, accounts_for_scrub):
+        bs = self._make(raw_balance_df, accounts_for_scrub)
+        assert "Hidden" not in bs.scrubbed_df["Account"].values
+
+    def test_scrub_balance_float(self, raw_balance_df, accounts_for_scrub):
+        bs = self._make(raw_balance_df, accounts_for_scrub)
+        assert bs.scrubbed_df["Balance"].dtype == float
 
 
 # ===================================================================
@@ -435,22 +514,6 @@ class TestMonthlyAmounts:
         assert result.loc["2024-01", "Amount"] == pytest.approx(50)
 
 
-# ===================================================================
-# BalanceHistorySpreadsheet.scrub()
-# ===================================================================
-
-class TestBalanceScrub:
-
-    def test_scrub_filters_hidden(self, raw_balance_df):
-        with patch.object(Spreadsheet, 'load', lambda self: setattr(self, 'raw_df', raw_balance_df)):
-            bs = BalanceHistorySpreadsheet()
-        assert "Hidden" not in bs.scrubbed_df["Account"].values
-
-    def test_scrub_balance_float(self, raw_balance_df):
-        with patch.object(Spreadsheet, 'load', lambda self: setattr(self, 'raw_df', raw_balance_df)):
-            bs = BalanceHistorySpreadsheet()
-        assert bs.scrubbed_df["Balance"].dtype == float
-
 
 # ===================================================================
 # Balance history methods
@@ -540,13 +603,13 @@ class TestBalanceHistory:
     def test_balance_history_by_group_overlapping_entries(self, make_balance_spreadsheet):
         """Multiple entries per account per date keeps the last one."""
         df = _balance_df([
-            {"Date": "2024-01-01", "Account": "Checking", "Account ID": "a1",
+            {"Date": "2024-01-01", "Time": "2024-01-01 08:00:00", "Account": "Checking", "Account ID": "a1",
              "Institution": "Bank", "Group": "Assets", "Class": "Asset",
              "Balance": 1000, "Hide": ""},
-            {"Date": "2024-01-01", "Account": "Checking", "Account ID": "a1",
+            {"Date": "2024-01-01", "Time": "2024-01-01 12:00:00", "Account": "Checking", "Account ID": "a1",
              "Institution": "Bank", "Group": "Assets", "Class": "Asset",
              "Balance": 1500, "Hide": ""},
-            {"Date": "2024-01-02", "Account": "Checking", "Account ID": "a1",
+            {"Date": "2024-01-02", "Time": "2024-01-02 08:00:00", "Account": "Checking", "Account ID": "a1",
              "Institution": "Bank", "Group": "Assets", "Class": "Asset",
              "Balance": 2000, "Hide": ""},
         ])
@@ -557,6 +620,20 @@ class TestBalanceHistory:
         # Jan 1 should use the last entry (1500), Jan 2 should be 2000
         assert result.iloc[0] == pytest.approx(1500)
         assert result.iloc[1] == pytest.approx(2000)
+
+    def test_latest_balance_uses_latest_time(self, make_balance_spreadsheet):
+        """When multiple entries share the same date, the latest time wins."""
+        df = _balance_df([
+            {"Date": "2024-01-01", "Time": "2024-01-01 08:00:00", "Account": "Checking", "Account ID": "a1",
+             "Institution": "Bank", "Group": "Assets", "Class": "Asset",
+             "Balance": 1000, "Hide": ""},
+            {"Date": "2024-01-01", "Time": "2024-01-01 15:00:00", "Account": "Checking", "Account ID": "a1",
+             "Institution": "Bank", "Group": "Assets", "Class": "Asset",
+             "Balance": 1500, "Hide": ""},
+        ])
+        bs = make_balance_spreadsheet(df)
+        _, total = bs.get_latest_balance_by_group("Assets")
+        assert total == pytest.approx(1500)
 
     def test_latest_balance_empty_group(self, sample_balance_df, make_balance_spreadsheet):
         """A group with no accounts returns empty df and total 0."""
@@ -767,3 +844,360 @@ class TestNaNHandling:
         # NaN group key is dropped by groupby
         assert "Food" in result.index
         assert len(result) == 1
+
+
+# ===================================================================
+# CategoriesSpreadsheet.scrub()
+# ===================================================================
+
+class TestCategoriesScrub:
+
+    def _make(self, raw_df):
+        from src.spreadsheet import CategoriesSpreadsheet
+        with patch.object(Spreadsheet, 'load', lambda self: setattr(self, 'raw_df', raw_df)):
+            return CategoriesSpreadsheet()
+
+    def test_scrub_keeps_expected_columns(self):
+        raw = pd.DataFrame({
+            "Category": ["Groceries", "Rent"],
+            "Group": ["Food", "Housing"],
+            "Type": ["Expense", "Expense"],
+            "Hide From Reports": ["", "Hide"],
+            "Jan 2024": [100, 200],  # Budget columns should be dropped
+            "Feb 2024": [100, 200],
+        })
+        cs = self._make(raw)
+        assert set(cs.scrubbed_df.columns) == {"Category", "Group", "Type", "Hide From Reports"}
+
+    def test_scrub_drops_rows_with_null_category(self):
+        raw = pd.DataFrame({
+            "Category": ["Groceries", None, "Rent"],
+            "Group": ["Food", "Bills", "Housing"],
+            "Type": ["Expense", "Expense", "Expense"],
+            "Hide From Reports": ["", "", ""],
+        })
+        cs = self._make(raw)
+        assert len(cs.scrubbed_df) == 2
+        assert "Groceries" in cs.scrubbed_df["Category"].values
+        assert "Rent" in cs.scrubbed_df["Category"].values
+
+
+# ===================================================================
+# AccountsSpreadsheet.scrub()
+# ===================================================================
+
+class TestAccountsScrub:
+
+    def _make(self, raw_df):
+        from src.spreadsheet import AccountsSpreadsheet
+        with patch.object(Spreadsheet, 'load', lambda self: setattr(self, 'raw_df', raw_df)):
+            return AccountsSpreadsheet()
+
+    def test_scrub_uses_first_four_columns(self):
+        raw = pd.DataFrame({
+            "col_a": ["Checking - xxxx1234 (AB01)", "Savings - xxxx5678 (CD02)"],
+            "col_b": [None, "Asset"],
+            "col_c": ["Checking", "Savings"],
+            "col_d": ["", "Hide"],
+            "col_e": ["extra1", "extra2"],
+            "col_f": ["extra3", "extra4"],
+        })
+        accts = self._make(raw)
+        assert set(accts.scrubbed_df.columns) == {"Account", "Group", "Hide"}
+        assert len(accts.scrubbed_df) == 2
+
+    def test_scrub_drops_rows_with_null_account(self):
+        raw = pd.DataFrame({
+            "col_a": ["Checking - xxxx1234 (AB01)", None, "Savings - xxxx5678 (CD02)"],
+            "col_b": [None, None, "Asset"],
+            "col_c": ["Checking", "", "Savings"],
+            "col_d": ["", "", ""],
+        })
+        accts = self._make(raw)
+        assert len(accts.scrubbed_df) == 2
+
+
+# ===================================================================
+# Balance History scrub — join edge cases
+# ===================================================================
+
+class TestBalanceScrubJoinEdgeCases:
+
+    def _make(self, raw_df, accounts_for_scrub):
+        with (
+            patch.object(Spreadsheet, 'load', lambda self: setattr(self, 'raw_df', raw_df)),
+            patch("src.spreadsheet.load_accounts_data", return_value=accounts_for_scrub),
+        ):
+            return BalanceHistorySpreadsheet()
+
+    def test_case_insensitive_join(self):
+        """Account names with different casing should still match."""
+        from src.spreadsheet import AccountsSpreadsheet
+        raw = pd.DataFrame({
+            "Date": ["2024-01-01"],
+            "Time": ["2024-01-01 08:00"],
+            "Balance": ["$1,000.00"],
+            "Account": ["CREDIT CARD (-6403)"],
+            "Account #": ["xxxx6403"],
+            "Account ID": ["65440a84a14656002f355cba"],
+            "Institution": ["Chase"],
+            "Class": ["Liability"],
+            "Month": ["2024-01-01"],
+            "Week": ["2024-01-01"],
+            "Date Added": ["2024-01-01"],
+        })
+        acct = AccountsSpreadsheet.__new__(AccountsSpreadsheet)
+        acct.scrubbed_df = pd.DataFrame({
+            "Account": ["Credit Card (-6403) - xxxx6403 (5CBA)"],
+            "Group": ["Credit Card"],
+            "Hide": [""],
+        })
+        bs = self._make(raw, acct)
+        assert bs.scrubbed_df.iloc[0]["Group"] == "Credit Card"
+
+    def test_null_account_number_builds_key(self):
+        """Accounts with empty Account # (like Equity Awards) should still match."""
+        from src.spreadsheet import AccountsSpreadsheet
+        raw = pd.DataFrame({
+            "Date": ["2024-01-01"],
+            "Time": ["2024-01-01 08:00"],
+            "Balance": ["$180,000.00"],
+            "Account": ["Equity Awards"],
+            "Account #": [None],
+            "Account ID": ["65440ec86c2203002f1bcbe8"],
+            "Institution": ["Schwab"],
+            "Class": ["Asset"],
+            "Month": ["2024-01-01"],
+            "Week": ["2024-01-01"],
+            "Date Added": ["2024-01-01"],
+        })
+        acct = AccountsSpreadsheet.__new__(AccountsSpreadsheet)
+        acct.scrubbed_df = pd.DataFrame({
+            "Account": ["Equity Awards -  (CBE8)"],
+            "Group": ["Investment"],
+            "Hide": [""],
+        })
+        bs = self._make(raw, acct)
+        assert bs.scrubbed_df.iloc[0]["Group"] == "Investment"
+
+    def test_unmatched_account_gets_empty_group(self):
+        """Accounts not in the Accounts sheet get Group='' instead of NaN."""
+        from src.spreadsheet import AccountsSpreadsheet
+        raw = pd.DataFrame({
+            "Date": ["2024-01-01"],
+            "Time": ["2024-01-01 08:00"],
+            "Balance": ["$500.00"],
+            "Account": ["Brand New Account"],
+            "Account #": ["xxxx9999"],
+            "Account ID": ["65440a84a14656002f35ffff"],
+            "Institution": ["Bank"],
+            "Class": ["Asset"],
+            "Month": ["2024-01-01"],
+            "Week": ["2024-01-01"],
+            "Date Added": ["2024-01-01"],
+        })
+        acct = AccountsSpreadsheet.__new__(AccountsSpreadsheet)
+        acct.scrubbed_df = pd.DataFrame({
+            "Account": pd.Series([], dtype=str),
+            "Group": pd.Series([], dtype=str),
+            "Hide": pd.Series([], dtype=str),
+        })
+        bs = self._make(raw, acct)
+        assert bs.scrubbed_df.iloc[0]["Group"] == ""
+        assert bs.scrubbed_df.iloc[0]["Hide"] == ""
+
+    def test_no_group_or_hide_columns_in_raw_data(self):
+        """Balance History from API may not have Group/Hide columns at all."""
+        from src.spreadsheet import AccountsSpreadsheet
+        raw = pd.DataFrame({
+            "Date": ["2024-01-01"],
+            "Time": ["2024-01-01 08:00"],
+            "Balance": ["$1,000.00"],
+            "Account": ["Checking"],
+            "Account #": ["xxxx1234"],
+            "Account ID": ["65440a84a14656002f35ab01"],
+            "Institution": ["Bank"],
+            "Class": ["Asset"],
+            "Month": ["2024-01-01"],
+            "Week": ["2024-01-01"],
+            "Date Added": ["2024-01-01"],
+        })
+        acct = AccountsSpreadsheet.__new__(AccountsSpreadsheet)
+        acct.scrubbed_df = pd.DataFrame({
+            "Account": ["Checking - xxxx1234 (AB01)"],
+            "Group": ["Checking"],
+            "Hide": [""],
+        })
+        bs = self._make(raw, acct)
+        assert bs.scrubbed_df.iloc[0]["Group"] == "Checking"
+
+    def test_legacy_group_hide_columns_are_dropped_before_join(self):
+        """If raw data has legacy Group/Hide columns, they should be replaced by the join."""
+        from src.spreadsheet import AccountsSpreadsheet
+        raw = pd.DataFrame({
+            "Date": ["2024-01-01"],
+            "Time": ["2024-01-01 08:00"],
+            "Balance": ["$1,000.00"],
+            "Account": ["Checking"],
+            "Account #": ["xxxx1234"],
+            "Account ID": ["65440a84a14656002f35ab01"],
+            "Institution": ["Bank"],
+            "Class": ["Asset"],
+            "Month": ["2024-01-01"],
+            "Week": ["2024-01-01"],
+            "Date Added": ["2024-01-01"],
+            "Group": ["WRONG GROUP"],
+            "Hide": ["WRONG"],
+        })
+        acct = AccountsSpreadsheet.__new__(AccountsSpreadsheet)
+        acct.scrubbed_df = pd.DataFrame({
+            "Account": ["Checking - xxxx1234 (AB01)"],
+            "Group": ["Checking"],
+            "Hide": [""],
+        })
+        bs = self._make(raw, acct)
+        assert bs.scrubbed_df.iloc[0]["Group"] == "Checking"
+        assert bs.scrubbed_df.iloc[0]["Hide"] == ""
+
+
+# ===================================================================
+# Transactions scrub — join edge cases
+# ===================================================================
+
+class TestTransactionsScrubJoinEdgeCases:
+
+    def _make(self, raw_df, categories):
+        with (
+            patch.object(Spreadsheet, 'load', lambda self: setattr(self, 'raw_df', raw_df)),
+            patch("src.spreadsheet.load_categories_data", return_value=categories),
+        ):
+            return TransactionsSpreadsheet()
+
+    def _raw(self, categories, amounts=None):
+        """Build a minimal raw transactions DataFrame."""
+        n = len(categories)
+        if amounts is None:
+            amounts = ["$100.00"] * n
+        return pd.DataFrame({
+            "Date": ["2024-01-15"] * n,
+            "Category": categories,
+            "Amount": amounts,
+            "Account": ["Checking"] * n,
+            "Month": ["2024-01-01"] * n,
+            "Week": ["2024-01-15"] * n,
+            "Full Description": ["TEST"] * n,
+            "Institution": ["Bank"] * n,
+            "Account #": ["1234"] * n,
+            "Date Added": ["2024-01-15"] * n,
+            "Categorized Date": ["2024-01-15"] * n,
+        })
+
+    def test_multiple_uncategorized(self):
+        """Multiple unknown categories all get Group='Uncategorized'."""
+        from src.spreadsheet import CategoriesSpreadsheet
+        cat = CategoriesSpreadsheet.__new__(CategoriesSpreadsheet)
+        cat.scrubbed_df = pd.DataFrame({
+            "Category": ["Groceries"],
+            "Group": ["Food"],
+            "Type": ["Expense"],
+            "Hide From Reports": [""],
+        })
+        raw = self._raw(["Unknown1", "Unknown2", "Groceries"])
+        ts = self._make(raw, cat)
+        groups = ts.scrubbed_df["Group"].tolist()
+        assert groups[0] == "Uncategorized"
+        assert groups[1] == "Uncategorized"
+        assert groups[2] == "Food"
+
+    def test_type_defaults_to_empty_for_unknown(self):
+        """Unknown categories get Type='' not NaN."""
+        from src.spreadsheet import CategoriesSpreadsheet
+        cat = CategoriesSpreadsheet.__new__(CategoriesSpreadsheet)
+        cat.scrubbed_df = pd.DataFrame({
+            "Category": pd.Series([], dtype=str),
+            "Group": pd.Series([], dtype=str),
+            "Type": pd.Series([], dtype=str),
+            "Hide From Reports": pd.Series([], dtype=str),
+        })
+        raw = self._raw(["NewCategory"])
+        ts = self._make(raw, cat)
+        assert ts.scrubbed_df.iloc[0]["Type"] == ""
+
+    def test_legacy_group_type_columns_are_replaced(self):
+        """If raw data has legacy Group/Type columns from VLOOKUPs, they're replaced by the join."""
+        from src.spreadsheet import CategoriesSpreadsheet
+        cat = CategoriesSpreadsheet.__new__(CategoriesSpreadsheet)
+        cat.scrubbed_df = pd.DataFrame({
+            "Category": ["Groceries"],
+            "Group": ["Food"],
+            "Type": ["Expense"],
+            "Hide From Reports": [""],
+        })
+        raw = self._raw(["Groceries"])
+        raw["Group"] = ["WRONG"]
+        raw["Type"] = ["WRONG"]
+        raw["Hide From Reports"] = ["WRONG"]
+        ts = self._make(raw, cat)
+        assert ts.scrubbed_df.iloc[0]["Group"] == "Food"
+        assert ts.scrubbed_df.iloc[0]["Type"] == "Expense"
+
+    def test_negative_amounts_preserved(self):
+        """Negative dollar amounts with special formatting are parsed correctly."""
+        from src.spreadsheet import CategoriesSpreadsheet
+        cat = CategoriesSpreadsheet.__new__(CategoriesSpreadsheet)
+        cat.scrubbed_df = pd.DataFrame({
+            "Category": ["Groceries"],
+            "Group": ["Food"],
+            "Type": ["Expense"],
+            "Hide From Reports": [""],
+        })
+        raw = self._raw(["Groceries"], ["-$1,234.56"])
+        ts = self._make(raw, cat)
+        assert ts.scrubbed_df.iloc[0]["Amount"] == pytest.approx(-1234.56)
+
+
+# ===================================================================
+# Balance History — latest balance edge cases
+# ===================================================================
+
+class TestLatestBalanceEdgeCases:
+
+    def test_multiple_accounts_same_group_different_dates(self, make_balance_spreadsheet):
+        """Each account's latest entry is used, even if they're on different dates."""
+        df = _balance_df([
+            {"Date": "2024-01-01", "Time": "2024-01-01 08:00:00", "Account": "Checking", "Account ID": "a1",
+             "Institution": "Bank", "Group": "Assets", "Class": "Asset", "Balance": 5000, "Hide": ""},
+            {"Date": "2024-01-15", "Time": "2024-01-15 08:00:00", "Account": "Checking", "Account ID": "a1",
+             "Institution": "Bank", "Group": "Assets", "Class": "Asset", "Balance": 4500, "Hide": ""},
+            {"Date": "2024-01-10", "Time": "2024-01-10 08:00:00", "Account": "Savings", "Account ID": "a2",
+             "Institution": "Bank", "Group": "Assets", "Class": "Asset", "Balance": 10000, "Hide": ""},
+        ])
+        bs = make_balance_spreadsheet(df)
+        _, total = bs.get_latest_balance_by_group("Assets")
+        # Checking latest = 4500 (Jan 15), Savings latest = 10000 (Jan 10)
+        assert total == pytest.approx(14500)
+
+    def test_end_date_excludes_future_entries(self, make_balance_spreadsheet):
+        """Entries after end_date are excluded from latest balance."""
+        df = _balance_df([
+            {"Date": "2024-01-01", "Time": "2024-01-01 08:00:00", "Account": "Checking", "Account ID": "a1",
+             "Institution": "Bank", "Group": "Assets", "Class": "Asset", "Balance": 5000, "Hide": ""},
+            {"Date": "2024-02-01", "Time": "2024-02-01 08:00:00", "Account": "Checking", "Account ID": "a1",
+             "Institution": "Bank", "Group": "Assets", "Class": "Asset", "Balance": 6000, "Hide": ""},
+        ])
+        bs = make_balance_spreadsheet(df)
+        _, total = bs.get_latest_balance_by_group("Assets", end_date=_utc(2024, 1, 15))
+        assert total == pytest.approx(5000)
+
+    def test_single_entry_per_account(self, make_balance_spreadsheet):
+        """Works correctly when each account has exactly one balance entry."""
+        df = _balance_df([
+            {"Date": "2024-01-01", "Time": "2024-01-01 08:00:00", "Account": "Checking", "Account ID": "a1",
+             "Institution": "Bank", "Group": "Assets", "Class": "Asset", "Balance": 5000, "Hide": ""},
+            {"Date": "2024-01-01", "Time": "2024-01-01 09:00:00", "Account": "Savings", "Account ID": "a2",
+             "Institution": "Bank", "Group": "Assets", "Class": "Asset", "Balance": 10000, "Hide": ""},
+        ])
+        bs = make_balance_spreadsheet(df)
+        df_result, total = bs.get_latest_balance_by_group("Assets")
+        assert total == pytest.approx(15000)
+        assert len(df_result) == 2
