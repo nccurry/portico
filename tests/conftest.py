@@ -23,15 +23,17 @@ BALANCE_HISTORY_SCRUBBED_COLUMNS = [
 
 TRANSACTIONS_RAW_COLUMNS = [
     "Unnamed: 0", "Date", "Category", "Amount", "Account", "Month",
-    "Full Description", "Group", "Type", "Institution", "Account #",
+    "Full Description", "Institution", "Account #",
     "Week", "Date Added", "Categorized Date",
 ]
 
 BALANCE_HISTORY_RAW_COLUMNS = [
     "Unnamed: 0", "Date", "Time", "Account", "Account #", "Account ID",
     "Balance ID", "Institution", "Balance", "Month", "Week", "Type",
-    "Class", "Account Status", "Date Added", "Group", "Hide",
+    "Class", "Account Status", "Date Added",
 ]
+
+CATEGORIES_COLUMNS = ["Category", "Group", "Type", "Hide From Reports"]
 
 
 # ---------------------------------------------------------------------------
@@ -213,11 +215,11 @@ def scrubbed_balance_df() -> pd.DataFrame:
 def raw_transactions_df() -> pd.DataFrame:
     """Mimics what Google Sheets returns before TransactionsSpreadsheet.scrub()."""
     rows = [
-        (0, "01/15/2024", "Salary",      "$3,500.00", "Checking",    "01/01/2024", "Payroll deposit",  "Income",   "Income",  "Bank of America", "1234", "01/15/2024", "01/10/2024", "01/16/2024"),
-        (1, "02/03/2024", "Groceries",   "-$120.50",  "Checking",    "02/01/2024", "Whole Foods",      "Food",     "Expense", "Bank of America", "1234", "02/05/2024", "02/01/2024", "02/04/2024"),
-        (2, "02/20/2024", "Electric",    "-$95.00",   "Checking",    "02/01/2024", "Duke Energy",      "Bills",    "Expense", "Bank of America", "1234", "02/19/2024", "02/15/2024", "02/21/2024"),
-        (3, "03/10/2024", "Salary",      "$3,500.00", "Checking",    "03/01/2024", "Payroll deposit",  "Income",   "Income",  "Bank of America", "1234", "03/11/2024", "03/05/2024", "03/11/2024"),
-        (4, "04/05/2024", "Restaurants", "-$45.75",   "Credit Card", "04/01/2024", "Olive Garden",     "Food",     "Expense", "Chase",           "5678", "04/08/2024", "04/01/2024", "04/06/2024"),
+        (0, "01/15/2024", "Salary",      "$3,500.00", "Checking",    "01/01/2024", "Payroll deposit",  "Bank of America", "1234", "01/15/2024", "01/10/2024", "01/16/2024"),
+        (1, "02/03/2024", "Groceries",   "-$120.50",  "Checking",    "02/01/2024", "Whole Foods",      "Bank of America", "1234", "02/05/2024", "02/01/2024", "02/04/2024"),
+        (2, "02/20/2024", "Electric",    "-$95.00",   "Checking",    "02/01/2024", "Duke Energy",      "Bank of America", "1234", "02/19/2024", "02/15/2024", "02/21/2024"),
+        (3, "03/10/2024", "Salary",      "$3,500.00", "Checking",    "03/01/2024", "Payroll deposit",  "Bank of America", "1234", "03/11/2024", "03/05/2024", "03/11/2024"),
+        (4, "04/05/2024", "Restaurants", "-$45.75",   "Credit Card", "04/01/2024", "Olive Garden",     "Chase",           "5678", "04/08/2024", "04/01/2024", "04/06/2024"),
     ]
     return pd.DataFrame(rows, columns=TRANSACTIONS_RAW_COLUMNS)
 
@@ -230,18 +232,18 @@ def raw_transactions_df() -> pd.DataFrame:
 def raw_balance_df() -> pd.DataFrame:
     """Mimics what Google Sheets returns before BalanceHistorySpreadsheet.scrub()."""
     rows = [
-        (0, "01/01/2024", "01/01/2024 08:00:00", "Checking",    "1234", "acct-001", "bal-001",
+        (0, "01/01/2024", "01/01/2024 08:00:00", "Checking",    "xxxx1234", "65440a84a14656002f35ab01", "bal-001",
          "Bank of America", "$5,000.00", "01/01/2024", "01/01/2024", "Depository", "Asset",
-         "Active", "01/01/2023", "Checking", None),
-        (1, "02/01/2024", "02/01/2024 08:00:00", "Checking",    "1234", "acct-001", "bal-002",
+         "Active", "01/01/2023"),
+        (1, "02/01/2024", "02/01/2024 08:00:00", "Checking",    "xxxx1234", "65440a84a14656002f35ab01", "bal-002",
          "Bank of America", "$5,200.00", "02/01/2024", "02/05/2024", "Depository", "Asset",
-         "Active", "01/01/2023", "Checking", None),
-        (2, "01/01/2024", "01/01/2024 09:00:00", "Credit Card", "5678", "acct-002", "bal-003",
+         "Active", "01/01/2023"),
+        (2, "01/01/2024", "01/01/2024 09:00:00", "Credit Card", "xxxx5678", "65440a84a14656002f35cd02", "bal-003",
          "Chase",           "$1,500.00", "01/01/2024", "01/01/2024", "Credit",     "Liability",
-         "Active", "06/01/2023", "Credit Card", None),
-        (3, "02/01/2024", "02/01/2024 09:00:00", "Credit Card", "5678", "acct-002", "bal-004",
+         "Active", "06/01/2023"),
+        (3, "02/01/2024", "02/01/2024 09:00:00", "Credit Card", "xxxx5678", "65440a84a14656002f35cd02", "bal-004",
          "Chase",           "$1,800.00", "02/01/2024", "02/05/2024", "Credit",     "Liability",
-         "Active", "06/01/2023", "Credit Card", "Hide"),
+         "Active", "06/01/2023"),
     ]
     return pd.DataFrame(rows, columns=BALANCE_HISTORY_RAW_COLUMNS)
 
@@ -298,5 +300,47 @@ def make_balance_spreadsheet(scrubbed_balance_df):
             with patch.object(BalanceHistorySpreadsheet, "scrub",
                               lambda self: setattr(self, "scrubbed_df", df)):
                 return BalanceHistorySpreadsheet()
+
+    return _factory
+
+
+# ---------------------------------------------------------------------------
+# 11. scrubbed_categories_df
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def scrubbed_categories_df() -> pd.DataFrame:
+    """Categories lookup table mapping Category to Group, Type, and Hide From Reports."""
+    rows = [
+        ("Salary",      "Income",   "Income",  ""),
+        ("Groceries",   "Food",     "Expense", ""),
+        ("Electric",    "Bills",    "Expense", ""),
+        ("Restaurants", "Food",     "Expense", ""),
+        ("Amazon",      "Shopping", "Expense", ""),
+        ("Internet",    "Bills",    "Expense", ""),
+        ("Rent",        "Housing",  "Expense", ""),
+        ("Transfer",    "Transfer", "Transfer", "Hide"),
+        ("Dining",      "Food",     "Expense", ""),
+    ]
+    return pd.DataFrame(rows, columns=CATEGORIES_COLUMNS)
+
+
+# ---------------------------------------------------------------------------
+# 12. make_categories_spreadsheet  (factory fixture)
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def make_categories_spreadsheet(scrubbed_categories_df):
+    """Factory that returns a CategoriesSpreadsheet with load() patched out."""
+    from src.spreadsheet import CategoriesSpreadsheet, Spreadsheet
+
+    def _factory(df: pd.DataFrame | None = None):
+        if df is None:
+            df = scrubbed_categories_df
+
+        with patch.object(Spreadsheet, "load", lambda self: None):
+            with patch.object(CategoriesSpreadsheet, "scrub",
+                              lambda self: setattr(self, "scrubbed_df", df)):
+                return CategoriesSpreadsheet()
 
     return _factory
