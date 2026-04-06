@@ -334,13 +334,48 @@ def make_categories_spreadsheet(scrubbed_categories_df):
     """Factory that returns a CategoriesSpreadsheet with load() patched out."""
     from src.spreadsheet import CategoriesSpreadsheet, Spreadsheet
 
-    def _factory(df: pd.DataFrame | None = None):
+    def _factory(df: pd.DataFrame | None = None, budget_df: pd.DataFrame | None = None):
         if df is None:
             df = scrubbed_categories_df
 
+        def _scrub(self):
+            self.scrubbed_df = df
+            if budget_df is not None:
+                self.budget_df = budget_df
+            else:
+                self.budget_df = pd.DataFrame(
+                    columns=["Category", "Month_Num", "Budget", "Group", "Type"]
+                )
+
         with patch.object(Spreadsheet, "load", lambda self: None):
-            with patch.object(CategoriesSpreadsheet, "scrub",
-                              lambda self: setattr(self, "scrubbed_df", df)):
+            with patch.object(CategoriesSpreadsheet, "scrub", _scrub):
                 return CategoriesSpreadsheet()
 
     return _factory
+
+
+# ---------------------------------------------------------------------------
+# 13. raw_categories_with_budget_df  (for budget scrub tests)
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def raw_categories_with_budget_df() -> pd.DataFrame:
+    """Raw Categories sheet with 4 metadata columns + 12 date-header budget columns."""
+    return pd.DataFrame({
+        "Category": ["Groceries", "Restaurants", "Electric", "Salary", None],
+        "Group": ["Food", "Food", "Bills", "Income", "Bad"],
+        "Type": ["Expense", "Expense", "Expense", "Income", "Expense"],
+        "Hide From Reports": ["", "", "", "", ""],
+        pd.Timestamp("2023-01-01"): [500, 200, 150, 0, 100],
+        pd.Timestamp("2023-02-01"): [500, 200, 150, 0, 100],
+        pd.Timestamp("2023-03-01"): [500, 250, 175, 0, 100],
+        pd.Timestamp("2023-04-01"): [500, 200, 150, 0, 100],
+        pd.Timestamp("2023-05-01"): [500, 200, 150, 0, 100],
+        pd.Timestamp("2023-06-01"): [500, 200, 150, 0, 100],
+        pd.Timestamp("2023-07-01"): [500, 200, 150, 0, 100],
+        pd.Timestamp("2023-08-01"): [500, 200, 150, 0, 100],
+        pd.Timestamp("2023-09-01"): [500, 200, 150, 0, 100],
+        pd.Timestamp("2023-10-01"): [500, 200, 150, 0, 100],
+        pd.Timestamp("2023-11-01"): [500, 200, 150, 0, 100],
+        pd.Timestamp("2023-12-01"): [500, 200, 150, 0, 100],
+    })

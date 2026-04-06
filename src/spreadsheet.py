@@ -41,12 +41,56 @@ class Spreadsheet(metaclass=ABCMeta):
 class CategoriesSpreadsheet(Spreadsheet):
     name = "categories"
 
+    # Budget data: long-format DataFrame with per-category monthly budgets
+    budget_df: pd.DataFrame
+
     def scrub(self) -> None:
         """Clean up the data stored in self.raw_df"""
         df = self.raw_df.copy()
-        df = df.filter(["Category", "Group", "Type", "Hide From Reports"])
-        df = df.dropna(subset=["Category"])
-        self.scrubbed_df = df
+
+        # Metadata columns (first 4)
+        meta = df.filter(["Category", "Group", "Type", "Hide From Reports"]).copy()
+        meta = meta.dropna(subset=["Category"])
+        self.scrubbed_df = meta
+
+        # Budget columns (columns 5+) have date headers from Google Sheets
+        budget_cols = df.iloc[:, 4:]
+        month_map = {}
+        for col in budget_cols.columns:
+            try:
+                dt = pd.to_datetime(col)
+                month_map[col] = dt.month
+            except (ValueError, TypeError):
+                continue
+
+        if not month_map:
+            self.budget_df = pd.DataFrame(
+                columns=["Category", "Month_Num", "Budget", "Group", "Type"]
+            )
+            return
+
+        # Build wide DataFrame: Category + one column per month number
+        budget_wide = df[["Category"]].copy()
+        for orig_col, month_num in month_map.items():
+            cleaned = df[orig_col].astype(str).str.replace(r'[$,]', '', regex=True)
+            budget_wide[month_num] = pd.to_numeric(cleaned, errors="coerce").fillna(0)
+        budget_wide = budget_wide.dropna(subset=["Category"])
+
+        # Melt to long format
+        month_nums = sorted(month_map.values())
+        budget_long = budget_wide.melt(
+            id_vars=["Category"],
+            value_vars=month_nums,
+            var_name="Month_Num",
+            value_name="Budget",
+        )
+
+        # Join with metadata for Group/Type
+        budget_long = budget_long.merge(
+            meta[["Category", "Group", "Type"]], on="Category", how="left"
+        )
+
+        self.budget_df = budget_long
 
 
 class AccountsSpreadsheet(Spreadsheet):
