@@ -8,6 +8,7 @@ from src.constants import (
     DEFAULT_EXCLUDE_CATEGORIES,
     DEFAULT_EXCLUDE_GROUPS_INCOME_SAVINGS,
     DEFAULT_EXCLUDE_GROUPS_SPENDING,
+    DEFAULT_EXCLUDE_GROUPS_BUDGET,
     DEFAULT_EXPENSE_THRESHOLD,
     DEFAULT_INCOME_THRESHOLD,
     DEFAULT_SAVINGS_RATE_TARGET,
@@ -164,6 +165,63 @@ def render_spending_filters(all_categories: list[str], all_groups: list[str]) ->
         'exclude_categories': exclude_categories,
         'filter_large_expenses': filter_large_expenses,
         'expense_threshold': expense_threshold
+    }
+
+
+def render_budget_filters(all_categories: list[str], all_groups: list[str]) -> dict:
+    """Render filter controls for Budget page.
+
+    Returns:
+        dictionary containing all filter selections
+    """
+    with st.expander("Filter Settings", expanded=False):
+        col_filter1, col_filter2 = st.columns(2)
+
+        with col_filter1:
+            exclude_groups = st.multiselect(
+                "Exclude Groups",
+                options=all_groups,
+                default=[g for g in DEFAULT_EXCLUDE_GROUPS_BUDGET if g in all_groups],
+                help="Exclude entire transaction groups from budget comparison"
+            )
+
+            exclude_categories = st.multiselect(
+                "Exclude Categories",
+                options=all_categories,
+                default=[c for c in DEFAULT_EXCLUDE_CATEGORIES if c in all_categories],
+                help="Exclude specific categories from budget comparison"
+            )
+
+        with col_filter2:
+            filter_large_expenses = st.checkbox(
+                "Filter Large Expenses",
+                value=True,
+                help="Exclude individual large expense transactions above a threshold"
+            )
+
+            expense_threshold = DEFAULT_EXPENSE_THRESHOLD
+            if filter_large_expenses:
+                expense_threshold = st.number_input(
+                    "Expense Threshold ($)",
+                    min_value=1000,
+                    max_value=100000,
+                    value=DEFAULT_EXPENSE_THRESHOLD,
+                    step=500,
+                    help="Exclude individual expense transactions larger than this amount"
+                )
+
+            show_zero_budget = st.checkbox(
+                "Show categories without budget",
+                value=False,
+                help="Include categories that have no budget set"
+            )
+
+    return {
+        'exclude_groups': exclude_groups,
+        'exclude_categories': exclude_categories,
+        'filter_large_expenses': filter_large_expenses,
+        'expense_threshold': expense_threshold,
+        'show_zero_budget': show_zero_budget,
     }
 
 

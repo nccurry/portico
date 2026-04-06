@@ -32,6 +32,9 @@ COLOR_ASSET = 'lightgreen'
 COLOR_LIABILITY = 'lightcoral'
 COLOR_NET_WORTH = 'gold'
 COLOR_PLACEHOLDER = 'lightgray'
+COLOR_BUDGET = '#a0a0a0'
+COLOR_OVER_BUDGET = '#e15759'
+COLOR_UNDER_BUDGET = '#59a14f'
 
 # Tableau10 color palette for category charts
 COLOR_PALETTE = [
@@ -59,8 +62,13 @@ DEFAULT_EXCLUDE_GROUPS_INCOME_SAVINGS = [
 DEFAULT_EXCLUDE_GROUPS_SPENDING = [
     'Bills',
     'Income',
-    'Work',
     'Donations',
+    'Investment',
+]
+
+DEFAULT_EXCLUDE_GROUPS_BUDGET = [
+    'Transfer',
+    'Income',
     'Investment',
 ]
 
