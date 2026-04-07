@@ -146,44 +146,30 @@ def get_ytd_budget_vs_actual(
     return result.sort_values("Pct_Used", ascending=False).reset_index(drop=True)
 
 
-def get_monthly_budget_comparison(
-    budget_df: pd.DataFrame,
-    transactions_df: pd.DataFrame,
-    category: str,
-    year: str,
-    filters: dict,
-    through_month: int = 12,
+def build_unified_budget_table(
+    monthly_df: pd.DataFrame,
+    ytd_df: pd.DataFrame,
 ) -> pd.DataFrame:
-    """Get cumulative budget vs actual for a category across a year.
-
-    Args:
-        through_month: Only include months 1 through this value (default 12)
+    """Merge monthly and YTD budget comparisons into a single table.
 
     Returns:
-        DataFrame with Month (1..through_month), Budget, Actual columns (cumulative)
+        DataFrame with Category, Group, Mo_Budget, Mo_Spent, Mo_Pct,
+        YTD_Budget, YTD_Spent, YTD_Pct — sorted by Mo_Pct descending.
     """
-    rows = []
-    cumulative_budget = 0
-    cumulative_actual = 0
+    monthly = monthly_df[["Category", "Group", "Budget", "Spent", "Pct_Used"]].rename(
+        columns={"Budget": "Mo_Budget", "Spent": "Mo_Spent", "Pct_Used": "Mo_Pct"}
+    )
+    ytd = ytd_df[["Category", "Budget", "Spent", "Pct_Used"]].rename(
+        columns={"Budget": "YTD_Budget", "Spent": "YTD_Spent", "Pct_Used": "YTD_Pct"}
+    )
 
-    for month_num in range(1, through_month + 1):
-        month_str = f"{year}-{month_num:02d}"
+    merged = monthly.merge(ytd, on="Category", how="outer")
 
-        # Budget for this month
-        budget_row = budget_df[
-            (budget_df["Category"] == category) & (budget_df["Month_Num"] == month_num)
-        ]
-        cumulative_budget += budget_row["Budget"].iloc[0] if not budget_row.empty else 0
+    for col in ["Mo_Budget", "Mo_Spent", "Mo_Pct", "YTD_Budget", "YTD_Spent", "YTD_Pct"]:
+        merged[col] = merged[col].fillna(0)
+    merged["Group"] = merged["Group"].fillna("")
 
-        # Actual spend for this month
-        txns = transactions_df[transactions_df["Month"] == month_str].copy()
-        txns = apply_transaction_filters(txns, filters)
-        txns = txns[(txns["Type"] == "Expense") & (txns["Category"] == category)]
-        cumulative_actual += txns["Amount"].sum() * -1 if not txns.empty else 0
-
-        rows.append({"Month": month_num, "Budget": cumulative_budget, "Actual": cumulative_actual})
-
-    return pd.DataFrame(rows)
+    return merged.sort_values("Mo_Pct", ascending=False).reset_index(drop=True)
 
 
 def calculate_projected_spend(spent: float, days_elapsed: int, days_in_month: int) -> float:
@@ -197,42 +183,6 @@ def calculate_projected_spend(spent: float, days_elapsed: int, days_in_month: in
 # ---------------------------------------------------------------------------
 # Chart builders
 # ---------------------------------------------------------------------------
-
-def create_budget_vs_actual_chart(df: pd.DataFrame, title: str) -> alt.Chart:
-    """Line chart comparing budget vs actual spending by month for a category."""
-    if df.empty:
-        return alt.Chart(pd.DataFrame()).mark_text().encode(text=alt.value("No data"))
-
-    # Trim trailing zero-actual months (future months)
-    non_zero = df[df["Actual"] != 0]
-    if not non_zero.empty:
-        last_month = non_zero["Month"].max()
-        df = df[df["Month"] <= last_month].copy()
-
-    chart_df = df.melt(id_vars="Month", var_name="Type", value_name="Amount")
-
-    color_scale = alt.Scale(
-        domain=["Budget", "Actual"],
-        range=[COLOR_BUDGET, COLOR_UNDER_BUDGET],
-    )
-
-    chart = (
-        alt.Chart(chart_df)
-        .mark_line(point=True, strokeWidth=2)
-        .encode(
-            x=alt.X("Month:O", axis=alt.Axis(title="Month", labelAngle=0)),
-            y=alt.Y("Amount:Q", axis=alt.Axis(title="Amount ($)"), scale=alt.Scale(zero=True)),
-            color=alt.Color("Type:N", scale=color_scale, title=""),
-            tooltip=[
-                alt.Tooltip("Month:O"),
-                alt.Tooltip("Type:N"),
-                alt.Tooltip("Amount:Q", format="$,.2f"),
-            ],
-        )
-        .properties(height=300, title=title)
-    )
-    return chart
-
 
 def create_budget_category_chart(df: pd.DataFrame, title: str = "Budget vs Actual by Category") -> alt.Chart:
     """Horizontal bar chart with spent amount and a tick mark at the budget level."""
@@ -262,7 +212,6 @@ def create_budget_category_chart(df: pd.DataFrame, title: str = "Budget vs Actua
         )
     )
 
-    # Budget reference tick per category
     budget_ticks = (
         alt.Chart(chart_df)
         .mark_tick(color=COLOR_BUDGET, thickness=3, size=20)
@@ -305,58 +254,13 @@ def configure_page(
     )
     filters = render_budget_filters(all_categories, all_groups)
 
-    # Determine current year from most recent month
-    now = pd.Timestamp.now(tz="UTC")
-    current_year = str(now.year)
-
-    # Get budgeted categories (any category with a non-zero budget)
-    budgeted_cats = (
-        categories_spreadsheet.budget_df[categories_spreadsheet.budget_df["Budget"] > 0]["Category"]
-        .unique()
-        .tolist()
-    )
-
-    # --- YTD section: per-category budget vs actual across the year ---
-    st.subheader("Year to Date")
-
-    for category in sorted(budgeted_cats):
-        comparison = get_monthly_budget_comparison(
-            categories_spreadsheet.budget_df,
-            transactions_spreadsheet.scrubbed_df,
-            category,
-            current_year,
-            filters,
-            through_month=now.month,
-        )
-
-        st.markdown(f"**{category}**")
-        col1, col2 = st.columns([1, 4])
-
-        # Pivot table on the left
-        display = comparison[comparison["Actual"] > 0].copy()
-        if display.empty:
-            display = comparison[comparison["Month"] <= now.month].copy()
-        display_table = display.set_index("Month")[["Budget", "Actual"]].copy()
-        display_table.index = display_table.index.map(lambda m: calendar.month_abbr[m])
-        col1.dataframe(
-            display_table,
-            column_config={
-                "Budget": st.column_config.NumberColumn("Budget", format="$%.0f"),
-                "Actual": st.column_config.NumberColumn("Actual", format="$%.0f"),
-            },
-        )
-
-        # Line chart on the right
-        chart = create_budget_vs_actual_chart(comparison, category)
-        col2.altair_chart(chart, use_container_width=True)
-
-    st.divider()
-
-    # --- Monthly section ---
-    st.subheader("Monthly Detail")
-
+    # Month selector
     selected_month = st.selectbox("Month", months, index=0)
 
+    now = pd.Timestamp.now(tz="UTC")
+    current_month_str = now.strftime("%Y-%m")
+
+    # Monthly budget vs actual
     budget_actual = get_budget_vs_actual(
         categories_spreadsheet.budget_df,
         transactions_spreadsheet.scrubbed_df,
@@ -364,7 +268,15 @@ def configure_page(
         filters,
     )
 
-    # Summary metrics
+    # YTD budget vs actual
+    ytd_actual = get_ytd_budget_vs_actual(
+        categories_spreadsheet.budget_df,
+        transactions_spreadsheet.scrubbed_df,
+        selected_month,
+        filters,
+    )
+
+    # Monthly summary metrics
     total_budget = budget_actual["Budget"].sum()
     total_spent = budget_actual["Spent"].sum()
     total_remaining = total_budget - total_spent
@@ -381,8 +293,24 @@ def configure_page(
     with col4:
         st.metric("% Used", f"{pct_used:.1f}%")
 
-    # Days remaining context (current month only)
-    current_month_str = now.strftime("%Y-%m")
+    # YTD summary metrics
+    ytd_budget = ytd_actual["Budget"].sum()
+    ytd_spent = ytd_actual["Spent"].sum()
+    ytd_remaining = ytd_budget - ytd_spent
+    ytd_pct = (ytd_spent / ytd_budget * 100) if ytd_budget > 0 else 0
+
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("YTD Budget", f"${ytd_budget:,.2f}")
+    with col2:
+        st.metric("YTD Spent", f"${ytd_spent:,.2f}")
+    with col3:
+        delta_color = "inverse" if ytd_remaining >= 0 else "normal"
+        st.metric("YTD Remaining", f"${ytd_remaining:,.2f}", delta_color=delta_color)
+    with col4:
+        st.metric("YTD % Used", f"{ytd_pct:.1f}%")
+
+    # Projection for current month
     if selected_month == current_month_str and total_budget > 0:
         days_elapsed = now.day
         days_in_month = calendar.monthrange(now.year, now.month)[1]
@@ -398,9 +326,39 @@ def configure_page(
     if budget_actual.empty:
         st.info("No budget data for the selected month and filters")
     else:
+        # Bar chart for selected month
         st.altair_chart(
             create_budget_category_chart(budget_actual, f"Budget vs Actual — {selected_month}"),
             use_container_width=True,
+        )
+
+        # Unified budget table
+        unified = build_unified_budget_table(budget_actual, ytd_actual)
+
+        display_df = unified[
+            ["Category", "Group", "Mo_Budget", "Mo_Spent", "Mo_Pct", "YTD_Budget", "YTD_Spent", "YTD_Pct"]
+        ].copy()
+        display_df["Mo_Pct"] = display_df["Mo_Pct"].apply(
+            lambda x: f"{x:.1f}%" if x != float("inf") else "N/A"
+        )
+        display_df["YTD_Pct"] = display_df["YTD_Pct"].apply(
+            lambda x: f"{x:.1f}%" if x != float("inf") else "N/A"
+        )
+
+        st.dataframe(
+            display_df,
+            width="stretch",
+            hide_index=True,
+            column_config={
+                "Category": st.column_config.TextColumn("Category"),
+                "Group": st.column_config.TextColumn("Group"),
+                "Mo_Budget": st.column_config.NumberColumn("Mo Budget", format="$%.2f"),
+                "Mo_Spent": st.column_config.NumberColumn("Mo Spent", format="$%.2f"),
+                "Mo_Pct": st.column_config.TextColumn("Mo %"),
+                "YTD_Budget": st.column_config.NumberColumn("YTD Budget", format="$%.2f"),
+                "YTD_Spent": st.column_config.NumberColumn("YTD Spent", format="$%.2f"),
+                "YTD_Pct": st.column_config.TextColumn("YTD %"),
+            },
         )
 
         # Per-category projections for current month
@@ -415,25 +373,6 @@ def configure_page(
                         f"**{row['Category']}**: On pace: :{color}[${proj:,.0f}] "
                         f"of ${row['Budget']:,.0f} budget"
                     )
-
-        with st.expander("View All Categories"):
-            display_df = budget_actual[
-                ["Category", "Group", "Budget", "Spent", "Remaining", "Pct_Used"]
-            ].copy()
-            display_df["Pct_Used"] = display_df["Pct_Used"].apply(
-                lambda x: f"{x:.1f}%" if x != float("inf") else "N/A"
-            )
-            st.dataframe(
-                display_df,
-                width="stretch",
-                hide_index=True,
-                column_config={
-                    "Budget": st.column_config.NumberColumn("Budget", format="$%.2f"),
-                    "Spent": st.column_config.NumberColumn("Spent", format="$%.2f"),
-                    "Remaining": st.column_config.NumberColumn("Remaining", format="$%.2f"),
-                    "Pct_Used": st.column_config.TextColumn("% Used"),
-                },
-            )
 
     # Transactions
     st.divider()

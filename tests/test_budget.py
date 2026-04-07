@@ -388,78 +388,84 @@ class TestGetYtdBudgetVsActual:
 
 
 # ---------------------------------------------------------------------------
-# get_monthly_budget_comparison helper
+# build_unified_budget_table helper
 # ---------------------------------------------------------------------------
 
-class TestGetMonthlyBudgetComparison:
-
-    @pytest.fixture
-    def budget_df(self):
-        rows = []
-        for month in range(1, 13):
-            rows.append({"Category": "Groceries", "Month_Num": month, "Budget": 500,
-                         "Group": "Food", "Type": "Expense"})
-        return pd.DataFrame(rows)
-
-    @pytest.fixture
-    def transactions_df(self):
-        return _transactions_df([
-            {"Date": "2024-01-10", "Category": "Groceries", "Amount": -400, "Account": "Checking",
-             "Month": "2024-01", "Group": "Food", "Type": "Expense"},
-            {"Date": "2024-02-10", "Category": "Groceries", "Amount": -550, "Account": "Checking",
-             "Month": "2024-02", "Group": "Food", "Type": "Expense"},
-            {"Date": "2024-03-10", "Category": "Groceries", "Amount": -300, "Account": "Checking",
-             "Month": "2024-03", "Group": "Food", "Type": "Expense"},
-        ])
-
-    @pytest.fixture
-    def no_filters(self):
-        return {
-            "exclude_groups": [],
-            "exclude_categories": [],
-            "filter_large_expenses": False,
-            "expense_threshold": 3000,
-            "show_zero_budget": False,
-        }
+class TestBuildUnifiedBudgetTable:
 
     def _get_fn(self):
-        return _mod.get_monthly_budget_comparison
+        return _mod.build_unified_budget_table
 
-    def test_returns_12_months(self, budget_df, transactions_df, no_filters):
+    def test_merges_monthly_and_ytd(self):
         fn = self._get_fn()
-        result = fn(budget_df, transactions_df, "Groceries", "2024", no_filters)
-        assert len(result) == 12
-        assert list(result["Month"]) == list(range(1, 13))
+        monthly = pd.DataFrame({
+            "Category": ["Groceries", "Restaurants"],
+            "Group": ["Food", "Food"],
+            "Budget": [500, 200],
+            "Spent": [350, 250],
+            "Pct_Used": [70.0, 125.0],
+        })
+        ytd = pd.DataFrame({
+            "Category": ["Groceries", "Restaurants"],
+            "Budget": [1500, 600],
+            "Spent": [1400, 580],
+            "Pct_Used": [93.3, 96.7],
+        })
+        result = fn(monthly, ytd)
+        assert set(result.columns) == {
+            "Category", "Group", "Mo_Budget", "Mo_Spent", "Mo_Pct",
+            "YTD_Budget", "YTD_Spent", "YTD_Pct",
+        }
+        assert len(result) == 2
+        # Sorted by Mo_Pct descending — Restaurants (125%) first
+        assert result.iloc[0]["Category"] == "Restaurants"
 
-    def test_budget_values_cumulative(self, budget_df, transactions_df, no_filters):
+    def test_missing_ytd_category_fills_zero(self):
         fn = self._get_fn()
-        result = fn(budget_df, transactions_df, "Groceries", "2024", no_filters)
-        assert result[result["Month"] == 1]["Budget"].iloc[0] == pytest.approx(500)
-        assert result[result["Month"] == 2]["Budget"].iloc[0] == pytest.approx(1000)
-        assert result[result["Month"] == 3]["Budget"].iloc[0] == pytest.approx(1500)
-        assert result[result["Month"] == 12]["Budget"].iloc[0] == pytest.approx(6000)
+        monthly = pd.DataFrame({
+            "Category": ["Groceries"],
+            "Group": ["Food"],
+            "Budget": [500],
+            "Spent": [350],
+            "Pct_Used": [70.0],
+        })
+        ytd = pd.DataFrame({
+            "Category": [],
+            "Budget": [],
+            "Spent": [],
+            "Pct_Used": [],
+        })
+        result = fn(monthly, ytd)
+        assert len(result) == 1
+        assert result.iloc[0]["YTD_Budget"] == 0
+        assert result.iloc[0]["YTD_Spent"] == 0
 
-    def test_actual_values_cumulative(self, budget_df, transactions_df, no_filters):
+    def test_missing_monthly_category_fills_zero(self):
         fn = self._get_fn()
-        result = fn(budget_df, transactions_df, "Groceries", "2024", no_filters)
-        # 400, 400+550=950, 950+300=1250
-        assert result[result["Month"] == 1]["Actual"].iloc[0] == pytest.approx(400)
-        assert result[result["Month"] == 2]["Actual"].iloc[0] == pytest.approx(950)
-        assert result[result["Month"] == 3]["Actual"].iloc[0] == pytest.approx(1250)
+        monthly = pd.DataFrame({
+            "Category": [],
+            "Group": [],
+            "Budget": [],
+            "Spent": [],
+            "Pct_Used": [],
+        })
+        ytd = pd.DataFrame({
+            "Category": ["Groceries"],
+            "Budget": [1500],
+            "Spent": [1400],
+            "Pct_Used": [93.3],
+        })
+        result = fn(monthly, ytd)
+        assert len(result) == 1
+        assert result.iloc[0]["Mo_Budget"] == 0
+        assert result.iloc[0]["Mo_Spent"] == 0
 
-    def test_future_months_flat(self, budget_df, transactions_df, no_filters):
+    def test_empty_inputs(self):
         fn = self._get_fn()
-        result = fn(budget_df, transactions_df, "Groceries", "2024", no_filters)
-        # Actual stays flat after month 3 (no more spending)
-        future = result[result["Month"] > 3]
-        assert (future["Actual"] == 1250).all()
-
-    def test_no_budget_category(self, budget_df, transactions_df, no_filters):
-        fn = self._get_fn()
-        result = fn(budget_df, transactions_df, "NonExistent", "2024", no_filters)
-        assert len(result) == 12
-        assert (result["Budget"] == 0).all()
-        assert (result["Actual"] == 0).all()
+        monthly = pd.DataFrame(columns=["Category", "Group", "Budget", "Spent", "Pct_Used"])
+        ytd = pd.DataFrame(columns=["Category", "Budget", "Spent", "Pct_Used"])
+        result = fn(monthly, ytd)
+        assert result.empty
 
 
 # ---------------------------------------------------------------------------

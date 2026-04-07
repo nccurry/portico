@@ -134,62 +134,38 @@ def display_transaction_table(transactions_df: pd.DataFrame, label: str) -> None
         )
 
 
-def render_category_page(
-        categories: list[str],
-        transactions_spreadsheet: TransactionsSpreadsheet
+def render_year_over_year_page(
+        items: list[str],
+        transactions_spreadsheet: TransactionsSpreadsheet,
+        by: str = "category"
 ) -> None:
-    """Render a page showing year-over-year comparisons for a list of categories."""
-    for category in categories:
-        monthly_amounts_df = transactions_spreadsheet.get_monthly_amounts_by_category(
-            category=category,
-            invert_amount=True
-        )
-        
+    """Render a page showing year-over-year comparisons for a list of categories or groups."""
+    get_monthly = (transactions_spreadsheet.get_monthly_amounts_by_category
+                   if by == "category"
+                   else transactions_spreadsheet.get_monthly_amounts_by_group)
+    get_transactions = (transactions_spreadsheet.get_transactions_by_category
+                        if by == "category"
+                        else transactions_spreadsheet.get_transactions_by_group)
+
+    for item in items:
+        monthly_amounts_df = get_monthly(item, invert_amount=True)
+
         # Transform data for year-over-year comparison
         pivoted_df = prepare_year_comparison_data(monthly_amounts_df)
-        
-        st.subheader(category)
+
+        st.subheader(item)
         col1, col2 = st.columns([1, 4])
-        
+
         # Show pivoted data table (years as columns)
         col1.dataframe(pivoted_df)
-        
-        # Show year-over-year comparison chart
-        chart = create_year_comparison_chart(pivoted_df, category)
-        col2.altair_chart(chart, width='stretch')
-        
-        # Show expandable transaction table
-        transactions_df = transactions_spreadsheet.get_transactions_by_category(category)
-        display_transaction_table(transactions_df, category)
 
-
-def render_group_page(
-        groups: list[str],
-        transactions_spreadsheet: TransactionsSpreadsheet
-) -> None:
-    """Render a page showing year-over-year comparisons for a list of groups."""
-    for group in groups:
-        monthly_amounts_df = transactions_spreadsheet.get_monthly_amounts_by_group(
-            group=group,
-            invert_amount=True
-        )
-        
-        # Transform data for year-over-year comparison
-        pivoted_df = prepare_year_comparison_data(monthly_amounts_df)
-        
-        st.subheader(group)
-        col1, col2 = st.columns([1, 4])
-        
-        # Show pivoted data table (years as columns)
-        col1.dataframe(pivoted_df)
-        
         # Show year-over-year comparison chart
-        chart = create_year_comparison_chart(pivoted_df, group)
+        chart = create_year_comparison_chart(pivoted_df, item)
         col2.altair_chart(chart, width='stretch')
-        
+
         # Show expandable transaction table
-        transactions_df = transactions_spreadsheet.get_transactions_by_group(group)
-        display_transaction_table(transactions_df, group)
+        transactions_df = get_transactions(item)
+        display_transaction_table(transactions_df, item)
 
 
 def create_sparkline_chart(

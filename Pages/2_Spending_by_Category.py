@@ -311,8 +311,8 @@ def calculate_distribution_stats(df_period: pd.DataFrame) -> dict:
     }
 
 
-def display_distribution_tab(df_period: pd.DataFrame, df_by_category: pd.DataFrame) -> None:
-    """Display the amount distribution analysis tab.
+def display_distribution_section(df_period: pd.DataFrame, df_by_category: pd.DataFrame) -> None:
+    """Display the amount distribution analysis section.
     
     Args:
         df_period: Filtered transaction data
@@ -504,7 +504,6 @@ def configure_page(
     
     st.divider()
     
-    # Create visualizations with tabs
     if not df_by_category.empty:
         # Create shared color scale for consistent colors across both charts
         top_10_categories = df_by_category.head(10)['Category'].tolist()
@@ -512,45 +511,42 @@ def configure_page(
             domain=top_10_categories,
             range=COLOR_PALETTE[:len(top_10_categories)]
         )
-        
-        # Create tabs for different views
-        tab1, tab2, tab3 = st.tabs(["📊 Category Analysis", "💰 Amount Distribution", "📋 Transaction Details"])
-        
-        with tab1:
-            # Display charts side by side
-            viz_col1, viz_col2 = st.columns(2)
-            
-            with viz_col1:
-                st.subheader("Spending Over Time")
-                top_5_categories = df_by_category.head(5)['Category'].tolist()
-                trend_chart = create_spending_trend_chart(df_period, top_5_categories, color_scale)
-                st.altair_chart(trend_chart, width='stretch')
-            
-            with viz_col2:
-                st.subheader("Top 10 Categories")
-                categories_chart = create_top_categories_chart(df_by_category, color_scale)
-                st.altair_chart(categories_chart, width='stretch')
-            
-            # Category summary table
-            with st.expander("📊 View All Categories"):
-                st.dataframe(
-                    df_by_category,
-                    width='stretch',
-                    hide_index=True,
-                    column_config={
-                        'Category': st.column_config.TextColumn('Category'),
-                        'Amount': st.column_config.NumberColumn('Amount', format='$%.2f'),
-                        'Percentage': st.column_config.NumberColumn('% of Total', format='%.1f%%')
-                    }
-                )
-        
-        with tab2:
-            # Amount distribution analysis
-            display_distribution_tab(df_period, df_by_category)
-        
-        with tab3:
-            # Display data tables
-            display_data_tables(df_period, df_by_category)
+
+        # Category Analysis
+        st.subheader("Category Analysis")
+        viz_col1, viz_col2 = st.columns(2)
+
+        with viz_col1:
+            top_5_categories = df_by_category.head(5)['Category'].tolist()
+            trend_chart = create_spending_trend_chart(df_period, top_5_categories, color_scale)
+            st.altair_chart(trend_chart, width='stretch')
+
+        with viz_col2:
+            categories_chart = create_top_categories_chart(df_by_category, color_scale)
+            st.altair_chart(categories_chart, width='stretch')
+
+        with st.expander("View All Categories"):
+            st.dataframe(
+                df_by_category,
+                width='stretch',
+                hide_index=True,
+                column_config={
+                    'Category': st.column_config.TextColumn('Category'),
+                    'Amount': st.column_config.NumberColumn('Amount', format='$%.2f'),
+                    'Percentage': st.column_config.NumberColumn('% of Total', format='%.1f%%')
+                }
+            )
+
+        st.divider()
+
+        # Amount Distribution
+        display_distribution_section(df_period, df_by_category)
+
+        st.divider()
+
+        # Transaction Details
+        st.subheader("Transaction Details")
+        display_data_tables(df_period, df_by_category)
     else:
         st.info("No spending data found for the selected filters and time period")
 

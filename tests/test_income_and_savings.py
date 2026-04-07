@@ -102,3 +102,116 @@ class TestProcessIncomeExpenseData:
 
         months = result['Month'].tolist()
         assert months == sorted(months)
+
+    def test_only_income_month_gives_100_percent_rate(self, basic_filters, make_transactions_spreadsheet):
+        """Month with income but no expenses should have 100% savings rate."""
+        df = pd.DataFrame({
+            'Date': pd.to_datetime(['2024-01-15'], utc=True),
+            'Amount': [5000],
+            'Type': ['Income'],
+            'Category': ['Salary'],
+            'Group': ['Income'],
+            'Account': ['Checking'],
+            'Month': ['2024-01'],
+            'Full Description': ['PAYROLL'],
+            'Institution': ['Bank'],
+            'Account #': ['1234'],
+        })
+        ts = make_transactions_spreadsheet(df)
+        result = process_income_expense_data(ts, basic_filters)
+
+        assert len(result) == 1
+        assert result.iloc[0]['Savings_Rate'] == pytest.approx(100.0)
+        assert result.iloc[0]['Savings'] == pytest.approx(5000.0)
+
+    def test_only_expense_month_gives_zero_rate(self, basic_filters, make_transactions_spreadsheet):
+        """Month with only expenses should have 0% savings rate (no income to divide by)."""
+        df = pd.DataFrame({
+            'Date': pd.to_datetime(['2024-01-15'], utc=True),
+            'Amount': [-500],
+            'Type': ['Expense'],
+            'Category': ['Groceries'],
+            'Group': ['Food'],
+            'Account': ['Checking'],
+            'Month': ['2024-01'],
+            'Full Description': ['STORE'],
+            'Institution': ['Bank'],
+            'Account #': ['1234'],
+        })
+        ts = make_transactions_spreadsheet(df)
+        result = process_income_expense_data(ts, basic_filters)
+
+        assert result.iloc[0]['Savings_Rate'] == 0
+        assert result.iloc[0]['Expense'] == pytest.approx(-500.0)
+
+    def test_multiple_months_varying_ratios(self, basic_filters, make_transactions_spreadsheet):
+        """Each month gets its own savings rate, varying by income/expense mix."""
+        df = pd.DataFrame({
+            'Date': pd.to_datetime([
+                '2024-01-15', '2024-01-20',  # Jan: 1000 income, 200 expense
+                '2024-02-15', '2024-02-20',  # Feb: 1000 income, 800 expense
+            ], utc=True),
+            'Amount': [1000, -200, 1000, -800],
+            'Type': ['Income', 'Expense', 'Income', 'Expense'],
+            'Category': ['Salary', 'Groceries', 'Salary', 'Groceries'],
+            'Group': ['Income', 'Food', 'Income', 'Food'],
+            'Account': ['Checking'] * 4,
+            'Month': ['2024-01', '2024-01', '2024-02', '2024-02'],
+            'Full Description': ['PAY', 'STORE', 'PAY', 'STORE'],
+            'Institution': ['Bank'] * 4,
+            'Account #': ['1234'] * 4,
+        })
+        ts = make_transactions_spreadsheet(df)
+        result = process_income_expense_data(ts, basic_filters)
+
+        jan = result[result['Month'] == '2024-01'].iloc[0]
+        feb = result[result['Month'] == '2024-02'].iloc[0]
+
+        # Jan: (1000 - 200) / 1000 * 100 = 80%
+        assert jan['Savings_Rate'] == pytest.approx(80.0)
+        # Feb: (1000 - 800) / 1000 * 100 = 20%
+        assert feb['Savings_Rate'] == pytest.approx(20.0)
+
+    def test_empty_dataframe(self, basic_filters, make_transactions_spreadsheet, empty_transactions_df):
+        """Empty transactions produce empty result without errors."""
+        ts = make_transactions_spreadsheet(empty_transactions_df)
+        result = process_income_expense_data(ts, basic_filters)
+
+        assert len(result) == 0
+
+    def test_income_display_is_absolute(self, sample_transactions_df, basic_filters, make_transactions_spreadsheet):
+        """Income_Display and Expense_Display are absolute values."""
+        ts = make_transactions_spreadsheet(sample_transactions_df)
+        result = process_income_expense_data(ts, basic_filters)
+
+        assert (result['Income_Display'] >= 0).all()
+        assert (result['Expense_Display'] >= 0).all()
+
+    def test_net_equals_savings(self, sample_transactions_df, basic_filters, make_transactions_spreadsheet):
+        """Net column should equal Savings column."""
+        ts = make_transactions_spreadsheet(sample_transactions_df)
+        result = process_income_expense_data(ts, basic_filters)
+
+        for _, row in result.iterrows():
+            assert row['Net'] == pytest.approx(row['Savings'])
+
+    def test_exclude_groups_filter(self, make_transactions_spreadsheet):
+        """Excluding a group removes its transactions from the calculation."""
+        # Use the conftest scrubbed_transactions_df which has Bills, Food, Shopping, Income
+        filters = {
+            'exclude_groups': ['Food'],
+            'exclude_categories': [],
+            'filter_large_income': False,
+            'income_threshold': 50000,
+            'filter_large_expenses': False,
+            'expense_threshold': 50000,
+            'target_rate': 20,
+        }
+        # Default fixture has: Salary(Income), Groceries(Food), Electric(Bills),
+        # Salary(Income), Restaurants(Food), Amazon(Shopping), Salary(Income), Internet(Bills)
+        ts = make_transactions_spreadsheet()
+        result = process_income_expense_data(ts, filters)
+
+        # With Food excluded, expenses are: Electric(-95), Amazon(-200), Internet(-79.99)
+        total_expense = result['Expense'].sum()
+        assert abs(total_expense) == pytest.approx(95.0 + 200.0 + 79.99)

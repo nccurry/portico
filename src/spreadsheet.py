@@ -267,17 +267,18 @@ class TransactionsSpreadsheet(Spreadsheet):
 
         return df.groupby("Category").sum(numeric_only=True)
 
-    def get_monthly_amounts_by_category(
+    def _get_monthly_amounts(
             self,
-            category: str,
+            column: str,
+            value: str,
             start_date: datetime.datetime | None = None,
             end_date: datetime.datetime | None = None,
             invert_amount: bool = False
     ) -> pd.DataFrame:
-        """Get the total monthly transaction amount by a specified category"""
+        """Get the total monthly transaction amount filtered by a column value"""
         df = self.scrubbed_df.copy()
         df = df.sort_values(["Date"])
-        df = df[df["Category"] == category]
+        df = df[df[column] == value]
         df = df.filter(["Date", "Month", "Group", "Category", "Amount", "Type"])
 
         if start_date is None:
@@ -290,9 +291,17 @@ class TransactionsSpreadsheet(Spreadsheet):
         if invert_amount:
             df["Amount"] = df["Amount"] * -1
 
-        df = df.groupby("Month").sum(numeric_only=True)
+        return df.groupby("Month").sum(numeric_only=True)
 
-        return df
+    def get_monthly_amounts_by_category(
+            self,
+            category: str,
+            start_date: datetime.datetime | None = None,
+            end_date: datetime.datetime | None = None,
+            invert_amount: bool = False
+    ) -> pd.DataFrame:
+        """Get the total monthly transaction amount by a specified category"""
+        return self._get_monthly_amounts("Category", category, start_date, end_date, invert_amount)
 
     def get_monthly_amounts_by_group(
             self,
@@ -302,24 +311,7 @@ class TransactionsSpreadsheet(Spreadsheet):
             invert_amount: bool = False
     ) -> pd.DataFrame:
         """Get the total monthly transaction amount by a specified group"""
-        df = self.scrubbed_df.copy()
-        df = df.sort_values(["Date"])
-        df = df[df["Group"] == group]
-        df = df.filter(["Date", "Month", "Group", "Category", "Amount", "Type"])
-
-        if start_date is None:
-            start_date = df["Date"].min()
-        if end_date is None:
-            end_date = df["Date"].max()
-
-        df = df[df["Date"].between(start_date, end_date)]
-
-        if invert_amount:
-            df["Amount"] = df["Amount"] * -1
-
-        df = df.groupby("Month").sum(numeric_only=True)
-
-        return df
+        return self._get_monthly_amounts("Group", group, start_date, end_date, invert_amount)
 
     def get_transactions_by_category(
             self,
