@@ -133,3 +133,83 @@ class TestCalculateDistributionStats:
         # Bug: line 295 uses cumsum <= threshold, so it counts only those STRICTLY
         # at or below 768, which is just the first (500). That gives 1/5 = 20%.
         assert stats['pareto_pct'] == pytest.approx(40.0)
+
+    def test_single_transaction(self):
+        """Distribution stats for a single transaction."""
+        df = pd.DataFrame({
+            'Date': pd.to_datetime(['2024-01-05'], utc=True),
+            'Amount': [-100],
+            'Type': ['Expense'],
+            'Category': ['Groceries'],
+            'Group': ['Food'],
+            'Account': ['Checking'],
+            'Month': ['2024-01'],
+            'Full Description': ['STORE'],
+            'Institution': ['Bank'],
+            'Account #': ['1234'],
+        })
+        stats = calculate_distribution_stats(df)
+
+        assert stats['median'] == pytest.approx(100.0)
+        assert stats['mean'] == pytest.approx(100.0)
+        assert stats['p25'] == pytest.approx(100.0)
+        assert stats['p75'] == pytest.approx(100.0)
+        # Single transaction accounts for 100% of spending
+        assert stats['pareto_pct'] == pytest.approx(100.0)
+
+    def test_all_same_amount(self):
+        """All transactions with same amount."""
+        df = pd.DataFrame({
+            'Date': pd.to_datetime(['2024-01-01', '2024-01-02', '2024-01-03'], utc=True),
+            'Amount': [-50, -50, -50],
+            'Type': ['Expense'] * 3,
+            'Category': ['Coffee'] * 3,
+            'Group': ['Food'] * 3,
+            'Account': ['Checking'] * 3,
+            'Month': ['2024-01'] * 3,
+            'Full Description': ['CAFE'] * 3,
+            'Institution': ['Bank'] * 3,
+            'Account #': ['1234'] * 3,
+        })
+        stats = calculate_distribution_stats(df)
+
+        assert stats['median'] == pytest.approx(50.0)
+        assert stats['mean'] == pytest.approx(50.0)
+        assert stats['small_count'] == 0
+        assert stats['medium_count'] == 3
+        assert stats['large_count'] == 0
+
+    def test_date_range_filters_transactions(self, spending_transactions_df, basic_spending_filters, make_transactions_spreadsheet):
+        """Only transactions within the date range are included."""
+        ts = make_transactions_spreadsheet(spending_transactions_df)
+        # Only January
+        start = pd.Timestamp('2024-01-01', tz='UTC')
+        end = pd.Timestamp('2024-01-31', tz='UTC')
+
+        df_period, df_by_category = process_spending_data(ts, basic_spending_filters, start, end)
+
+        # February transaction should be excluded
+        assert all(d.month == 1 for d in df_period['Date'])
+
+    def test_zero_spending_returns_zero_percentages(self, basic_spending_filters, make_transactions_spreadsheet):
+        """No expenses in range produces zero percentages."""
+        df = pd.DataFrame({
+            'Date': pd.to_datetime(['2024-01-15'], utc=True),
+            'Amount': [5000],
+            'Type': ['Income'],
+            'Category': ['Salary'],
+            'Group': ['Income'],
+            'Account': ['Checking'],
+            'Month': ['2024-01'],
+            'Full Description': ['PAY'],
+            'Institution': ['Bank'],
+            'Account #': ['1234'],
+        })
+        ts = make_transactions_spreadsheet(df)
+        start = pd.Timestamp('2024-01-01', tz='UTC')
+        end = pd.Timestamp('2024-12-31', tz='UTC')
+
+        df_period, df_by_category = process_spending_data(ts, basic_spending_filters, start, end)
+
+        assert len(df_period) == 0
+        assert len(df_by_category) == 0

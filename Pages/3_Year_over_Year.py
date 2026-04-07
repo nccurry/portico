@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 
 from src.spreadsheet import load_transactions_data, TransactionsSpreadsheet
-from src.page_helpers import render_category_page, render_group_page
+from src.page_helpers import render_year_over_year_page
 
 
 def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
@@ -21,13 +21,13 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
                                      "Restaurants / Bars"] if c in all_categories]
         selected = st.multiselect("Select Categories", options=all_categories, default=default_cats)
         if selected:
-            render_category_page(selected, transactions_spreadsheet)
+            render_year_over_year_page(selected, transactions_spreadsheet, by="category")
 
     with tab2:
         default_groups = [g for g in ["Shopping", "Travel", "Entertainment"] if g in all_groups]
         selected = st.multiselect("Select Groups", options=all_groups, default=default_groups)
         if selected:
-            render_group_page(selected, transactions_spreadsheet)
+            render_year_over_year_page(selected, transactions_spreadsheet, by="group")
 
 
 def main() -> None:

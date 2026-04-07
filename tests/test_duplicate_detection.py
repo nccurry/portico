@@ -37,7 +37,7 @@ class TestFindDuplicatesEfficient:
             {'Date': '2024-01-15', 'Amount': -50.00},
         ])
         result = find_duplicates_efficient(df, days_threshold=3, min_amount=10,
-                                           check_same_account=False, check_same_category=False)
+                                           check_same_account=False, check_same_category=False, require_same_description=True)
         assert len(result) == 1
         assert result.iloc[0]['Amount'] == -50.00
 
@@ -47,7 +47,7 @@ class TestFindDuplicatesEfficient:
             {'Date': '2024-01-17', 'Amount': -75.00},
         ])
         result = find_duplicates_efficient(df, days_threshold=3, min_amount=10,
-                                           check_same_account=False, check_same_category=False)
+                                           check_same_account=False, check_same_category=False, require_same_description=True)
         assert len(result) == 1
         assert result.iloc[0]['Days_Apart'] <= 3
 
@@ -57,7 +57,7 @@ class TestFindDuplicatesEfficient:
             {'Date': '2024-01-15', 'Amount': -75.00},
         ])
         result = find_duplicates_efficient(df, days_threshold=3, min_amount=10,
-                                           check_same_account=False, check_same_category=False)
+                                           check_same_account=False, check_same_category=False, require_same_description=True)
         assert len(result) == 0
 
     def test_min_amount_filter(self):
@@ -67,7 +67,7 @@ class TestFindDuplicatesEfficient:
         ])
         # min_amount=10 should exclude these $5 transactions (filtered before the bug)
         result = find_duplicates_efficient(df, days_threshold=3, min_amount=10,
-                                           check_same_account=False, check_same_category=False)
+                                           check_same_account=False, check_same_category=False, require_same_description=True)
         assert len(result) == 0
 
     def test_same_account_filter(self):
@@ -77,7 +77,7 @@ class TestFindDuplicatesEfficient:
         ])
         # With check_same_account=True, different accounts should not match
         result = find_duplicates_efficient(df, days_threshold=3, min_amount=10,
-                                           check_same_account=True, check_same_category=False)
+                                           check_same_account=True, check_same_category=False, require_same_description=True)
         assert len(result) == 0
 
     def test_same_category_filter(self):
@@ -87,7 +87,7 @@ class TestFindDuplicatesEfficient:
         ])
         # With check_same_category=True, different categories should not match
         result = find_duplicates_efficient(df, days_threshold=3, min_amount=10,
-                                           check_same_account=False, check_same_category=True)
+                                           check_same_account=False, check_same_category=True, require_same_description=True)
         assert len(result) == 0
 
     def test_index_columns_after_merge(self):
@@ -98,7 +98,7 @@ class TestFindDuplicatesEfficient:
         ])
         # This should work without AttributeError
         result = find_duplicates_efficient(df, days_threshold=3, min_amount=10,
-                                           check_same_account=False, check_same_category=False)
+                                           check_same_account=False, check_same_category=False, require_same_description=True)
         # Verify the function produced valid output
         assert 'Date1' in result.columns
         assert 'Date2' in result.columns
@@ -110,7 +110,7 @@ class TestFindDuplicatesEfficient:
             {'Date': '2024-01-15', 'Amount': -50.00},
         ])
         result = find_duplicates_efficient(df, days_threshold=3, min_amount=10,
-                                           check_same_account=False, check_same_category=False)
+                                           check_same_account=False, check_same_category=False, require_same_description=True)
         assert len(result) == 0
 
     def test_three_way_duplicates(self):
@@ -121,7 +121,7 @@ class TestFindDuplicatesEfficient:
             {'Date': '2024-01-16', 'Amount': -50.00},
         ])
         result = find_duplicates_efficient(df, days_threshold=3, min_amount=10,
-                                           check_same_account=False, check_same_category=False)
+                                           check_same_account=False, check_same_category=False, require_same_description=True)
         # 3 transactions produce 3 pairs: (0,1), (0,2), (1,2)
         assert len(result) == 3
 
@@ -132,9 +132,70 @@ class TestFindDuplicatesEfficient:
             {'Date': '2024-01-15', 'Amount': -100.00, 'Account': 'Checking', 'Category': 'Dining'},
         ])
         result = find_duplicates_efficient(df, days_threshold=3, min_amount=10,
-                                           check_same_account=True, check_same_category=True)
+                                           check_same_account=True, check_same_category=True, require_same_description=True)
         # Same account but different category — should not match
         assert len(result) == 0
+
+    def test_different_descriptions_not_flagged(self):
+        """Same amount, same day, same account, but different descriptions are not duplicates."""
+        df = _make_df([
+            {'Date': '2024-01-15', 'Amount': -20.95, 'Full Description': 'WB Studio Enterprises Inc'},
+            {'Date': '2024-01-15', 'Amount': -20.95, 'Full Description': 'UBER   *TRIP'},
+        ])
+        result = find_duplicates_efficient(df, days_threshold=3, min_amount=10,
+                                           check_same_account=True, check_same_category=True,
+                                           require_same_description=True)
+        assert len(result) == 0
+
+    def test_different_descriptions_flagged_when_disabled(self):
+        """When description matching is off, same amount + same day matches regardless."""
+        df = _make_df([
+            {'Date': '2024-01-15', 'Amount': -20.95, 'Full Description': 'WB Studio Enterprises Inc'},
+            {'Date': '2024-01-15', 'Amount': -20.95, 'Full Description': 'UBER   *TRIP'},
+        ])
+        result = find_duplicates_efficient(df, days_threshold=3, min_amount=10,
+                                           check_same_account=False, check_same_category=False,
+                                           require_same_description=False)
+        assert len(result) == 1
+
+    def test_description_matching_case_insensitive(self):
+        """Description comparison should be case-insensitive."""
+        df = _make_df([
+            {'Date': '2024-01-15', 'Amount': -50.00, 'Full Description': 'STORE PURCHASE'},
+            {'Date': '2024-01-15', 'Amount': -50.00, 'Full Description': 'store purchase'},
+        ])
+        result = find_duplicates_efficient(df, days_threshold=3, min_amount=10,
+                                           check_same_account=False, check_same_category=False,
+                                           require_same_description=True)
+        assert len(result) == 1
+
+    def test_investment_transfers_same_amount_different_descriptions(self):
+        """Recurring investment transactions with same amount but different descriptions."""
+        df = _make_df([
+            {'Date': '2024-01-17', 'Amount': -500, 'Account': 'Individual - TOD',
+             'Category': 'Stock Purchase', 'Group': 'Investment',
+             'Full Description': 'CALVERT U.S. LRG CAP - YOU BOUGHT PERIODIC INVESTMENT'},
+            {'Date': '2024-01-17', 'Amount': -500, 'Account': 'Individual - TOD',
+             'Category': 'Transfer', 'Group': 'Transfer',
+             'Full Description': 'FIDELITY GOVERNMENT MONEY MARKET - PURCHASE INTO CORE ACCOUNT'},
+        ])
+        result = find_duplicates_efficient(df, days_threshold=3, min_amount=10,
+                                           check_same_account=True, check_same_category=False,
+                                           require_same_description=True)
+        assert len(result) == 0
+
+    def test_real_duplicate_same_description(self):
+        """Actual duplicate: same amount, account, description within days threshold."""
+        df = _make_df([
+            {'Date': '2024-01-15', 'Amount': -100.39, 'Account': 'Hilton Card',
+             'Category': 'Restaurants', 'Full Description': 'TST* TWO HANDS - FRANKLIN TN'},
+            {'Date': '2024-01-15', 'Amount': -100.39, 'Account': 'Hilton Card',
+             'Category': 'Restaurants', 'Full Description': 'TST* TWO HANDS - FRANKLIN TN'},
+        ])
+        result = find_duplicates_efficient(df, days_threshold=3, min_amount=10,
+                                           check_same_account=True, check_same_category=True,
+                                           require_same_description=True)
+        assert len(result) == 1
 
     def test_empty_input(self):
         df = pd.DataFrame({
@@ -150,5 +211,5 @@ class TestFindDuplicatesEfficient:
             'Account #': pd.Series([], dtype=str),
         })
         result = find_duplicates_efficient(df, days_threshold=3, min_amount=10,
-                                           check_same_account=False, check_same_category=False)
+                                           check_same_account=False, check_same_category=False, require_same_description=True)
         assert result.empty

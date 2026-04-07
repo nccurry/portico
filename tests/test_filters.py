@@ -266,3 +266,45 @@ class TestApplyTransactionFilters:
         filters = {"include_categories": ["Groceries"]}
         result = apply_transaction_filters(df, filters)
         assert len(result) == 1
+
+    def test_both_large_income_and_expense_filters(self):
+        """Both income and expense threshold filters applied simultaneously."""
+        df = _df_from_rows(
+            _make_row("2024-01-01", "Salary", 3000.0, "Income", "Income"),
+            _make_row("2024-01-02", "Bonus", 25000.0, "Income", "Income"),
+            _make_row("2024-01-03", "Groceries", -100.0, "Food", "Expense"),
+            _make_row("2024-01-04", "Car", -8000.0, "Transport", "Expense"),
+        )
+        filters = {
+            "filter_large_income": True,
+            "income_threshold": 10000,
+            "filter_large_expenses": True,
+            "expense_threshold": 5000,
+        }
+        result = apply_transaction_filters(df, filters)
+        assert "Bonus" not in result["Category"].values
+        assert "Car" not in result["Category"].values
+        assert "Salary" in result["Category"].values
+        assert "Groceries" in result["Category"].values
+        assert len(result) == 2
+
+    def test_transfer_excluded_even_in_include_groups(self):
+        """Transfer group is always excluded, even if explicitly included."""
+        df = _df_from_rows(
+            _make_row("2024-01-01", "Groceries", -50.0, "Food", "Expense"),
+            _make_row("2024-01-02", "Bank Xfer", -500.0, "Transfer", "Transfer"),
+        )
+        filters = {"include_groups": ["Food", "Transfer"]}
+        result = apply_transaction_filters(df, filters)
+        assert "Transfer" not in result["Group"].values
+        assert len(result) == 1
+
+    def test_include_groups_with_exclude_categories(self, scrubbed_transactions_df):
+        """Include groups takes precedence — exclude_categories is ignored when includes are set."""
+        filters = {
+            "include_groups": ["Food"],
+            "exclude_categories": ["Groceries"],
+        }
+        result = apply_transaction_filters(scrubbed_transactions_df, filters)
+        # Include takes precedence, so Groceries is still included (it's in Food group)
+        assert "Groceries" in result["Category"].values

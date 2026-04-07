@@ -5,35 +5,42 @@ from src.spreadsheet import load_transactions_data, load_balance_history_data, T
 from src.constants import MIN_DUPLICATE_AMOUNT, DEFAULT_DUPLICATE_DAYS_THRESHOLD
 
 
+def normalize_description(desc: str) -> str:
+    """Normalize a transaction description for comparison."""
+    if not isinstance(desc, str):
+        return ""
+    return desc.strip().lower()
+
+
 def find_duplicates_efficient(
     df: pd.DataFrame,
     days_threshold: int,
     min_amount: float,
     check_same_account: bool,
-    check_same_category: bool
+    check_same_category: bool,
+    require_same_description: bool,
 ) -> pd.DataFrame:
-    """Efficiently find potential duplicate transactions using vectorized operations.
-    
-    This replaces the O(n²) nested loop with pandas merge operations for much better performance.
-    
+    """Find potential duplicate transactions using vectorized operations.
+
     Args:
         df: Transaction dataframe
         days_threshold: Maximum days apart to consider duplicates
         min_amount: Minimum transaction amount to check
         check_same_account: Only flag if same account
         check_same_category: Only flag if same category
-        
+        require_same_description: Only flag if descriptions match
+
     Returns:
         DataFrame of potential duplicate pairs
     """
-    # Filter to reasonable amounts
     df_filtered = df[df['Amount'].abs() >= min_amount].copy()
-    
+
     if df_filtered.empty:
         return pd.DataFrame()
-    
+
     df_filtered = df_filtered.sort_values(['Amount', 'Date']).reset_index(drop=True)
     df_filtered['_row_id'] = range(len(df_filtered))
+    df_filtered['_norm_desc'] = df_filtered['Full Description'].apply(normalize_description)
 
     # Self-join on amount to find matching transaction amounts
     duplicates = df_filtered.merge(
@@ -44,23 +51,27 @@ def find_duplicates_efficient(
 
     # Filter to only pairs where first transaction comes before second
     duplicates = duplicates[duplicates['_row_id_1'] < duplicates['_row_id_2']]
-    
+
     # Calculate date difference in days
     duplicates['Days_Apart'] = (
         duplicates['Date_2'] - duplicates['Date_1']
     ).dt.days.abs()
-    
+
     # Apply date threshold filter
     duplicates = duplicates[duplicates['Days_Apart'] <= days_threshold]
-    
+
     # Apply account filter if requested
     if check_same_account:
         duplicates = duplicates[duplicates['Account_1'] == duplicates['Account_2']]
-    
+
     # Apply category filter if requested
     if check_same_category:
         duplicates = duplicates[duplicates['Category_1'] == duplicates['Category_2']]
-    
+
+    # Apply description filter if requested
+    if require_same_description:
+        duplicates = duplicates[duplicates['_norm_desc_1'] == duplicates['_norm_desc_2']]
+
     # Format output dataframe
     result = pd.DataFrame({
         'Date1': duplicates['Date_1'],
@@ -74,7 +85,7 @@ def find_duplicates_efficient(
         'Description2': duplicates['Full Description_2'],
         'Month': duplicates['Month_1']
     })
-    
+
     return result
 
 
@@ -112,23 +123,30 @@ def configure_page(
                 value=True,
                 help="Only flag as duplicate if on the same account"
             )
-            
+
             check_same_category = st.checkbox(
                 "Require Same Category",
                 value=False,
                 help="Only flag as duplicate if same category"
             )
-    
+
+            require_same_description = st.checkbox(
+                "Require Same Description",
+                value=True,
+                help="Only flag as duplicate if descriptions match"
+            )
+
     # Get transactions
     df = transactions_spreadsheet.scrubbed_df.copy()
-    
+
     # Find potential duplicates using efficient vectorized method
     df_duplicates = find_duplicates_efficient(
         df=df,
         days_threshold=days_threshold,
         min_amount=min_amount,
         check_same_account=check_same_account,
-        check_same_category=check_same_category
+        check_same_category=check_same_category,
+        require_same_description=require_same_description,
     )
     
     # Show summary
