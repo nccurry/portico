@@ -422,15 +422,8 @@ class TestGetAmountByGroup:
         result = ts.get_amount_by_group(invert_amount=True)
         assert result.loc["Food", "Amount"] == pytest.approx(140)
 
-    def test_ignore_types_bug(self, make_transactions_spreadsheet):
-        """ignore_types should filter by Type column, not Group.
-
-        We create data where a group named 'MyGroup' has type 'Transfer'.
-        Ignoring type 'Transfer' should remove the row but keep 'MyGroup'
-        if it has other rows. The bug filters by Group instead of Type,
-        so passing ignore_types=['Transfer'] won't actually remove
-        Transfer-typed rows (unless the Group is also called 'Transfer').
-        """
+    def test_ignore_types_filters_type_column(self, make_transactions_spreadsheet):
+        """ignore_types=['Transfer'] removes Transfer-typed rows regardless of group name."""
         df = _transactions_df([
             {"Date": "2024-01-01", "Category": "A", "Amount": 100, "Account": "C",
              "Month": "2024-01", "Group": "Savings", "Type": "Transfer"},

@@ -64,15 +64,7 @@ class TestDetectRecurringTransactions:
         assert len(result) == 0
 
     def test_division_by_zero_count_one(self):
-        """A single occurrence should not crash due to division by zero.
-
-        The bug: line 72 computes (Last_Date - First_Date).days / (Count - 1).
-        When Count==1, this divides by zero.  Pandas silently produces nan
-        (0 days / 0 = nan), which fillna(0) turns to 0.  The cadence filter
-        then removes the row.  So the function doesn't crash, but the
-        computation is still mathematically wrong -- it should guard against
-        Count==1 explicitly rather than relying on nan propagation.
-        """
+        """A single occurrence should not crash on the days-between calculation."""
         df = pd.DataFrame({
             'Date': pd.to_datetime(['2024-01-15'], utc=True),
             'Amount': [-9.99],
@@ -85,10 +77,7 @@ class TestDetectRecurringTransactions:
             'Institution': ['Bank'],
             'Account #': ['1234'],
         })
-        # With min_occurrences=1 and min_months=1, the single row should survive
-        # the occurrence/month filters.  The bug is that Days_Between is computed
-        # via division by zero.  We assert that the intermediate grouped df
-        # should never contain nan or inf in Days_Between.
+        # With min_occurrences=1, a single row should not produce nan or inf in Days_Between.
         import warnings
         with warnings.catch_warnings():
             warnings.simplefilter("error")

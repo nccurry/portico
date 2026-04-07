@@ -127,9 +127,8 @@ class TestApplyTransactionFilters:
         assert len(result) == 2
 
     def test_include_groups_and_categories_union(self, scrubbed_transactions_df):
-        """When both include_groups and include_categories are set, expect the
-        union (OR) of rows matching either filter.  Currently the elif on
-        line 222 causes include_categories to be skipped entirely."""
+        """When both include_groups and include_categories are set, rows matching
+        either filter are included (union/OR)."""
         filters = {
             "include_groups": ["Food"],
             "include_categories": ["Electric"],

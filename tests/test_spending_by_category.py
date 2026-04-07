@@ -130,8 +130,6 @@ class TestCalculateDistributionStats:
         # cumsum: 500, 800, 900, 950, 960
         # Transaction at cumsum=800 pushes past 768, so 2 transactions account for 80%
         # Expected pareto_pct = 2/5 * 100 = 40%
-        # Bug: line 295 uses cumsum <= threshold, so it counts only those STRICTLY
-        # at or below 768, which is just the first (500). That gives 1/5 = 20%.
         assert stats['pareto_pct'] == pytest.approx(40.0)
 
     def test_single_transaction(self):
