@@ -27,50 +27,41 @@ def configure_page(
 ) -> None:
     st.header("Account Balances")
     
-    # Get all account groups (filter out NaN/None values and convert to strings)
     groups = balance_history_spreadsheet.get_groups()
     groups = [str(g) for g in groups if pd.notna(g) and g != '']
-    
-    # Calculate total net worth across all groups
-    # Assets add to net worth, Liabilities subtract
+
+    # Compute net worth: assets add, liabilities subtract
     total_net_worth = 0.0
     group_balances = {}
-    group_classes = {}  # Track whether each group is Asset or Liability
-    group_accounts = {}  # Cache accounts_df to avoid redundant calls
+    group_classes = {}
+    group_accounts = {}
 
     for group in groups:
         accounts_df, total = balance_history_spreadsheet.get_latest_balance_by_group(group)
         group_accounts[group] = accounts_df
-        
-        # Check if this group contains liabilities (debt)
-        account_class = "Asset"  # Default
+
+        account_class = "Asset"
         if not accounts_df.empty:
-            # Get the class for accounts in this group
             df_check = balance_history_spreadsheet.scrubbed_df[
                 balance_history_spreadsheet.scrubbed_df["Group"] == group
             ]
             if not df_check.empty:
                 account_class = df_check.iloc[0]["Class"]
-        
-        # Store class for later use in sparkline coloring
+
         group_classes[group] = account_class
-        
-        # Liabilities subtract from net worth, Assets add
+
         if account_class == "Liability":
             total_net_worth -= total
         else:
             total_net_worth += total
-        
-        # Always store balance as positive for display
+
         group_balances[group] = total
-    
-    # Display total net worth prominently
+
     st.metric(
         label="Total Net Worth",
         value=f"${total_net_worth:,.2f}"
     )
-    
-    # Calculate net worth sparkline (cached for performance)
+
     end_date = pd.Timestamp.now(tz='UTC')
     start_date = end_date - timedelta(days=SPARKLINE_HISTORY_DAYS)
     
@@ -80,7 +71,6 @@ def configure_page(
         end_date
     )
     
-    # Display net worth sparkline using helper function
     nw_chart = create_sparkline_chart(
         df=df_net_worth,
         value_column='NetWorth',
@@ -94,36 +84,31 @@ def configure_page(
     
     st.divider()
     
-    # Display each group with its accounts
     cols = st.columns(3)
-    
+
     for idx, group in enumerate(sorted(groups)):
         with cols[idx % 3]:
             accounts_df = group_accounts[group]
             group_total = group_balances[group]
-            
-            # Show group total as a metric
+
             st.metric(
                 label=group,
                 value=f"${group_total:,.2f}"
             )
-            
-            # Get 12-month balance history for sparkline (cached)
+
             end_date = pd.Timestamp.now(tz='UTC')
             start_date = end_date - timedelta(days=SPARKLINE_HISTORY_DAYS)
-            
+
             df_sparkline = calculate_group_sparkline(
                 balance_history_spreadsheet.scrubbed_df,
                 group,
                 start_date,
                 end_date
             )
-            
-            # Determine color based on account class (red for liabilities, green for assets)
+
             is_liability = group_classes.get(group) == "Liability"
             sparkline_color = COLOR_LIABILITY if is_liability else COLOR_ASSET
-            
-            # Create sparkline chart using helper function
+
             chart = create_sparkline_chart(
                 df=df_sparkline,
                 value_column='Balance',
@@ -135,7 +120,6 @@ def configure_page(
             )
             st.altair_chart(chart, width='stretch')
             
-            # Show individual accounts in an expander
             with st.expander(f"View {group} Accounts"):
                 if not accounts_df.empty:
                     st.dataframe(

@@ -6,9 +6,6 @@ from importlib import import_module
 _mod = import_module('Pages.4_Duplicate_Detection')
 find_duplicates_efficient = _mod.find_duplicates_efficient
 
-# The bug on line 48 (duplicates.index_1 doesn't exist after reset_index(drop=True))
-# crashes any call where the merge produces at least one row, which is any call
-# with at least one amount whose absolute value >= min_amount.
 
 def _make_df(rows):
     """Build a transaction DataFrame from a list of dicts with sensible defaults."""
@@ -65,7 +62,7 @@ class TestFindDuplicatesEfficient:
             {'Date': '2024-01-15', 'Amount': -5.00},
             {'Date': '2024-01-15', 'Amount': -5.00},
         ])
-        # min_amount=10 should exclude these $5 transactions (filtered before the bug)
+        # min_amount=10 should exclude these $5 transactions
         result = find_duplicates_efficient(df, days_threshold=3, min_amount=10,
                                            check_same_account=False, check_same_category=False, require_same_description=True)
         assert len(result) == 0
@@ -91,7 +88,7 @@ class TestFindDuplicatesEfficient:
         assert len(result) == 0
 
     def test_index_columns_after_merge(self):
-        """After merge, the code references duplicates.index_1 which doesn't exist."""
+        """Result contains expected output columns."""
         df = _make_df([
             {'Date': '2024-01-15', 'Amount': -50.00},
             {'Date': '2024-01-15', 'Amount': -50.00},
