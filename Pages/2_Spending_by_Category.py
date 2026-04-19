@@ -476,11 +476,8 @@ def configure_page(
     """Render sidebar filters, category breakdowns, and distribution charts."""
     st.header("Spending by Category")
 
-    # Get all categories and groups for filter options
-    all_categories = sorted([str(c) for c in transactions_spreadsheet.scrubbed_df['Category'].unique()
-                             if pd.notna(c) and str(c).strip()])
-    all_groups = sorted([str(g) for g in transactions_spreadsheet.scrubbed_df['Group'].unique()
-                         if pd.notna(g) and str(g).strip() and g != 'Transfer'])
+    all_categories = transactions_spreadsheet.get_all_categories()
+    all_groups = transactions_spreadsheet.get_all_groups()
 
     # Render filter controls
     filters = render_spending_filters(all_categories, all_groups)

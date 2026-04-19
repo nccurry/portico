@@ -2,9 +2,8 @@
 import pytest
 import pandas as pd
 
-from importlib import import_module
+from tests._pages import top_transactions as _mod
 
-_mod = import_module('Pages.8_Top_Transactions')
 get_top_transactions = _mod.get_top_transactions
 get_category_breakdown = _mod.get_category_breakdown
 find_recurring_large_expenses = _mod.find_recurring_large_expenses

@@ -2,12 +2,10 @@
 import pandas as pd
 import numpy as np
 
-from importlib import import_module
-
 from src.page_helpers import extract_merchant_name
 from tests._helpers import _make_merchant_df
+from tests._pages import merchant_analysis as _mod
 
-_mod = import_module('Pages.6_Merchant_Analysis')
 analyze_merchants = _mod.analyze_merchants
 
 

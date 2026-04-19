@@ -1,11 +1,24 @@
 """Classes for interacting with Google Sheets spreadsheets."""
 import datetime
-from typing import ClassVar, override
+from abc import ABCMeta, abstractmethod
+from typing import ClassVar, TypedDict, override
 
+import pandas as pd
 import streamlit as st
 from streamlit_gsheets import GSheetsConnection
-import pandas as pd
-from abc import ABCMeta, abstractmethod
+
+
+class NetWorthSummary(TypedDict):
+    """Aggregated net worth view for the Home page.
+
+    All four fields are derived from a single ``BalanceHistorySpreadsheet`` so
+    that callers (Home.py and unit tests) share one calculation surface.
+    """
+
+    total_net_worth: float
+    group_balances: dict[str, float]
+    group_classes: dict[str, str]
+    group_accounts: dict[str, pd.DataFrame]
 
 
 class Spreadsheet(metaclass=ABCMeta):
@@ -170,6 +183,20 @@ class TransactionsSpreadsheet(Spreadsheet):
     ) -> list[str]:
         """Return the unique list of account group names"""
         return list(self.scrubbed_df.sort_values("Group")["Group"].unique())
+
+    def get_all_categories(self) -> list[str]:
+        """Return sorted unique categories, excluding NaN and blank strings."""
+        return sorted(
+            str(c) for c in self.scrubbed_df["Category"].unique()
+            if pd.notna(c) and str(c).strip()
+        )
+
+    def get_all_groups(self) -> list[str]:
+        """Return sorted unique groups, excluding NaN, blanks, and Transfer."""
+        return sorted(
+            str(g) for g in self.scrubbed_df["Group"].unique()
+            if pd.notna(g) and str(g).strip() and g != "Transfer"
+        )
 
     def get_group_categories(
         self,
@@ -428,21 +455,7 @@ class BalanceHistorySpreadsheet(Spreadsheet):
             end_date: datetime.datetime | None = None
     ) -> tuple[pd.DataFrame, float]:
         """Summarize balance information by balance_history group"""
-        df = self.scrubbed_df.copy()
-
-        start_date = df["Date"].min()
-        if end_date is None:
-            end_date = df["Date"].max()
-        df = df[df["Date"].between(start_date, end_date)]
-
-        df = df.sort_values(by=['Date', 'Time'])
-        df = df.drop_duplicates('Account ID', keep='last')
-        df = df[df["Group"] == group]
-        df = df.filter(["Account", "Balance"])
-
-        total = float(df["Balance"].sum())
-
-        return df, total
+        return get_latest_balance_by_group(self.scrubbed_df, group, end_date)
 
     def get_balance_history_by_group(
             self,
@@ -502,6 +515,109 @@ class BalanceHistorySpreadsheet(Spreadsheet):
         df = df.bfill().ffill()  # bfill fills empty start dates, ffill fills empty middle dates
 
         return df
+
+
+def get_latest_balance_by_group(
+    balance_history_df: pd.DataFrame,
+    group: str,
+    end_date: datetime.datetime | None = None,
+) -> tuple[pd.DataFrame, float]:
+    """Summarize the latest balance for each account in *group*.
+
+    Pure function over a scrubbed BalanceHistory DataFrame; lifted out of
+    ``BalanceHistorySpreadsheet.get_latest_balance_by_group`` so it can be
+    called and tested without instantiating the full spreadsheet object.
+
+    Parameters
+    ----------
+    balance_history_df:
+        Scrubbed BalanceHistory data with columns ``Date``, ``Time``,
+        ``Account``, ``Account ID``, ``Group``, ``Balance``.
+    group:
+        The account group to summarize (e.g. ``"Checking"``).
+    end_date:
+        Upper bound on observations. Defaults to ``balance_history_df["Date"].max()``
+        when ``None``.
+
+    Returns
+    -------
+    tuple[pd.DataFrame, float]
+        A two-column ``[Account, Balance]`` frame with one row per account
+        (using each account's most recent observation), and the total of
+        those balances.
+    """
+    df = balance_history_df.copy()
+
+    start_date = df["Date"].min()
+    if end_date is None:
+        end_date = df["Date"].max()
+    df = df[df["Date"].between(start_date, end_date)]
+
+    df = df.sort_values(by=["Date", "Time"])
+    df = df.drop_duplicates("Account ID", keep="last")
+    df = df[df["Group"] == group]
+    df = df.filter(["Account", "Balance"])
+
+    total = float(df["Balance"].sum())
+    return df, total
+
+
+def calculate_net_worth_summary(
+    balance_history: BalanceHistorySpreadsheet,
+) -> NetWorthSummary:
+    """Compute the per-group net worth summary used by the Home page.
+
+    For each non-empty group:
+        * derive the group's account class from the first row's ``Class`` value
+          (defaults to ``"Asset"`` when the group is empty)
+        * pull each account's most recent balance via
+          :func:`get_latest_balance_by_group`
+        * add the group total to ``total_net_worth``, subtracting it when the
+          group is a ``Liability``
+
+    Parameters
+    ----------
+    balance_history:
+        Loaded ``BalanceHistorySpreadsheet``.
+
+    Returns
+    -------
+    NetWorthSummary
+        Dict with ``total_net_worth``, ``group_balances``, ``group_classes``,
+        and ``group_accounts``.
+    """
+    raw_groups = balance_history.get_groups()
+    groups = [str(g) for g in raw_groups if pd.notna(g) and g != ""]
+
+    total_net_worth = 0.0
+    group_balances: dict[str, float] = {}
+    group_classes: dict[str, str] = {}
+    group_accounts: dict[str, pd.DataFrame] = {}
+
+    scrubbed = balance_history.scrubbed_df
+    for group in groups:
+        accounts_df, total = balance_history.get_latest_balance_by_group(group)
+        group_accounts[group] = accounts_df
+
+        account_class = "Asset"
+        df_check = scrubbed[scrubbed["Group"] == group]
+        if not df_check.empty:
+            account_class = str(df_check.iloc[0]["Class"])
+        group_classes[group] = account_class
+
+        if account_class == "Liability":
+            total_net_worth -= total
+        else:
+            total_net_worth += total
+
+        group_balances[group] = total
+
+    return NetWorthSummary(
+        total_net_worth=total_net_worth,
+        group_balances=group_balances,
+        group_classes=group_classes,
+        group_accounts=group_accounts,
+    )
 
 
 # Helper function for efficient sparkline calculation

@@ -352,9 +352,7 @@ def configure_page(
             format_func=lambda x: f"Last {x} Months"
         )
 
-    # Derive all groups from data
-    all_groups = sorted([str(g) for g in transactions_spreadsheet.scrubbed_df['Group'].unique()
-                         if pd.notna(g) and str(g).strip() and g != 'Transfer'])
+    all_groups = transactions_spreadsheet.get_all_groups()
 
     # Render filter controls and get selections
     filters = render_income_expense_filters(all_groups)

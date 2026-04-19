@@ -2,9 +2,8 @@
 import pytest
 import pandas as pd
 
-from importlib import import_module
+from tests._pages import spending_by_category as _mod
 
-_mod = import_module('Pages.2_Spending_by_Category')
 process_spending_data = _mod.process_spending_data
 calculate_distribution_stats = _mod.calculate_distribution_stats
 

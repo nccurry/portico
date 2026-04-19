@@ -2,12 +2,10 @@
 import pytest
 import pandas as pd
 
-from importlib import import_module
-
 from tests._helpers import _make_recurring_df
+from tests._pages import subscriptions
 
-_mod = import_module('Pages.5_Subscriptions')
-detect_recurring_transactions = _mod.detect_recurring_transactions
+detect_recurring_transactions = subscriptions.detect_recurring_transactions
 
 
 class TestDetectRecurringTransactions:

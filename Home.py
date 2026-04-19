@@ -3,12 +3,13 @@ import pandas as pd
 from datetime import timedelta
 
 from src.spreadsheet import (
-    load_transactions_data,
-    load_balance_history_data,
+    BalanceHistorySpreadsheet,
+    TransactionsSpreadsheet,
     calculate_group_sparkline,
     calculate_net_worth_sparkline,
-    TransactionsSpreadsheet,
-    BalanceHistorySpreadsheet
+    calculate_net_worth_summary,
+    load_balance_history_data,
+    load_transactions_data,
 )
 from src.page_helpers import create_sparkline_chart
 from src.constants import (
@@ -29,35 +30,12 @@ def configure_page(
     """Render the home page: net worth sparkline and per-group balance cards."""
     st.header("Account Balances")
 
-    groups = balance_history_spreadsheet.get_groups()
-    groups = [str(g) for g in groups if pd.notna(g) and g != '']
-
-    # Compute net worth: assets add, liabilities subtract
-    total_net_worth = 0.0
-    group_balances = {}
-    group_classes = {}
-    group_accounts = {}
-
-    for group in groups:
-        accounts_df, total = balance_history_spreadsheet.get_latest_balance_by_group(group)
-        group_accounts[group] = accounts_df
-
-        account_class = "Asset"
-        if not accounts_df.empty:
-            df_check = balance_history_spreadsheet.scrubbed_df[
-                balance_history_spreadsheet.scrubbed_df["Group"] == group
-            ]
-            if not df_check.empty:
-                account_class = df_check.iloc[0]["Class"]
-
-        group_classes[group] = account_class
-
-        if account_class == "Liability":
-            total_net_worth -= total
-        else:
-            total_net_worth += total
-
-        group_balances[group] = total
+    summary = calculate_net_worth_summary(balance_history_spreadsheet)
+    total_net_worth = summary["total_net_worth"]
+    group_balances = summary["group_balances"]
+    group_classes = summary["group_classes"]
+    group_accounts = summary["group_accounts"]
+    groups = list(group_balances.keys())
 
     metric_col, lookback_col = st.columns([3, 2])
     with metric_col:
