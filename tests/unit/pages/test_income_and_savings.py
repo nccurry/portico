@@ -1,15 +1,9 @@
 """Tests for Pages/1_Income_and_Savings.py - process_income_expense_data."""
 import pytest
 import pandas as pd
-import sys
-import os
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'Pages'))
+from tests._pages import income_and_savings as _mod
 
-from importlib import import_module
-
-# Import the module from Pages directory
-_mod = import_module('Pages.1_Income_and_Savings')
 process_income_expense_data = _mod.process_income_expense_data
 
 

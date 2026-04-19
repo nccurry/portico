@@ -1,11 +1,9 @@
 """Tests for Pages/4_Duplicate_Detection.py - find_duplicates_efficient."""
 import pandas as pd
 
-from importlib import import_module
-
 from tests._helpers import _make_df
+from tests._pages import duplicate_detection as _mod
 
-_mod = import_module('Pages.4_Duplicate_Detection')
 find_duplicates_efficient = _mod.find_duplicates_efficient
 
 

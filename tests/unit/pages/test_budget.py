@@ -1,6 +1,5 @@
 """Tests for budget functionality: CategoriesSpreadsheet budget parsing and budget vs actual."""
 from collections.abc import Callable
-from importlib import import_module
 from typing import Any
 from unittest.mock import patch
 
@@ -9,8 +8,7 @@ import pytest
 
 from src.spreadsheet import Spreadsheet, CategoriesSpreadsheet
 from tests._helpers import _transactions_df
-
-_mod = import_module('Pages.7_Budget')
+from tests._pages import budget as _mod
 
 
 # ---------------------------------------------------------------------------

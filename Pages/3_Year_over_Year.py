@@ -1,5 +1,4 @@
 import streamlit as st
-import pandas as pd
 
 from src.spreadsheet import load_transactions_data, TransactionsSpreadsheet
 from src.page_helpers import render_year_over_year_page
@@ -9,10 +8,8 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
     """Render category/group selectors and year-over-year comparison charts."""
     st.header("Year over Year Comparison")
 
-    all_categories = sorted([str(c) for c in transactions_spreadsheet.scrubbed_df['Category'].unique()
-                             if pd.notna(c) and str(c).strip()])
-    all_groups = sorted([str(g) for g in transactions_spreadsheet.scrubbed_df['Group'].unique()
-                         if pd.notna(g) and str(g).strip() and g != 'Transfer'])
+    all_categories = transactions_spreadsheet.get_all_categories()
+    all_groups = transactions_spreadsheet.get_all_groups()
 
     tab1, tab2 = st.tabs(["By Category", "By Group"])
 

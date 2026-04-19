@@ -6,8 +6,6 @@ from typing import Any
 
 import pandas as pd
 
-from src.spreadsheet import BalanceHistorySpreadsheet
-
 
 def _ts(date_str: str) -> pd.Timestamp:
     """Return a UTC-aware Timestamp from a 'YYYY-MM-DD' string."""
@@ -150,44 +148,4 @@ def _df_from_rows(*rows: dict[str, Any]) -> pd.DataFrame:
     return pd.DataFrame(list(rows))
 
 
-def extract_categories_and_groups(df: pd.DataFrame) -> tuple[list[str], list[str]]:
-    """Replicate the extraction logic from configure_page."""
-    all_categories = sorted([str(c) for c in df['Category'].unique()
-                             if pd.notna(c) and str(c).strip()])
-    all_groups = sorted([str(g) for g in df['Group'].unique()
-                         if pd.notna(g) and str(g).strip() and g != 'Transfer'])
-    return all_categories, all_groups
 
-
-def calculate_net_worth(
-    balance_spreadsheet: BalanceHistorySpreadsheet,
-) -> tuple[float, dict[str, float], dict[str, str]]:
-    """Replicate the net worth calculation from Home.configure_page."""
-    groups = balance_spreadsheet.get_groups()
-    groups = [str(g) for g in groups if pd.notna(g) and g != '']
-
-    total_net_worth = 0.0
-    group_balances: dict[str, float] = {}
-    group_classes: dict[str, str] = {}
-
-    for group in groups:
-        accounts_df, total = balance_spreadsheet.get_latest_balance_by_group(group)
-
-        account_class = "Asset"
-        if not accounts_df.empty:
-            df_check = balance_spreadsheet.scrubbed_df[
-                balance_spreadsheet.scrubbed_df["Group"] == group
-            ]
-            if not df_check.empty:
-                account_class = df_check.iloc[0]["Class"]
-
-        group_classes[group] = account_class
-
-        if account_class == "Liability":
-            total_net_worth -= total
-        else:
-            total_net_worth += total
-
-        group_balances[group] = total
-
-    return total_net_worth, group_balances, group_classes

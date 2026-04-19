@@ -27,7 +27,7 @@ ignore = [
 # and public-return-annotation rules. ANN202 is intentionally enforced so that
 # any private helper or class-scoped @pytest.fixture method left in a test file
 # is forced to declare a return type.
-"tests/test_*.py" = [
+"tests/**/test_*.py" = [
     "ANN001",  # fixture-injected args don't need annotations on the test method
     "ANN201",  # def test_* doesn't need a return annotation
 ]
@@ -42,9 +42,15 @@ warn_redundant_casts = true
 disallow_untyped_defs = false
 
 [[tool.mypy.overrides]]
-module = ["streamlit.*", "streamlit_gsheets.*"]
+module = ["streamlit.*", "streamlit_gsheets.*", "freezegun.*"]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+# scripts/ are one-off developer tools (fixture generator, inspectors). They
+# are not part of the runtime application and are intentionally excluded from
+# strict type checking; tests/unit/src/test_generator.py exercises them.
+module = ["scripts.*"]
+ignore_errors = true
 
 [[tool.mypy.overrides]]
 module = [

@@ -6,13 +6,10 @@ that the numbers at each stage are arithmetically consistent.
 import pytest
 
 from src.filters import apply_transaction_filters
-from importlib import import_module
+from tests._pages import income_and_savings, spending_by_category
 
-_income_mod = import_module('Pages.1_Income_and_Savings')
-process_income_expense_data = _income_mod.process_income_expense_data
-
-_spending_mod = import_module('Pages.2_Spending_by_Category')
-process_spending_data = _spending_mod.process_spending_data
+process_income_expense_data = income_and_savings.process_income_expense_data
+process_spending_data = spending_by_category.process_spending_data
 
 
 # ---------------------------------------------------------------------------
