@@ -4,7 +4,6 @@ Feed larger datasets through the filter + aggregate pipeline and verify
 that the numbers at each stage are arithmetically consistent.
 """
 import pytest
-import pandas as pd
 
 from src.filters import apply_transaction_filters
 from importlib import import_module
@@ -14,31 +13,6 @@ process_income_expense_data = _income_mod.process_income_expense_data
 
 _spending_mod = import_module('Pages.2_Spending_by_Category')
 process_spending_data = _spending_mod.process_spending_data
-
-
-# ---------------------------------------------------------------------------
-# Fixtures
-# ---------------------------------------------------------------------------
-
-@pytest.fixture
-def passthrough_filters():
-    return {
-        'exclude_groups': [],
-        'exclude_categories': [],
-        'filter_large_income': False,
-        'income_threshold': 999999,
-        'filter_large_expenses': False,
-        'expense_threshold': 999999,
-        'target_rate': 20,
-    }
-
-
-@pytest.fixture
-def full_date_range():
-    return (
-        pd.Timestamp('2024-01-01', tz='UTC'),
-        pd.Timestamp('2024-12-31', tz='UTC'),
-    )
 
 
 # ---------------------------------------------------------------------------
@@ -105,7 +79,12 @@ class TestFilterPipelineIntegrity:
 class TestIncomeExpenseAggregation:
     """Verify that monthly income/expense/savings aggregations are consistent."""
 
-    def test_monthly_totals_sum_to_overall(self, extended_transactions_df, passthrough_filters, make_transactions_spreadsheet):
+    def test_monthly_totals_sum_to_overall(
+        self,
+        extended_transactions_df,
+        passthrough_filters,
+        make_transactions_spreadsheet,
+    ):
         """Sum of monthly Income and Expense columns equals the raw totals."""
         ts = make_transactions_spreadsheet(extended_transactions_df)
         result = process_income_expense_data(ts, passthrough_filters)
@@ -118,7 +97,12 @@ class TestIncomeExpenseAggregation:
         assert result['Income'].sum() == pytest.approx(raw_income)
         assert result['Expense'].sum() == pytest.approx(raw_expense)
 
-    def test_savings_is_income_plus_expense_every_month(self, extended_transactions_df, passthrough_filters, make_transactions_spreadsheet):
+    def test_savings_is_income_plus_expense_every_month(
+        self,
+        extended_transactions_df,
+        passthrough_filters,
+        make_transactions_spreadsheet,
+    ):
         """Savings = Income + Expense for every single month."""
         ts = make_transactions_spreadsheet(extended_transactions_df)
         result = process_income_expense_data(ts, passthrough_filters)
@@ -126,7 +110,12 @@ class TestIncomeExpenseAggregation:
         for _, row in result.iterrows():
             assert row['Savings'] == pytest.approx(row['Income'] + row['Expense'])
 
-    def test_all_months_accounted_for(self, extended_transactions_df, passthrough_filters, make_transactions_spreadsheet):
+    def test_all_months_accounted_for(
+        self,
+        extended_transactions_df,
+        passthrough_filters,
+        make_transactions_spreadsheet,
+    ):
         """Every month with transactions appears in the result."""
         ts = make_transactions_spreadsheet(extended_transactions_df)
         result = process_income_expense_data(ts, passthrough_filters)
@@ -145,7 +134,12 @@ class TestIncomeExpenseAggregation:
 class TestSpendingAggregation:
     """Verify that spending category aggregations are consistent."""
 
-    def test_category_totals_sum_to_overall(self, extended_transactions_df, full_date_range, make_transactions_spreadsheet):
+    def test_category_totals_sum_to_overall(
+        self,
+        extended_transactions_df,
+        full_date_range,
+        make_transactions_spreadsheet,
+    ):
         ts = make_transactions_spreadsheet(extended_transactions_df)
         filters = {
             'include_groups': [],
@@ -163,7 +157,12 @@ class TestSpendingAggregation:
             df_period['Amount'].abs().sum()
         )
 
-    def test_percentages_sum_to_100(self, extended_transactions_df, full_date_range, make_transactions_spreadsheet):
+    def test_percentages_sum_to_100(
+        self,
+        extended_transactions_df,
+        full_date_range,
+        make_transactions_spreadsheet,
+    ):
         ts = make_transactions_spreadsheet(extended_transactions_df)
         filters = {
             'include_groups': [],
@@ -179,7 +178,12 @@ class TestSpendingAggregation:
         total_pct = df_by_category['Percentage'].sum()
         assert total_pct == pytest.approx(100.0, abs=0.5)
 
-    def test_no_income_in_spending(self, extended_transactions_df, full_date_range, make_transactions_spreadsheet):
+    def test_no_income_in_spending(
+        self,
+        extended_transactions_df,
+        full_date_range,
+        make_transactions_spreadsheet,
+    ):
         """Spending data should never include income transactions."""
         ts = make_transactions_spreadsheet(extended_transactions_df)
         filters = {
@@ -203,7 +207,11 @@ class TestSpendingAggregation:
 class TestMonthlyAmountsAggregation:
     """Verify that get_monthly_amounts_by_* methods sum correctly."""
 
-    def test_monthly_category_sums_match_raw(self, extended_transactions_df, make_transactions_spreadsheet):
+    def test_monthly_category_sums_match_raw(
+        self,
+        extended_transactions_df,
+        make_transactions_spreadsheet,
+    ):
         """Monthly amounts by category should sum to the raw category total."""
         ts = make_transactions_spreadsheet(extended_transactions_df)
 
@@ -215,7 +223,11 @@ class TestMonthlyAmountsAggregation:
 
             assert monthly['Amount'].sum() == pytest.approx(raw_total)
 
-    def test_monthly_group_sums_match_raw(self, extended_transactions_df, make_transactions_spreadsheet):
+    def test_monthly_group_sums_match_raw(
+        self,
+        extended_transactions_df,
+        make_transactions_spreadsheet,
+    ):
         """Monthly amounts by group should sum to the raw group total."""
         ts = make_transactions_spreadsheet(extended_transactions_df)
 
@@ -227,7 +239,11 @@ class TestMonthlyAmountsAggregation:
 
             assert monthly['Amount'].sum() == pytest.approx(raw_total)
 
-    def test_inverted_amounts_negate(self, extended_transactions_df, make_transactions_spreadsheet):
+    def test_inverted_amounts_negate(
+        self,
+        extended_transactions_df,
+        make_transactions_spreadsheet,
+    ):
         """Inverted amounts should be the negative of non-inverted."""
         ts = make_transactions_spreadsheet(extended_transactions_df)
 

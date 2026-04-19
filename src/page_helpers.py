@@ -1,3 +1,5 @@
+from typing import Any
+
 import streamlit as st
 import pandas as pd
 import altair as alt
@@ -10,35 +12,35 @@ from src.constants import COLOR_PLACEHOLDER
 
 def prepare_year_comparison_data(monthly_amounts_df: pd.DataFrame) -> pd.DataFrame:
     """Transform monthly data into year-over-year comparison format.
-    
+
     Input: DataFrame with Month index (YYYY-MM format) and Amount column
     Output: DataFrame with Month (1-12) and separate columns per year
     """
     if monthly_amounts_df.empty:
         return pd.DataFrame()
-    
+
     df = monthly_amounts_df.copy()
     df = df.reset_index()
-    
+
     # Extract year and month number from Month column
     df['Year'] = pd.to_datetime(df['Month']).dt.year
     df['Month'] = pd.to_datetime(df['Month']).dt.month
-    
+
     # Pivot: rows=month number (1-12), columns=year, values=amount
     pivoted = df.pivot(index='Month', columns='Year', values='Amount')
     pivoted = pivoted.fillna(0)
-    
+
     return pivoted
 
 
 def create_year_comparison_chart(pivoted_df: pd.DataFrame, label: str) -> alt.Chart:
     """Create an Altair chart showing year-over-year comparison.
-    
+
     Current year is shown in green, previous years in shades of gray.
     """
     if pivoted_df.empty:
         return alt.Chart(pd.DataFrame()).mark_text().encode(text=alt.value("No data available"))
-    
+
     current_year = datetime.now().year
 
     # Reshape data for Altair (need long format)
@@ -60,39 +62,39 @@ def create_year_comparison_chart(pivoted_df: pd.DataFrame, label: str) -> alt.Ch
             # Map 1 year ago -> light grey (180) down to 5+ years ago -> dark (50)
             brightness = max(50, 180 - (years_ago - 1) * 33)
             color_range.append(f'rgb({brightness},{brightness},{brightness})')
-    
+
     # For each year, trim leading and trailing zeros but keep middle zeros
     filtered_rows = []
     for year in df_long['Year'].unique():
         year_data = df_long[df_long['Year'] == year].copy()
-        
+
         # Find first and last non-zero month for this year
         non_zero = year_data[year_data['Amount'] != 0]
         if not non_zero.empty:
             min_month = non_zero['Month'].min()
             max_month = non_zero['Month'].max()
-            
+
             # Keep only data between first and last non-zero months (inclusive)
             year_data = year_data[
-                (year_data['Month'] >= min_month) & 
+                (year_data['Month'] >= min_month) &
                 (year_data['Month'] <= max_month)
             ]
             filtered_rows.append(year_data)
-    
+
     if filtered_rows:
         df_long = pd.concat(filtered_rows, ignore_index=True)
     else:
         df_long = pd.DataFrame()
-    
+
     # Create the chart
     chart = alt.Chart(df_long).mark_line(point=True).encode(
-        x=alt.X('Month:O', 
+        x=alt.X('Month:O',
                 axis=alt.Axis(title='Month', labelAngle=0),
                 scale=alt.Scale(domain=list(range(1, 13)))),
-        y=alt.Y('Amount:Q', 
+        y=alt.Y('Amount:Q',
                 axis=alt.Axis(title='Amount ($)'),
                 scale=alt.Scale(zero=True)),
-        color=alt.Color('Year:N', 
+        color=alt.Color('Year:N',
                        scale=alt.Scale(domain=color_domain, range=color_range),
                        legend=alt.Legend(title='Year')),
         tooltip=[
@@ -104,7 +106,7 @@ def create_year_comparison_chart(pivoted_df: pd.DataFrame, label: str) -> alt.Ch
         height=300,
         title=f'{label} - Year over Year Comparison'
     )
-    
+
     return chart
 
 
@@ -114,7 +116,7 @@ def display_transaction_table(transactions_df: pd.DataFrame, label: str) -> None
         if transactions_df.empty:
             st.info("No transactions found")
             return
-        
+
         # Display interactive dataframe with sorting, filtering, search
         st.dataframe(
             transactions_df,
@@ -178,7 +180,7 @@ def create_sparkline_chart(
     use_min_scale: bool = False
 ) -> alt.Chart:
     """Create a sparkline chart or flat line if insufficient data.
-    
+
     Args:
         df: DataFrame containing the data
         value_column: Name of the column containing values
@@ -187,7 +189,7 @@ def create_sparkline_chart(
         height: Height of the chart in pixels
         current_value: Current value to use for flat line fallback
         use_min_scale: If True, set domain minimum to 95% of min value
-        
+
     Returns:
         Altair chart object
     """
@@ -197,7 +199,7 @@ def create_sparkline_chart(
         if use_min_scale:
             min_value = df[value_column].min() * 0.95
             scale_params['domainMin'] = min_value
-        
+
         chart = alt.Chart(df).mark_line(
             color=color,
             strokeWidth=2 if height <= 50 else 3,
@@ -216,7 +218,7 @@ def create_sparkline_chart(
             current_value = df[value_column].iloc[0]
         elif current_value is None:
             current_value = 0
-        
+
         flat_line_data = pd.DataFrame([
             {'x': 0, 'y': current_value},
             {'x': 1, 'y': current_value}
@@ -233,11 +235,11 @@ def create_sparkline_chart(
         ).configure_view(
             strokeWidth=0
         )
-    
+
     return chart
 
 
-def extract_merchant_name(description: str, method: str = 'first_word') -> str:
+def extract_merchant_name(description: object, method: str = 'first_word') -> str:
     """Extract merchant name from transaction description.
 
     Args:
@@ -247,7 +249,7 @@ def extract_merchant_name(description: str, method: str = 'first_word') -> str:
     Returns:
         Extracted merchant name
     """
-    if pd.isna(description):
+    if pd.isna(description):  # type: ignore[call-overload]
         return 'Unknown'
 
     words = str(description).split()
@@ -264,9 +266,9 @@ def extract_merchant_name(description: str, method: str = 'first_word') -> str:
         return words[0]
 
 
-def get_transaction_column_config() -> dict:
+def get_transaction_column_config() -> dict[str, Any]:
     """Standard column configuration for transaction dataframes.
-    
+
     Returns:
         dictionary of column configurations for st.dataframe
     """
@@ -291,7 +293,7 @@ def display_transactions_expander(
     default_sort_ascending: bool = False
 ) -> None:
     """Display transactions in an expandable section.
-    
+
     Args:
         df: Transaction dataframe to display
         title: Title for the expander
@@ -303,10 +305,10 @@ def display_transactions_expander(
         if df.empty:
             st.info("No transactions found")
             return
-        
+
         # Sort by specified column
         df_display = df.sort_values(default_sort_column, ascending=default_sort_ascending)
-        
+
         st.dataframe(
             df_display,
             width='stretch',

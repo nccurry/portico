@@ -1,48 +1,43 @@
 """Shared pytest fixtures for the Tiller Streamlit budgeting app."""
+from collections.abc import Callable, Generator
+from typing import Any
 from unittest.mock import patch, MagicMock
 
 import numpy as np
 import pandas as pd
 import pytest
 
+from tests._helpers import _ts, _transactions_df, _balance_df
+
 
 # ---------------------------------------------------------------------------
 # Column definitions (single source of truth for every fixture)
 # ---------------------------------------------------------------------------
 
-TRANSACTIONS_SCRUBBED_COLUMNS = [
+TRANSACTIONS_SCRUBBED_COLUMNS: list[str] = [
     "Date", "Category", "Amount", "Account", "Month",
     "Full Description", "Group", "Type", "Institution", "Account #",
 ]
 
-BALANCE_HISTORY_SCRUBBED_COLUMNS = [
+BALANCE_HISTORY_SCRUBBED_COLUMNS: list[str] = [
     "Date", "Time", "Account", "Account #", "Account ID", "Balance ID",
     "Institution", "Balance", "Month", "Week", "Type", "Class",
     "Account Status", "Date Added", "Group", "Hide",
 ]
 
-TRANSACTIONS_RAW_COLUMNS = [
+TRANSACTIONS_RAW_COLUMNS: list[str] = [
     "Unnamed: 0", "Date", "Category", "Amount", "Account", "Month",
     "Full Description", "Institution", "Account #",
     "Week", "Date Added", "Categorized Date",
 ]
 
-BALANCE_HISTORY_RAW_COLUMNS = [
+BALANCE_HISTORY_RAW_COLUMNS: list[str] = [
     "Unnamed: 0", "Date", "Time", "Account", "Account #", "Account ID",
     "Balance ID", "Institution", "Balance", "Month", "Week", "Type",
     "Class", "Account Status", "Date Added",
 ]
 
-CATEGORIES_COLUMNS = ["Category", "Group", "Type", "Hide From Reports"]
-
-
-# ---------------------------------------------------------------------------
-# Helper: quick UTC timestamp
-# ---------------------------------------------------------------------------
-
-def _ts(date_str: str) -> pd.Timestamp:
-    """Return a UTC-aware Timestamp from a 'YYYY-MM-DD' string."""
-    return pd.Timestamp(date_str, tz="UTC")
+CATEGORIES_COLUMNS: list[str] = ["Category", "Group", "Type", "Hide From Reports"]
 
 
 # ---------------------------------------------------------------------------
@@ -50,9 +45,9 @@ def _ts(date_str: str) -> pd.Timestamp:
 # ---------------------------------------------------------------------------
 
 @pytest.fixture(autouse=True)
-def disable_streamlit():
+def disable_streamlit() -> Generator[None]:
     """Neuter Streamlit decorators and helpers so tests never touch a running app."""
-    def _passthrough_decorator(*args, **kwargs):
+    def _passthrough_decorator(*args: Any, **kwargs: Any) -> Any:
         """Return the function unchanged whether used as @decorator or @decorator(...)."""
         if args and callable(args[0]):
             return args[0]
@@ -253,7 +248,9 @@ def raw_balance_df() -> pd.DataFrame:
 # ---------------------------------------------------------------------------
 
 @pytest.fixture
-def make_transactions_spreadsheet(scrubbed_transactions_df):
+def make_transactions_spreadsheet(
+    scrubbed_transactions_df: pd.DataFrame,
+) -> Callable[[pd.DataFrame | None], "TransactionsSpreadsheet"]:  # type: ignore[name-defined]  # noqa: UP037, F821
     """Factory that returns a TransactionsSpreadsheet with load() patched out.
 
     Usage::
@@ -264,7 +261,8 @@ def make_transactions_spreadsheet(scrubbed_transactions_df):
     """
     from src.spreadsheet import TransactionsSpreadsheet, Spreadsheet
 
-    def _factory(df: pd.DataFrame | None = None):
+    def _factory(df: pd.DataFrame | None = None) -> TransactionsSpreadsheet:
+        """Build a TransactionsSpreadsheet with scrubbed_df set to *df*."""
         if df is None:
             df = scrubbed_transactions_df
 
@@ -281,7 +279,9 @@ def make_transactions_spreadsheet(scrubbed_transactions_df):
 # ---------------------------------------------------------------------------
 
 @pytest.fixture
-def make_balance_spreadsheet(scrubbed_balance_df):
+def make_balance_spreadsheet(
+    scrubbed_balance_df: pd.DataFrame,
+) -> Callable[[pd.DataFrame | None], "BalanceHistorySpreadsheet"]:  # type: ignore[name-defined]  # noqa: UP037, F821
     """Factory that returns a BalanceHistorySpreadsheet with load() patched out.
 
     Usage::
@@ -292,7 +292,8 @@ def make_balance_spreadsheet(scrubbed_balance_df):
     """
     from src.spreadsheet import BalanceHistorySpreadsheet, Spreadsheet
 
-    def _factory(df: pd.DataFrame | None = None):
+    def _factory(df: pd.DataFrame | None = None) -> BalanceHistorySpreadsheet:
+        """Build a BalanceHistorySpreadsheet with scrubbed_df set to *df*."""
         if df is None:
             df = scrubbed_balance_df
 
@@ -330,15 +331,22 @@ def scrubbed_categories_df() -> pd.DataFrame:
 # ---------------------------------------------------------------------------
 
 @pytest.fixture
-def make_categories_spreadsheet(scrubbed_categories_df):
+def make_categories_spreadsheet(
+    scrubbed_categories_df: pd.DataFrame,
+) -> Callable[..., "CategoriesSpreadsheet"]:  # type: ignore[name-defined]  # noqa: UP037, F821
     """Factory that returns a CategoriesSpreadsheet with load() patched out."""
     from src.spreadsheet import CategoriesSpreadsheet, Spreadsheet
 
-    def _factory(df: pd.DataFrame | None = None, budget_df: pd.DataFrame | None = None):
+    def _factory(
+        df: pd.DataFrame | None = None,
+        budget_df: pd.DataFrame | None = None,
+    ) -> CategoriesSpreadsheet:
+        """Build a CategoriesSpreadsheet with scrubbed_df and optional budget_df."""
         if df is None:
             df = scrubbed_categories_df
 
-        def _scrub(self):
+        def _scrub(self: CategoriesSpreadsheet) -> None:
+            """Inject scrubbed_df and budget_df without hitting Google Sheets."""
             self.scrubbed_df = df
             if budget_df is not None:
                 self.budget_df = budget_df
@@ -379,3 +387,268 @@ def raw_categories_with_budget_df() -> pd.DataFrame:
         pd.Timestamp("2023-11-01"): [500, 200, 150, 0, 100],
         pd.Timestamp("2023-12-01"): [500, 200, 150, 0, 100],
     })
+
+
+# ---------------------------------------------------------------------------
+# Fixtures moved from test_spreadsheet.py
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def scrub_input_transactions_df() -> pd.DataFrame:
+    """A raw DataFrame that TransactionsSpreadsheet.scrub() should clean."""
+    return pd.DataFrame({
+        "Unnamed: 0": [None, None],
+        "Date": ["2024-01-15", "2024-02-20"],
+        "Category": ["Groceries", "Rent"],
+        "Amount": ["$1,234.56", "$2,000.00"],
+        "Account": ["Checking", "Checking"],
+        "Month": ["2024-01-01", "2024-02-01"],
+        "Week": ["2024-01-15", "2024-02-19"],
+        "Full Description": ["STORE", "LANDLORD"],
+        "Institution": ["Bank", "Bank"],
+        "Account #": ["1234", "5678"],
+        "Date Added": ["2024-01-15", "2024-02-20"],
+        "Categorized Date": ["2024-01-15", "2024-02-20"],
+    })
+
+
+@pytest.fixture
+def scrub_input_balance_df() -> pd.DataFrame:
+    """A raw DataFrame that BalanceHistorySpreadsheet.scrub() should clean."""
+    return pd.DataFrame({
+        "Unnamed: 0": [None, None, None],
+        "Date": ["2024-01-15", "2024-02-20", "2024-03-01"],
+        "Time": ["2024-01-15 10:00", "2024-02-20 11:00", "2024-03-01 09:00"],
+        "Balance": ["$1,000.00", "$2,000.00", "$500.00"],
+        "Account": ["Checking", "Savings", "Hidden"],
+        "Account #": ["xxxx1234", "xxxx5678", "xxxx9999"],
+        "Account ID": ["65440a84a14656002f35ab01", "65440a84a14656002f35cd02", "65440a84a14656002f35ef03"],
+        "Institution": ["Bank", "Bank", "Bank"],
+        "Class": ["Asset", "Asset", "Asset"],
+        "Month": ["2024-01-01", "2024-02-01", "2024-03-01"],
+        "Week": ["2024-01-15", "2024-02-19", "2024-02-26"],
+        "Date Added": ["2024-01-15", "2024-02-20", "2024-03-01"],
+    })
+
+
+@pytest.fixture
+def categories_for_scrub() -> "CategoriesSpreadsheet":  # type: ignore[name-defined]  # noqa: UP037, F821
+    """Categories lookup for scrub tests."""
+    from src.spreadsheet import CategoriesSpreadsheet
+    cat = CategoriesSpreadsheet.__new__(CategoriesSpreadsheet)
+    cat.scrubbed_df = pd.DataFrame({
+        "Category": ["Groceries", "Rent"],
+        "Group": ["Food", "Housing"],
+        "Type": ["Expense", "Expense"],
+        "Hide From Reports": ["", ""],
+    })
+    return cat
+
+
+@pytest.fixture
+def accounts_for_scrub() -> "AccountsSpreadsheet":  # type: ignore[name-defined]  # noqa: UP037, F821
+    """Accounts lookup for scrub tests. Keys match the composite key format."""
+    from src.spreadsheet import AccountsSpreadsheet
+    acct = AccountsSpreadsheet.__new__(AccountsSpreadsheet)
+    acct.scrubbed_df = pd.DataFrame({
+        "Account": [
+            "Checking - xxxx1234 (AB01)",
+            "SAVINGS - xxxx5678 (CD02)",
+            "Hidden - xxxx9999 (EF03)",
+        ],
+        "Group": ["Assets", "Assets", "Secret"],
+        "Hide": ["", "", "Hide"],
+    })
+    return acct
+
+
+@pytest.fixture
+def sample_transactions_df() -> pd.DataFrame:
+    """Canonical scrubbed-format sample transactions for spreadsheet method tests."""
+    return _transactions_df([
+        {"Date": "2024-01-10", "Category": "Groceries", "Amount": -50,  "Account": "Checking", "Month": "2024-01", "Group": "Food",      "Type": "Expense"},
+        {"Date": "2024-01-20", "Category": "Rent",      "Amount": -1200,"Account": "Checking", "Month": "2024-01", "Group": "Housing",   "Type": "Expense"},
+        {"Date": "2024-02-05", "Category": "Groceries", "Amount": -60,  "Account": "Checking", "Month": "2024-02", "Group": "Food",      "Type": "Expense"},
+        {"Date": "2024-02-15", "Category": "Salary",    "Amount": 3000, "Account": "Checking", "Month": "2024-02", "Group": "Income",    "Type": "Income"},
+        {"Date": "2024-03-01", "Category": "Dining",    "Amount": -30,  "Account": "Credit",   "Month": "2024-03", "Group": "Food",      "Type": "Expense"},
+        {"Date": "2024-03-10", "Category": "Transfer",  "Amount": 500,  "Account": "Savings",  "Month": "2024-03", "Group": "Transfers", "Type": "Transfer"},
+    ])
+
+
+@pytest.fixture
+def sample_balance_df() -> pd.DataFrame:
+    """Scrubbed-format balance history sample for spreadsheet method tests."""
+    return _balance_df([
+        {"Date": "2024-01-01", "Time": "2024-01-01 08:00:00", "Account": "Checking", "Account ID": "a1", "Institution": "Bank", "Group": "Assets",      "Class": "Asset",     "Balance": 5000, "Hide": ""},
+        {"Date": "2024-01-15", "Time": "2024-01-15 08:00:00", "Account": "Checking", "Account ID": "a1", "Institution": "Bank", "Group": "Assets",      "Class": "Asset",     "Balance": 4500, "Hide": ""},
+        {"Date": "2024-01-01", "Time": "2024-01-01 08:00:00", "Account": "Savings",  "Account ID": "a2", "Institution": "Bank", "Group": "Assets",      "Class": "Asset",     "Balance": 10000,"Hide": ""},
+        {"Date": "2024-01-15", "Time": "2024-01-15 08:00:00", "Account": "Savings",  "Account ID": "a2", "Institution": "Bank", "Group": "Assets",      "Class": "Asset",     "Balance": 10500,"Hide": ""},
+        {"Date": "2024-01-01", "Time": "2024-01-01 08:00:00", "Account": "Mortgage",  "Account ID": "a3", "Institution": "Lender","Group": "Liabilities","Class": "Liability", "Balance": 200000,"Hide": ""},
+        {"Date": "2024-01-15", "Time": "2024-01-15 08:00:00", "Account": "Mortgage",  "Account ID": "a3", "Institution": "Lender","Group": "Liabilities","Class": "Liability", "Balance": 199500,"Hide": ""},
+    ])
+
+
+# ---------------------------------------------------------------------------
+# Fixtures moved from test_top_transactions.py
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def varied_expenses() -> pd.DataFrame:
+    """Expenses with varied amounts for top-N analysis."""
+    return pd.DataFrame({
+        'Date': pd.to_datetime([
+            '2024-01-05', '2024-01-10', '2024-01-15',
+            '2024-01-20', '2024-01-25', '2024-02-01',
+            '2024-02-10', '2024-02-15',
+        ], utc=True),
+        'Amount': [-50, -500, -100, -1000, -200, -300, -750, -25],
+        'Type': ['Expense'] * 8,
+        'Category': ['Coffee', 'Rent', 'Groceries', 'Rent', 'Dining', 'Utilities', 'Rent', 'Coffee'],
+        'Group': ['Food', 'Housing', 'Food', 'Housing', 'Food', 'Bills', 'Housing', 'Food'],
+        'Account': ['Checking'] * 8,
+        'Month': ['2024-01'] * 5 + ['2024-02'] * 3,
+        'Full Description': ['STARBUCKS', 'LANDLORD LLC', 'KROGER STORE', 'LANDLORD LLC',
+                             'OLIVE GARDEN', 'DUKE ENERGY', 'LANDLORD LLC', 'STARBUCKS'],
+        'Institution': ['Bank'] * 8,
+        'Account #': ['1234'] * 8,
+    })
+
+
+# ---------------------------------------------------------------------------
+# Fixtures moved from test_page_helpers.py
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def monthly_amounts_df() -> pd.DataFrame:
+    """Monthly amounts with YYYY-MM index and Amount column, spanning two years."""
+    data = {
+        'Amount': [100, 200, 300, 150, 250, 350,
+                   110, 210, 310, 160, 260, 360]
+    }
+    index = pd.Index([
+        '2023-01', '2023-02', '2023-03', '2023-04', '2023-05', '2023-06',
+        '2024-01', '2024-02', '2024-03', '2024-04', '2024-05', '2024-06',
+    ], name='Month')
+    return pd.DataFrame(data, index=index)
+
+
+# ---------------------------------------------------------------------------
+# Fixtures moved from test_income_and_savings.py
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def income_expense_sample_df() -> pd.DataFrame:
+    """Transactions with both Income and Expense types across several months."""
+    return pd.DataFrame({
+        'Date': pd.to_datetime([
+            '2024-01-15', '2024-01-20', '2024-02-10', '2024-02-15',
+            '2024-03-05', '2024-03-12',
+        ], utc=True),
+        'Amount': [3000, -1000, 4000, -2000, 5000, -1500],
+        'Type': ['Income', 'Expense', 'Income', 'Expense', 'Income', 'Expense'],
+        'Category': ['Salary', 'Groceries', 'Salary', 'Groceries', 'Salary', 'Groceries'],
+        'Group': ['Income', 'Food', 'Income', 'Food', 'Income', 'Food'],
+        'Account': ['Checking'] * 6,
+        'Month': ['2024-01', '2024-01', '2024-02', '2024-02', '2024-03', '2024-03'],
+        'Full Description': ['EMPLOYER PAYROLL'] * 6,
+        'Institution': ['Bank'] * 6,
+        'Account #': ['1234'] * 6,
+    })
+
+
+@pytest.fixture
+def basic_filters() -> dict[str, Any]:
+    """Minimal filters that pass everything through."""
+    return {
+        'exclude_groups': [],
+        'exclude_categories': [],
+        'filter_large_income': False,
+        'income_threshold': 50000,
+        'filter_large_expenses': False,
+        'expense_threshold': 50000,
+        'target_rate': 20,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Fixtures moved from test_spending_by_category.py
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def spending_transactions_df() -> pd.DataFrame:
+    """Transactions with mixed types and multiple categories."""
+    return pd.DataFrame({
+        'Date': pd.to_datetime([
+            '2024-01-05', '2024-01-10', '2024-01-15',
+            '2024-01-20', '2024-01-25', '2024-02-01',
+        ], utc=True),
+        'Amount': [3000, -200, -150, -500, -50, -100],
+        'Type': ['Income', 'Expense', 'Expense', 'Expense', 'Expense', 'Expense'],
+        'Category': ['Salary', 'Groceries', 'Dining', 'Rent', 'Coffee', 'Groceries'],
+        'Group': ['Income', 'Food', 'Food', 'Housing', 'Food', 'Food'],
+        'Account': ['Checking'] * 6,
+        'Month': ['2024-01', '2024-01', '2024-01', '2024-01', '2024-01', '2024-02'],
+        'Full Description': ['PAY', 'KROGER', 'RESTAURANT', 'LANDLORD', 'STARBUCKS', 'KROGER'],
+        'Institution': ['Bank'] * 6,
+        'Account #': ['1234'] * 6,
+    })
+
+
+@pytest.fixture
+def basic_spending_filters() -> dict[str, Any]:
+    """Minimal filters that pass everything through."""
+    return {
+        'include_groups': [],
+        'include_categories': [],
+        'exclude_groups': [],
+        'exclude_categories': [],
+        'filter_large_expenses': False,
+        'expense_threshold': 50000,
+    }
+
+
+@pytest.fixture
+def expenses_only_df() -> pd.DataFrame:
+    """DataFrame with only expense transactions for distribution stats."""
+    return pd.DataFrame({
+        'Date': pd.to_datetime([
+            '2024-01-05', '2024-01-10', '2024-01-15',
+            '2024-01-20', '2024-01-25',
+        ], utc=True),
+        'Amount': [-10, -50, -100, -300, -500],
+        'Type': ['Expense'] * 5,
+        'Category': ['Coffee', 'Groceries', 'Dining', 'Utilities', 'Rent'],
+        'Group': ['Food', 'Food', 'Food', 'Housing', 'Housing'],
+        'Account': ['Checking'] * 5,
+        'Month': ['2024-01'] * 5,
+        'Full Description': ['CAFE', 'STORE', 'REST', 'ELECTRIC', 'LANDLORD'],
+        'Institution': ['Bank'] * 5,
+        'Account #': ['1234'] * 5,
+    })
+
+
+# ---------------------------------------------------------------------------
+# Fixtures moved from test_aggregation_integrity.py
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def passthrough_filters() -> dict[str, Any]:
+    """Passthrough filters for aggregation integrity tests."""
+    return {
+        'exclude_groups': [],
+        'exclude_categories': [],
+        'filter_large_income': False,
+        'income_threshold': 999999,
+        'filter_large_expenses': False,
+        'expense_threshold': 999999,
+        'target_rate': 20,
+    }
+
+
+@pytest.fixture
+def full_date_range() -> tuple[pd.Timestamp, pd.Timestamp]:
+    """Full year date range for aggregation tests."""
+    return (
+        pd.Timestamp('2024-01-01', tz='UTC'),
+        pd.Timestamp('2024-12-31', tz='UTC'),
+    )

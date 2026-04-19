@@ -3,16 +3,17 @@ import pandas as pd
 from datetime import timedelta
 
 from src.spreadsheet import (
-    load_transactions_data, 
-    load_balance_history_data, 
+    load_transactions_data,
+    load_balance_history_data,
     calculate_group_sparkline,
     calculate_net_worth_sparkline,
-    TransactionsSpreadsheet, 
+    TransactionsSpreadsheet,
     BalanceHistorySpreadsheet
 )
 from src.page_helpers import create_sparkline_chart
 from src.constants import (
-    SPARKLINE_HISTORY_DAYS,
+    SPARKLINE_LOOKBACK_OPTIONS,
+    SPARKLINE_LOOKBACK_DEFAULT,
     CHART_HEIGHT_SPARKLINE,
     CHART_HEIGHT_NET_WORTH_SPARKLINE,
     COLOR_NET_WORTH,
@@ -25,8 +26,9 @@ def configure_page(
         transaction_spreadsheet: TransactionsSpreadsheet,
         balance_history_spreadsheet: BalanceHistorySpreadsheet
 ) -> None:
+    """Render the home page: net worth sparkline and per-group balance cards."""
     st.header("Account Balances")
-    
+
     groups = balance_history_spreadsheet.get_groups()
     groups = [str(g) for g in groups if pd.notna(g) and g != '']
 
@@ -57,20 +59,36 @@ def configure_page(
 
         group_balances[group] = total
 
-    st.metric(
-        label="Total Net Worth",
-        value=f"${total_net_worth:,.2f}"
-    )
+    metric_col, lookback_col = st.columns([3, 2])
+    with metric_col:
+        st.metric(
+            label="Total Net Worth",
+            value=f"${total_net_worth:,.2f}"
+        )
+    with lookback_col:
+        selected_lookback = st.segmented_control(
+            "Lookback",
+            options=list(SPARKLINE_LOOKBACK_OPTIONS.keys()),
+            default=SPARKLINE_LOOKBACK_DEFAULT,
+            label_visibility="collapsed",
+            key="home_sparkline_lookback",
+        )
+        if selected_lookback is None:
+            selected_lookback = SPARKLINE_LOOKBACK_DEFAULT
 
     end_date = pd.Timestamp.now(tz='UTC')
-    start_date = end_date - timedelta(days=SPARKLINE_HISTORY_DAYS)
-    
+    lookback_days = SPARKLINE_LOOKBACK_OPTIONS[selected_lookback]
+    if lookback_days is None:
+        start_date = balance_history_spreadsheet.scrubbed_df["Date"].min()
+    else:
+        start_date = end_date - timedelta(days=lookback_days)
+
     df_net_worth = calculate_net_worth_sparkline(
         balance_history_spreadsheet.scrubbed_df,
         start_date,
         end_date
     )
-    
+
     nw_chart = create_sparkline_chart(
         df=df_net_worth,
         value_column='NetWorth',
@@ -81,9 +99,9 @@ def configure_page(
         use_min_scale=True
     )
     st.altair_chart(nw_chart, width='stretch')
-    
+
     st.divider()
-    
+
     cols = st.columns(3)
 
     for idx, group in enumerate(sorted(groups)):
@@ -95,9 +113,6 @@ def configure_page(
                 label=group,
                 value=f"${group_total:,.2f}"
             )
-
-            end_date = pd.Timestamp.now(tz='UTC')
-            start_date = end_date - timedelta(days=SPARKLINE_HISTORY_DAYS)
 
             df_sparkline = calculate_group_sparkline(
                 balance_history_spreadsheet.scrubbed_df,
@@ -119,7 +134,7 @@ def configure_page(
                 use_min_scale=False
             )
             st.altair_chart(chart, width='stretch')
-            
+
             with st.expander(f"View {group} Accounts"):
                 if not accounts_df.empty:
                     st.dataframe(
@@ -129,7 +144,7 @@ def configure_page(
                         column_config={
                             "Balance": st.column_config.NumberColumn(
                                 "Balance",
-                                format="$%.2f"
+                                format="$%,.2f"
                             )
                         }
                     )
@@ -137,7 +152,7 @@ def configure_page(
                     st.info("No accounts in this group")
 
 def main() -> None:
-    """Page entrypoint"""
+    """Streamlit entry point for the Home page."""
     st.set_page_config(layout="wide")
 
     transactions_spreadsheet = load_transactions_data()

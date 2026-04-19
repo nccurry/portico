@@ -13,44 +13,15 @@ _mod = import_module('Pages.1_Income_and_Savings')
 process_income_expense_data = _mod.process_income_expense_data
 
 
-@pytest.fixture
-def sample_transactions_df():
-    """Transactions with both Income and Expense types across several months."""
-    return pd.DataFrame({
-        'Date': pd.to_datetime([
-            '2024-01-15', '2024-01-20', '2024-02-10', '2024-02-15',
-            '2024-03-05', '2024-03-12',
-        ], utc=True),
-        'Amount': [3000, -1000, 4000, -2000, 5000, -1500],
-        'Type': ['Income', 'Expense', 'Income', 'Expense', 'Income', 'Expense'],
-        'Category': ['Salary', 'Groceries', 'Salary', 'Groceries', 'Salary', 'Groceries'],
-        'Group': ['Income', 'Food', 'Income', 'Food', 'Income', 'Food'],
-        'Account': ['Checking'] * 6,
-        'Month': ['2024-01', '2024-01', '2024-02', '2024-02', '2024-03', '2024-03'],
-        'Full Description': ['EMPLOYER PAYROLL'] * 6,
-        'Institution': ['Bank'] * 6,
-        'Account #': ['1234'] * 6,
-    })
-
-
-@pytest.fixture
-def basic_filters():
-    """Minimal filters that pass everything through."""
-    return {
-        'exclude_groups': [],
-        'exclude_categories': [],
-        'filter_large_income': False,
-        'income_threshold': 50000,
-        'filter_large_expenses': False,
-        'expense_threshold': 50000,
-        'target_rate': 20,
-    }
-
-
 class TestProcessIncomeExpenseData:
 
-    def test_separates_income_expense(self, sample_transactions_df, basic_filters, make_transactions_spreadsheet):
-        ts = make_transactions_spreadsheet(sample_transactions_df)
+    def test_separates_income_expense(
+        self,
+        income_expense_sample_df,
+        basic_filters,
+        make_transactions_spreadsheet,
+    ):
+        ts = make_transactions_spreadsheet(income_expense_sample_df)
         result = process_income_expense_data(ts, basic_filters)
 
         # Should have Income and Expense columns
@@ -60,15 +31,25 @@ class TestProcessIncomeExpenseData:
         assert (result['Income'] >= 0).all()
         assert (result['Expense'] <= 0).all()
 
-    def test_savings_equals_income_plus_expense(self, sample_transactions_df, basic_filters, make_transactions_spreadsheet):
-        ts = make_transactions_spreadsheet(sample_transactions_df)
+    def test_savings_equals_income_plus_expense(
+        self,
+        income_expense_sample_df,
+        basic_filters,
+        make_transactions_spreadsheet,
+    ):
+        ts = make_transactions_spreadsheet(income_expense_sample_df)
         result = process_income_expense_data(ts, basic_filters)
 
         for _, row in result.iterrows():
             assert row['Savings'] == pytest.approx(row['Income'] + row['Expense'])
 
-    def test_savings_rate_calculation(self, sample_transactions_df, basic_filters, make_transactions_spreadsheet):
-        ts = make_transactions_spreadsheet(sample_transactions_df)
+    def test_savings_rate_calculation(
+        self,
+        income_expense_sample_df,
+        basic_filters,
+        make_transactions_spreadsheet,
+    ):
+        ts = make_transactions_spreadsheet(income_expense_sample_df)
         result = process_income_expense_data(ts, basic_filters)
 
         for _, row in result.iterrows():
@@ -96,14 +77,23 @@ class TestProcessIncomeExpenseData:
         # Should not crash and savings rate should be 0
         assert (result['Savings_Rate'] == 0).all()
 
-    def test_output_sorted_by_month(self, sample_transactions_df, basic_filters, make_transactions_spreadsheet):
-        ts = make_transactions_spreadsheet(sample_transactions_df)
+    def test_output_sorted_by_month(
+        self,
+        income_expense_sample_df,
+        basic_filters,
+        make_transactions_spreadsheet,
+    ):
+        ts = make_transactions_spreadsheet(income_expense_sample_df)
         result = process_income_expense_data(ts, basic_filters)
 
         months = result['Month'].tolist()
         assert months == sorted(months)
 
-    def test_only_income_month_gives_100_percent_rate(self, basic_filters, make_transactions_spreadsheet):
+    def test_only_income_month_gives_100_percent_rate(
+        self,
+        basic_filters,
+        make_transactions_spreadsheet,
+    ):
         """Month with income but no expenses should have 100% savings rate."""
         df = pd.DataFrame({
             'Date': pd.to_datetime(['2024-01-15'], utc=True),
@@ -124,7 +114,11 @@ class TestProcessIncomeExpenseData:
         assert result.iloc[0]['Savings_Rate'] == pytest.approx(100.0)
         assert result.iloc[0]['Savings'] == pytest.approx(5000.0)
 
-    def test_only_expense_month_gives_zero_rate(self, basic_filters, make_transactions_spreadsheet):
+    def test_only_expense_month_gives_zero_rate(
+        self,
+        basic_filters,
+        make_transactions_spreadsheet,
+    ):
         """Month with only expenses should have 0% savings rate (no income to divide by)."""
         df = pd.DataFrame({
             'Date': pd.to_datetime(['2024-01-15'], utc=True),
@@ -144,7 +138,11 @@ class TestProcessIncomeExpenseData:
         assert result.iloc[0]['Savings_Rate'] == 0
         assert result.iloc[0]['Expense'] == pytest.approx(-500.0)
 
-    def test_multiple_months_varying_ratios(self, basic_filters, make_transactions_spreadsheet):
+    def test_multiple_months_varying_ratios(
+        self,
+        basic_filters,
+        make_transactions_spreadsheet,
+    ):
         """Each month gets its own savings rate, varying by income/expense mix."""
         df = pd.DataFrame({
             'Date': pd.to_datetime([
@@ -172,24 +170,39 @@ class TestProcessIncomeExpenseData:
         # Feb: (1000 - 800) / 1000 * 100 = 20%
         assert feb['Savings_Rate'] == pytest.approx(20.0)
 
-    def test_empty_dataframe(self, basic_filters, make_transactions_spreadsheet, empty_transactions_df):
+    def test_empty_dataframe(
+        self,
+        basic_filters,
+        make_transactions_spreadsheet,
+        empty_transactions_df,
+    ):
         """Empty transactions produce empty result without errors."""
         ts = make_transactions_spreadsheet(empty_transactions_df)
         result = process_income_expense_data(ts, basic_filters)
 
         assert len(result) == 0
 
-    def test_income_display_is_absolute(self, sample_transactions_df, basic_filters, make_transactions_spreadsheet):
+    def test_income_display_is_absolute(
+        self,
+        income_expense_sample_df,
+        basic_filters,
+        make_transactions_spreadsheet,
+    ):
         """Income_Display and Expense_Display are absolute values."""
-        ts = make_transactions_spreadsheet(sample_transactions_df)
+        ts = make_transactions_spreadsheet(income_expense_sample_df)
         result = process_income_expense_data(ts, basic_filters)
 
         assert (result['Income_Display'] >= 0).all()
         assert (result['Expense_Display'] >= 0).all()
 
-    def test_net_equals_savings(self, sample_transactions_df, basic_filters, make_transactions_spreadsheet):
+    def test_net_equals_savings(
+        self,
+        income_expense_sample_df,
+        basic_filters,
+        make_transactions_spreadsheet,
+    ):
         """Net column should equal Savings column."""
-        ts = make_transactions_spreadsheet(sample_transactions_df)
+        ts = make_transactions_spreadsheet(income_expense_sample_df)
         result = process_income_expense_data(ts, basic_filters)
 
         for _, row in result.iterrows():

@@ -10,35 +10,13 @@ get_category_breakdown = _mod.get_category_breakdown
 find_recurring_large_expenses = _mod.find_recurring_large_expenses
 
 
-@pytest.fixture
-def varied_expenses():
-    """Expenses with varied amounts for top-N analysis."""
-    return pd.DataFrame({
-        'Date': pd.to_datetime([
-            '2024-01-05', '2024-01-10', '2024-01-15',
-            '2024-01-20', '2024-01-25', '2024-02-01',
-            '2024-02-10', '2024-02-15',
-        ], utc=True),
-        'Amount': [-50, -500, -100, -1000, -200, -300, -750, -25],
-        'Type': ['Expense'] * 8,
-        'Category': ['Coffee', 'Rent', 'Groceries', 'Rent', 'Dining', 'Utilities', 'Rent', 'Coffee'],
-        'Group': ['Food', 'Housing', 'Food', 'Housing', 'Food', 'Bills', 'Housing', 'Food'],
-        'Account': ['Checking'] * 8,
-        'Month': ['2024-01'] * 5 + ['2024-02'] * 3,
-        'Full Description': ['STARBUCKS', 'LANDLORD LLC', 'KROGER STORE', 'LANDLORD LLC',
-                             'OLIVE GARDEN', 'DUKE ENERGY', 'LANDLORD LLC', 'STARBUCKS'],
-        'Institution': ['Bank'] * 8,
-        'Account #': ['1234'] * 8,
-    })
-
-
 class TestGetTopTransactions:
 
     def test_returns_n_largest(self, varied_expenses):
         start = pd.Timestamp('2024-01-01', tz='UTC')
         end = pd.Timestamp('2024-12-31', tz='UTC')
 
-        top_df, stats = get_top_transactions(varied_expenses, 3, start, end)
+        top_df, _stats = get_top_transactions(varied_expenses, 3, start, end)
 
         assert len(top_df) == 3
         amounts = top_df['Abs_Amount'].tolist()
@@ -63,7 +41,7 @@ class TestGetTopTransactions:
         start = pd.Timestamp('2024-01-01', tz='UTC')
         end = pd.Timestamp('2024-01-31', tz='UTC')
 
-        top_df, stats = get_top_transactions(varied_expenses, 10, start, end)
+        _top_df, stats = get_top_transactions(varied_expenses, 10, start, end)
 
         # Only January transactions (5)
         assert stats['num_transactions'] == 5
