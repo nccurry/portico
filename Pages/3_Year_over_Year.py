@@ -6,6 +6,7 @@ from src.page_helpers import render_year_over_year_page
 
 
 def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
+    """Render category/group selectors and year-over-year comparison charts."""
     st.header("Year over Year Comparison")
 
     all_categories = sorted([str(c) for c in transactions_spreadsheet.scrubbed_df['Category'].unique()
@@ -31,7 +32,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
 
 
 def main() -> None:
-    """Page entrypoint"""
+    """Streamlit entry point for the Year over Year page."""
     st.set_page_config(layout="wide")
 
     transactions_spreadsheet = load_transactions_data()

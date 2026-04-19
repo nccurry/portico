@@ -3,30 +3,7 @@ import pandas as pd
 from datetime import timedelta
 
 from src.filters import calculate_date_range, apply_transaction_filters
-
-
-# ---------------------------------------------------------------------------
-# Helper to build a transaction row matching TRANSACTIONS_SCRUBBED_COLUMNS
-# ---------------------------------------------------------------------------
-
-def _make_row(date, category, amount, group, txn_type, account="Checking",
-              month="2024-01", desc="test", institution="Test Bank", acct_num="0000"):
-    return {
-        "Date": pd.Timestamp(date, tz="UTC"),
-        "Category": category,
-        "Amount": amount,
-        "Account": account,
-        "Month": month,
-        "Full Description": desc,
-        "Group": group,
-        "Type": txn_type,
-        "Institution": institution,
-        "Account #": acct_num,
-    }
-
-
-def _df_from_rows(*rows):
-    return pd.DataFrame(rows)
+from tests._helpers import _make_row, _df_from_rows
 
 
 # ---------------------------------------------------------------------------

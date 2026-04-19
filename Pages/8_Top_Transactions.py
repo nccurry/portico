@@ -5,6 +5,7 @@ import altair as alt
 from src.spreadsheet import load_transactions_data, TransactionsSpreadsheet
 from src.filters import apply_transaction_filters, calculate_date_range
 from src.page_helpers import get_transaction_column_config, extract_merchant_name
+from src.custom_types import TopTransactionsStats
 from src.constants import (
     TIME_PERIODS,
     CHART_HEIGHT_STANDARD,
@@ -22,7 +23,7 @@ def get_top_transactions(
     n: int,
     start_date: pd.Timestamp,
     end_date: pd.Timestamp,
-) -> tuple[pd.DataFrame, dict]:
+) -> tuple[pd.DataFrame, TopTransactionsStats]:
     """Get the N largest expense transactions in a date range.
 
     Args:
@@ -111,11 +112,12 @@ def find_recurring_large_expenses(top_n_df: pd.DataFrame) -> pd.DataFrame:
 # ---------------------------------------------------------------------------
 
 def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
+    """Render top-N expense tables, category breakdowns, and recurring large expenses."""
     st.header("Top Transactions")
     st.caption("See the biggest expenses hitting your wallet")
 
     # Controls
-    col1, col2, col3 = st.columns([1, 1, 2])
+    col1, col2, _col3 = st.columns([1, 1, 2])
     with col1:
         period = st.selectbox("Time Period", options=TIME_PERIODS, index=4)
     with col2:
@@ -205,7 +207,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
 
 
 def main() -> None:
-    """Page entrypoint"""
+    """Streamlit entry point for the Top Transactions page."""
     st.set_page_config(layout="wide")
 
     transactions_spreadsheet = load_transactions_data()

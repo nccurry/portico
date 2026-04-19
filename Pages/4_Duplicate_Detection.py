@@ -93,12 +93,13 @@ def configure_page(
         transactions_spreadsheet: TransactionsSpreadsheet,
         balance_history_spreadsheet: BalanceHistorySpreadsheet
 ) -> None:
+    """Render detection settings and display flagged duplicate transactions."""
     st.header("Potential Duplicate Transactions")
-    
+
     # Configuration options
     with st.expander("⚙️ Detection Settings", expanded=False):
         col1, col2 = st.columns(2)
-        
+
         with col1:
             days_threshold = st.number_input(
                 "Days Apart (Max)",
@@ -107,7 +108,7 @@ def configure_page(
                 value=DEFAULT_DUPLICATE_DAYS_THRESHOLD,
                 help="Consider transactions duplicates if within this many days"
             )
-            
+
             min_amount = st.number_input(
                 "Minimum Amount ($)",
                 min_value=0.0,
@@ -116,7 +117,7 @@ def configure_page(
                 step=10.0,
                 help="Only check for duplicates above this amount"
             )
-        
+
         with col2:
             check_same_account = st.checkbox(
                 "Require Same Account",
@@ -148,16 +149,16 @@ def configure_page(
         check_same_category=check_same_category,
         require_same_description=require_same_description,
     )
-    
+
     # Show summary
     col1, col2, col3 = st.columns(3)
-    
+
     with col1:
         st.metric(
             label="Potential Duplicates",
             value=len(df_duplicates)
         )
-    
+
     with col2:
         if len(df_duplicates) > 0:
             total_amount = df_duplicates['Amount'].abs().sum()
@@ -165,7 +166,7 @@ def configure_page(
                 label="Total Amount",
                 value=f"${total_amount:,.2f}"
             )
-    
+
     with col3:
         if len(df_duplicates) > 0:
             unique_months = df_duplicates['Month'].nunique()
@@ -173,16 +174,16 @@ def configure_page(
                 label="Affected Months",
                 value=unique_months
             )
-    
+
     st.divider()
-    
+
     # Display duplicates
     if len(df_duplicates) > 0:
         st.subheader("Potential Duplicate Pairs")
-        
+
         # Sort by most recent first
         df_duplicates_display = df_duplicates.sort_values('Date1', ascending=False)
-        
+
         st.dataframe(
             df_duplicates_display,
             width='stretch',
@@ -201,7 +202,7 @@ def configure_page(
                 'Description2': st.column_config.TextColumn('Description 2')
             }
         )
-        
+
         # Summary by month
         with st.expander("📊 Duplicates by Month"):
             monthly_summary = df_duplicates.groupby('Month').agg({
@@ -209,7 +210,7 @@ def configure_page(
             }).reset_index()
             monthly_summary.columns = ['Month', 'Count', 'Total_Amount']
             monthly_summary = monthly_summary.sort_values('Month', ascending=False)
-            
+
             st.dataframe(
                 monthly_summary,
                 width='stretch',
@@ -226,7 +227,7 @@ def configure_page(
 
 
 def main() -> None:
-    """Page entrypoint"""
+    """Streamlit entry point for the Duplicate Detection page."""
     st.set_page_config(layout="wide")
 
     transactions_spreadsheet = load_transactions_data()

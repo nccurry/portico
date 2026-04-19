@@ -3,27 +3,10 @@ import pandas as pd
 
 from importlib import import_module
 
+from tests._helpers import _make_df
+
 _mod = import_module('Pages.4_Duplicate_Detection')
 find_duplicates_efficient = _mod.find_duplicates_efficient
-
-
-def _make_df(rows):
-    """Build a transaction DataFrame from a list of dicts with sensible defaults."""
-    defaults = {
-        'Type': 'Expense',
-        'Category': 'Groceries',
-        'Group': 'Food',
-        'Account': 'Checking',
-        'Month': '2024-01',
-        'Full Description': 'STORE PURCHASE',
-        'Institution': 'Bank',
-        'Account #': '1234',
-    }
-    for row in rows:
-        for k, v in defaults.items():
-            row.setdefault(k, v)
-        row['Date'] = pd.Timestamp(row['Date'], tz='UTC')
-    return pd.DataFrame(rows)
 
 
 class TestFindDuplicatesEfficient:

@@ -15,12 +15,12 @@ def analyze_merchants(
     min_transactions: int = 1
 ) -> pd.DataFrame:
     """Analyze spending by merchant.
-    
+
     Args:
         df: Transaction dataframe
         extraction_method: How to extract merchant name from description
         min_transactions: Minimum transactions to include merchant
-        
+
     Returns:
         DataFrame with merchant analysis
     """
@@ -29,13 +29,13 @@ def analyze_merchants(
     df_copy['Merchant'] = df_copy['Full Description'].apply(
         lambda x: extract_merchant_name(x, extraction_method)
     )
-    
+
     # Filter to expenses only
     df_expenses = df_copy[df_copy['Type'] == 'Expense'].copy()
-    
+
     if df_expenses.empty:
         return pd.DataFrame()
-    
+
     # Group by merchant
     merchant_stats = df_expenses.groupby('Merchant').agg({
         'Amount': ['sum', 'mean', 'count'],
@@ -43,38 +43,41 @@ def analyze_merchants(
         'Category': lambda x: x.mode().iloc[0] if not x.mode().empty else (x.iloc[0] if not x.empty else 'Unknown'),
         'Account': lambda x: x.mode().iloc[0] if not x.mode().empty else (x.iloc[0] if not x.empty else 'Unknown')
     }).reset_index()
-    
+
     # Flatten column names
     merchant_stats.columns = [
         'Merchant', 'Total_Spent', 'Avg_Transaction', 'Num_Transactions',
         'First_Transaction', 'Last_Transaction', 'Primary_Category', 'Primary_Account'
     ]
-    
+
     # Convert amounts to positive
     merchant_stats['Total_Spent'] = merchant_stats['Total_Spent'].abs()
     merchant_stats['Avg_Transaction'] = merchant_stats['Avg_Transaction'].abs()
-    
+
     # Filter by minimum transactions
     merchant_stats = merchant_stats[merchant_stats['Num_Transactions'] >= min_transactions]
-    
+
     # Sort by total spent
     merchant_stats = merchant_stats.sort_values('Total_Spent', ascending=False)
-    
+
     # Calculate days between first and last transaction
     merchant_stats['Days_Active'] = (
         merchant_stats['Last_Transaction'] - merchant_stats['First_Transaction']
     ).dt.days
-    
+
     return merchant_stats
 
 
-def create_top_merchants_chart(merchant_stats: pd.DataFrame, top_n: int = 20) -> alt.Chart:
+def create_top_merchants_chart(
+    merchant_stats: pd.DataFrame,
+    top_n: int = 20,
+) -> alt.Chart:
     """Create horizontal bar chart of top merchants by spending.
-    
+
     Args:
         merchant_stats: Merchant analysis dataframe
         top_n: Number of top merchants to show
-        
+
     Returns:
         Altair chart
     """
@@ -82,9 +85,9 @@ def create_top_merchants_chart(merchant_stats: pd.DataFrame, top_n: int = 20) ->
         return alt.Chart(pd.DataFrame()).mark_text().encode(
             text=alt.value("No merchant data available")
         )
-    
+
     top_merchants = merchant_stats.head(top_n).copy()
-    
+
     chart = alt.Chart(top_merchants).mark_bar().encode(
         x=alt.X('Total_Spent:Q', title='Total Spent ($)'),
         y=alt.Y('Merchant:N', sort='-x', title='Merchant', axis=alt.Axis(labelLimit=200)),
@@ -104,16 +107,16 @@ def create_top_merchants_chart(merchant_stats: pd.DataFrame, top_n: int = 20) ->
     ).configure_axis(
         labelLimit=200
     )
-    
+
     return chart
 
 
 def create_frequency_vs_amount_chart(merchant_stats: pd.DataFrame) -> alt.Chart:
     """Create scatter plot of transaction frequency vs average amount.
-    
+
     Args:
         merchant_stats: Merchant analysis dataframe
-        
+
     Returns:
         Altair chart
     """
@@ -121,15 +124,15 @@ def create_frequency_vs_amount_chart(merchant_stats: pd.DataFrame) -> alt.Chart:
         return alt.Chart(pd.DataFrame()).mark_text().encode(
             text=alt.value("No merchant data available")
         )
-    
+
     # Take top 50 by total spending for readability
     top_merchants = merchant_stats.head(50).copy()
-    
+
     chart = alt.Chart(top_merchants).mark_circle(size=100).encode(
-        x=alt.X('Num_Transactions:Q', 
+        x=alt.X('Num_Transactions:Q',
                title='Number of Transactions',
                scale=alt.Scale(type='log')),
-        y=alt.Y('Avg_Transaction:Q', 
+        y=alt.Y('Avg_Transaction:Q',
                title='Average Transaction Amount ($)',
                scale=alt.Scale(type='log')),
         color=alt.Color('Primary_Category:N',
@@ -149,18 +152,22 @@ def create_frequency_vs_amount_chart(merchant_stats: pd.DataFrame) -> alt.Chart:
         height=CHART_HEIGHT_STANDARD,
         title='Transaction Frequency vs Average Amount (Top 50 Merchants)'
     )
-    
+
     return chart
 
 
-def create_merchant_timeline(df: pd.DataFrame, merchant_stats: pd.DataFrame, top_n: int = 10) -> alt.Chart:
+def create_merchant_timeline(
+    df: pd.DataFrame,
+    merchant_stats: pd.DataFrame,
+    top_n: int = 10,
+) -> alt.Chart:
     """Create timeline showing spending at top merchants over time.
-    
+
     Args:
         df: Full transaction dataframe with Merchant column
         merchant_stats: Merchant analysis dataframe
         top_n: Number of top merchants to show
-        
+
     Returns:
         Altair chart
     """
@@ -168,22 +175,22 @@ def create_merchant_timeline(df: pd.DataFrame, merchant_stats: pd.DataFrame, top
         return alt.Chart(pd.DataFrame()).mark_text().encode(
             text=alt.value("No merchant data available")
         )
-    
+
     # Get top N merchants
     top_merchants_list = merchant_stats.head(top_n)['Merchant'].tolist()
-    
+
     # Filter to those merchants
     df_top = df[df['Merchant'].isin(top_merchants_list) & (df['Type'] == 'Expense')].copy()
-    
+
     if df_top.empty:
         return alt.Chart(pd.DataFrame()).mark_text().encode(
             text=alt.value("No timeline data available")
         )
-    
+
     # Group by merchant and month
     df_top['Amount_Abs'] = df_top['Amount'].abs()
     timeline = df_top.groupby(['Merchant', 'Month'])['Amount_Abs'].sum().reset_index()
-    
+
     # Create line chart
     chart = alt.Chart(timeline).mark_line(point=True).encode(
         x=alt.X('Month:O', axis=alt.Axis(labelAngle=-45), title='Month'),
@@ -200,7 +207,7 @@ def create_merchant_timeline(df: pd.DataFrame, merchant_stats: pd.DataFrame, top
         height=CHART_HEIGHT_STANDARD,
         title=f'Spending Timeline - Top {top_n} Merchants'
     )
-    
+
     return chart
 
 
@@ -208,21 +215,21 @@ def configure_page(
     transactions_spreadsheet: TransactionsSpreadsheet,
     balance_history_spreadsheet: BalanceHistorySpreadsheet
 ) -> None:
-    """Main page configuration."""
+    """Render top-merchant charts, spending timelines, and per-merchant tables."""
     st.header("Merchant Analysis")
     st.caption("Track spending patterns by merchant/vendor")
-    
+
     # Settings
     with st.expander("⚙️ Analysis Settings", expanded=False):
         col1, col2, col3 = st.columns(3)
-        
+
         with col1:
             time_period = st.selectbox(
                 "Time Period",
                 TIME_PERIODS,
                 index=4  # Default to Last 12 Months
             )
-        
+
         with col2:
             extraction_method = st.selectbox(
                 "Merchant Name Extraction",
@@ -230,7 +237,7 @@ def configure_page(
                 index=1,
                 help="How to extract merchant name from transaction description"
             )
-        
+
         with col3:
             min_transactions = st.number_input(
                 "Minimum Transactions",
@@ -239,73 +246,73 @@ def configure_page(
                 value=2,
                 help="Only show merchants with at least this many transactions"
             )
-    
+
     # Get transactions
     df = transactions_spreadsheet.scrubbed_df.copy()
-    
+
     # Calculate date range
     start_date, end_date = calculate_date_range(time_period, df)
-    
+
     # Filter to date range
     df_period = df[(df['Date'] >= start_date) & (df['Date'] <= end_date)].copy()
-    
+
     # Analyze merchants
     with st.spinner("Analyzing merchants..."):
         # Add merchant column to df_period
         df_period['Merchant'] = df_period['Full Description'].apply(
             lambda x: extract_merchant_name(x, extraction_method)
         )
-        
+
         merchant_stats = analyze_merchants(
             df_period,
             extraction_method=extraction_method,
             min_transactions=min_transactions
         )
-    
+
     # Display summary metrics
     if not merchant_stats.empty:
         total_spent = merchant_stats['Total_Spent'].sum()
         num_merchants = len(merchant_stats)
         top_merchant = merchant_stats.iloc[0]
         avg_per_merchant = total_spent / num_merchants
-        
+
         col1, col2, col3, col4 = st.columns(4)
-        
+
         with col1:
             st.metric(
                 label="Total Merchants",
                 value=num_merchants
             )
-        
+
         with col2:
             st.metric(
                 label="Total Spent",
                 value=f"${total_spent:,.2f}"
             )
-        
+
         with col3:
             st.metric(
                 label="Top Merchant",
                 value=top_merchant['Merchant'][:20],
                 delta=f"${top_merchant['Total_Spent']:,.2f}"
             )
-        
+
         with col4:
             st.metric(
                 label="Avg Spent/Merchant",
                 value=f"${avg_per_merchant:,.2f}"
             )
-        
+
         st.divider()
-        
+
         # Display visualizations
         tab1, tab2, tab3 = st.tabs(["Top Merchants", "Frequency Analysis", "Timeline"])
-        
+
         with tab1:
             top_n = st.slider("Number of merchants to show", 10, 50, 20, key="top_merchants_slider")
             chart = create_top_merchants_chart(merchant_stats, top_n)
             st.altair_chart(chart, width='stretch')
-        
+
         with tab2:
             freq_chart = create_frequency_vs_amount_chart(merchant_stats)
             st.altair_chart(freq_chart, width='stretch')
@@ -314,22 +321,22 @@ def configure_page(
                 "Top-right quadrant = frequent high-value purchases. "
                 "Bottom-right = frequent low-value purchases."
             )
-        
+
         with tab3:
             timeline_n = st.slider("Number of merchants to show", 5, 20, 10, key="timeline_slider")
             timeline_chart = create_merchant_timeline(df_period, merchant_stats, timeline_n)
             st.altair_chart(timeline_chart, width='stretch')
-        
+
         st.divider()
-        
+
         # Search and filter merchants
         st.subheader("Merchant Details")
-        
+
         search_term = st.text_input(
             "Search merchants",
             placeholder="Type to filter merchants..."
         )
-        
+
         # Filter merchant stats based on search
         if search_term:
             filtered_stats = merchant_stats[
@@ -337,9 +344,9 @@ def configure_page(
             ]
         else:
             filtered_stats = merchant_stats
-        
+
         st.caption(f"Showing {len(filtered_stats)} merchants")
-        
+
         # Display merchant stats table
         st.dataframe(
             filtered_stats,
@@ -358,21 +365,21 @@ def configure_page(
                 'Days_Active': st.column_config.NumberColumn('Days Active')
             }
         )
-        
+
         # Show transactions for selected merchant
         with st.expander("📋 View Transactions by Merchant"):
             selected_merchant = st.selectbox(
                 "Select Merchant",
                 options=filtered_stats['Merchant'].tolist()
             )
-            
+
             if selected_merchant:
                 merchant_transactions = df_period[
                     df_period['Merchant'] == selected_merchant
                 ].sort_values('Date', ascending=False)
-                
+
                 st.caption(f"Showing {len(merchant_transactions)} transactions for {selected_merchant}")
-                
+
                 st.dataframe(
                     merchant_transactions,
                     width='stretch',
@@ -388,7 +395,7 @@ def configure_page(
 
 
 def main() -> None:
-    """Page entrypoint"""
+    """Streamlit entry point for the Merchant Analysis page."""
     st.set_page_config(layout="wide")
 
     transactions_spreadsheet = load_transactions_data()

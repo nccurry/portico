@@ -4,26 +4,10 @@ import pandas as pd
 
 from importlib import import_module
 
+from tests._helpers import _make_recurring_df
+
 _mod = import_module('Pages.5_Subscriptions')
 detect_recurring_transactions = _mod.detect_recurring_transactions
-
-
-def _make_recurring_df(merchant='NETFLIX MONTHLY', amount=-15.99, category='Entertainment',
-                       start='2024-01-15', months=6):
-    """Build a DataFrame with monthly recurring charges for a single merchant."""
-    dates = pd.date_range(start=start, periods=months, freq='MS', tz='UTC') + pd.Timedelta(days=14)
-    return pd.DataFrame({
-        'Date': dates,
-        'Amount': [amount] * months,
-        'Type': ['Expense'] * months,
-        'Category': [category] * months,
-        'Group': ['Entertainment'] * months,
-        'Account': ['Checking'] * months,
-        'Month': [d.strftime('%Y-%m') for d in dates],
-        'Full Description': [merchant] * months,
-        'Institution': ['Bank'] * months,
-        'Account #': ['1234'] * months,
-    })
 
 
 class TestDetectRecurringTransactions:

@@ -9,146 +9,7 @@ from src.spreadsheet import (
     calculate_group_sparkline,
     calculate_net_worth_sparkline,
 )
-
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-def _utc(year, month, day):
-    """Return a timezone-aware UTC datetime."""
-    return pd.Timestamp(year, month, day, tz="UTC")
-
-
-def _transactions_df(rows):
-    """Build a minimal scrubbed transactions DataFrame from a list of dicts.
-
-    Each dict should contain Date, Category, Amount, Account, Month, Group,
-    Type (and optionally Full Description, Institution, Account #).
-    """
-    defaults = {
-        "Full Description": "",
-        "Institution": "",
-        "Account #": "",
-    }
-    records = [{**defaults, **r} for r in rows]
-    df = pd.DataFrame(records)
-    df["Date"] = pd.to_datetime(df["Date"], utc=True)
-    df["Amount"] = df["Amount"].astype(float)
-    return df
-
-
-def _balance_df(rows):
-    """Build a minimal scrubbed balance-history DataFrame from a list of dicts."""
-    df = pd.DataFrame(rows)
-    df["Date"] = pd.to_datetime(df["Date"], utc=True)
-    if "Time" in df.columns:
-        df["Time"] = pd.to_datetime(df["Time"], utc=True)
-    df["Balance"] = df["Balance"].astype(float)
-    return df
-
-
-# ---------------------------------------------------------------------------
-# Raw DataFrames for scrub() tests
-# ---------------------------------------------------------------------------
-
-@pytest.fixture
-def raw_transactions_df():
-    """A raw DataFrame that TransactionsSpreadsheet.scrub() should clean."""
-    return pd.DataFrame({
-        "Unnamed: 0": [None, None],
-        "Date": ["2024-01-15", "2024-02-20"],
-        "Category": ["Groceries", "Rent"],
-        "Amount": ["$1,234.56", "$2,000.00"],
-        "Account": ["Checking", "Checking"],
-        "Month": ["2024-01-01", "2024-02-01"],
-        "Week": ["2024-01-15", "2024-02-19"],
-        "Full Description": ["STORE", "LANDLORD"],
-        "Institution": ["Bank", "Bank"],
-        "Account #": ["1234", "5678"],
-        "Date Added": ["2024-01-15", "2024-02-20"],
-        "Categorized Date": ["2024-01-15", "2024-02-20"],
-    })
-
-
-@pytest.fixture
-def raw_balance_df():
-    """A raw DataFrame that BalanceHistorySpreadsheet.scrub() should clean."""
-    return pd.DataFrame({
-        "Unnamed: 0": [None, None, None],
-        "Date": ["2024-01-15", "2024-02-20", "2024-03-01"],
-        "Time": ["2024-01-15 10:00", "2024-02-20 11:00", "2024-03-01 09:00"],
-        "Balance": ["$1,000.00", "$2,000.00", "$500.00"],
-        "Account": ["Checking", "Savings", "Hidden"],
-        "Account #": ["xxxx1234", "xxxx5678", "xxxx9999"],
-        "Account ID": ["65440a84a14656002f35ab01", "65440a84a14656002f35cd02", "65440a84a14656002f35ef03"],
-        "Institution": ["Bank", "Bank", "Bank"],
-        "Class": ["Asset", "Asset", "Asset"],
-        "Month": ["2024-01-01", "2024-02-01", "2024-03-01"],
-        "Week": ["2024-01-15", "2024-02-19", "2024-02-26"],
-        "Date Added": ["2024-01-15", "2024-02-20", "2024-03-01"],
-    })
-
-
-@pytest.fixture
-def categories_for_scrub():
-    """Categories lookup for scrub tests."""
-    from src.spreadsheet import CategoriesSpreadsheet
-    cat = CategoriesSpreadsheet.__new__(CategoriesSpreadsheet)
-    cat.scrubbed_df = pd.DataFrame({
-        "Category": ["Groceries", "Rent"],
-        "Group": ["Food", "Housing"],
-        "Type": ["Expense", "Expense"],
-        "Hide From Reports": ["", ""],
-    })
-    return cat
-
-
-@pytest.fixture
-def accounts_for_scrub():
-    """Accounts lookup for scrub tests. Keys match the composite key format."""
-    from src.spreadsheet import AccountsSpreadsheet
-    acct = AccountsSpreadsheet.__new__(AccountsSpreadsheet)
-    # Column A from Accounts sheet (composite key format, mixed case like real data)
-    acct.scrubbed_df = pd.DataFrame({
-        "Account": [
-            "Checking - xxxx1234 (AB01)",
-            "SAVINGS - xxxx5678 (CD02)",
-            "Hidden - xxxx9999 (EF03)",
-        ],
-        "Group": ["Assets", "Assets", "Secret"],
-        "Hide": ["", "", "Hide"],
-    })
-    return acct
-
-
-
-# ---------------------------------------------------------------------------
-# Sample scrubbed data used by most tests
-# ---------------------------------------------------------------------------
-
-@pytest.fixture
-def sample_transactions_df():
-    return _transactions_df([
-        {"Date": "2024-01-10", "Category": "Groceries", "Amount": -50,  "Account": "Checking", "Month": "2024-01", "Group": "Food",      "Type": "Expense"},
-        {"Date": "2024-01-20", "Category": "Rent",      "Amount": -1200,"Account": "Checking", "Month": "2024-01", "Group": "Housing",   "Type": "Expense"},
-        {"Date": "2024-02-05", "Category": "Groceries", "Amount": -60,  "Account": "Checking", "Month": "2024-02", "Group": "Food",      "Type": "Expense"},
-        {"Date": "2024-02-15", "Category": "Salary",    "Amount": 3000, "Account": "Checking", "Month": "2024-02", "Group": "Income",    "Type": "Income"},
-        {"Date": "2024-03-01", "Category": "Dining",    "Amount": -30,  "Account": "Credit",   "Month": "2024-03", "Group": "Food",      "Type": "Expense"},
-        {"Date": "2024-03-10", "Category": "Transfer",  "Amount": 500,  "Account": "Savings",  "Month": "2024-03", "Group": "Transfers", "Type": "Transfer"},
-    ])
-
-
-@pytest.fixture
-def sample_balance_df():
-    return _balance_df([
-        {"Date": "2024-01-01", "Time": "2024-01-01 08:00:00", "Account": "Checking", "Account ID": "a1", "Institution": "Bank", "Group": "Assets",      "Class": "Asset",     "Balance": 5000, "Hide": ""},
-        {"Date": "2024-01-15", "Time": "2024-01-15 08:00:00", "Account": "Checking", "Account ID": "a1", "Institution": "Bank", "Group": "Assets",      "Class": "Asset",     "Balance": 4500, "Hide": ""},
-        {"Date": "2024-01-01", "Time": "2024-01-01 08:00:00", "Account": "Savings",  "Account ID": "a2", "Institution": "Bank", "Group": "Assets",      "Class": "Asset",     "Balance": 10000,"Hide": ""},
-        {"Date": "2024-01-15", "Time": "2024-01-15 08:00:00", "Account": "Savings",  "Account ID": "a2", "Institution": "Bank", "Group": "Assets",      "Class": "Asset",     "Balance": 10500,"Hide": ""},
-        {"Date": "2024-01-01", "Time": "2024-01-01 08:00:00", "Account": "Mortgage",  "Account ID": "a3", "Institution": "Lender","Group": "Liabilities","Class": "Liability", "Balance": 200000,"Hide": ""},
-        {"Date": "2024-01-15", "Time": "2024-01-15 08:00:00", "Account": "Mortgage",  "Account ID": "a3", "Institution": "Lender","Group": "Liabilities","Class": "Liability", "Balance": 199500,"Hide": ""},
-    ])
+from tests._helpers import _utc, _transactions_df, _balance_df
 
 
 # ===================================================================
@@ -157,43 +18,55 @@ def sample_balance_df():
 
 class TestTransactionsScrub:
 
-    def _make(self, raw_df, categories_for_scrub):
+    def _make(self, raw_df, categories_for_scrub) -> TransactionsSpreadsheet:
         with (
             patch.object(Spreadsheet, 'load', lambda self: setattr(self, 'raw_df', raw_df)),
             patch("src.spreadsheet.load_categories_data", return_value=categories_for_scrub),
         ):
             return TransactionsSpreadsheet()
 
-    def test_scrub_drops_unnamed_column(self, raw_transactions_df, categories_for_scrub):
-        ts = self._make(raw_transactions_df, categories_for_scrub)
+    def test_scrub_drops_unnamed_column(self, scrub_input_transactions_df, categories_for_scrub):
+        ts = self._make(scrub_input_transactions_df, categories_for_scrub)
         assert "Unnamed: 0" not in ts.scrubbed_df.columns
 
-    def test_scrub_amount_parsed_as_float(self, raw_transactions_df, categories_for_scrub):
-        ts = self._make(raw_transactions_df, categories_for_scrub)
+    def test_scrub_amount_parsed_as_float(
+        self,
+        scrub_input_transactions_df,
+        categories_for_scrub,
+    ):
+        ts = self._make(scrub_input_transactions_df, categories_for_scrub)
         assert ts.scrubbed_df["Amount"].dtype == float
         assert ts.scrubbed_df["Amount"].iloc[0] == pytest.approx(1234.56)
 
-    def test_scrub_date_is_datetime(self, raw_transactions_df, categories_for_scrub):
-        ts = self._make(raw_transactions_df, categories_for_scrub)
+    def test_scrub_date_is_datetime(self, scrub_input_transactions_df, categories_for_scrub):
+        ts = self._make(scrub_input_transactions_df, categories_for_scrub)
         assert pd.api.types.is_datetime64_any_dtype(ts.scrubbed_df["Date"])
 
-    def test_scrub_month_format(self, raw_transactions_df, categories_for_scrub):
-        ts = self._make(raw_transactions_df, categories_for_scrub)
+    def test_scrub_month_format(self, scrub_input_transactions_df, categories_for_scrub):
+        ts = self._make(scrub_input_transactions_df, categories_for_scrub)
         assert ts.scrubbed_df["Month"].iloc[0] == "2024-01"
 
-    def test_scrub_output_columns(self, raw_transactions_df, categories_for_scrub):
-        ts = self._make(raw_transactions_df, categories_for_scrub)
+    def test_scrub_output_columns(self, scrub_input_transactions_df, categories_for_scrub):
+        ts = self._make(scrub_input_transactions_df, categories_for_scrub)
         expected = {"Date", "Category", "Amount", "Account", "Month",
                     "Full Description", "Group", "Type", "Institution", "Account #"}
         assert set(ts.scrubbed_df.columns) == expected
 
-    def test_scrub_joins_group_from_categories(self, raw_transactions_df, categories_for_scrub):
-        ts = self._make(raw_transactions_df, categories_for_scrub)
+    def test_scrub_joins_group_from_categories(
+        self,
+        scrub_input_transactions_df,
+        categories_for_scrub,
+    ):
+        ts = self._make(scrub_input_transactions_df, categories_for_scrub)
         assert ts.scrubbed_df.iloc[0]["Group"] == "Food"       # Groceries -> Food
         assert ts.scrubbed_df.iloc[1]["Group"] == "Housing"    # Rent -> Housing
 
-    def test_scrub_joins_type_from_categories(self, raw_transactions_df, categories_for_scrub):
-        ts = self._make(raw_transactions_df, categories_for_scrub)
+    def test_scrub_joins_type_from_categories(
+        self,
+        scrub_input_transactions_df,
+        categories_for_scrub,
+    ):
+        ts = self._make(scrub_input_transactions_df, categories_for_scrub)
         assert ts.scrubbed_df.iloc[0]["Type"] == "Expense"
 
     def test_scrub_uncategorized_fallback(self, categories_for_scrub):
@@ -215,9 +88,13 @@ class TestTransactionsScrub:
         ts = self._make(raw, categories_for_scrub)
         assert ts.scrubbed_df.iloc[0]["Group"] == "Uncategorized"
 
-    def test_scrub_missing_unnamed_column(self, raw_transactions_df, categories_for_scrub):
+    def test_scrub_missing_unnamed_column(
+        self,
+        scrub_input_transactions_df,
+        categories_for_scrub,
+    ):
         """scrub() should not crash when 'Unnamed: 0' column is absent."""
-        df_no_unnamed = raw_transactions_df.drop("Unnamed: 0", axis=1)
+        df_no_unnamed = scrub_input_transactions_df.drop("Unnamed: 0", axis=1)
         ts = self._make(df_no_unnamed, categories_for_scrub)
         assert "Unnamed: 0" not in ts.scrubbed_df.columns
 
@@ -228,30 +105,30 @@ class TestTransactionsScrub:
 
 class TestBalanceScrub:
 
-    def _make(self, raw_df, accounts_for_scrub):
+    def _make(self, raw_df, accounts_for_scrub) -> BalanceHistorySpreadsheet:
         with (
             patch.object(Spreadsheet, 'load', lambda self: setattr(self, 'raw_df', raw_df)),
             patch("src.spreadsheet.load_accounts_data", return_value=accounts_for_scrub),
         ):
             return BalanceHistorySpreadsheet()
 
-    def test_scrub_missing_unnamed_column(self, raw_balance_df, accounts_for_scrub):
+    def test_scrub_missing_unnamed_column(self, scrub_input_balance_df, accounts_for_scrub):
         """scrub() should not crash when 'Unnamed: 0' column is absent."""
-        df_no_unnamed = raw_balance_df.drop("Unnamed: 0", axis=1)
+        df_no_unnamed = scrub_input_balance_df.drop("Unnamed: 0", axis=1)
         bs = self._make(df_no_unnamed, accounts_for_scrub)
         assert "Unnamed: 0" not in bs.scrubbed_df.columns
 
-    def test_scrub_joins_group_from_accounts(self, raw_balance_df, accounts_for_scrub):
-        bs = self._make(raw_balance_df, accounts_for_scrub)
+    def test_scrub_joins_group_from_accounts(self, scrub_input_balance_df, accounts_for_scrub):
+        bs = self._make(scrub_input_balance_df, accounts_for_scrub)
         checking_rows = bs.scrubbed_df[bs.scrubbed_df["Account"] == "Checking"]
         assert all(checking_rows["Group"] == "Assets")
 
-    def test_scrub_filters_hidden(self, raw_balance_df, accounts_for_scrub):
-        bs = self._make(raw_balance_df, accounts_for_scrub)
+    def test_scrub_filters_hidden(self, scrub_input_balance_df, accounts_for_scrub):
+        bs = self._make(scrub_input_balance_df, accounts_for_scrub)
         assert "Hidden" not in bs.scrubbed_df["Account"].values
 
-    def test_scrub_balance_float(self, raw_balance_df, accounts_for_scrub):
-        bs = self._make(raw_balance_df, accounts_for_scrub)
+    def test_scrub_balance_float(self, scrub_input_balance_df, accounts_for_scrub):
+        bs = self._make(scrub_input_balance_df, accounts_for_scrub)
         assert bs.scrubbed_df["Balance"].dtype == float
 
 
@@ -351,14 +228,22 @@ class TestFilterTransactions:
         result = ts.filter_transactions(include_types=["Income"])
         assert all(result["Type"] == "Income")
 
-    def test_ignore_types_filters_type_column(self, sample_transactions_df, make_transactions_spreadsheet):
+    def test_ignore_types_filters_type_column(
+        self,
+        sample_transactions_df,
+        make_transactions_spreadsheet,
+    ):
         """ignore_types should exclude rows by Type, not Group."""
         ts = make_transactions_spreadsheet(sample_transactions_df)
         result = ts.filter_transactions(ignore_types=["Transfer"])
         # After ignoring Transfer type, no Transfer rows should remain
         assert "Transfer" not in result["Type"].values
 
-    def test_include_and_ignore_same_axis(self, sample_transactions_df, make_transactions_spreadsheet):
+    def test_include_and_ignore_same_axis(
+        self,
+        sample_transactions_df,
+        make_transactions_spreadsheet,
+    ):
         """ignore_categories is applied after include_categories, so ignore wins."""
         ts = make_transactions_spreadsheet(sample_transactions_df)
         result = ts.filter_transactions(
@@ -460,14 +345,22 @@ class TestGetAmountByGroupCategory:
         result = ts.get_amount_by_group_category("NonExistent")
         assert result.empty
 
-    def test_include_categories_narrows_within_group(self, sample_transactions_df, make_transactions_spreadsheet):
+    def test_include_categories_narrows_within_group(
+        self,
+        sample_transactions_df,
+        make_transactions_spreadsheet,
+    ):
         """include_categories combined with group filter returns only matching categories."""
         ts = make_transactions_spreadsheet(sample_transactions_df)
         result = ts.get_amount_by_group_category("Food", include_categories=["Groceries"])
         assert "Groceries" in result.index
         assert "Dining" not in result.index
 
-    def test_include_categories_outside_group_returns_empty(self, sample_transactions_df, make_transactions_spreadsheet):
+    def test_include_categories_outside_group_returns_empty(
+        self,
+        sample_transactions_df,
+        make_transactions_spreadsheet,
+    ):
         """A category not in the requested group returns nothing."""
         ts = make_transactions_spreadsheet(sample_transactions_df)
         result = ts.get_amount_by_group_category("Food", include_categories=["Rent"])
@@ -487,7 +380,11 @@ class TestMonthlyAmounts:
         assert "2024-02" in result.index
         assert result.loc["2024-01", "Amount"] == pytest.approx(-50)
 
-    def test_monthly_by_category_invert(self, sample_transactions_df, make_transactions_spreadsheet):
+    def test_monthly_by_category_invert(
+        self,
+        sample_transactions_df,
+        make_transactions_spreadsheet,
+    ):
         ts = make_transactions_spreadsheet(sample_transactions_df)
         result = ts.get_monthly_amounts_by_category("Groceries", invert_amount=True)
         assert result.loc["2024-01", "Amount"] == pytest.approx(50)
@@ -525,7 +422,7 @@ class TestBalanceHistory:
     def test_latest_balance_with_end_date(self, sample_balance_df, make_balance_spreadsheet):
         bs = make_balance_spreadsheet(sample_balance_df)
         # Only data up to Jan 1 — only the Jan 1 entries are the latest per account
-        df_result, total = bs.get_latest_balance_by_group("Assets", end_date=_utc(2024, 1, 1))
+        _df_result, total = bs.get_latest_balance_by_group("Assets", end_date=_utc(2024, 1, 1))
         assert total == pytest.approx(15000)
 
     def test_get_groups(self, sample_balance_df, make_balance_spreadsheet):
@@ -534,7 +431,11 @@ class TestBalanceHistory:
         assert "Assets" in groups
         assert "Liabilities" in groups
 
-    def test_balance_history_by_account_reindexes(self, sample_balance_df, make_balance_spreadsheet):
+    def test_balance_history_by_account_reindexes(
+        self,
+        sample_balance_df,
+        make_balance_spreadsheet,
+    ):
         bs = make_balance_spreadsheet(sample_balance_df)
         start = _utc(2024, 1, 1)
         end = _utc(2024, 1, 15)
@@ -542,7 +443,11 @@ class TestBalanceHistory:
         # Should have entries for every day from Jan 1 to Jan 15
         assert len(result) == 15  # 15 days inclusive
 
-    def test_balance_history_by_account_missing_dates_filled(self, sample_balance_df, make_balance_spreadsheet):
+    def test_balance_history_by_account_missing_dates_filled(
+        self,
+        sample_balance_df,
+        make_balance_spreadsheet,
+    ):
         bs = make_balance_spreadsheet(sample_balance_df)
         start = _utc(2024, 1, 1)
         end = _utc(2024, 1, 15)
@@ -550,7 +455,11 @@ class TestBalanceHistory:
         # No NaN balances after bfill/ffill
         assert result["Balance"].isna().sum() == 0
 
-    def test_balance_history_by_group_sums_across_accounts(self, sample_balance_df, make_balance_spreadsheet):
+    def test_balance_history_by_group_sums_across_accounts(
+        self,
+        sample_balance_df,
+        make_balance_spreadsheet,
+    ):
         bs = make_balance_spreadsheet(sample_balance_df)
         start = _utc(2024, 1, 1)
         end = _utc(2024, 1, 15)
@@ -575,7 +484,11 @@ class TestBalanceHistory:
         result = bs.get_balance_history_by_group("Liabilities", start, end)
         assert result.iloc[-1] == pytest.approx(199500)
 
-    def test_balance_history_different_date_range(self, sample_balance_df, make_balance_spreadsheet):
+    def test_balance_history_different_date_range(
+        self,
+        sample_balance_df,
+        make_balance_spreadsheet,
+    ):
         """Requesting a range that includes actual data points fills gaps via bfill/ffill."""
         bs = make_balance_spreadsheet(sample_balance_df)
         # Use a range that covers actual data points (Jan 1 and Jan 15)
@@ -587,7 +500,11 @@ class TestBalanceHistory:
         assert result["Balance"].iloc[0] == pytest.approx(5000)
         assert result["Balance"].isna().sum() == 0
 
-    def test_balance_history_by_group_empty_group(self, sample_balance_df, make_balance_spreadsheet):
+    def test_balance_history_by_group_empty_group(
+        self,
+        sample_balance_df,
+        make_balance_spreadsheet,
+    ):
         """A group with no matching data returns an empty series."""
         bs = make_balance_spreadsheet(sample_balance_df)
         result = bs.get_balance_history_by_group("NonExistent")
@@ -645,7 +562,7 @@ class TestSparklines:
     def test_group_sparkline_weekly_resample(self, sample_balance_df):
         start = _utc(2024, 1, 1)
         end = _utc(2024, 1, 31)
-        result = calculate_group_sparkline.__wrapped__(sample_balance_df, "Assets", start, end)
+        result = calculate_group_sparkline.__wrapped__(sample_balance_df, "Assets", start, end)  # type: ignore[attr-defined]
         assert "Balance" in result.columns
         assert "Date" in result.columns
         # Weekly resample means we should have a few rows
@@ -654,13 +571,13 @@ class TestSparklines:
     def test_group_sparkline_empty_group(self, sample_balance_df):
         start = _utc(2024, 1, 1)
         end = _utc(2024, 1, 31)
-        result = calculate_group_sparkline.__wrapped__(sample_balance_df, "NonExistent", start, end)
+        result = calculate_group_sparkline.__wrapped__(sample_balance_df, "NonExistent", start, end)  # type: ignore[attr-defined]
         assert result.empty
 
     def test_net_worth_subtracts_liabilities(self, sample_balance_df):
         start = _utc(2024, 1, 1)
         end = _utc(2024, 1, 31)
-        result = calculate_net_worth_sparkline.__wrapped__(sample_balance_df, start, end)
+        result = calculate_net_worth_sparkline.__wrapped__(sample_balance_df, start, end)  # type: ignore[attr-defined]
         assert "NetWorth" in result.columns
         # Net worth should be negative overall since liabilities (200k) >> assets (15k)
         # Filter out any zero rows from edge-of-resample artifacts
@@ -686,7 +603,7 @@ class TestSparklines:
         ])
         start = _utc(2024, 1, 1)
         end = _utc(2024, 1, 21)
-        result = calculate_group_sparkline.__wrapped__(df, "Assets", start, end)
+        result = calculate_group_sparkline.__wrapped__(df, "Assets", start, end)  # type: ignore[attr-defined]
         # Every week's balance should include both accounts (>= 15000)
         # Without ffill, later weeks would only show a1's balance (~5500)
         assert (result["Balance"] >= 10000).all()
@@ -707,7 +624,7 @@ class TestSparklines:
         ])
         start = _utc(2024, 1, 1)
         end = _utc(2024, 1, 21)
-        result = calculate_net_worth_sparkline.__wrapped__(df, start, end)
+        result = calculate_net_worth_sparkline.__wrapped__(df, start, end)  # type: ignore[attr-defined]
         # Net worth should always reflect both accounts.
         # Without ffill, later weeks would omit the liability, inflating net worth.
         # Week 1: 5000 - 2000 = 3000.  Week 3: 5500 - 2000 = 3500.
@@ -845,7 +762,7 @@ class TestNaNHandling:
 
 class TestCategoriesScrub:
 
-    def _make(self, raw_df):
+    def _make(self, raw_df) -> "CategoriesSpreadsheet":  # type: ignore[name-defined]  # noqa: UP037, F821
         from src.spreadsheet import CategoriesSpreadsheet
         with patch.object(Spreadsheet, 'load', lambda self: setattr(self, 'raw_df', raw_df)):
             return CategoriesSpreadsheet()
@@ -881,7 +798,7 @@ class TestCategoriesScrub:
 
 class TestAccountsScrub:
 
-    def _make(self, raw_df):
+    def _make(self, raw_df) -> "AccountsSpreadsheet":  # type: ignore[name-defined]  # noqa: UP037, F821
         from src.spreadsheet import AccountsSpreadsheet
         with patch.object(Spreadsheet, 'load', lambda self: setattr(self, 'raw_df', raw_df)):
             return AccountsSpreadsheet()
@@ -916,7 +833,7 @@ class TestAccountsScrub:
 
 class TestBalanceScrubJoinEdgeCases:
 
-    def _make(self, raw_df, accounts_for_scrub):
+    def _make(self, raw_df, accounts_for_scrub) -> BalanceHistorySpreadsheet:
         with (
             patch.object(Spreadsheet, 'load', lambda self: setattr(self, 'raw_df', raw_df)),
             patch("src.spreadsheet.load_accounts_data", return_value=accounts_for_scrub),
@@ -1059,14 +976,14 @@ class TestBalanceScrubJoinEdgeCases:
 
 class TestTransactionsScrubJoinEdgeCases:
 
-    def _make(self, raw_df, categories):
+    def _make(self, raw_df, categories) -> TransactionsSpreadsheet:
         with (
             patch.object(Spreadsheet, 'load', lambda self: setattr(self, 'raw_df', raw_df)),
             patch("src.spreadsheet.load_categories_data", return_value=categories),
         ):
             return TransactionsSpreadsheet()
 
-    def _raw(self, categories, amounts=None):
+    def _raw(self, categories, amounts=None) -> pd.DataFrame:
         """Build a minimal raw transactions DataFrame."""
         n = len(categories)
         if amounts is None:

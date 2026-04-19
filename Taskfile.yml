@@ -134,14 +134,26 @@ tasks:
   # ========================================
 
   lint:
-    desc: "Check code formatting with ruff"
+    desc: "Run ruff and mypy"
     cmds:
       - '{{.PYTHON}} -m ruff check src/ Pages/ tests/ Home.py'
+      - '{{.PYTHON}} -m mypy'
 
   lint:fix:
-    desc: "Auto-fix formatting issues with ruff"
+    desc: "Auto-fix ruff issues, then run mypy"
     cmds:
       - '{{.PYTHON}} -m ruff check --fix src/ Pages/ tests/ Home.py'
+      - '{{.PYTHON}} -m mypy'
+
+  # ========================================
+  # All Checks
+  # ========================================
+
+  check:
+    desc: "Run lint and tests"
+    cmds:
+      - task: lint
+      - task: test
 
   # ========================================
   # Run

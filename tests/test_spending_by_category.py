@@ -9,72 +9,29 @@ process_spending_data = _mod.process_spending_data
 calculate_distribution_stats = _mod.calculate_distribution_stats
 
 
-@pytest.fixture
-def spending_transactions_df():
-    """Transactions with mixed types and multiple categories."""
-    return pd.DataFrame({
-        'Date': pd.to_datetime([
-            '2024-01-05', '2024-01-10', '2024-01-15',
-            '2024-01-20', '2024-01-25', '2024-02-01',
-        ], utc=True),
-        'Amount': [3000, -200, -150, -500, -50, -100],
-        'Type': ['Income', 'Expense', 'Expense', 'Expense', 'Expense', 'Expense'],
-        'Category': ['Salary', 'Groceries', 'Dining', 'Rent', 'Coffee', 'Groceries'],
-        'Group': ['Income', 'Food', 'Food', 'Housing', 'Food', 'Food'],
-        'Account': ['Checking'] * 6,
-        'Month': ['2024-01', '2024-01', '2024-01', '2024-01', '2024-01', '2024-02'],
-        'Full Description': ['PAY', 'KROGER', 'RESTAURANT', 'LANDLORD', 'STARBUCKS', 'KROGER'],
-        'Institution': ['Bank'] * 6,
-        'Account #': ['1234'] * 6,
-    })
-
-
-@pytest.fixture
-def basic_spending_filters():
-    """Minimal filters that pass everything through."""
-    return {
-        'include_groups': [],
-        'include_categories': [],
-        'exclude_groups': [],
-        'exclude_categories': [],
-        'filter_large_expenses': False,
-        'expense_threshold': 50000,
-    }
-
-
-@pytest.fixture
-def expenses_only_df():
-    """DataFrame with only expense transactions for distribution stats."""
-    return pd.DataFrame({
-        'Date': pd.to_datetime([
-            '2024-01-05', '2024-01-10', '2024-01-15',
-            '2024-01-20', '2024-01-25',
-        ], utc=True),
-        'Amount': [-10, -50, -100, -300, -500],
-        'Type': ['Expense'] * 5,
-        'Category': ['Coffee', 'Groceries', 'Dining', 'Utilities', 'Rent'],
-        'Group': ['Food', 'Food', 'Food', 'Housing', 'Housing'],
-        'Account': ['Checking'] * 5,
-        'Month': ['2024-01'] * 5,
-        'Full Description': ['CAFE', 'STORE', 'REST', 'ELECTRIC', 'LANDLORD'],
-        'Institution': ['Bank'] * 5,
-        'Account #': ['1234'] * 5,
-    })
-
-
 class TestProcessSpendingData:
 
-    def test_filters_to_expenses_only(self, spending_transactions_df, basic_spending_filters, make_transactions_spreadsheet):
+    def test_filters_to_expenses_only(
+        self,
+        spending_transactions_df,
+        basic_spending_filters,
+        make_transactions_spreadsheet,
+    ):
         ts = make_transactions_spreadsheet(spending_transactions_df)
         start = pd.Timestamp('2024-01-01', tz='UTC')
         end = pd.Timestamp('2024-12-31', tz='UTC')
 
-        df_period, df_by_category = process_spending_data(ts, basic_spending_filters, start, end)
+        df_period, _df_by_category = process_spending_data(ts, basic_spending_filters, start, end)
 
         # df_period should contain only expenses
         assert (df_period['Type'] == 'Expense').all()
 
-    def test_category_grouping_with_abs_amounts(self, spending_transactions_df, basic_spending_filters, make_transactions_spreadsheet):
+    def test_category_grouping_with_abs_amounts(
+        self,
+        spending_transactions_df,
+        basic_spending_filters,
+        make_transactions_spreadsheet,
+    ):
         ts = make_transactions_spreadsheet(spending_transactions_df)
         start = pd.Timestamp('2024-01-01', tz='UTC')
         end = pd.Timestamp('2024-12-31', tz='UTC')
@@ -88,7 +45,12 @@ class TestProcessSpendingData:
         groceries_row = df_by_category[df_by_category['Category'] == 'Groceries']
         assert groceries_row['Amount'].values[0] == pytest.approx(300)
 
-    def test_percentages_sum_to_100(self, spending_transactions_df, basic_spending_filters, make_transactions_spreadsheet):
+    def test_percentages_sum_to_100(
+        self,
+        spending_transactions_df,
+        basic_spending_filters,
+        make_transactions_spreadsheet,
+    ):
         ts = make_transactions_spreadsheet(spending_transactions_df)
         start = pd.Timestamp('2024-01-01', tz='UTC')
         end = pd.Timestamp('2024-12-31', tz='UTC')
@@ -177,19 +139,28 @@ class TestCalculateDistributionStats:
         assert stats['medium_count'] == 3
         assert stats['large_count'] == 0
 
-    def test_date_range_filters_transactions(self, spending_transactions_df, basic_spending_filters, make_transactions_spreadsheet):
+    def test_date_range_filters_transactions(
+        self,
+        spending_transactions_df,
+        basic_spending_filters,
+        make_transactions_spreadsheet,
+    ):
         """Only transactions within the date range are included."""
         ts = make_transactions_spreadsheet(spending_transactions_df)
         # Only January
         start = pd.Timestamp('2024-01-01', tz='UTC')
         end = pd.Timestamp('2024-01-31', tz='UTC')
 
-        df_period, df_by_category = process_spending_data(ts, basic_spending_filters, start, end)
+        df_period, _df_by_category = process_spending_data(ts, basic_spending_filters, start, end)
 
         # February transaction should be excluded
         assert all(d.month == 1 for d in df_period['Date'])
 
-    def test_zero_spending_returns_zero_percentages(self, basic_spending_filters, make_transactions_spreadsheet):
+    def test_zero_spending_returns_zero_percentages(
+        self,
+        basic_spending_filters,
+        make_transactions_spreadsheet,
+    ):
         """No expenses in range produces zero percentages."""
         df = pd.DataFrame({
             'Date': pd.to_datetime(['2024-01-15'], utc=True),

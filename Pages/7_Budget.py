@@ -12,6 +12,7 @@ from src.spreadsheet import (
 )
 from src.filters import render_budget_filters, apply_transaction_filters
 from src.page_helpers import display_transactions_expander
+from src.custom_types import BudgetFilters
 from src.constants import (
     COLOR_BUDGET,
     COLOR_OVER_BUDGET,
@@ -27,7 +28,7 @@ def get_budget_vs_actual(
     budget_df: pd.DataFrame,
     transactions_df: pd.DataFrame,
     month_str: str,
-    filters: dict,
+    filters: BudgetFilters,
 ) -> pd.DataFrame:
     """Compare budgets to actual spending for a given month.
 
@@ -86,7 +87,7 @@ def get_ytd_budget_vs_actual(
     budget_df: pd.DataFrame,
     transactions_df: pd.DataFrame,
     month_str: str,
-    filters: dict,
+    filters: BudgetFilters,
 ) -> pd.DataFrame:
     """Compare YTD cumulative budgets to actual spending through a given month.
 
@@ -172,7 +173,11 @@ def build_unified_budget_table(
     return merged.sort_values("Mo_Pct", ascending=False).reset_index(drop=True)
 
 
-def calculate_projected_spend(spent: float, days_elapsed: int, days_in_month: int) -> float:
+def calculate_projected_spend(
+    spent: float,
+    days_elapsed: int,
+    days_in_month: int,
+) -> float:
     """Project end-of-month spend based on current pace."""
     if days_elapsed <= 0:
         return 0.0
@@ -184,7 +189,10 @@ def calculate_projected_spend(spent: float, days_elapsed: int, days_in_month: in
 # Chart builders
 # ---------------------------------------------------------------------------
 
-def create_budget_category_chart(df: pd.DataFrame, title: str = "Budget vs Actual by Category") -> alt.Chart:
+def create_budget_category_chart(
+    df: pd.DataFrame,
+    title: str = "Budget vs Actual by Category",
+) -> alt.Chart:
     """Horizontal bar chart with spent amount and a tick mark at the budget level."""
     if df.empty:
         return alt.Chart(pd.DataFrame()).mark_text().encode(text=alt.value("No budget data"))
@@ -236,6 +244,7 @@ def configure_page(
     transactions_spreadsheet: TransactionsSpreadsheet,
     categories_spreadsheet: CategoriesSpreadsheet,
 ) -> None:
+    """Render monthly and YTD budget-vs-actual comparisons with projected spend."""
     st.header("Budget")
 
     months = sorted(transactions_spreadsheet.scrubbed_df["Month"].dropna().unique(), reverse=True)
@@ -390,7 +399,7 @@ def configure_page(
 
 
 def main() -> None:
-    """Page entrypoint"""
+    """Streamlit entry point for the Budget page."""
     st.set_page_config(layout="wide")
 
     transactions_spreadsheet = load_transactions_data()

@@ -1,30 +1,16 @@
 """Tests for budget functionality: CategoriesSpreadsheet budget parsing and budget vs actual."""
-import pytest
-import pandas as pd
-from unittest.mock import patch
+from collections.abc import Callable
 from importlib import import_module
+from typing import Any
+from unittest.mock import patch
+
+import pandas as pd
+import pytest
 
 from src.spreadsheet import Spreadsheet, CategoriesSpreadsheet
+from tests._helpers import _transactions_df
 
 _mod = import_module('Pages.7_Budget')
-
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-def _ts(date_str: str) -> pd.Timestamp:
-    return pd.Timestamp(date_str, tz="UTC")
-
-
-def _transactions_df(rows):
-    """Build a minimal scrubbed transactions DataFrame."""
-    defaults = {"Full Description": "", "Institution": "", "Account #": ""}
-    records = [{**defaults, **r} for r in rows]
-    df = pd.DataFrame(records)
-    df["Date"] = pd.to_datetime(df["Date"], utc=True)
-    df["Amount"] = df["Amount"].astype(float)
-    return df
 
 
 # ---------------------------------------------------------------------------
@@ -33,7 +19,7 @@ def _transactions_df(rows):
 
 class TestCategoriesBudgetParsing:
 
-    def _make(self, raw_df):
+    def _make(self, raw_df) -> CategoriesSpreadsheet:
         with patch.object(Spreadsheet, "load", lambda self: setattr(self, "raw_df", raw_df)):
             return CategoriesSpreadsheet()
 
@@ -116,7 +102,7 @@ class TestCategoriesBudgetParsing:
 class TestGetBudgetVsActual:
 
     @pytest.fixture
-    def budget_df(self):
+    def budget_df(self) -> pd.DataFrame:
         return pd.DataFrame({
             "Category": ["Groceries", "Groceries", "Restaurants", "Restaurants", "Electric", "Electric"],
             "Month_Num": [1, 3, 1, 3, 1, 3],
@@ -126,7 +112,7 @@ class TestGetBudgetVsActual:
         })
 
     @pytest.fixture
-    def transactions_df(self):
+    def transactions_df(self) -> pd.DataFrame:
         return _transactions_df([
             {"Date": "2024-01-10", "Category": "Groceries", "Amount": -300, "Account": "Checking",
              "Month": "2024-01", "Group": "Food", "Type": "Expense"},
@@ -141,7 +127,7 @@ class TestGetBudgetVsActual:
         ])
 
     @pytest.fixture
-    def no_filters(self):
+    def no_filters(self) -> dict[str, Any]:
         return {
             "exclude_groups": [],
             "exclude_categories": [],
@@ -150,8 +136,8 @@ class TestGetBudgetVsActual:
             "show_zero_budget": False,
         }
 
-    def _get_fn(self):
-        return _mod.get_budget_vs_actual
+    def _get_fn(self) -> Callable[..., pd.DataFrame]:
+        return _mod.get_budget_vs_actual  # type: ignore[no-any-return]
 
     def test_basic_budget_vs_actual(self, budget_df, transactions_df, no_filters):
         fn = self._get_fn()
@@ -263,7 +249,7 @@ class TestGetBudgetVsActual:
 class TestGetYtdBudgetVsActual:
 
     @pytest.fixture
-    def budget_df(self):
+    def budget_df(self) -> pd.DataFrame:
         """Budget data with months 1-3 for two categories."""
         rows = []
         for month in range(1, 13):
@@ -274,7 +260,7 @@ class TestGetYtdBudgetVsActual:
         return pd.DataFrame(rows)
 
     @pytest.fixture
-    def transactions_df(self):
+    def transactions_df(self) -> pd.DataFrame:
         return _transactions_df([
             # January
             {"Date": "2024-01-10", "Category": "Groceries", "Amount": -400, "Account": "Checking",
@@ -294,7 +280,7 @@ class TestGetYtdBudgetVsActual:
         ])
 
     @pytest.fixture
-    def no_filters(self):
+    def no_filters(self) -> dict[str, Any]:
         return {
             "exclude_groups": [],
             "exclude_categories": [],
@@ -303,8 +289,8 @@ class TestGetYtdBudgetVsActual:
             "show_zero_budget": False,
         }
 
-    def _get_fn(self):
-        return _mod.get_ytd_budget_vs_actual
+    def _get_fn(self) -> Callable[..., pd.DataFrame]:
+        return _mod.get_ytd_budget_vs_actual  # type: ignore[no-any-return]
 
     def test_ytd_through_march(self, budget_df, transactions_df, no_filters):
         fn = self._get_fn()
@@ -393,8 +379,8 @@ class TestGetYtdBudgetVsActual:
 
 class TestBuildUnifiedBudgetTable:
 
-    def _get_fn(self):
-        return _mod.build_unified_budget_table
+    def _get_fn(self) -> Callable[..., pd.DataFrame]:
+        return _mod.build_unified_budget_table  # type: ignore[no-any-return]
 
     def test_merges_monthly_and_ytd(self):
         fn = self._get_fn()
@@ -474,8 +460,8 @@ class TestBuildUnifiedBudgetTable:
 
 class TestProjectedSpend:
 
-    def _get_fn(self):
-        return _mod.calculate_projected_spend
+    def _get_fn(self) -> Callable[..., float]:
+        return _mod.calculate_projected_spend  # type: ignore[no-any-return]
 
     def test_basic_projection(self):
         fn = self._get_fn()

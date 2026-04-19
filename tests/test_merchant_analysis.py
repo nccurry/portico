@@ -5,6 +5,7 @@ import numpy as np
 from importlib import import_module
 
 from src.page_helpers import extract_merchant_name
+from tests._helpers import _make_merchant_df
 
 _mod = import_module('Pages.6_Merchant_Analysis')
 analyze_merchants = _mod.analyze_merchants
@@ -26,34 +27,6 @@ class TestExtractMerchantName:
 
     def test_empty_returns_unknown(self):
         assert extract_merchant_name('', 'first_word') == 'Unknown'
-
-
-def _make_merchant_df():
-    """Build a transaction DataFrame with multiple merchants and types."""
-    return pd.DataFrame({
-        'Date': pd.to_datetime([
-            '2024-01-05', '2024-01-10', '2024-01-15',
-            '2024-01-20', '2024-02-01', '2024-02-10',
-            '2024-03-01',
-        ], utc=True),
-        'Amount': [3000, -50, -75, -200, -60, -80, -30],
-        'Type': ['Income', 'Expense', 'Expense', 'Expense', 'Expense', 'Expense', 'Expense'],
-        'Category': ['Salary', 'Groceries', 'Groceries', 'Dining', 'Groceries', 'Dining', 'Coffee'],
-        'Group': ['Income', 'Food', 'Food', 'Food', 'Food', 'Food', 'Food'],
-        'Account': ['Checking'] * 7,
-        'Month': ['2024-01', '2024-01', '2024-01', '2024-01', '2024-02', '2024-02', '2024-03'],
-        'Full Description': [
-            'EMPLOYER PAYROLL',
-            'KROGER #1234 STORE',
-            'KROGER #5678 STORE',
-            'CHIPOTLE RESTAURANT',
-            'KROGER #1234 STORE',
-            'CHIPOTLE RESTAURANT',
-            'STARBUCKS COFFEE',
-        ],
-        'Institution': ['Bank'] * 7,
-        'Account #': ['1234'] * 7,
-    })
 
 
 class TestAnalyzeMerchants:

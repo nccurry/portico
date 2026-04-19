@@ -12,20 +12,6 @@ from src.page_helpers import (
 )
 
 
-@pytest.fixture
-def monthly_amounts_df():
-    """Monthly amounts with YYYY-MM index and Amount column, spanning two years."""
-    data = {
-        'Amount': [100, 200, 300, 150, 250, 350,
-                   110, 210, 310, 160, 260, 360]
-    }
-    index = pd.Index([
-        '2023-01', '2023-02', '2023-03', '2023-04', '2023-05', '2023-06',
-        '2024-01', '2024-02', '2024-03', '2024-04', '2024-05', '2024-06',
-    ], name='Month')
-    return pd.DataFrame(data, index=index)
-
-
 class TestPrepareYearComparisonData:
 
     def test_pivots_to_year_columns(self, monthly_amounts_df):
