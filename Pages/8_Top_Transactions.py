@@ -52,7 +52,10 @@ def get_top_transactions(
     expenses['Abs_Amount'] = expenses['Amount'].abs()
     total_spending = expenses['Abs_Amount'].sum()
 
-    top_n = expenses.nlargest(n, 'Abs_Amount')
+    expenses = expenses.sort_values(
+        ['Abs_Amount', 'Date'], ascending=[False, True],
+    )
+    top_n = expenses.head(n)
     total_top_n = top_n['Abs_Amount'].sum()
 
     pct_of_total = (total_top_n / total_spending * 100) if total_spending > 0 else 0

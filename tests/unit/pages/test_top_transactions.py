@@ -107,6 +107,77 @@ class TestGetTopTransactions:
         assert stats['total_top_n'] == pytest.approx(300)
         assert stats['pct_of_total'] == pytest.approx(60)
 
+    def test_ties_break_by_date_ascending(self) -> None:
+        """Tied amounts sort by Date ascending for deterministic display order."""
+        df = pd.DataFrame({
+            'Date': pd.to_datetime(['2024-03-01', '2024-01-01', '2024-02-01'], utc=True),
+            'Amount': [-200, -200, -200],
+            'Type': ['Expense'] * 3,
+            'Category': ['Cat'] * 3,
+            'Group': ['Grp'] * 3,
+            'Account': ['Checking'] * 3,
+            'Month': ['2024-03', '2024-01', '2024-02'],
+            'Full Description': ['March', 'January', 'February'],
+            'Institution': ['Bank'] * 3,
+            'Account #': ['1234'] * 3,
+        })
+        start = pd.Timestamp('2024-01-01', tz='UTC')
+        end = pd.Timestamp('2024-12-31', tz='UTC')
+        top_df, _stats = get_top_transactions(df, 3, start, end)
+        descs = top_df['Full Description'].tolist()
+        assert descs == ['January', 'February', 'March']
+
+    def test_mixed_amounts_tie_at_boundary_selects_by_date(self) -> None:
+        """Distinct large amounts fill slots, then tied amounts at the cutoff
+        compete — earliest dates win the remaining slots."""
+        df = pd.DataFrame({
+            'Date': pd.to_datetime([
+                '2024-01-01',  # -500 (clear winner)
+                '2024-04-01',  # -100 tied, late date (should lose)
+                '2024-02-01',  # -100 tied, early date (should win)
+                '2024-03-01',  # -100 tied, middle date (should win)
+            ], utc=True),
+            'Amount': [-500, -100, -100, -100],
+            'Type': ['Expense'] * 4,
+            'Category': ['Cat'] * 4,
+            'Group': ['Grp'] * 4,
+            'Account': ['Checking'] * 4,
+            'Month': ['2024-01', '2024-04', '2024-02', '2024-03'],
+            'Full Description': ['Big', 'April', 'February', 'March'],
+            'Institution': ['Bank'] * 4,
+            'Account #': ['1234'] * 4,
+        })
+        start = pd.Timestamp('2024-01-01', tz='UTC')
+        end = pd.Timestamp('2024-12-31', tz='UTC')
+        top_df, _stats = get_top_transactions(df, 3, start, end)
+        assert len(top_df) == 3
+        descs = top_df['Full Description'].tolist()
+        assert descs == ['Big', 'February', 'March']
+
+    def test_overflow_ties_select_earliest_dates(self) -> None:
+        """When more rows tie at the cutoff amount than fit in N, earlier dates win."""
+        df = pd.DataFrame({
+            'Date': pd.to_datetime([
+                '2024-01-01', '2024-02-01', '2024-03-01',
+                '2024-04-01', '2024-05-01',
+            ], utc=True),
+            'Amount': [-100, -100, -100, -100, -100],
+            'Type': ['Expense'] * 5,
+            'Category': ['Cat'] * 5,
+            'Group': ['Grp'] * 5,
+            'Account': ['Checking'] * 5,
+            'Month': ['2024-01', '2024-02', '2024-03', '2024-04', '2024-05'],
+            'Full Description': ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
+            'Institution': ['Bank'] * 5,
+            'Account #': ['1234'] * 5,
+        })
+        start = pd.Timestamp('2024-01-01', tz='UTC')
+        end = pd.Timestamp('2024-12-31', tz='UTC')
+        top_df, _stats = get_top_transactions(df, 3, start, end)
+        assert len(top_df) == 3
+        descs = top_df['Full Description'].tolist()
+        assert descs == ['Jan', 'Feb', 'Mar']
+
 
 class TestGetCategoryBreakdown:
 

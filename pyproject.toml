@@ -22,7 +22,7 @@ ignore = [
 
 [tool.mypy]
 python_version = "3.14"
-files = ["src", "Pages", "tests"]
+files = ["src", "Pages", "tests", "Home.py"]
 check_untyped_defs = true
 warn_return_any = true
 warn_unused_ignores = true

@@ -568,12 +568,11 @@ def calculate_net_worth_summary(
     """Compute the per-group net worth summary used by the Home page.
 
     For each non-empty group:
-        * derive the group's account class from the first row's ``Class`` value
-          (defaults to ``"Asset"`` when the group is empty)
         * pull each account's most recent balance via
           :func:`get_latest_balance_by_group`
-        * add the group total to ``total_net_worth``, subtracting it when the
-          group is a ``Liability``
+        * sign each account individually (``-1`` for Liability, ``+1`` for
+          Asset) so groups that mix classes compute correct net worth
+        * determine the dominant class for display (majority wins)
 
     Parameters
     ----------
@@ -598,19 +597,31 @@ def calculate_net_worth_summary(
     for group in groups:
         accounts_df, total = balance_history.get_latest_balance_by_group(group)
         group_accounts[group] = accounts_df
-
-        account_class = "Asset"
-        df_check = scrubbed[scrubbed["Group"] == group]
-        if not df_check.empty:
-            account_class = str(df_check.iloc[0]["Class"])
-        group_classes[group] = account_class
-
-        if account_class == "Liability":
-            total_net_worth -= total
-        else:
-            total_net_worth += total
-
         group_balances[group] = total
+
+        # Determine each account's class from the latest observation and
+        # compute a correctly-signed contribution to net worth.  This handles
+        # groups that mix asset and liability accounts (e.g. a brokerage with
+        # a margin loan).
+        df_latest = scrubbed.copy()
+        df_latest = df_latest.sort_values(by=["Date", "Time"])
+        df_latest = df_latest.drop_duplicates("Account ID", keep="last")
+        df_latest = df_latest[df_latest["Group"] == group]
+
+        signed_total = 0.0
+        dominant_class = "Asset"
+        if not df_latest.empty:
+            multiplier = df_latest["Class"].map(
+                {"Liability": -1, "Asset": 1}
+            ).fillna(1)
+            signed_total = float((df_latest["Balance"] * multiplier).sum())
+            liability_count = (df_latest["Class"] == "Liability").sum()
+            dominant_class = (
+                "Liability" if liability_count > len(df_latest) / 2 else "Asset"
+            )
+
+        group_classes[group] = dominant_class
+        total_net_worth += signed_total
 
     return NetWorthSummary(
         total_net_worth=total_net_worth,
