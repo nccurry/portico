@@ -56,14 +56,21 @@ class TestGetTopTransactions:
         assert stats['pct_of_total'] == 0
 
     def test_n_larger_than_available(self, varied_expenses: pd.DataFrame) -> None:
-        """If N > total expenses, return all of them."""
+        """If N > total expenses, return all of them.
+
+        The fixture has 8 expenses totaling
+        $50 + $500 + $100 + $1000 + $200 + $300 + $750 + $25 = $2925.
+        When n=100 > 8, all 8 are returned and total_top_n == $2925.
+        """
         start = pd.Timestamp('2024-01-01', tz='UTC')
         end = pd.Timestamp('2024-12-31', tz='UTC')
 
         top_df, stats = get_top_transactions(varied_expenses, 100, start, end)
 
         assert len(top_df) == 8
-        assert stats['total_top_n'] == pytest.approx(stats['total_spending'])
+        assert stats['total_top_n'] == pytest.approx(2925.0)
+        assert stats['total_spending'] == pytest.approx(2925.0)
+        assert stats['pct_of_total'] == pytest.approx(100.0)
 
     def test_all_income_returns_empty(self) -> None:
         """A DataFrame with only income transactions returns empty stats."""
@@ -226,3 +233,125 @@ class TestFindRecurringLargeExpenses:
     def test_empty_input(self) -> None:
         recurring = find_recurring_large_expenses(pd.DataFrame())
         assert recurring.empty
+
+    def test_empty_input_returns_expected_columns(self) -> None:
+        """Empty input produces DataFrame with Merchant/Count/Total columns for UI stability."""
+        recurring = find_recurring_large_expenses(pd.DataFrame())
+        assert list(recurring.columns) == ['Merchant', 'Count', 'Total']
+
+    def test_sorted_by_total_descending(self) -> None:
+        """Result should be sorted by Total descending (worst spender first)."""
+        df = pd.DataFrame({
+            'Abs_Amount': [100, 100, 50, 50, 50],
+            'Full Description': [
+                'CHEAP STORE', 'CHEAP STORE',
+                'EXPENSIVE ONE', 'EXPENSIVE ONE', 'EXPENSIVE ONE',
+            ],
+        })
+        recurring = find_recurring_large_expenses(df)
+        totals = recurring['Total'].tolist()
+        assert totals == sorted(totals, reverse=True)
+
+
+class TestGetCategoryBreakdownCorners:
+
+    def test_single_category(self) -> None:
+        """One category → one row in breakdown."""
+        df = pd.DataFrame({
+            'Category': ['Food'] * 3,
+            'Abs_Amount': [100, 200, 300],
+        })
+        breakdown = get_category_breakdown(df)
+        assert len(breakdown) == 1
+        assert breakdown.iloc[0]['Total'] == pytest.approx(600)
+        assert breakdown.iloc[0]['Count'] == 3
+
+    def test_sorted_descending_by_total(self) -> None:
+        df = pd.DataFrame({
+            'Category': ['Food', 'Rent', 'Food', 'Utilities'],
+            'Abs_Amount': [100, 1000, 50, 200],
+        })
+        breakdown = get_category_breakdown(df)
+        # Food: 150, Rent: 1000, Utilities: 200
+        assert breakdown.iloc[0]['Category'] == 'Rent'
+        assert breakdown.iloc[1]['Category'] == 'Utilities'
+        assert breakdown.iloc[2]['Category'] == 'Food'
+
+
+class TestGetTopTransactionsMathCorners:
+
+    def _df(self, dates: list[str], amounts: list[float],
+            descs: list[str] | None = None) -> pd.DataFrame:
+        n = len(dates)
+        return pd.DataFrame({
+            'Date': pd.to_datetime(dates, utc=True),
+            'Amount': amounts,
+            'Type': ['Expense'] * n,
+            'Category': ['X'] * n,
+            'Group': ['Y'] * n,
+            'Account': ['Checking'] * n,
+            'Month': [d[:7] for d in dates],
+            'Full Description': descs if descs else [f'txn-{i}' for i in range(n)],
+            'Institution': ['Bank'] * n,
+            'Account #': ['1234'] * n,
+        })
+
+    def test_pct_of_total_100_when_all_fit(self) -> None:
+        """When n >= num_transactions, pct_of_total is 100%."""
+        df = self._df(['2024-01-01', '2024-01-02'], [-100, -200])
+        start = pd.Timestamp('2024-01-01', tz='UTC')
+        end = pd.Timestamp('2024-12-31', tz='UTC')
+        _, stats = get_top_transactions(df, 10, start, end)
+        assert stats['pct_of_total'] == pytest.approx(100.0)
+
+    def test_pct_of_total_rounds_correctly(self) -> None:
+        """Pct math should be exact (no rounding errors for simple ratios)."""
+        df = self._df(['2024-01-01', '2024-01-02'], [-75, -25])
+        start = pd.Timestamp('2024-01-01', tz='UTC')
+        end = pd.Timestamp('2024-12-31', tz='UTC')
+        _, stats = get_top_transactions(df, 1, start, end)
+        assert stats['pct_of_total'] == pytest.approx(75.0)
+
+    def test_start_date_equals_end_date_single_day(self) -> None:
+        """Start==End selects exactly that day."""
+        df = self._df(
+            ['2024-01-05', '2024-01-15', '2024-01-25'],
+            [-50, -100, -200],
+        )
+        start = pd.Timestamp('2024-01-15', tz='UTC')
+        end = pd.Timestamp('2024-01-15', tz='UTC')
+        top_df, stats = get_top_transactions(df, 10, start, end)
+        assert stats['num_transactions'] == 1
+        assert top_df.iloc[0]['Abs_Amount'] == pytest.approx(100.0)
+
+    def test_date_range_inclusive_on_both_bounds(self) -> None:
+        """Both start and end are inclusive (>= and <=)."""
+        df = self._df(
+            ['2024-01-01', '2024-01-31', '2024-02-01'],
+            [-100, -200, -300],
+        )
+        start = pd.Timestamp('2024-01-01', tz='UTC')
+        end = pd.Timestamp('2024-01-31', tz='UTC')
+        _, stats = get_top_transactions(df, 10, start, end)
+        assert stats['num_transactions'] == 2
+
+    def test_all_positive_amounts_filtered_out(self) -> None:
+        """Rows with Type=Expense but positive amounts still count as expenses
+        (since type is the filter, not sign). Verify aggregate is the abs sum."""
+        df = self._df(['2024-01-01', '2024-01-02'], [50, -100])
+        start = pd.Timestamp('2024-01-01', tz='UTC')
+        end = pd.Timestamp('2024-12-31', tz='UTC')
+        _top_df, stats = get_top_transactions(df, 10, start, end)
+        # abs values: 50 + 100 = 150
+        assert stats['total_spending'] == pytest.approx(150.0)
+        assert stats['num_transactions'] == 2
+
+    def test_single_row_boundary(self) -> None:
+        """Single expense with n=1."""
+        df = self._df(['2024-01-01'], [-42.50])
+        start = pd.Timestamp('2024-01-01', tz='UTC')
+        end = pd.Timestamp('2024-12-31', tz='UTC')
+        top_df, stats = get_top_transactions(df, 1, start, end)
+        assert len(top_df) == 1
+        assert stats['total_top_n'] == pytest.approx(42.50)
+        assert stats['pct_of_total'] == pytest.approx(100.0)

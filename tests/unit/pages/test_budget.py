@@ -265,6 +265,113 @@ class TestGetBudgetVsActual:
         rest = result[result["Category"] == "Restaurants"].iloc[0]
         assert rest["Budget"] == pytest.approx(250)  # March budget, not 200
 
+    def test_pct_used_exactly_100(self, budget_df: pd.DataFrame, no_filters: dict[str, Any]) -> None:
+        """Spending exactly matches budget — Pct_Used is 100 and Remaining is 0."""
+        fn = self._get_fn()
+        txns = _transactions_df([
+            {"Date": "2024-01-10", "Category": "Groceries", "Amount": -500, "Account": "Checking",
+             "Month": "2024-01", "Group": "Food", "Type": "Expense"},
+        ])
+        result = fn(budget_df, txns, "2024-01", no_filters)
+        groceries = result[result["Category"] == "Groceries"].iloc[0]
+        assert groceries["Pct_Used"] == pytest.approx(100.0)
+        assert groceries["Remaining"] == pytest.approx(0.0)
+
+    def test_multiple_txns_same_category_sum(self, budget_df: pd.DataFrame, no_filters: dict[str, Any]) -> None:
+        """Many small expenses in the same category aggregate correctly."""
+        fn = self._get_fn()
+        txns = _transactions_df([
+            {"Date": f"2024-01-{d:02d}", "Category": "Groceries",
+             "Amount": -25.0, "Account": "Checking",
+             "Month": "2024-01", "Group": "Food", "Type": "Expense"}
+            for d in range(1, 21)
+        ])
+        result = fn(budget_df, txns, "2024-01", no_filters)
+        groceries = result[result["Category"] == "Groceries"].iloc[0]
+        # 20 x $25 = $500, exactly the budget
+        assert groceries["Spent"] == pytest.approx(500.0)
+        assert groceries["Pct_Used"] == pytest.approx(100.0)
+
+    def test_sorted_descending_by_pct_used(self, budget_df: pd.DataFrame, transactions_df: pd.DataFrame, no_filters: dict[str, Any]) -> None:
+        """Result must be sorted desc by Pct_Used so worst-offender is on top."""
+        fn = self._get_fn()
+        result = fn(budget_df, transactions_df, "2024-01", no_filters)
+        pcts = result["Pct_Used"].tolist()
+        assert pcts == sorted(pcts, reverse=True)
+        assert result.iloc[0]["Category"] == "Restaurants"  # 125% over
+
+    def test_income_transactions_excluded_from_spent(self, budget_df: pd.DataFrame, no_filters: dict[str, Any]) -> None:
+        """Positive Income rows never count as 'Spent' even if miscategorized."""
+        fn = self._get_fn()
+        txns = _transactions_df([
+            {"Date": "2024-01-05", "Category": "Groceries", "Amount": 500,
+             "Account": "Checking", "Month": "2024-01", "Group": "Food", "Type": "Income"},
+            {"Date": "2024-01-10", "Category": "Groceries", "Amount": -100,
+             "Account": "Checking", "Month": "2024-01", "Group": "Food", "Type": "Expense"},
+        ])
+        result = fn(budget_df, txns, "2024-01", no_filters)
+        groceries = result[result["Category"] == "Groceries"].iloc[0]
+        # Only the -100 expense counts, not the +500 income
+        assert groceries["Spent"] == pytest.approx(100.0)
+
+    def test_transactions_from_other_months_ignored(self, budget_df: pd.DataFrame, no_filters: dict[str, Any]) -> None:
+        """Only transactions from the target month contribute to Spent."""
+        fn = self._get_fn()
+        txns = _transactions_df([
+            {"Date": "2024-01-10", "Category": "Groceries", "Amount": -100,
+             "Account": "Checking", "Month": "2024-01", "Group": "Food", "Type": "Expense"},
+            {"Date": "2024-02-10", "Category": "Groceries", "Amount": -999,
+             "Account": "Checking", "Month": "2024-02", "Group": "Food", "Type": "Expense"},
+        ])
+        result = fn(budget_df, txns, "2024-01", no_filters)
+        groceries = result[result["Category"] == "Groceries"].iloc[0]
+        assert groceries["Spent"] == pytest.approx(100.0)
+
+    def test_floating_point_precision(self, budget_df: pd.DataFrame, no_filters: dict[str, Any]) -> None:
+        """Fractional cents produce stable Pct_Used without float drift."""
+        fn = self._get_fn()
+        txns = _transactions_df([
+            {"Date": "2024-01-10", "Category": "Groceries", "Amount": -33.33,
+             "Account": "Checking", "Month": "2024-01", "Group": "Food", "Type": "Expense"},
+            {"Date": "2024-01-11", "Category": "Groceries", "Amount": -33.33,
+             "Account": "Checking", "Month": "2024-01", "Group": "Food", "Type": "Expense"},
+            {"Date": "2024-01-12", "Category": "Groceries", "Amount": -33.34,
+             "Account": "Checking", "Month": "2024-01", "Group": "Food", "Type": "Expense"},
+        ])
+        result = fn(budget_df, txns, "2024-01", no_filters)
+        groceries = result[result["Category"] == "Groceries"].iloc[0]
+        # Sum is $100.00 (two 33.33 + one 33.34)
+        assert groceries["Spent"] == pytest.approx(100.0, abs=1e-9)
+        assert groceries["Pct_Used"] == pytest.approx(20.0, abs=1e-9)
+
+    def test_category_in_budget_but_zero_spent(self, budget_df: pd.DataFrame, no_filters: dict[str, Any]) -> None:
+        """A budgeted category with no spending shows Spent=0, Pct_Used=0."""
+        fn = self._get_fn()
+        # Only Groceries has spending, not Electric
+        txns = _transactions_df([
+            {"Date": "2024-01-10", "Category": "Groceries", "Amount": -100,
+             "Account": "Checking", "Month": "2024-01", "Group": "Food", "Type": "Expense"},
+        ])
+        result = fn(budget_df, txns, "2024-01", no_filters)
+        electric = result[result["Category"] == "Electric"].iloc[0]
+        assert electric["Spent"] == pytest.approx(0.0)
+        assert electric["Pct_Used"] == pytest.approx(0.0)
+        assert electric["Remaining"] == pytest.approx(150.0)  # full budget remains
+
+    def test_category_rows_have_group_filled(self, budget_df: pd.DataFrame, no_filters: dict[str, Any]) -> None:
+        """Category rows that only appear in transactions (no budget) still get
+        Group filled in from the transaction, not NaN."""
+        fn = self._get_fn()
+        no_filters["show_zero_budget"] = True
+        txns = _transactions_df([
+            {"Date": "2024-01-10", "Category": "Amazon", "Amount": -100,
+             "Account": "Checking", "Month": "2024-01", "Group": "Shopping", "Type": "Expense"},
+        ])
+        result = fn(budget_df, txns, "2024-01", no_filters)
+        amazon = result[result["Category"] == "Amazon"].iloc[0]
+        assert amazon["Group"] == "Shopping"
+        assert pd.notna(amazon["Group"])
+
 
 # ---------------------------------------------------------------------------
 # get_ytd_budget_vs_actual helper
@@ -506,3 +613,44 @@ class TestProjectedSpend:
         fn = self._get_fn()
         projected = fn(spent=0, days_elapsed=0, days_in_month=30)
         assert projected == pytest.approx(0)
+
+    def test_last_day_of_month_projected_equals_spent(self) -> None:
+        """When days_elapsed == days_in_month, projection equals actual spend."""
+        fn = self._get_fn()
+        projected = fn(spent=450, days_elapsed=31, days_in_month=31)
+        assert projected == pytest.approx(450)
+
+    def test_february_28_days(self) -> None:
+        """February with 28 days — projection uses the short month length."""
+        fn = self._get_fn()
+        projected = fn(spent=100, days_elapsed=14, days_in_month=28)
+        assert projected == pytest.approx(200)
+
+    def test_days_elapsed_greater_than_days_in_month(self) -> None:
+        """Pathological input: days_elapsed > days_in_month. The projection
+        should not go below the already-spent amount — it scales linearly but
+        capping behavior depends on implementation. Document what it does."""
+        fn = self._get_fn()
+        projected = fn(spent=100, days_elapsed=35, days_in_month=30)
+        # spent/elapsed * days_in_month = 100/35 * 30 ≈ 85.7 (less than spent!)
+        # This is an implementation artifact — document what actually happens.
+        assert projected == pytest.approx(100 / 35 * 30)
+
+    def test_proportional_scaling(self) -> None:
+        """Projection scales linearly with days_elapsed."""
+        fn = self._get_fn()
+        half_month = fn(spent=300, days_elapsed=15, days_in_month=30)
+        quarter_month = fn(spent=150, days_elapsed=7, days_in_month=30)
+        # Both at $20/day pace, just different sample sizes
+        assert half_month == pytest.approx(600)
+        assert quarter_month == pytest.approx(150 / 7 * 30)
+
+    def test_high_spend_late_month(self) -> None:
+        """Spending scales down toward actual when days_elapsed is close to days_in_month."""
+        fn = self._get_fn()
+        day_29_of_30 = fn(spent=500, days_elapsed=29, days_in_month=30)
+        day_15_of_30 = fn(spent=500, days_elapsed=15, days_in_month=30)
+        # Same total spend, but if it happened by day 15 it projects higher
+        assert day_29_of_30 == pytest.approx(500 / 29 * 30)
+        assert day_15_of_30 == pytest.approx(1000)
+        assert day_15_of_30 > day_29_of_30

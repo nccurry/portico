@@ -354,3 +354,100 @@ class TestNaNHandling:
         result = ts.get_amount_by_group()
         assert "Food" in result.index
         assert len(result) == 1
+
+
+class TestAggregationMath:
+    """Hand-verified aggregation math across multiple months/categories."""
+
+    def test_sum_across_months_is_stable(self, make_transactions_spreadsheet: Callable[..., Any]) -> None:
+        """Summing the same category across months returns a deterministic total."""
+        rows = [
+            {"Date": "2024-01-10", "Category": "Groceries", "Amount": -100.00,
+             "Account": "Checking", "Month": "2024-01", "Group": "Food", "Type": "Expense"},
+            {"Date": "2024-02-10", "Category": "Groceries", "Amount": -150.50,
+             "Account": "Checking", "Month": "2024-02", "Group": "Food", "Type": "Expense"},
+            {"Date": "2024-03-10", "Category": "Groceries", "Amount": -75.25,
+             "Account": "Checking", "Month": "2024-03", "Group": "Food", "Type": "Expense"},
+        ]
+        ts = make_transactions_spreadsheet(_transactions_df(rows))
+        result = ts.get_amount_by_group()
+        # Sum = -100 + -150.50 + -75.25 = -325.75
+        assert result.loc["Food", "Amount"] == pytest.approx(-325.75)
+
+    def test_monthly_breakdown_row_per_month(self, make_transactions_spreadsheet: Callable[..., Any]) -> None:
+        """get_monthly_amounts_by_category produces one row per month."""
+        rows = [
+            {"Date": "2024-01-10", "Category": "Groceries", "Amount": -100,
+             "Account": "Checking", "Month": "2024-01", "Group": "Food", "Type": "Expense"},
+            {"Date": "2024-01-20", "Category": "Groceries", "Amount": -50,
+             "Account": "Checking", "Month": "2024-01", "Group": "Food", "Type": "Expense"},
+            {"Date": "2024-02-10", "Category": "Groceries", "Amount": -200,
+             "Account": "Checking", "Month": "2024-02", "Group": "Food", "Type": "Expense"},
+        ]
+        ts = make_transactions_spreadsheet(_transactions_df(rows))
+        result = ts.get_monthly_amounts_by_category("Groceries")
+        # January sum = -150, February sum = -200
+        assert result.loc["2024-01", "Amount"] == pytest.approx(-150)
+        assert result.loc["2024-02", "Amount"] == pytest.approx(-200)
+
+    def test_get_total_months_single_month_is_zero(self, make_transactions_spreadsheet: Callable[..., Any]) -> None:
+        """Single-month data yields 0 because (latest.month - earliest.month) = 0.
+
+        Documents the current implementation: get_total_months counts *whole*
+        month boundaries crossed, not elapsed time. Two dates in the same
+        calendar month return 0 even if 30 days apart.
+        """
+        rows = [
+            {"Date": "2024-01-10", "Category": "A", "Amount": -10, "Account": "C",
+             "Month": "2024-01", "Group": "G", "Type": "Expense"},
+            {"Date": "2024-01-20", "Category": "A", "Amount": -20, "Account": "C",
+             "Month": "2024-01", "Group": "G", "Type": "Expense"},
+        ]
+        ts = make_transactions_spreadsheet(_transactions_df(rows))
+        assert ts.get_total_months() == 0
+
+    def test_get_total_months_year_span(self, make_transactions_spreadsheet: Callable[..., Any]) -> None:
+        """Jan 1 to Dec 31 spans 11 whole month boundaries: (12 - 1) + 12*0 = 11."""
+        rows = [
+            {"Date": "2024-01-01", "Category": "A", "Amount": -10, "Account": "C",
+             "Month": "2024-01", "Group": "G", "Type": "Expense"},
+            {"Date": "2024-12-31", "Category": "A", "Amount": -20, "Account": "C",
+             "Month": "2024-12", "Group": "G", "Type": "Expense"},
+        ]
+        ts = make_transactions_spreadsheet(_transactions_df(rows))
+        assert ts.get_total_months() == 11
+
+    def test_get_total_months_cross_year(self, make_transactions_spreadsheet: Callable[..., Any]) -> None:
+        """Dec 2023 to Feb 2024 crosses the year boundary: (2024-2023)*12 + (2-12) = 2."""
+        rows = [
+            {"Date": "2023-12-15", "Category": "A", "Amount": -10, "Account": "C",
+             "Month": "2023-12", "Group": "G", "Type": "Expense"},
+            {"Date": "2024-02-15", "Category": "A", "Amount": -20, "Account": "C",
+             "Month": "2024-02", "Group": "G", "Type": "Expense"},
+        ]
+        ts = make_transactions_spreadsheet(_transactions_df(rows))
+        assert ts.get_total_months() == 2
+
+    def test_zero_amount_does_not_break_aggregation(self, make_transactions_spreadsheet: Callable[..., Any]) -> None:
+        """A $0 transaction contributes zero, doesn't skew totals."""
+        rows = [
+            {"Date": "2024-01-10", "Category": "Groceries", "Amount": -100,
+             "Account": "Checking", "Month": "2024-01", "Group": "Food", "Type": "Expense"},
+            {"Date": "2024-01-11", "Category": "Groceries", "Amount": 0,
+             "Account": "Checking", "Month": "2024-01", "Group": "Food", "Type": "Expense"},
+        ]
+        ts = make_transactions_spreadsheet(_transactions_df(rows))
+        result = ts.get_amount_by_group()
+        assert result.loc["Food", "Amount"] == pytest.approx(-100)
+
+    def test_extremely_large_amounts_no_overflow(self, make_transactions_spreadsheet: Callable[..., Any]) -> None:
+        """Large values (e.g., big wire transfer) don't cause float overflow."""
+        rows = [
+            {"Date": "2024-01-10", "Category": "Home", "Amount": -500000.00,
+             "Account": "Checking", "Month": "2024-01", "Group": "Housing", "Type": "Expense"},
+            {"Date": "2024-01-11", "Category": "Home", "Amount": -250000.50,
+             "Account": "Checking", "Month": "2024-01", "Group": "Housing", "Type": "Expense"},
+        ]
+        ts = make_transactions_spreadsheet(_transactions_df(rows))
+        result = ts.get_amount_by_group()
+        assert result.loc["Housing", "Amount"] == pytest.approx(-750000.50)

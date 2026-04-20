@@ -629,6 +629,71 @@ def expenses_only_df() -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
+# Fixtures for Financial Independence page
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def fi_balance_df() -> pd.DataFrame:
+    """Scrubbed balance history covering every branch of get_portfolio_value.
+
+    Exercises: multi-date latest-wins per Account ID, signed aggregation via
+    Class, Hide="Hide" exclusion, and same-date/different-Time tie-break
+    (Brokerage has two observations on 2024-02-01 with different Time values).
+    """
+    return _balance_df([
+        {"Date": "2024-01-01", "Time": "2024-01-01 08:00:00", "Account": "Brokerage",   "Account ID": "b1", "Institution": "Bank", "Group": "Investments", "Class": "Asset",     "Balance": 100000, "Hide": ""},
+        {"Date": "2024-02-01", "Time": "2024-02-01 08:00:00", "Account": "Brokerage",   "Account ID": "b1", "Institution": "Bank", "Group": "Investments", "Class": "Asset",     "Balance": 115000, "Hide": ""},
+        {"Date": "2024-02-01", "Time": "2024-02-01 20:00:00", "Account": "Brokerage",   "Account ID": "b1", "Institution": "Bank", "Group": "Investments", "Class": "Asset",     "Balance": 120000, "Hide": ""},
+        {"Date": "2024-01-01", "Time": "2024-01-01 08:00:00", "Account": "401k",        "Account ID": "r1", "Institution": "Fido", "Group": "Retirement",  "Class": "Asset",     "Balance": 200000, "Hide": ""},
+        {"Date": "2024-02-01", "Time": "2024-02-01 08:00:00", "Account": "401k",        "Account ID": "r1", "Institution": "Fido", "Group": "Retirement",  "Class": "Asset",     "Balance": 220000, "Hide": ""},
+        {"Date": "2024-01-15", "Time": "2024-01-15 08:00:00", "Account": "HSA",         "Account ID": "h1", "Institution": "Bank", "Group": "Investments", "Class": "Asset",     "Balance":  15000, "Hide": ""},
+        {"Date": "2024-01-01", "Time": "2024-01-01 08:00:00", "Account": "Savings",     "Account ID": "s1", "Institution": "Bank", "Group": "Savings",     "Class": "Asset",     "Balance":  10000, "Hide": ""},
+        {"Date": "2024-02-01", "Time": "2024-02-01 08:00:00", "Account": "Savings",     "Account ID": "s1", "Institution": "Bank", "Group": "Savings",     "Class": "Asset",     "Balance":  11000, "Hide": ""},
+        {"Date": "2024-02-01", "Time": "2024-02-01 08:00:00", "Account": "Margin Loan", "Account ID": "m1", "Institution": "Bank", "Group": "Investments", "Class": "Liability", "Balance":   5000, "Hide": ""},
+        {"Date": "2024-02-01", "Time": "2024-02-01 08:00:00", "Account": "Hidden Acct", "Account ID": "x1", "Institution": "Bank", "Group": "Investments", "Class": "Asset",     "Balance":  99000, "Hide": "Hide"},
+    ])
+
+
+@pytest.fixture
+def fi_transactions_df() -> pd.DataFrame:
+    """Transactions spanning 12 months with a stable $1000/mo Expense baseline.
+
+    Each month has one $1000 expense plus one $3000 income row. Excluded group
+    "Travel" has a $400/mo row so filter reuse can be verified by dropping it.
+    """
+    rows: list[dict[str, Any]] = []
+    for m in range(1, 13):
+        month_str = f"2024-{m:02d}"
+        rows.append({
+            "Date": f"2024-{m:02d}-10", "Category": "Groceries", "Amount": -1000,
+            "Account": "Checking", "Month": month_str, "Full Description": "STORE",
+            "Group": "Food", "Type": "Expense", "Institution": "Bank", "Account #": "1234",
+        })
+        rows.append({
+            "Date": f"2024-{m:02d}-15", "Category": "Flight", "Amount": -400,
+            "Account": "Credit", "Month": month_str, "Full Description": "AIRLINE",
+            "Group": "Travel", "Type": "Expense", "Institution": "Chase", "Account #": "5678",
+        })
+        rows.append({
+            "Date": f"2024-{m:02d}-01", "Category": "Salary", "Amount": 3000,
+            "Account": "Checking", "Month": month_str, "Full Description": "PAYROLL",
+            "Group": "Income", "Type": "Income", "Institution": "Bank", "Account #": "1234",
+        })
+    return _transactions_df(rows)
+
+
+@pytest.fixture
+def fi_passthrough_filters() -> dict[str, Any]:
+    """Spending-side filter dict that passes every transaction through."""
+    return {
+        "exclude_groups": [],
+        "exclude_categories": [],
+        "filter_large_expenses": False,
+        "expense_threshold": 999999,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Fixtures moved from test_aggregation_integrity.py
 # ---------------------------------------------------------------------------
 

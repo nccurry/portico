@@ -41,7 +41,20 @@ class BudgetFilters(TypedDict):
     show_zero_budget: bool
 
 
-type AnyFilters = IncomeExpenseFilters | SpendingFilters | BudgetFilters
+class FIFilters(TypedDict):
+    """Sidebar filter state for the Financial Independence page."""
+
+    include_accounts: list[str]
+    exclude_groups: list[str]
+    exclude_categories: list[str]
+    filter_large_expenses: bool
+    expense_threshold: int
+    expected_return_rate: float
+    spending_lookback_months: int
+    projection_years: int
+
+
+type AnyFilters = IncomeExpenseFilters | SpendingFilters | BudgetFilters | FIFilters
 """Union of all page-specific filter dicts."""
 
 
@@ -89,3 +102,17 @@ class SpendingSummary(TypedDict):
     top_category: str
     top_category_amount: float
     num_categories: int
+
+
+class FISummary(TypedDict):
+    """Financial Independence metrics for the FI page.
+
+    ``runway_years`` is ``None`` when expected returns cover spending (the
+    portfolio never depletes).
+    """
+
+    portfolio_value: float
+    annual_return: float
+    annual_spending: float
+    coverage_ratio: float
+    runway_years: float | None

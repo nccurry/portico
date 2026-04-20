@@ -9,20 +9,27 @@ from datetime import timedelta
 
 from src.constants import (
     DEFAULT_EXCLUDE_CATEGORIES,
+    DEFAULT_EXCLUDE_CATEGORIES_FI,
     DEFAULT_EXCLUDE_GROUPS_INCOME_SAVINGS,
     DEFAULT_EXCLUDE_GROUPS_SPENDING,
     DEFAULT_EXCLUDE_GROUPS_BUDGET,
     DEFAULT_EXPENSE_THRESHOLD,
+    DEFAULT_EXPECTED_RETURN_RATE,
+    DEFAULT_FI_INCLUDED_ACCOUNTS,
+    DEFAULT_FI_PROJECTION_YEARS,
+    DEFAULT_FI_SPENDING_LOOKBACK_MONTHS,
     DEFAULT_INCOME_THRESHOLD,
     DEFAULT_SAVINGS_RATE_TARGET,
+    FI_SPENDING_LOOKBACK_OPTIONS,
     MIN_SAVINGS_RATE,
     MAX_SAVINGS_RATE,
     SAVINGS_RATE_STEP,
 )
 from src.custom_types import (
+    BudgetFilters,
+    FIFilters,
     IncomeExpenseFilters,
     SpendingFilters,
-    BudgetFilters,
 )
 
 
@@ -236,6 +243,117 @@ def render_budget_filters(
         'filter_large_expenses': filter_large_expenses,
         'expense_threshold': expense_threshold,
         'show_zero_budget': show_zero_budget,
+    }
+
+
+def default_fi_accounts(all_accounts: list[str], all_savings_accounts: list[str]) -> list[str]:
+    """Pick accounts pre-selected for the FI page.
+
+    Returns accounts whose names contain any of ``DEFAULT_FI_INCLUDED_ACCOUNTS``
+    (case-insensitive substring match), unioned with ``all_savings_accounts``.
+    Preserves the sorted order of ``all_accounts``.
+    """
+    patterns = [p.lower() for p in DEFAULT_FI_INCLUDED_ACCOUNTS]
+    savings = set(all_savings_accounts)
+    selected: list[str] = []
+    for acct in all_accounts:
+        lower = acct.lower()
+        if acct in savings or any(p in lower for p in patterns):
+            selected.append(acct)
+    return selected
+
+
+def render_fi_filters(
+    all_accounts: list[str],
+    all_groups: list[str],
+    all_savings_accounts: list[str],
+) -> FIFilters:
+    """Render filter controls for the Financial Independence page.
+
+    Mirrors ``render_income_expense_filters`` in layout and defaults. The
+    ``include_accounts`` multiselect drives portfolio selection; the exclude /
+    threshold controls drive the spending side (passed straight to
+    ``apply_transaction_filters``).
+    """
+    default_accounts = default_fi_accounts(all_accounts, all_savings_accounts)
+
+    with st.expander("Filter Settings", expanded=False):
+        col_filter1, col_filter2 = st.columns(2)
+
+        with col_filter1:
+            include_accounts = st.multiselect(
+                "Include Accounts (Portfolio)",
+                options=all_accounts,
+                default=default_accounts,
+                help="Accounts counted as part of the invested/savings portfolio",
+            )
+
+            exclude_groups = st.multiselect(
+                "Exclude Groups (Spending)",
+                options=all_groups,
+                default=[g for g in DEFAULT_EXCLUDE_GROUPS_INCOME_SAVINGS if g in all_groups],
+                help="Exclude entire transaction groups from the spending average",
+            )
+
+            exclude_categories = st.multiselect(
+                "Exclude Categories (Spending)",
+                options=DEFAULT_EXCLUDE_CATEGORIES,
+                default=DEFAULT_EXCLUDE_CATEGORIES_FI,
+                help="Exclude non-recurring categories from the spending average",
+            )
+
+        with col_filter2:
+            expected_return_rate = st.number_input(
+                "Expected Annual Return (%)",
+                min_value=0.0,
+                max_value=30.0,
+                value=float(DEFAULT_EXPECTED_RETURN_RATE),
+                step=0.5,
+                help="Assumed nominal annual return on the portfolio",
+            )
+
+            spending_lookback_months = st.selectbox(
+                "Spending Lookback",
+                options=FI_SPENDING_LOOKBACK_OPTIONS,
+                index=FI_SPENDING_LOOKBACK_OPTIONS.index(DEFAULT_FI_SPENDING_LOOKBACK_MONTHS),
+                format_func=lambda n: f"Last {n} Months",
+                help="How many months of spending to average",
+            )
+
+            projection_years = st.number_input(
+                "Projection Horizon (Years)",
+                min_value=1,
+                max_value=80,
+                value=DEFAULT_FI_PROJECTION_YEARS,
+                step=5,
+                help="How far out to project portfolio balance",
+            )
+
+            filter_large_expenses = st.checkbox(
+                "Filter Large Expenses",
+                value=True,
+                help="Exclude individual large expense transactions above a threshold",
+            )
+
+            expense_threshold = DEFAULT_EXPENSE_THRESHOLD
+            if filter_large_expenses:
+                expense_threshold = st.number_input(
+                    "Expense Threshold ($)",
+                    min_value=1000,
+                    max_value=100000,
+                    value=DEFAULT_EXPENSE_THRESHOLD,
+                    step=500,
+                )
+
+    return {
+        "include_accounts": include_accounts,
+        "exclude_groups": exclude_groups,
+        "exclude_categories": exclude_categories,
+        "filter_large_expenses": filter_large_expenses,
+        "expense_threshold": expense_threshold,
+        "expected_return_rate": expected_return_rate,
+        "spending_lookback_months": int(spending_lookback_months),
+        "projection_years": int(projection_years),
     }
 
 

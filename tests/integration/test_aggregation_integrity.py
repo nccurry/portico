@@ -11,14 +11,17 @@ from typing import TYPE_CHECKING, Any
 import pandas as pd
 import pytest
 
+from src.constants import DEFAULT_EXCLUDE_GROUPS_INCOME_SAVINGS
 from src.filters import apply_transaction_filters
-from tests._pages import income_and_savings, spending_by_category
+from src.spreadsheet import get_all_accounts, get_portfolio_value
+from tests._pages import financial_independence, income_and_savings, spending_by_category
 
 if TYPE_CHECKING:
     from src.spreadsheet import TransactionsSpreadsheet
 
 process_income_expense_data = income_and_savings.process_income_expense_data
 process_spending_data = spending_by_category.process_spending_data
+calculate_avg_monthly_spending = financial_independence.calculate_avg_monthly_spending
 
 
 # ---------------------------------------------------------------------------
@@ -259,3 +262,75 @@ class TestMonthlyAmountsAggregation:
 
             if not normal.empty:
                 assert inverted['Amount'].sum() == pytest.approx(-normal['Amount'].sum())
+
+
+# ---------------------------------------------------------------------------
+# Financial Independence aggregation integrity (real-fixture round-trip)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.uses_real_dates
+class TestFinancialIndependenceIntegrity:
+    """Cross-check FI helpers against independently-computed totals on the
+    committed anonymized CSV fixtures."""
+
+    def test_portfolio_value_matches_manual_latest_signed_sum(
+        self, make_full_dataset: Callable[..., tuple[Any, Any, Any, Any]],
+    ) -> None:
+        """get_portfolio_value agrees with a manual latest-observation aggregation."""
+        _txns, bal, _cats, _accts = make_full_dataset()
+        all_accounts = get_all_accounts(bal.scrubbed_df)
+        assert all_accounts, "Real fixture should contain accounts"
+
+        picked = all_accounts[:3]
+        _, total = get_portfolio_value(bal.scrubbed_df, picked)
+
+        # Independently reproduce the math: for each picked account, take the
+        # row with the latest (Date, Time) per Account ID, sign by Class.
+        df = bal.scrubbed_df.copy()
+        if "Hide" in df.columns:
+            df = df[df["Hide"] != "Hide"]
+        df = df[df["Account"].isin(picked)]
+        df = df.sort_values(["Date", "Time"]).drop_duplicates("Account ID", keep="last")
+        multiplier = df["Class"].map({"Liability": -1, "Asset": 1}).fillna(1)
+        expected = float((df["Balance"] * multiplier).sum())
+
+        assert total == pytest.approx(expected)
+
+    def test_avg_monthly_spending_matches_direct_groupby(
+        self, make_full_dataset: Callable[..., tuple[Any, Any, Any, Any]],
+    ) -> None:
+        """calculate_avg_monthly_spending agrees with a direct groupby on the
+        same post-filter frame."""
+        txns, _bal, _cats, _accts = make_full_dataset()
+        filters = {
+            "exclude_groups": DEFAULT_EXCLUDE_GROUPS_INCOME_SAVINGS,
+            "exclude_categories": [],
+            "filter_large_expenses": False,
+            "expense_threshold": 999_999,
+        }
+        df = apply_transaction_filters(txns.scrubbed_df, filters)
+
+        end = (pd.Timestamp.now(tz="UTC") - pd.DateOffset(months=1)).strftime("%Y-%m")
+        start = (pd.Timestamp.now(tz="UTC") - pd.DateOffset(months=12)).strftime("%Y-%m")
+
+        avg, totals = calculate_avg_monthly_spending(df, start, end)
+
+        # Independently compute: sum of absolute expense amounts per Month in
+        # [start, end], divided by number of months that had any expense.
+        exp = df[df["Type"] == "Expense"]
+        exp = exp[(exp["Month"] >= start) & (exp["Month"] <= end)]
+        if exp.empty:
+            pytest.skip("No expense rows in window for real fixture")
+        expected_monthly = exp.groupby("Month")["Amount"].sum().abs()
+        expected_avg = float(expected_monthly.mean())
+
+        assert avg == pytest.approx(expected_avg)
+        assert len(totals) == len(expected_monthly)
+        assert totals["Spending"].sum() == pytest.approx(float(expected_monthly.sum()))
+
+    def test_portfolio_value_empty_selection_is_zero(
+        self, make_full_dataset: Callable[..., tuple[Any, Any, Any, Any]],
+    ) -> None:
+        _txns, bal, _cats, _accts = make_full_dataset()
+        _, total = get_portfolio_value(bal.scrubbed_df, [])
+        assert total == 0.0

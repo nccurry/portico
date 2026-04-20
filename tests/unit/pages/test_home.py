@@ -154,19 +154,18 @@ class TestNetWorthCalculation:
         # Dominant class is Asset (1 asset vs 1 liability, tie goes to Asset)
         assert summary["group_classes"]["Investing"] == "Asset"
 
-    def test_total_equals_independent_signed_sum(self, make_balance_spreadsheet: Callable[..., BalanceHistorySpreadsheet], scrubbed_balance_df: pd.DataFrame) -> None:
-        """total_net_worth matches an independently computed signed sum across
-        all accounts, guarding against sign or aggregation regressions."""
+    def test_hand_computed_net_worth_from_fixture(self, make_balance_spreadsheet: Callable[..., BalanceHistorySpreadsheet]) -> None:
+        """Hand-computed expected net worth from the fixture's latest balances.
+
+        Fixture state (scrubbed_balance_df):
+            Checking (Asset) — 4 monthly rows, latest: 2024-04-01 = $5,500.00
+            Credit Card (Liability) — 4 monthly rows, latest: 2024-04-01 = $1,600.00
+
+        Expected net worth = 5500 - 1600 = 3900.
+        """
         bs = make_balance_spreadsheet()
         summary = calculate_net_worth_summary(bs)
-
-        df = scrubbed_balance_df.copy()
-        df = df.sort_values(by=["Date", "Time"])
-        df = df.drop_duplicates("Account ID", keep="last")
-        multiplier = df["Class"].map({"Liability": -1, "Asset": 1}).fillna(1)
-        expected = float((df["Balance"] * multiplier).sum())
-
-        assert summary["total_net_worth"] == pytest.approx(expected)
+        assert summary["total_net_worth"] == pytest.approx(3900.0)
 
     def test_majority_liability_group(self, make_balance_spreadsheet: Callable[..., BalanceHistorySpreadsheet]) -> None:
         """When liabilities outnumber assets, dominant class is Liability."""
