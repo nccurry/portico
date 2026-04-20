@@ -25,6 +25,12 @@ jobs:
         with:
           version: 3.x
 
+      - name: Cache venv
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-py314-${{ hashFiles('requirements*.txt', 'pyproject.toml') }}
+
       - name: Create venv and install deps
         run: |
           uv venv .venv --python 3.14
@@ -34,12 +40,8 @@ jobs:
       - name: Lint (ruff + mypy)
         run: task lint
 
-      - name: Test with coverage
-        run: task test:coverage
+      - name: Test with coverage (src/ >= 90%)
+        run: task test:coverage:src
 
-      - name: Verify coverage thresholds
-        run: |
-          .venv/bin/python -m pytest \
-            --cov=src \
-            --cov-fail-under=80 \
-            -q
+      - name: Test with coverage (combined >= 80%)
+        run: task test:coverage

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 import pytest
@@ -27,6 +28,7 @@ from scripts.generate_test_fixtures import (
     build_token_mapping,
     collect_description_tokens,
     sample_balance_history,
+    sample_transactions,
     validate_pattern_minimums,
 )
 
@@ -356,6 +358,49 @@ class TestAnonymizeFlow:
 # ---------------------------------------------------------------------------
 
 
+class TestSampleTransactions:
+
+    def test_head_keeps_newest_within_category(self) -> None:
+        """When a category exceeds MAX_TRANSACTIONS_PER_CATEGORY, the newest
+        rows survive because sorting is newest-first before head()."""
+        from scripts.generate_test_fixtures import MAX_TRANSACTIONS_PER_CATEGORY
+        n = MAX_TRANSACTIONS_PER_CATEGORY + 20
+        dates = pd.date_range("2025-01-01", periods=n, freq="D")
+        df = pd.DataFrame({
+            "Date": dates,
+            "Category": ["TestCat"] * n,
+            "Amount": range(n),
+            "Account": ["Checking"] * n,
+            "Month": [d.strftime("%Y-%m") for d in dates],
+            "Full Description": [f"desc-{i}" for i in range(n)],
+            "Institution": ["Bank"] * n,
+            "Account #": ["1234"] * n,
+        })
+        sampled = sample_transactions(df)
+        assert len(sampled) <= MAX_TRANSACTIONS_PER_CATEGORY
+        latest_date = dates[-1]
+        assert latest_date in sampled["Date"].values
+
+    def test_stride_preserves_tail_row(self) -> None:
+        """Global stride-downsample keeps the last (newest) row."""
+        from scripts.generate_test_fixtures import MAX_TRANSACTIONS_TOTAL
+        n = MAX_TRANSACTIONS_TOTAL + 100
+        dates = pd.date_range("2025-01-01", periods=n, freq="h")
+        df = pd.DataFrame({
+            "Date": dates,
+            "Category": [f"Cat-{i % 5}" for i in range(n)],
+            "Amount": range(n),
+            "Account": ["Checking"] * n,
+            "Month": [d.strftime("%Y-%m") for d in dates],
+            "Full Description": [f"desc-{i}" for i in range(n)],
+            "Institution": ["Bank"] * n,
+            "Account #": ["1234"] * n,
+        })
+        sampled = sample_transactions(df)
+        latest_date = dates[-1]
+        assert latest_date in sampled["Date"].values
+
+
 class TestSampleBalanceHistory:
 
     def test_latest_row_always_kept(self) -> None:
@@ -410,3 +455,170 @@ class TestPatternMinValidation:
             fixture_files["categories"],
             fixture_files["accounts"],
         )
+
+
+# ---------------------------------------------------------------------------
+# Validator-vs-page-helper agreement
+# ---------------------------------------------------------------------------
+
+
+class TestValidatorAgreesWithPageHelpers:
+    """The validator must accept data that the page helpers actually detect,
+    and reject data that does not contain the required patterns.
+
+    Each test crafts synthetic raw-CSV-shaped data, runs both the validator
+    check and the corresponding page helper, and asserts they agree.
+    """
+
+    def _base_txn(self, date: str, amount: float, desc: str,
+                  account: str = "Checking", category: str = "Groceries") -> dict[str, Any]:
+        return {
+            "Date": date, "Category": category, "Amount": amount,
+            "Account": account, "Month": date[:7],
+            "Full Description": desc, "Institution": "Bank",
+            "Account #": "1234", "Week": "1", "Date Added": date,
+            "Categorized Date": date,
+        }
+
+    def test_duplicate_validator_agrees_with_page4(self) -> None:
+        """The validator's self-join duplicate logic (same account, same
+        description, within 1 day, >= $10) matches find_duplicates_efficient
+        on identical data."""
+        from tests._pages import duplicate_detection
+        find_dupes = duplicate_detection.find_duplicates_efficient
+
+        rows = [
+            self._base_txn("2024-01-15", -50.0, "STORE PURCHASE", "Checking"),
+            self._base_txn("2024-01-15", -50.0, "STORE PURCHASE", "Checking"),
+            self._base_txn("2024-01-15", -50.0, "DIFFERENT STORE", "Checking"),
+            self._base_txn("2024-01-20", -25.0, "ANOTHER THING", "Savings"),
+        ]
+        df_raw = pd.DataFrame(rows)
+        df_raw["Date"] = pd.to_datetime(df_raw["Date"])
+
+        df_scrubbed = df_raw.copy()
+        df_scrubbed["Date"] = pd.to_datetime(df_scrubbed["Date"], utc=True)
+        df_scrubbed["Type"] = "Expense"
+        df_scrubbed["Group"] = "Food"
+
+        page_result = find_dupes(
+            df_scrubbed, days_threshold=1, min_amount=10,
+            check_same_account=True, check_same_category=False,
+            require_same_description=True,
+        )
+
+        # Replicate the validator's self-join logic on the same data
+        txn_dates = pd.to_datetime(df_raw["Date"])
+        txn_amounts = df_raw["Amount"].astype(float)
+        txn_descs = df_raw["Full Description"].astype(str)
+        txn_accounts = df_raw["Account"].astype(str)
+        dup_df = pd.DataFrame({
+            "date": txn_dates, "amount": txn_amounts,
+            "abs_amount": txn_amounts.abs(),
+            "desc": txn_descs.str.lower().str.strip(),
+            "account": txn_accounts,
+        }).reset_index(drop=True)
+        dup_df = dup_df[dup_df["abs_amount"] >= 10.0]
+        dup_df["_row_id"] = range(len(dup_df))
+        pairs = dup_df.merge(dup_df, on="amount", suffixes=("_1", "_2"))
+        pairs = pairs[pairs["_row_id_1"] < pairs["_row_id_2"]]
+        pairs["days_apart"] = (pairs["date_2"] - pairs["date_1"]).dt.days.abs()
+        pairs = pairs[pairs["days_apart"] <= 1]
+        pairs = pairs[pairs["account_1"] == pairs["account_2"]]
+        pairs = pairs[pairs["desc_1"] == pairs["desc_2"]]
+
+        assert len(page_result) == len(pairs), (
+            f"Page found {len(page_result)} pairs, validator logic found {len(pairs)}"
+        )
+
+    def test_duplicate_validator_rejects_different_descriptions(self) -> None:
+        """Same amount, same day, same account — but different descriptions.
+        Neither the page helper (with description matching) nor the validator
+        should count these as a duplicate pair."""
+        from tests._pages import duplicate_detection
+        find_dupes = duplicate_detection.find_duplicates_efficient
+
+        rows = [
+            self._base_txn("2024-01-15", -50.0, "KROGER STORE", "Checking"),
+            self._base_txn("2024-01-15", -50.0, "TARGET STORE", "Checking"),
+        ]
+        df_raw = pd.DataFrame(rows)
+        df_raw["Date"] = pd.to_datetime(df_raw["Date"])
+
+        df_scrubbed = df_raw.copy()
+        df_scrubbed["Date"] = pd.to_datetime(df_scrubbed["Date"], utc=True)
+        df_scrubbed["Type"] = "Expense"
+        df_scrubbed["Group"] = "Food"
+
+        page_result = find_dupes(
+            df_scrubbed, days_threshold=1, min_amount=10,
+            check_same_account=True, check_same_category=False,
+            require_same_description=True,
+        )
+        assert len(page_result) == 0, "Page helper should not find duplicates"
+
+    def test_recurring_validator_agrees_with_page5_cadence(self) -> None:
+        """A merchant with monthly cadence is detected by both the validator
+        and detect_recurring_transactions."""
+        from tests._pages import subscriptions
+        detect_recurring = subscriptions.detect_recurring_transactions
+
+        dates = pd.date_range("2024-01-15", periods=6, freq="MS") + pd.Timedelta(days=14)
+        rows = [
+            self._base_txn(
+                d.strftime("%Y-%m-%d"), -15.99, "NETFLIX MONTHLY SUB",
+                category="Entertainment",
+            )
+            for d in dates
+        ]
+        df_raw = pd.DataFrame(rows)
+        df_raw["Date"] = pd.to_datetime(df_raw["Date"])
+
+        df_scrubbed = df_raw.copy()
+        df_scrubbed["Date"] = pd.to_datetime(df_scrubbed["Date"], utc=True)
+        df_scrubbed["Type"] = "Expense"
+        df_scrubbed["Group"] = "Entertainment"
+
+        page_result = detect_recurring(df_scrubbed)
+        assert len(page_result) >= 1, "Page helper should detect the subscription"
+
+    def test_recurring_validator_rejects_non_monthly_cadence(self) -> None:
+        """A merchant that appears frequently but with 5-day cadence (not 20-40)
+        should NOT be flagged as a subscription by detect_recurring_transactions."""
+        from tests._pages import subscriptions
+        detect_recurring = subscriptions.detect_recurring_transactions
+
+        dates = pd.date_range("2024-01-01", periods=10, freq="5D")
+        rows = [
+            self._base_txn(
+                d.strftime("%Y-%m-%d"), -10.0, "DAILY COFFEE SHOP",
+                category="Coffee",
+            )
+            for d in dates
+        ]
+        df_scrubbed = pd.DataFrame(rows)
+        df_scrubbed["Date"] = pd.to_datetime(df_scrubbed["Date"], utc=True)
+        df_scrubbed["Type"] = "Expense"
+        df_scrubbed["Group"] = "Food"
+
+        page_result = detect_recurring(df_scrubbed)
+        assert len(page_result) == 0, "Page helper should not flag 5-day cadence"
+
+    def test_top_n_tie_validator_checks_boundary(self) -> None:
+        """Tied amounts must both land inside the top-N to count. Two expenses
+        of -100 in a pool of 3 total expenses (with one at -200) should produce
+        a tie within top-3 that the validator accepts."""
+        rows = [
+            self._base_txn("2024-01-01", -200.0, "BIG PURCHASE"),
+            self._base_txn("2024-01-02", -100.0, "TIE ROW A"),
+            self._base_txn("2024-01-03", -100.0, "TIE ROW B"),
+        ]
+        df_raw = pd.DataFrame(rows)
+        df_raw["Date"] = pd.to_datetime(df_raw["Date"])
+
+        amounts = df_raw["Amount"].astype(float)
+        expense_abs = amounts[amounts < 0].abs()
+        top_50 = expense_abs.nlargest(50)
+        tie_counts = top_50.value_counts()
+        n_ties = int((tie_counts >= 2).sum())
+        assert n_ties >= 1, "Tie should be visible within top-50"

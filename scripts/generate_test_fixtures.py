@@ -361,7 +361,12 @@ def load_source_workbook() -> dict[str, pd.DataFrame]:
 
 
 def sample_transactions(df: pd.DataFrame) -> pd.DataFrame:
-    """Take the most recent ``SAMPLE_MONTHS`` and cap rows per category."""
+    """Take the most recent ``SAMPLE_MONTHS`` and cap rows per category.
+
+    Within each category, rows are sorted newest-first so ``head()`` keeps
+    the most recent data.  The global stride-downsample also preserves
+    the last (newest) row so downstream date-range logic is accurate.
+    """
     df = df.copy()
     df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
     df = df.dropna(subset=["Date"])
@@ -369,15 +374,19 @@ def sample_transactions(df: pd.DataFrame) -> pd.DataFrame:
     df = df[df["Date"] >= cutoff]
     sampled: list[pd.DataFrame] = []
     for _, group in df.groupby("Category", dropna=False):
+        group = group.sort_values("Date", ascending=False)
         if len(group) > MAX_TRANSACTIONS_PER_CATEGORY:
             sampled.append(group.head(MAX_TRANSACTIONS_PER_CATEGORY))
         else:
             sampled.append(group)
     out = pd.concat(sampled, ignore_index=True).sort_values("Date").reset_index(drop=True)
     if len(out) > MAX_TRANSACTIONS_TOTAL:
-        # Deterministic stride downsample.
         stride = len(out) // MAX_TRANSACTIONS_TOTAL + 1
-        out = out.iloc[::stride].reset_index(drop=True)
+        strided = out.iloc[::stride]
+        last_row = out.iloc[[-1]]
+        if strided.index[-1] != last_row.index[0]:
+            strided = pd.concat([strided, last_row])
+        out = strided.reset_index(drop=True)
     return out
 
 
@@ -394,8 +403,9 @@ def sample_balance_history(df: pd.DataFrame) -> pd.DataFrame:
     cutoff = df["Date"].max() - pd.DateOffset(months=SAMPLE_MONTHS)
     df = df[df["Date"] >= cutoff]
     sampled: list[pd.DataFrame] = []
+    sort_cols = ["Date", "Time"] if "Time" in df.columns else ["Date"]
     for _, group in df.groupby("Account ID", dropna=False):
-        group = group.sort_values("Date")
+        group = group.sort_values(sort_cols)
         if len(group) > MAX_BALANCE_ROWS_PER_ACCOUNT:
             stride = len(group) // MAX_BALANCE_ROWS_PER_ACCOUNT + 1
             strided = group.iloc[::stride]
@@ -1128,25 +1138,68 @@ def validate_pattern_minimums(
         lambda v: float(str(v).replace("$", "").replace(",", "")) if pd.notna(v) else 0.0
     )
 
-    # duplicate_pairs: count (Date, Amount, Description) combos appearing ≥2 times
-    dup_key = txn_dates.dt.date.astype(str) + "|" + txn_amounts.astype(str) + "|" + txn_descs
-    dup_counts = dup_key.value_counts()
-    n_dup_pairs = int((dup_counts >= 2).sum())
+    # duplicate_pairs: mirrors find_duplicates_efficient() with Page 4 defaults —
+    # same Account, same normalized description, amount >= $10, within 1 day.
+    # Uses the actual self-join approach rather than exact-day keying.
+    txn_accounts = transactions["Account"].astype(str)
+    dup_df = pd.DataFrame({
+        "date": txn_dates, "amount": txn_amounts,
+        "abs_amount": txn_amounts.abs(),
+        "desc": txn_descs.str.lower().str.strip(), "account": txn_accounts,
+    }).reset_index(drop=True)
+    dup_df = dup_df[dup_df["abs_amount"] >= 10.0]
+    dup_df["_row_id"] = range(len(dup_df))
+    pairs = dup_df.merge(dup_df, on="amount", suffixes=("_1", "_2"))
+    pairs = pairs[pairs["_row_id_1"] < pairs["_row_id_2"]]
+    pairs["days_apart"] = (pairs["date_2"] - pairs["date_1"]).dt.days.abs()
+    pairs = pairs[pairs["days_apart"] <= 1]
+    pairs = pairs[pairs["account_1"] == pairs["account_2"]]
+    pairs = pairs[pairs["desc_1"] == pairs["desc_2"]]
+    n_dup_pairs = len(pairs)
     if n_dup_pairs < PATTERN_MIN["duplicate_pairs"]:
         errors.append(f"duplicate_pairs: {n_dup_pairs} < {PATTERN_MIN['duplicate_pairs']}")
 
-    # recurring_merchants: first-two-word merchants appearing in ≥4 distinct months
-    merchants = txn_descs.str.split().str[:2].str.join(" ").str.lower()
-    months = txn_dates.dt.to_period("M").astype(str)
-    merchant_months = pd.DataFrame({"merchant": merchants, "month": months})
-    merchant_month_counts = merchant_months.groupby("merchant")["month"].nunique()
-    n_recurring = int((merchant_month_counts >= 4).sum())
+    # recurring_merchants: mirrors detect_recurring_transactions() with Page 5
+    # defaults — first-three-word merchant, grouped by Merchant+rounded-amount,
+    # count ≥ 3, unique months ≥ 3, cadence 20–40 days between charges.
+    non_excluded = ~transactions["Category"].isin(SUBSCRIPTION_EXCLUDED_CATEGORIES)
+    rec_df = pd.DataFrame({
+        "date": txn_dates[non_excluded],
+        "amount": txn_amounts[non_excluded],
+        "desc": txn_descs[non_excluded],
+    }).reset_index(drop=True)
+    rec_df = rec_df[rec_df["amount"] < 0]
+    rec_df["merchant"] = rec_df["desc"].str.split().str[:3].str.join(" ").str.lower()
+    rec_df["amount_rounded"] = rec_df["amount"].abs().round(2)
+    rec_df["month"] = rec_df["date"].dt.to_period("M")
+    grouped = rec_df.groupby(["merchant", "amount_rounded"]).agg(
+        count=("date", "count"),
+        first_date=("date", "min"),
+        last_date=("date", "max"),
+        unique_months=("month", "nunique"),
+    )
+    grouped["days_between"] = (
+        (grouped["last_date"] - grouped["first_date"]).dt.days
+        / (grouped["count"] - 1).replace(0, 1)
+    )
+    subs = grouped[
+        (grouped["count"] >= 3)
+        & (grouped["unique_months"] >= 3)
+        & (grouped["days_between"] >= 20)
+        & (grouped["days_between"] <= 40)
+    ]
+    n_recurring = len(subs)
     if n_recurring < PATTERN_MIN["recurring_merchants"]:
         errors.append(f"recurring_merchants: {n_recurring} < {PATTERN_MIN['recurring_merchants']}")
 
-    # top_n_ties: expense amounts appearing ≥2 times
-    expense_amounts = txn_amounts[txn_amounts < 0]
-    tie_counts = expense_amounts.value_counts()
+    # top_n_ties: at least one pair of expense rows with the same absolute amount
+    # that both land inside the top-50 expenses (the default N in Page 8), proving
+    # the tie actually sits at a boundary that matters.
+    expense_df = pd.DataFrame({
+        "abs_amount": txn_amounts[txn_amounts < 0].abs(),
+    }).reset_index(drop=True)
+    top_50 = expense_df.nlargest(50, "abs_amount")
+    tie_counts = top_50["abs_amount"].value_counts()
     n_ties = int((tie_counts >= 2).sum())
     if n_ties < PATTERN_MIN["top_n_ties"]:
         errors.append(f"top_n_ties: {n_ties} < {PATTERN_MIN['top_n_ties']}")

@@ -211,6 +211,29 @@ class TestFindDuplicatesEfficient:
                                            require_same_description=True)
         assert len(result) == 1
 
+    def test_require_same_description_filters_different_descs(self) -> None:
+        """Same amount, same day, same account — but different descriptions.
+        With require_same_description=True (page default), no duplicates.
+        With require_same_description=False, one pair found."""
+        df = _make_df([
+            {'Date': '2024-01-15', 'Amount': -50.00, 'Account': 'Checking',
+             'Full Description': 'KROGER STORE #1234'},
+            {'Date': '2024-01-15', 'Amount': -50.00, 'Account': 'Checking',
+             'Full Description': 'TARGET STORE #5678'},
+        ])
+        with_desc = find_duplicates_efficient(
+            df, days_threshold=1, min_amount=10,
+            check_same_account=True, check_same_category=False,
+            require_same_description=True,
+        )
+        without_desc = find_duplicates_efficient(
+            df, days_threshold=1, min_amount=10,
+            check_same_account=True, check_same_category=False,
+            require_same_description=False,
+        )
+        assert len(with_desc) == 0
+        assert len(without_desc) == 1
+
     def test_empty_input(self) -> None:
         df = pd.DataFrame({
             'Date': pd.Series([], dtype='datetime64[ns, UTC]'),
