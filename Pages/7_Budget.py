@@ -195,7 +195,7 @@ def create_budget_category_chart(
 ) -> alt.Chart:
     """Horizontal bar chart with spent amount and a tick mark at the budget level."""
     if df.empty:
-        return alt.Chart(pd.DataFrame()).mark_text().encode(text=alt.value("No budget data"))
+        return alt.Chart(pd.DataFrame()).mark_text().encode(text=alt.value("No budget data"))  # type: ignore[no-any-return]
 
     chart_df = df[["Category", "Budget", "Spent"]].copy()
     chart_df["Over"] = chart_df["Spent"] > chart_df["Budget"]
@@ -233,7 +233,7 @@ def create_budget_category_chart(
         )
     )
 
-    return (bars + budget_ticks).properties(height=max(300, len(df) * 35), title=title)
+    return (bars + budget_ticks).properties(height=max(300, len(df) * 35), title=title)  # type: ignore[no-any-return]
 
 
 # ---------------------------------------------------------------------------
@@ -290,12 +290,14 @@ def configure_page(
     with col2:
         st.metric("Monthly Spent", f"${total_spent:,.2f}")
     with col3:
-        delta_color = "inverse" if total_remaining >= 0 else "normal"
-        st.metric("Remaining", f"${total_remaining:,.2f}", delta_color=delta_color)
+        st.metric(
+            "Remaining",
+            f"${total_remaining:,.2f}",
+            delta_color="inverse" if total_remaining >= 0 else "normal",
+        )
     with col4:
         st.metric("% Used", f"{pct_used:.1f}%")
 
-    # YTD summary metrics
     ytd_budget = ytd_actual["Budget"].sum()
     ytd_spent = ytd_actual["Spent"].sum()
     ytd_remaining = ytd_budget - ytd_spent
@@ -307,8 +309,11 @@ def configure_page(
     with col2:
         st.metric("YTD Spent", f"${ytd_spent:,.2f}")
     with col3:
-        delta_color = "inverse" if ytd_remaining >= 0 else "normal"
-        st.metric("YTD Remaining", f"${ytd_remaining:,.2f}", delta_color=delta_color)
+        st.metric(
+            "YTD Remaining",
+            f"${ytd_remaining:,.2f}",
+            delta_color="inverse" if ytd_remaining >= 0 else "normal",
+        )
     with col4:
         st.metric("YTD % Used", f"{ytd_pct:.1f}%")
 

@@ -5,7 +5,7 @@ import altair as alt
 from src.spreadsheet import load_transactions_data, load_balance_history_data, TransactionsSpreadsheet, BalanceHistorySpreadsheet
 from src.filters import render_spending_filters, apply_transaction_filters, calculate_date_range
 from src.page_helpers import get_transaction_column_config, display_transactions_expander
-from src.custom_types import SpendingFilters, DistributionStats
+from src.custom_types import SpendingFilters, DistributionStats, SpendingSummary
 from src.constants import (
     TIME_PERIODS,
     CHART_HEIGHT_STANDARD,
@@ -57,35 +57,60 @@ def process_spending_data(
     return df_period, df_by_category
 
 
-def display_summary_metrics(df_by_category: pd.DataFrame) -> None:
-    """Display summary metrics for spending.
+def calculate_spending_summary(df_by_category: pd.DataFrame) -> SpendingSummary:
+    """Derive aggregate spending metrics from the category breakdown.
 
-    Args:
-        df_by_category: Category summary dataframe
+    Parameters
+    ----------
+    df_by_category:
+        Output of :func:`process_spending_data` — one row per category with
+        ``Amount`` (absolute) and ``Percentage`` columns, sorted descending.
+
+    Returns
+    -------
+    SpendingSummary
+        ``total_spending``, ``top_category``, ``top_category_amount``, and
+        ``num_categories``.
     """
-    total_spending = df_by_category['Amount'].sum()
+    if df_by_category.empty:
+        return SpendingSummary(
+            total_spending=0.0,
+            top_category="",
+            top_category_amount=0.0,
+            num_categories=0,
+        )
+    return SpendingSummary(
+        total_spending=float(df_by_category["Amount"].sum()),
+        top_category=str(df_by_category.iloc[0]["Category"]),
+        top_category_amount=float(df_by_category.iloc[0]["Amount"]),
+        num_categories=len(df_by_category),
+    )
+
+
+def display_summary_metrics(df_by_category: pd.DataFrame) -> None:
+    """Display summary metrics for spending."""
+    summary = calculate_spending_summary(df_by_category)
 
     col1, col2, col3 = st.columns(3)
 
     with col1:
         st.metric(
             label="Total Spending",
-            value=f"${total_spending:,.2f}"
+            value=f"${summary['total_spending']:,.2f}"
         )
 
     with col2:
-        if not df_by_category.empty:
+        if summary["top_category"]:
             st.metric(
                 label="Top Category",
-                value=df_by_category.iloc[0]['Category'],
-                delta=f"${df_by_category.iloc[0]['Amount']:,.2f}"
+                value=summary["top_category"],
+                delta=f"${summary['top_category_amount']:,.2f}"
             )
 
     with col3:
-        num_categories = len(df_by_category)
         st.metric(
             label="Active Categories",
-            value=num_categories
+            value=summary["num_categories"]
         )
 
 
@@ -124,7 +149,7 @@ def create_spending_trend_chart(
         title='Top 5 Categories - Monthly Trend'
     )
 
-    return chart
+    return chart  # type: ignore[no-any-return]
 
 
 def create_top_categories_chart(
@@ -159,7 +184,7 @@ def create_top_categories_chart(
         labelLimit=200
     )
 
-    return chart
+    return chart  # type: ignore[no-any-return]
 
 
 def create_amount_histogram(df_period: pd.DataFrame) -> alt.Chart:
@@ -172,22 +197,18 @@ def create_amount_histogram(df_period: pd.DataFrame) -> alt.Chart:
         Altair chart
     """
     if df_period.empty:
-        return alt.Chart(pd.DataFrame()).mark_text().encode(
+        return alt.Chart(pd.DataFrame()).mark_text().encode(  # type: ignore[no-any-return]
             text=alt.value("No transaction data available")
         )
 
-    # Create amount bins
     df_hist = df_period.copy()
     df_hist['Amount_Abs'] = df_hist['Amount'].abs()
 
-    # Define bin edges (exponential spacing works well for wide ranges)
     bins = [0, 10, 25, 50, 100, 250, 500, 1000, 5000, 100000]
     labels = ['$0-10', '$10-25', '$25-50', '$50-100', '$100-250',
               '$250-500', '$500-1K', '$1K-5K', '$5K+']
 
     df_hist['Amount_Range'] = pd.cut(df_hist['Amount_Abs'], bins=bins, labels=labels, include_lowest=True)
-
-    # Count transactions in each bin
     bin_counts = df_hist.groupby('Amount_Range', observed=True).size().reset_index(name='Count')
 
     chart = alt.Chart(bin_counts).mark_bar().encode(
@@ -206,7 +227,7 @@ def create_amount_histogram(df_period: pd.DataFrame) -> alt.Chart:
         title='Transaction Count by Amount Range'
     )
 
-    return chart
+    return chart  # type: ignore[no-any-return]
 
 
 def create_category_boxplot(df_period: pd.DataFrame) -> alt.Chart:
@@ -219,7 +240,7 @@ def create_category_boxplot(df_period: pd.DataFrame) -> alt.Chart:
         Altair chart
     """
     if df_period.empty:
-        return alt.Chart(pd.DataFrame()).mark_text().encode(
+        return alt.Chart(pd.DataFrame()).mark_text().encode(  # type: ignore[no-any-return]
             text=alt.value("No transaction data available")
         )
 
@@ -253,7 +274,7 @@ def create_category_boxplot(df_period: pd.DataFrame) -> alt.Chart:
         title='Amount Distribution by Category (Top 10)'
     )
 
-    return chart
+    return chart  # type: ignore[no-any-return]
 
 
 def calculate_distribution_stats(df_period: pd.DataFrame) -> DistributionStats:

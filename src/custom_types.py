@@ -70,3 +70,22 @@ class DistributionStats(TypedDict):
     medium_pct: float
     large_pct: float
     pareto_pct: float
+
+
+class SavingsSummary(TypedDict):
+    """Aggregated savings metrics for the Income & Savings page."""
+
+    avg_monthly_rate: float
+    overall_rate: float
+    avg_monthly_amount: float
+    total_saved: float
+    num_months: int
+
+
+class SpendingSummary(TypedDict):
+    """Aggregated spending metrics for the Spending by Category page."""
+
+    total_spending: float
+    top_category: str
+    top_category_amount: float
+    num_categories: int

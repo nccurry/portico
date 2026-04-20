@@ -39,7 +39,7 @@ def create_year_comparison_chart(pivoted_df: pd.DataFrame, label: str) -> alt.Ch
     Current year is shown in green, previous years in shades of gray.
     """
     if pivoted_df.empty:
-        return alt.Chart(pd.DataFrame()).mark_text().encode(text=alt.value("No data available"))
+        return alt.Chart(pd.DataFrame()).mark_text().encode(text=alt.value("No data available"))  # type: ignore[no-any-return]
 
     current_year = datetime.now().year
 
@@ -107,7 +107,7 @@ def create_year_comparison_chart(pivoted_df: pd.DataFrame, label: str) -> alt.Ch
         title=f'{label} - Year over Year Comparison'
     )
 
-    return chart
+    return chart  # type: ignore[no-any-return]
 
 
 def display_transaction_table(transactions_df: pd.DataFrame, label: str) -> None:
@@ -206,7 +206,7 @@ def create_sparkline_chart(
             interpolate='monotone'
         ).encode(
             x=alt.X(f'{date_column}:T', axis=None),
-            y=alt.Y(f'{value_column}:Q', axis=None, scale=alt.Scale(**scale_params))
+            y=alt.Y(f'{value_column}:Q', axis=None, scale=alt.Scale(**scale_params))  # type: ignore[arg-type]
         ).properties(
             height=height
         ).configure_view(
@@ -236,7 +236,7 @@ def create_sparkline_chart(
             strokeWidth=0
         )
 
-    return chart
+    return chart  # type: ignore[no-any-return]
 
 
 def extract_merchant_name(description: object, method: str = 'first_word') -> str:

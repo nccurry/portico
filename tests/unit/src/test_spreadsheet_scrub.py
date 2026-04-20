@@ -33,28 +33,28 @@ class TestTransactionsScrub:
         ):
             return TransactionsSpreadsheet()
 
-    def test_scrub_drops_unnamed_column(self, scrub_input_transactions_df, categories_for_scrub):
+    def test_scrub_drops_unnamed_column(self, scrub_input_transactions_df: pd.DataFrame, categories_for_scrub: CategoriesSpreadsheet) -> None:
         ts = self._make(scrub_input_transactions_df, categories_for_scrub)
         assert "Unnamed: 0" not in ts.scrubbed_df.columns
 
     def test_scrub_amount_parsed_as_float(
         self,
-        scrub_input_transactions_df,
-        categories_for_scrub,
-    ):
+        scrub_input_transactions_df: pd.DataFrame,
+        categories_for_scrub: CategoriesSpreadsheet,
+    ) -> None:
         ts = self._make(scrub_input_transactions_df, categories_for_scrub)
         assert ts.scrubbed_df["Amount"].dtype == float
         assert ts.scrubbed_df["Amount"].iloc[0] == pytest.approx(1234.56)
 
-    def test_scrub_date_is_datetime(self, scrub_input_transactions_df, categories_for_scrub):
+    def test_scrub_date_is_datetime(self, scrub_input_transactions_df: pd.DataFrame, categories_for_scrub: CategoriesSpreadsheet) -> None:
         ts = self._make(scrub_input_transactions_df, categories_for_scrub)
         assert pd.api.types.is_datetime64_any_dtype(ts.scrubbed_df["Date"])
 
-    def test_scrub_month_format(self, scrub_input_transactions_df, categories_for_scrub):
+    def test_scrub_month_format(self, scrub_input_transactions_df: pd.DataFrame, categories_for_scrub: CategoriesSpreadsheet) -> None:
         ts = self._make(scrub_input_transactions_df, categories_for_scrub)
         assert ts.scrubbed_df["Month"].iloc[0] == "2024-01"
 
-    def test_scrub_output_columns(self, scrub_input_transactions_df, categories_for_scrub):
+    def test_scrub_output_columns(self, scrub_input_transactions_df: pd.DataFrame, categories_for_scrub: CategoriesSpreadsheet) -> None:
         ts = self._make(scrub_input_transactions_df, categories_for_scrub)
         expected = {"Date", "Category", "Amount", "Account", "Month",
                     "Full Description", "Group", "Type", "Institution", "Account #"}
@@ -62,22 +62,22 @@ class TestTransactionsScrub:
 
     def test_scrub_joins_group_from_categories(
         self,
-        scrub_input_transactions_df,
-        categories_for_scrub,
-    ):
+        scrub_input_transactions_df: pd.DataFrame,
+        categories_for_scrub: CategoriesSpreadsheet,
+    ) -> None:
         ts = self._make(scrub_input_transactions_df, categories_for_scrub)
         assert ts.scrubbed_df.iloc[0]["Group"] == "Food"
         assert ts.scrubbed_df.iloc[1]["Group"] == "Housing"
 
     def test_scrub_joins_type_from_categories(
         self,
-        scrub_input_transactions_df,
-        categories_for_scrub,
-    ):
+        scrub_input_transactions_df: pd.DataFrame,
+        categories_for_scrub: CategoriesSpreadsheet,
+    ) -> None:
         ts = self._make(scrub_input_transactions_df, categories_for_scrub)
         assert ts.scrubbed_df.iloc[0]["Type"] == "Expense"
 
-    def test_scrub_uncategorized_fallback(self, categories_for_scrub):
+    def test_scrub_uncategorized_fallback(self, categories_for_scrub: CategoriesSpreadsheet) -> None:
         """Categories not in the lookup get Group='Uncategorized'."""
         raw = pd.DataFrame({
             "Unnamed: 0": [None],
@@ -98,9 +98,9 @@ class TestTransactionsScrub:
 
     def test_scrub_missing_unnamed_column(
         self,
-        scrub_input_transactions_df,
-        categories_for_scrub,
-    ):
+        scrub_input_transactions_df: pd.DataFrame,
+        categories_for_scrub: CategoriesSpreadsheet,
+    ) -> None:
         """scrub() should not crash when 'Unnamed: 0' column is absent."""
         df_no_unnamed = scrub_input_transactions_df.drop("Unnamed: 0", axis=1)
         ts = self._make(df_no_unnamed, categories_for_scrub)
@@ -120,22 +120,22 @@ class TestBalanceScrub:
         ):
             return BalanceHistorySpreadsheet()
 
-    def test_scrub_missing_unnamed_column(self, scrub_input_balance_df, accounts_for_scrub):
+    def test_scrub_missing_unnamed_column(self, scrub_input_balance_df: pd.DataFrame, accounts_for_scrub: AccountsSpreadsheet) -> None:
         """scrub() should not crash when 'Unnamed: 0' column is absent."""
         df_no_unnamed = scrub_input_balance_df.drop("Unnamed: 0", axis=1)
         bs = self._make(df_no_unnamed, accounts_for_scrub)
         assert "Unnamed: 0" not in bs.scrubbed_df.columns
 
-    def test_scrub_joins_group_from_accounts(self, scrub_input_balance_df, accounts_for_scrub):
+    def test_scrub_joins_group_from_accounts(self, scrub_input_balance_df: pd.DataFrame, accounts_for_scrub: AccountsSpreadsheet) -> None:
         bs = self._make(scrub_input_balance_df, accounts_for_scrub)
         checking_rows = bs.scrubbed_df[bs.scrubbed_df["Account"] == "Checking"]
         assert all(checking_rows["Group"] == "Assets")
 
-    def test_scrub_filters_hidden(self, scrub_input_balance_df, accounts_for_scrub):
+    def test_scrub_filters_hidden(self, scrub_input_balance_df: pd.DataFrame, accounts_for_scrub: AccountsSpreadsheet) -> None:
         bs = self._make(scrub_input_balance_df, accounts_for_scrub)
         assert "Hidden" not in bs.scrubbed_df["Account"].values
 
-    def test_scrub_balance_float(self, scrub_input_balance_df, accounts_for_scrub):
+    def test_scrub_balance_float(self, scrub_input_balance_df: pd.DataFrame, accounts_for_scrub: AccountsSpreadsheet) -> None:
         bs = self._make(scrub_input_balance_df, accounts_for_scrub)
         assert bs.scrubbed_df["Balance"].dtype == float
 
@@ -146,7 +146,7 @@ class TestBalanceScrub:
 
 class TestLoadErrorHandling:
 
-    def test_load_calls_st_stop_on_failure(self):
+    def test_load_calls_st_stop_on_failure(self) -> None:
         """When st.connection raises, load() shows an error and calls st.stop()."""
         with (
             patch("src.spreadsheet.st.connection", side_effect=RuntimeError("no creds")),
@@ -171,7 +171,7 @@ class TestCategoriesScrub:
         with patch.object(Spreadsheet, 'load', lambda self: setattr(self, 'raw_df', raw_df)):
             return CategoriesSpreadsheet()
 
-    def test_scrub_keeps_expected_columns(self):
+    def test_scrub_keeps_expected_columns(self) -> None:
         raw = pd.DataFrame({
             "Category": ["Groceries", "Rent"],
             "Group": ["Food", "Housing"],
@@ -183,7 +183,7 @@ class TestCategoriesScrub:
         cs = self._make(raw)
         assert set(cs.scrubbed_df.columns) == {"Category", "Group", "Type", "Hide From Reports"}
 
-    def test_scrub_drops_rows_with_null_category(self):
+    def test_scrub_drops_rows_with_null_category(self) -> None:
         raw = pd.DataFrame({
             "Category": ["Groceries", None, "Rent"],
             "Group": ["Food", "Bills", "Housing"],
@@ -206,7 +206,7 @@ class TestAccountsScrub:
         with patch.object(Spreadsheet, 'load', lambda self: setattr(self, 'raw_df', raw_df)):
             return AccountsSpreadsheet()
 
-    def test_scrub_uses_first_four_columns(self):
+    def test_scrub_uses_first_four_columns(self) -> None:
         raw = pd.DataFrame({
             "col_a": ["Checking - xxxx1234 (AB01)", "Savings - xxxx5678 (CD02)"],
             "col_b": [None, "Asset"],
@@ -219,7 +219,7 @@ class TestAccountsScrub:
         assert set(accts.scrubbed_df.columns) == {"Account", "Group", "Hide"}
         assert len(accts.scrubbed_df) == 2
 
-    def test_scrub_drops_rows_with_null_account(self):
+    def test_scrub_drops_rows_with_null_account(self) -> None:
         raw = pd.DataFrame({
             "col_a": ["Checking - xxxx1234 (AB01)", None, "Savings - xxxx5678 (CD02)"],
             "col_b": [None, None, "Asset"],
@@ -243,7 +243,7 @@ class TestBalanceScrubJoinEdgeCases:
         ):
             return BalanceHistorySpreadsheet()
 
-    def test_case_insensitive_join(self):
+    def test_case_insensitive_join(self) -> None:
         """Account names with different casing should still match."""
         raw = pd.DataFrame({
             "Date": ["2024-01-01"],
@@ -267,7 +267,7 @@ class TestBalanceScrubJoinEdgeCases:
         bs = self._make(raw, acct)
         assert bs.scrubbed_df.iloc[0]["Group"] == "Credit Card"
 
-    def test_null_account_number_builds_key(self):
+    def test_null_account_number_builds_key(self) -> None:
         """Accounts with empty Account # (like Equity Awards) should still match."""
         raw = pd.DataFrame({
             "Date": ["2024-01-01"],
@@ -291,7 +291,7 @@ class TestBalanceScrubJoinEdgeCases:
         bs = self._make(raw, acct)
         assert bs.scrubbed_df.iloc[0]["Group"] == "Investment"
 
-    def test_unmatched_account_gets_empty_group(self):
+    def test_unmatched_account_gets_empty_group(self) -> None:
         """Accounts not in the Accounts sheet get Group='' instead of NaN."""
         raw = pd.DataFrame({
             "Date": ["2024-01-01"],
@@ -316,7 +316,7 @@ class TestBalanceScrubJoinEdgeCases:
         assert bs.scrubbed_df.iloc[0]["Group"] == ""
         assert bs.scrubbed_df.iloc[0]["Hide"] == ""
 
-    def test_no_group_or_hide_columns_in_raw_data(self):
+    def test_no_group_or_hide_columns_in_raw_data(self) -> None:
         """Balance History from API may not have Group/Hide columns at all."""
         raw = pd.DataFrame({
             "Date": ["2024-01-01"],
@@ -340,7 +340,7 @@ class TestBalanceScrubJoinEdgeCases:
         bs = self._make(raw, acct)
         assert bs.scrubbed_df.iloc[0]["Group"] == "Checking"
 
-    def test_legacy_group_hide_columns_are_dropped_before_join(self):
+    def test_legacy_group_hide_columns_are_dropped_before_join(self) -> None:
         """If raw data has legacy Group/Hide columns, they should be replaced by the join."""
         raw = pd.DataFrame({
             "Date": ["2024-01-01"],
@@ -400,7 +400,7 @@ class TestTransactionsScrubJoinEdgeCases:
             "Categorized Date": ["2024-01-15"] * n,
         })
 
-    def test_multiple_uncategorized(self):
+    def test_multiple_uncategorized(self) -> None:
         """Multiple unknown categories all get Group='Uncategorized'."""
         cat = CategoriesSpreadsheet.__new__(CategoriesSpreadsheet)
         cat.scrubbed_df = pd.DataFrame({
@@ -416,7 +416,7 @@ class TestTransactionsScrubJoinEdgeCases:
         assert groups[1] == "Uncategorized"
         assert groups[2] == "Food"
 
-    def test_type_defaults_to_empty_for_unknown(self):
+    def test_type_defaults_to_empty_for_unknown(self) -> None:
         """Unknown categories get Type='' not NaN."""
         cat = CategoriesSpreadsheet.__new__(CategoriesSpreadsheet)
         cat.scrubbed_df = pd.DataFrame({
@@ -429,7 +429,7 @@ class TestTransactionsScrubJoinEdgeCases:
         ts = self._make(raw, cat)
         assert ts.scrubbed_df.iloc[0]["Type"] == ""
 
-    def test_legacy_group_type_columns_are_replaced(self):
+    def test_legacy_group_type_columns_are_replaced(self) -> None:
         """If raw data has legacy Group/Type columns from VLOOKUPs, they're replaced by the join."""
         cat = CategoriesSpreadsheet.__new__(CategoriesSpreadsheet)
         cat.scrubbed_df = pd.DataFrame({
@@ -446,7 +446,7 @@ class TestTransactionsScrubJoinEdgeCases:
         assert ts.scrubbed_df.iloc[0]["Group"] == "Food"
         assert ts.scrubbed_df.iloc[0]["Type"] == "Expense"
 
-    def test_negative_amounts_preserved(self):
+    def test_negative_amounts_preserved(self) -> None:
         """Negative dollar amounts with special formatting are parsed correctly."""
         cat = CategoriesSpreadsheet.__new__(CategoriesSpreadsheet)
         cat.scrubbed_df = pd.DataFrame({

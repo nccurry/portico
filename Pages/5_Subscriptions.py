@@ -5,7 +5,12 @@ import altair as alt
 
 from src.spreadsheet import load_transactions_data, load_balance_history_data, TransactionsSpreadsheet, BalanceHistorySpreadsheet
 from src.page_helpers import get_transaction_column_config, extract_merchant_name
-from src.constants import CHART_HEIGHT_STANDARD, COLOR_EXPENSE
+from src.constants import (
+    CHART_HEIGHT_STANDARD,
+    COLOR_EXPENSE,
+    SUBSCRIPTION_EXCLUDED_CATEGORIES,
+    SUBSCRIPTION_EXCLUDED_CATEGORY_PATTERN,
+)
 
 
 def detect_recurring_transactions(
@@ -25,26 +30,10 @@ def detect_recurring_transactions(
     Returns:
         DataFrame of detected subscriptions with summary info
     """
-    # Filter to expenses only, excluding mortgage, loans, investments, and other non-subscription categories
-    excluded_categories = [
-        'Mortgage Payment',
-        'Auto Loan Payment',
-        'Student Loan Payment',
-        'Personal Loan Payment',
-        'Car Payment',
-        'Rent',
-        'Investment',
-        'Stock Purchase',
-        '401k',
-        'HSA',
-        'RSU',
-        'ESPP'
-    ]
-
     df_expenses = df[
         (df['Type'] == 'Expense') &
-        (~df['Category'].isin(excluded_categories)) &
-        (~df['Category'].str.contains('Mortgage|Loan|Investment|401k|HSA|RSU|ESPP', case=False, na=False, regex=True))
+        (~df['Category'].isin(SUBSCRIPTION_EXCLUDED_CATEGORIES)) &
+        (~df['Category'].str.contains(SUBSCRIPTION_EXCLUDED_CATEGORY_PATTERN, case=False, na=False, regex=True))
     ].copy()
 
     # Extract merchant name (first few words of description)
@@ -58,8 +47,8 @@ def detect_recurring_transactions(
         'Date': ['count', 'min', 'max'],
         'Month': 'nunique',
         'Amount': 'mean',
-        'Category': lambda x: x.mode().iloc[0] if not x.mode().empty else (x.iloc[0] if not x.empty else ''),
-        'Account': lambda x: x.mode().iloc[0] if not x.mode().empty else (x.iloc[0] if not x.empty else '')
+        'Category': lambda x: x.mode().iloc[0] if not x.mode().empty else (x.iloc[0] if not x.empty else ''),  # type: ignore[misc]
+        'Account': lambda x: x.mode().iloc[0] if not x.mode().empty else (x.iloc[0] if not x.empty else '')  # type: ignore[misc]
     }).reset_index()
 
     # Flatten column names
@@ -105,7 +94,7 @@ def create_subscription_timeline(
         Altair chart
     """
     if subscriptions.empty:
-        return alt.Chart(pd.DataFrame()).mark_text().encode(
+        return alt.Chart(pd.DataFrame()).mark_text().encode(  # type: ignore[no-any-return]
             text=alt.value("No subscriptions detected")
         )
 
@@ -132,7 +121,7 @@ def create_subscription_timeline(
     timeline_df = pd.DataFrame(timeline_data)
 
     if timeline_df.empty:
-        return alt.Chart(pd.DataFrame()).mark_text().encode(
+        return alt.Chart(pd.DataFrame()).mark_text().encode(  # type: ignore[no-any-return]
             text=alt.value("No subscription data available")
         )
 
@@ -155,7 +144,7 @@ def create_subscription_timeline(
         title='Subscription Timeline'
     )
 
-    return chart
+    return chart  # type: ignore[no-any-return]
 
 
 def create_subscription_cost_chart(subscriptions: pd.DataFrame) -> alt.Chart:
@@ -168,7 +157,7 @@ def create_subscription_cost_chart(subscriptions: pd.DataFrame) -> alt.Chart:
         Altair chart
     """
     if subscriptions.empty:
-        return alt.Chart(pd.DataFrame()).mark_text().encode(
+        return alt.Chart(pd.DataFrame()).mark_text().encode(  # type: ignore[no-any-return]
             text=alt.value("No subscriptions detected")
         )
 
@@ -197,7 +186,7 @@ def create_subscription_cost_chart(subscriptions: pd.DataFrame) -> alt.Chart:
         labelLimit=200
     )
 
-    return chart
+    return chart  # type: ignore[no-any-return]
 
 
 def configure_page(

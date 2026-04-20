@@ -3,7 +3,7 @@ version: '3'
 
 vars:
   VENV: .venv
-  PYTHON: '{{.VENV}}/Scripts/python'
+  PYTHON: '{{if eq OS "windows"}}{{.VENV}}/Scripts/python{{else}}{{.VENV}}/bin/python{{end}}'
   UV: uv
 
 tasks:

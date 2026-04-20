@@ -206,7 +206,7 @@ def configure_page(
         # Summary by month
         with st.expander("📊 Duplicates by Month"):
             monthly_summary = df_duplicates.groupby('Month').agg({
-                'Amount': ['count', lambda x: x.abs().sum()]
+                'Amount': ['count', lambda x: x.abs().sum()]  # type: ignore[misc]
             }).reset_index()
             monthly_summary.columns = ['Month', 'Count', 'Total_Amount']
             monthly_summary = monthly_summary.sort_values('Month', ascending=False)

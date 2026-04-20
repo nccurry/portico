@@ -12,7 +12,7 @@ from tests._helpers import _make_row, _df_from_rows
 
 class TestCalculateDateRange:
 
-    def test_this_month(self):
+    def test_this_month(self) -> None:
         start, end = calculate_date_range("This Month")
         now = pd.Timestamp.now(tz="UTC")
         assert start.day == 1
@@ -21,7 +21,7 @@ class TestCalculateDateRange:
         # end should be approximately now
         assert abs((end - now).total_seconds()) < 2
 
-    def test_last_month(self):
+    def test_last_month(self) -> None:
         start, end = calculate_date_range("Last Month")
         now = pd.Timestamp.now(tz="UTC")
         first_of_this_month = now.replace(day=1)
@@ -31,22 +31,22 @@ class TestCalculateDateRange:
         assert start.month == expected_start.month
         assert end.day == expected_end.day
 
-    def test_last_3_months(self):
+    def test_last_3_months(self) -> None:
         start, end = calculate_date_range("Last 3 Months")
         diff = (end - start).days
         assert abs(diff - 90) < 2
 
-    def test_last_6_months(self):
+    def test_last_6_months(self) -> None:
         start, end = calculate_date_range("Last 6 Months")
         diff = (end - start).days
         assert abs(diff - 180) < 2
 
-    def test_last_12_months(self):
+    def test_last_12_months(self) -> None:
         start, end = calculate_date_range("Last 12 Months")
         diff = (end - start).days
         assert abs(diff - 365) < 2
 
-    def test_year_to_date(self):
+    def test_year_to_date(self) -> None:
         start, end = calculate_date_range("Year to Date")
         now = pd.Timestamp.now(tz="UTC")
         assert start.month == 1
@@ -54,7 +54,7 @@ class TestCalculateDateRange:
         assert start.year == now.year
         assert abs((end - now).total_seconds()) < 2
 
-    def test_all_time_with_df(self):
+    def test_all_time_with_df(self) -> None:
         df = pd.DataFrame({
             "Date": [
                 pd.Timestamp("2020-03-15", tz="UTC"),
@@ -66,13 +66,13 @@ class TestCalculateDateRange:
         now = pd.Timestamp.now(tz="UTC")
         assert abs((end - now).total_seconds()) < 2
 
-    def test_all_time_without_df(self):
+    def test_all_time_without_df(self) -> None:
         start, end = calculate_date_range("All Time")
         diff = (end - start).days
         # Should default to ~5 years (1825 days)
         assert abs(diff - 365 * 5) < 2
 
-    def test_unknown_period(self):
+    def test_unknown_period(self) -> None:
         start, end = calculate_date_range("Made Up Period")
         diff = (end - start).days
         # Defaults to last 3 months (90 days)
@@ -85,7 +85,7 @@ class TestCalculateDateRange:
 
 class TestApplyTransactionFilters:
 
-    def test_always_excludes_transfer(self, scrubbed_transactions_df):
+    def test_always_excludes_transfer(self, scrubbed_transactions_df: pd.DataFrame) -> None:
         """Transfer group rows are always removed, even with empty filters."""
         # Add a Transfer row to the fixture data
         transfer_row = _make_row("2024-03-01", "Bank Transfer", -500.0, "Transfer", "Expense")
@@ -95,7 +95,7 @@ class TestApplyTransactionFilters:
         # All original non-Transfer rows should survive
         assert len(result) == len(scrubbed_transactions_df)
 
-    def test_include_groups_applied(self, scrubbed_transactions_df):
+    def test_include_groups_applied(self, scrubbed_transactions_df: pd.DataFrame) -> None:
         """Only rows matching include_groups remain."""
         filters = {"include_groups": ["Food"]}
         result = apply_transaction_filters(scrubbed_transactions_df, filters)
@@ -103,7 +103,7 @@ class TestApplyTransactionFilters:
         # Groceries + Restaurants
         assert len(result) == 2
 
-    def test_include_groups_and_categories_union(self, scrubbed_transactions_df):
+    def test_include_groups_and_categories_union(self, scrubbed_transactions_df: pd.DataFrame) -> None:
         """When both include_groups and include_categories are set, rows matching
         either filter are included (union/OR)."""
         filters = {
@@ -121,7 +121,7 @@ class TestApplyTransactionFilters:
             "Restaurants",
         }
 
-    def test_exclude_groups_applied(self, scrubbed_transactions_df):
+    def test_exclude_groups_applied(self, scrubbed_transactions_df: pd.DataFrame) -> None:
         """Rows with excluded groups are removed."""
         filters = {"exclude_groups": ["Food", "Income"]}
         result = apply_transaction_filters(scrubbed_transactions_df, filters)
@@ -130,7 +130,7 @@ class TestApplyTransactionFilters:
         # Bills (Electric, Internet) + Shopping (Amazon) = 3 rows
         assert len(result) == 3
 
-    def test_exclude_categories_applied(self, scrubbed_transactions_df):
+    def test_exclude_categories_applied(self, scrubbed_transactions_df: pd.DataFrame) -> None:
         """Rows with excluded categories are removed."""
         filters = {"exclude_categories": ["Electric", "Internet"]}
         result = apply_transaction_filters(scrubbed_transactions_df, filters)
@@ -139,7 +139,7 @@ class TestApplyTransactionFilters:
         # 8 - 2 = 6 rows
         assert len(result) == 6
 
-    def test_filter_large_expenses(self):
+    def test_filter_large_expenses(self) -> None:
         """Expenses above the threshold are removed; income is unaffected."""
         df = _df_from_rows(
             _make_row("2024-01-01", "Small",  -100.0, "Food",     "Expense"),
@@ -153,7 +153,7 @@ class TestApplyTransactionFilters:
         # Income row untouched
         assert "Pay" in result["Category"].values
 
-    def test_filter_large_income(self):
+    def test_filter_large_income(self) -> None:
         """Income above the threshold is removed; expenses are unaffected."""
         df = _df_from_rows(
             _make_row("2024-01-01", "Salary", 3000.0,  "Income", "Income"),
@@ -167,19 +167,19 @@ class TestApplyTransactionFilters:
         assert "Salary" in result["Category"].values
         assert "Bonus" not in result["Category"].values
 
-    def test_empty_filters_dict(self, scrubbed_transactions_df):
+    def test_empty_filters_dict(self, scrubbed_transactions_df: pd.DataFrame) -> None:
         """An empty filter dict removes nothing (except Transfer, which isn't present)."""
         result = apply_transaction_filters(scrubbed_transactions_df, {})
         assert len(result) == len(scrubbed_transactions_df)
 
-    def test_include_categories_only(self, scrubbed_transactions_df):
+    def test_include_categories_only(self, scrubbed_transactions_df: pd.DataFrame) -> None:
         """When only include_categories is set (no include_groups), matching rows are kept."""
         filters = {"include_categories": ["Electric", "Internet"]}
         result = apply_transaction_filters(scrubbed_transactions_df, filters)
         assert set(result["Category"].unique()) == {"Electric", "Internet"}
         assert len(result) == 2
 
-    def test_empty_include_lists_fall_through_to_excludes(self, scrubbed_transactions_df):
+    def test_empty_include_lists_fall_through_to_excludes(self, scrubbed_transactions_df: pd.DataFrame) -> None:
         """Empty include lists are falsy and should fall through to exclude logic."""
         filters = {
             "include_groups": [],
@@ -189,12 +189,12 @@ class TestApplyTransactionFilters:
         result = apply_transaction_filters(scrubbed_transactions_df, filters)
         assert "Food" not in result["Group"].values
 
-    def test_empty_dataframe(self, empty_transactions_df):
+    def test_empty_dataframe(self, empty_transactions_df: pd.DataFrame) -> None:
         """An empty DataFrame passes through without error."""
         result = apply_transaction_filters(empty_transactions_df, {})
         assert len(result) == 0
 
-    def test_nan_group_kept_after_transfer_exclusion(self):
+    def test_nan_group_kept_after_transfer_exclusion(self) -> None:
         """NaN in Group: 'Group != Transfer' is True for NaN, so NaN-group rows survive."""
         df = _df_from_rows(
             _make_row("2024-01-01", "Groceries", -50.0, "Food", "Expense"),
@@ -206,7 +206,7 @@ class TestApplyTransactionFilters:
         # NaN != "Transfer" evaluates to True, so the row is kept
         assert len(result) == 2
 
-    def test_nan_type_bypasses_large_expense_filter(self):
+    def test_nan_type_bypasses_large_expense_filter(self) -> None:
         """NaN in Type: 'Type != Expense' is True for NaN, so the large-expense filter
         doesn't apply and the row is kept regardless of amount."""
         df = _df_from_rows(
@@ -219,7 +219,7 @@ class TestApplyTransactionFilters:
         # NaN Type != "Expense" is True, so the OR short-circuits and the row is kept
         assert "BigMystery" in result["Category"].values
 
-    def test_nan_amount_with_large_expense_filter(self):
+    def test_nan_amount_with_large_expense_filter(self) -> None:
         """NaN in Amount: abs(NaN) is NaN, and NaN <= threshold is False,
         but Type != 'Expense' is False, so the whole condition is False and the row is dropped."""
         df = _df_from_rows(
@@ -232,7 +232,7 @@ class TestApplyTransactionFilters:
         assert "NanAmount" not in result["Category"].values
         assert len(result) == 1
 
-    def test_nan_category_excluded_by_include_filter(self):
+    def test_nan_category_excluded_by_include_filter(self) -> None:
         """NaN category is not in any include list, so it's excluded by include_categories."""
         df = _df_from_rows(
             _make_row("2024-01-01", "Groceries", -50.0, "Food", "Expense"),
@@ -243,7 +243,7 @@ class TestApplyTransactionFilters:
         result = apply_transaction_filters(df, filters)
         assert len(result) == 1
 
-    def test_both_large_income_and_expense_filters(self):
+    def test_both_large_income_and_expense_filters(self) -> None:
         """Both income and expense threshold filters applied simultaneously."""
         df = _df_from_rows(
             _make_row("2024-01-01", "Salary", 3000.0, "Income", "Income"),
@@ -264,7 +264,7 @@ class TestApplyTransactionFilters:
         assert "Groceries" in result["Category"].values
         assert len(result) == 2
 
-    def test_transfer_excluded_even_in_include_groups(self):
+    def test_transfer_excluded_even_in_include_groups(self) -> None:
         """Transfer group is always excluded, even if explicitly included."""
         df = _df_from_rows(
             _make_row("2024-01-01", "Groceries", -50.0, "Food", "Expense"),
@@ -275,7 +275,7 @@ class TestApplyTransactionFilters:
         assert "Transfer" not in result["Group"].values
         assert len(result) == 1
 
-    def test_include_groups_with_exclude_categories(self, scrubbed_transactions_df):
+    def test_include_groups_with_exclude_categories(self, scrubbed_transactions_df: pd.DataFrame) -> None:
         """Include groups takes precedence — exclude_categories is ignored when includes are set."""
         filters = {
             "include_groups": ["Food"],

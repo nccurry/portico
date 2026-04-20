@@ -10,18 +10,18 @@ detect_recurring_transactions = subscriptions.detect_recurring_transactions
 
 class TestDetectRecurringTransactions:
 
-    def test_detects_monthly_subscription(self):
+    def test_detects_monthly_subscription(self) -> None:
         df = _make_recurring_df(months=6)
         result = detect_recurring_transactions(df, min_occurrences=3, min_months=3)
         assert len(result) >= 1
         assert 'NETFLIX' in result.iloc[0]['Merchant']
 
-    def test_excludes_mortgage_categories(self):
+    def test_excludes_mortgage_categories(self) -> None:
         df = _make_recurring_df(category='Mortgage Payment', months=6)
         result = detect_recurring_transactions(df, min_occurrences=3, min_months=3)
         assert len(result) == 0
 
-    def test_cadence_filtering_20_40_days(self):
+    def test_cadence_filtering_20_40_days(self) -> None:
         """Charges spaced 60 days apart should not pass the 20-40 day cadence filter."""
         dates = pd.date_range(start='2024-01-15', periods=6, freq='60D', tz='UTC')
         df = pd.DataFrame({
@@ -39,13 +39,13 @@ class TestDetectRecurringTransactions:
         result = detect_recurring_transactions(df, min_occurrences=3, min_months=3)
         assert len(result) == 0
 
-    def test_min_occurrences_filter(self):
+    def test_min_occurrences_filter(self) -> None:
         """Fewer than min_occurrences should be excluded."""
         df = _make_recurring_df(months=2)  # only 2 occurrences
         result = detect_recurring_transactions(df, min_occurrences=3, min_months=2)
         assert len(result) == 0
 
-    def test_division_by_zero_count_one(self):
+    def test_division_by_zero_count_one(self) -> None:
         """A single occurrence should not crash on the days-between calculation."""
         df = pd.DataFrame({
             'Date': pd.to_datetime(['2024-01-15'], utc=True),
@@ -65,14 +65,14 @@ class TestDetectRecurringTransactions:
             warnings.simplefilter("error")
             detect_recurring_transactions(df, min_occurrences=1, min_months=1)
 
-    def test_annual_cost_calculation(self):
+    def test_annual_cost_calculation(self) -> None:
         df = _make_recurring_df(amount=-25.00, months=6)
         result = detect_recurring_transactions(df, min_occurrences=3, min_months=3)
         assert len(result) >= 1
         row = result.iloc[0]
         assert row['Annual_Cost'] == pytest.approx(abs(row['Avg_Amount']) * 12)
 
-    def test_mode_empty_fallback(self):
+    def test_mode_empty_fallback(self) -> None:
         """When all categories are unique, mode() returns all of them but should not crash."""
         dates = pd.date_range(start='2024-01-15', periods=4, freq='MS', tz='UTC') + pd.Timedelta(days=14)
         df = pd.DataFrame({
@@ -93,7 +93,7 @@ class TestDetectRecurringTransactions:
         # Category should be a string, not crash
         assert isinstance(result.iloc[0]['Category'], str)
 
-    def test_multiple_subscriptions(self):
+    def test_multiple_subscriptions(self) -> None:
         """Multiple distinct merchants are all detected."""
         df1 = _make_recurring_df(merchant='NETFLIX MONTHLY', amount=-15.99, months=6)
         df2 = _make_recurring_df(merchant='SPOTIFY PREMIUM', amount=-9.99, months=6)
@@ -104,7 +104,7 @@ class TestDetectRecurringTransactions:
         assert any('NETFLIX' in m for m in merchants)
         assert any('SPOTIFY' in m for m in merchants)
 
-    def test_excludes_category_via_regex(self):
+    def test_excludes_category_via_regex(self) -> None:
         """Categories matching the regex pattern are excluded even if not in the explicit list."""
         df = _make_recurring_df(category='Home Mortgage Insurance', months=6)
         result = detect_recurring_transactions(df, min_occurrences=3, min_months=3)
