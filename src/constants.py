@@ -83,6 +83,26 @@ DEFAULT_EXCLUDE_GROUPS_BUDGET: Final[list[str]] = [
     'Investment',
 ]
 
+# Subscription detection — categories excluded from recurring-charge detection
+SUBSCRIPTION_EXCLUDED_CATEGORIES: Final[list[str]] = [
+    'Mortgage Payment',
+    'Auto Loan Payment',
+    'Student Loan Payment',
+    'Personal Loan Payment',
+    'Car Payment',
+    'Rent',
+    'Investment',
+    'Stock Purchase',
+    '401k',
+    'HSA',
+    'RSU',
+    'ESPP',
+]
+
+SUBSCRIPTION_EXCLUDED_CATEGORY_PATTERN: Final[str] = (
+    r'Mortgage|Loan|Investment|401k|HSA|RSU|ESPP'
+)
+
 # Time period options
 TIME_PERIODS: Final[list[str]] = [
     "This Month",

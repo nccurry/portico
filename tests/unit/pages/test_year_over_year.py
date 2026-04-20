@@ -1,14 +1,17 @@
 """Tests for Pages/3_Year_over_Year.py - category/group extraction logic."""
+from collections.abc import Callable
+
 import numpy as np
 import pandas as pd
 
+from src.spreadsheet import TransactionsSpreadsheet
 from tests._helpers import _transactions_df
 
 
 class TestGetAllCategories:
     """Test TransactionsSpreadsheet.get_all_categories()."""
 
-    def test_nan_categories_excluded(self, make_transactions_spreadsheet):
+    def test_nan_categories_excluded(self, make_transactions_spreadsheet: Callable[..., TransactionsSpreadsheet]) -> None:
         """NaN values in Category column are filtered out."""
         df = _transactions_df([
             {"Date": "2024-01-01", "Category": "Groceries", "Amount": -10, "Account": "C", "Month": "2024-01", "Group": "Food", "Type": "Expense"},
@@ -22,7 +25,7 @@ class TestGetAllCategories:
         assert "Dining" in categories
         assert len(categories) == 2
 
-    def test_empty_string_categories_excluded(self, make_transactions_spreadsheet):
+    def test_empty_string_categories_excluded(self, make_transactions_spreadsheet: Callable[..., TransactionsSpreadsheet]) -> None:
         """Whitespace-only category strings are excluded."""
         df = _transactions_df([
             {"Date": "2024-01-01", "Category": "Groceries", "Amount": -10, "Account": "C", "Month": "2024-01", "Group": "Food", "Type": "Expense"},
@@ -33,7 +36,7 @@ class TestGetAllCategories:
         categories = ts.get_all_categories()
         assert categories == ["Groceries"]
 
-    def test_sorted_output(self, make_transactions_spreadsheet):
+    def test_sorted_output(self, make_transactions_spreadsheet: Callable[..., TransactionsSpreadsheet]) -> None:
         """Categories are returned in sorted order."""
         df = _transactions_df([
             {"Date": "2024-01-01", "Category": "Dining",    "Amount": -10, "Account": "C", "Month": "2024-01", "Group": "Food", "Type": "Expense"},
@@ -43,7 +46,7 @@ class TestGetAllCategories:
         ts = make_transactions_spreadsheet(df)
         assert ts.get_all_categories() == ["Auto", "Dining", "Groceries"]
 
-    def test_all_nan_returns_empty(self, make_transactions_spreadsheet):
+    def test_all_nan_returns_empty(self, make_transactions_spreadsheet: Callable[..., TransactionsSpreadsheet]) -> None:
         """If all categories are NaN, an empty list is returned."""
         df = _transactions_df([
             {"Date": "2024-01-01", "Category": None, "Amount": -10, "Account": "C", "Month": "2024-01", "Group": "Food", "Type": "Expense"},
@@ -56,7 +59,7 @@ class TestGetAllCategories:
 class TestGetAllGroups:
     """Test TransactionsSpreadsheet.get_all_groups()."""
 
-    def test_nan_groups_excluded(self, make_transactions_spreadsheet):
+    def test_nan_groups_excluded(self, make_transactions_spreadsheet: Callable[..., TransactionsSpreadsheet]) -> None:
         """NaN values in Group column are filtered out."""
         df = _transactions_df([
             {"Date": "2024-01-01", "Category": "Groceries", "Amount": -10, "Account": "C", "Month": "2024-01", "Group": "Food", "Type": "Expense"},
@@ -67,7 +70,7 @@ class TestGetAllGroups:
         groups = ts.get_all_groups()
         assert groups == ["Food"]
 
-    def test_transfer_group_excluded(self, make_transactions_spreadsheet):
+    def test_transfer_group_excluded(self, make_transactions_spreadsheet: Callable[..., TransactionsSpreadsheet]) -> None:
         """Transfer group is excluded from the group list."""
         df = _transactions_df([
             {"Date": "2024-01-01", "Category": "Groceries",     "Amount": -10, "Account": "C", "Month": "2024-01", "Group": "Food",     "Type": "Expense"},
@@ -78,7 +81,7 @@ class TestGetAllGroups:
         assert "Transfer" not in groups
         assert "Food" in groups
 
-    def test_blank_groups_excluded(self, make_transactions_spreadsheet):
+    def test_blank_groups_excluded(self, make_transactions_spreadsheet: Callable[..., TransactionsSpreadsheet]) -> None:
         """Whitespace-only group strings are excluded."""
         df = _transactions_df([
             {"Date": "2024-01-01", "Category": "Groceries", "Amount": -10, "Account": "C", "Month": "2024-01", "Group": "Food", "Type": "Expense"},
@@ -88,7 +91,7 @@ class TestGetAllGroups:
         ts = make_transactions_spreadsheet(df)
         assert ts.get_all_groups() == ["Food"]
 
-    def test_sorted_output(self, make_transactions_spreadsheet):
+    def test_sorted_output(self, make_transactions_spreadsheet: Callable[..., TransactionsSpreadsheet]) -> None:
         """Groups are returned in sorted order."""
         df = _transactions_df([
             {"Date": "2024-01-01", "Category": "Groceries", "Amount": -10, "Account": "C", "Month": "2024-01", "Group": "Food",      "Type": "Expense"},
@@ -98,7 +101,7 @@ class TestGetAllGroups:
         ts = make_transactions_spreadsheet(df)
         assert ts.get_all_groups() == ["Auto", "Entertainment", "Food"]
 
-    def test_all_nan_returns_empty(self, make_transactions_spreadsheet):
+    def test_all_nan_returns_empty(self, make_transactions_spreadsheet: Callable[..., TransactionsSpreadsheet]) -> None:
         """If all groups are NaN, an empty list is returned."""
         df = _transactions_df([
             {"Date": "2024-01-01", "Category": "X", "Amount": -10, "Account": "C", "Month": "2024-01", "Group": None, "Type": "Expense"},
@@ -111,7 +114,7 @@ class TestGetAllGroups:
 class TestPrepareYearComparisonData:
     """Test the year-over-year data pivot from page_helpers."""
 
-    def test_multi_year_pivot(self):
+    def test_multi_year_pivot(self) -> None:
         from src.page_helpers import prepare_year_comparison_data
 
         # Monthly amounts indexed by YYYY-MM
@@ -128,7 +131,7 @@ class TestPrepareYearComparisonData:
         assert result.loc[3, 2023] == 100
         assert result.loc[3, 2024] == 150
 
-    def test_missing_months_filled_with_zero(self):
+    def test_missing_months_filled_with_zero(self) -> None:
         """Months without data in a year with data get filled with 0."""
         from src.page_helpers import prepare_year_comparison_data
 
@@ -144,7 +147,7 @@ class TestPrepareYearComparisonData:
         # Only months present in data appear (pivot doesn't pad)
         assert set(result.index) == {3, 6}
 
-    def test_single_month_single_year(self):
+    def test_single_month_single_year(self) -> None:
         from src.page_helpers import prepare_year_comparison_data
 
         df = pd.DataFrame({
@@ -158,7 +161,7 @@ class TestPrepareYearComparisonData:
         assert result.loc[1, 2024] == 500
         assert result.columns.tolist() == [2024]
 
-    def test_empty_input(self):
+    def test_empty_input(self) -> None:
         from src.page_helpers import prepare_year_comparison_data
 
         df = pd.DataFrame({'Amount': []})

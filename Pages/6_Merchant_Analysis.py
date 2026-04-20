@@ -9,29 +9,36 @@ from src.filters import calculate_date_range
 from src.constants import TIME_PERIODS, CHART_HEIGHT_STANDARD, COLOR_PALETTE
 
 
-def analyze_merchants(
+def enrich_with_merchant(
     df: pd.DataFrame,
     extraction_method: str = 'first_two',
-    min_transactions: int = 1
 ) -> pd.DataFrame:
-    """Analyze spending by merchant.
+    """Add a ``Merchant`` column derived from ``Full Description``.
 
-    Args:
-        df: Transaction dataframe
-        extraction_method: How to extract merchant name from description
-        min_transactions: Minimum transactions to include merchant
-
-    Returns:
-        DataFrame with merchant analysis
+    Returns a copy — the original DataFrame is never mutated.
     """
-    # Extract merchant names
-    df_copy = df.copy()
-    df_copy['Merchant'] = df_copy['Full Description'].apply(
+    enriched = df.copy()
+    enriched['Merchant'] = enriched['Full Description'].apply(
         lambda x: extract_merchant_name(x, extraction_method)
     )
+    return enriched
 
-    # Filter to expenses only
-    df_expenses = df_copy[df_copy['Type'] == 'Expense'].copy()
+
+def analyze_merchants(
+    df: pd.DataFrame,
+    min_transactions: int = 1,
+) -> pd.DataFrame:
+    """Aggregate spending statistics by merchant.
+
+    Args:
+        df: Transaction dataframe **with a ``Merchant`` column** (see
+            :func:`enrich_with_merchant`).
+        min_transactions: Minimum transactions to include merchant.
+
+    Returns:
+        DataFrame with merchant analysis.
+    """
+    df_expenses = df[df['Type'] == 'Expense'].copy()
 
     if df_expenses.empty:
         return pd.DataFrame()
@@ -40,8 +47,8 @@ def analyze_merchants(
     merchant_stats = df_expenses.groupby('Merchant').agg({
         'Amount': ['sum', 'mean', 'count'],
         'Date': ['min', 'max'],
-        'Category': lambda x: x.mode().iloc[0] if not x.mode().empty else (x.iloc[0] if not x.empty else 'Unknown'),
-        'Account': lambda x: x.mode().iloc[0] if not x.mode().empty else (x.iloc[0] if not x.empty else 'Unknown')
+        'Category': lambda x: x.mode().iloc[0] if not x.mode().empty else (x.iloc[0] if not x.empty else 'Unknown'),  # type: ignore[misc]
+        'Account': lambda x: x.mode().iloc[0] if not x.mode().empty else (x.iloc[0] if not x.empty else 'Unknown')  # type: ignore[misc]
     }).reset_index()
 
     # Flatten column names
@@ -82,7 +89,7 @@ def create_top_merchants_chart(
         Altair chart
     """
     if merchant_stats.empty:
-        return alt.Chart(pd.DataFrame()).mark_text().encode(
+        return alt.Chart(pd.DataFrame()).mark_text().encode(  # type: ignore[no-any-return]
             text=alt.value("No merchant data available")
         )
 
@@ -108,7 +115,7 @@ def create_top_merchants_chart(
         labelLimit=200
     )
 
-    return chart
+    return chart  # type: ignore[no-any-return]
 
 
 def create_frequency_vs_amount_chart(merchant_stats: pd.DataFrame) -> alt.Chart:
@@ -121,7 +128,7 @@ def create_frequency_vs_amount_chart(merchant_stats: pd.DataFrame) -> alt.Chart:
         Altair chart
     """
     if merchant_stats.empty:
-        return alt.Chart(pd.DataFrame()).mark_text().encode(
+        return alt.Chart(pd.DataFrame()).mark_text().encode(  # type: ignore[no-any-return]
             text=alt.value("No merchant data available")
         )
 
@@ -153,7 +160,7 @@ def create_frequency_vs_amount_chart(merchant_stats: pd.DataFrame) -> alt.Chart:
         title='Transaction Frequency vs Average Amount (Top 50 Merchants)'
     )
 
-    return chart
+    return chart  # type: ignore[no-any-return]
 
 
 def create_merchant_timeline(
@@ -172,7 +179,7 @@ def create_merchant_timeline(
         Altair chart
     """
     if merchant_stats.empty or df.empty:
-        return alt.Chart(pd.DataFrame()).mark_text().encode(
+        return alt.Chart(pd.DataFrame()).mark_text().encode(  # type: ignore[no-any-return]
             text=alt.value("No merchant data available")
         )
 
@@ -183,7 +190,7 @@ def create_merchant_timeline(
     df_top = df[df['Merchant'].isin(top_merchants_list) & (df['Type'] == 'Expense')].copy()
 
     if df_top.empty:
-        return alt.Chart(pd.DataFrame()).mark_text().encode(
+        return alt.Chart(pd.DataFrame()).mark_text().encode(  # type: ignore[no-any-return]
             text=alt.value("No timeline data available")
         )
 
@@ -208,7 +215,7 @@ def create_merchant_timeline(
         title=f'Spending Timeline - Top {top_n} Merchants'
     )
 
-    return chart
+    return chart  # type: ignore[no-any-return]
 
 
 def configure_page(
@@ -258,15 +265,11 @@ def configure_page(
 
     # Analyze merchants
     with st.spinner("Analyzing merchants..."):
-        # Add merchant column to df_period
-        df_period['Merchant'] = df_period['Full Description'].apply(
-            lambda x: extract_merchant_name(x, extraction_method)
-        )
+        df_period = enrich_with_merchant(df_period, extraction_method)
 
         merchant_stats = analyze_merchants(
             df_period,
-            extraction_method=extraction_method,
-            min_transactions=min_transactions
+            min_transactions=min_transactions,
         )
 
     # Display summary metrics

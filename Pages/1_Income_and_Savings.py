@@ -13,6 +13,7 @@ from src.constants import (
     COLOR_SAVINGS,
     DEFAULT_LARGE_TRANSACTION_THRESHOLD
 )
+from src.custom_types import SavingsSummary
 
 
 def process_income_expense_data(
@@ -77,52 +78,79 @@ def process_income_expense_data(
     return df_pivot
 
 
-def display_summary_metrics(df_pivot: pd.DataFrame) -> None:
-    """Display summary metrics for latest month and averages.
+def calculate_savings_summary(df_pivot: pd.DataFrame) -> SavingsSummary:
+    """Derive aggregate savings metrics from monthly income/expense pivot data.
 
-    Args:
-        df_pivot: Monthly summary dataframe
+    Parameters
+    ----------
+    df_pivot:
+        Output of :func:`process_income_expense_data` — one row per month with
+        ``Savings_Rate``, ``Savings``, and ``Income_Display`` columns.
+
+    Returns
+    -------
+    SavingsSummary
+        ``avg_monthly_rate`` — simple mean of per-month rates (treats each
+        month equally).  ``overall_rate`` — total savings / total income
+        (income-weighted).  ``avg_monthly_amount`` — mean monthly dollar
+        savings.  ``total_saved`` — sum of savings across all months.
+        ``num_months`` — row count.
     """
+    if df_pivot.empty:
+        return SavingsSummary(
+            avg_monthly_rate=0.0,
+            overall_rate=0.0,
+            avg_monthly_amount=0.0,
+            total_saved=0.0,
+            num_months=0,
+        )
+
+    total_income = float(df_pivot["Income_Display"].sum())
+    total_saved = float(df_pivot["Savings"].sum())
+
+    return SavingsSummary(
+        avg_monthly_rate=float(df_pivot["Savings_Rate"].mean()),
+        overall_rate=(total_saved / total_income * 100) if total_income > 0 else 0.0,
+        avg_monthly_amount=float(df_pivot["Savings"].mean()),
+        total_saved=total_saved,
+        num_months=len(df_pivot),
+    )
+
+
+def display_summary_metrics(df_pivot: pd.DataFrame) -> None:
+    """Display summary metrics for latest month and averages."""
     if df_pivot.empty:
         st.warning("No data available for the selected filters")
         return
 
+    summary = calculate_savings_summary(df_pivot)
     metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
 
     with metric_col1:
-        # Average of monthly rates (current method)
-        avg_rate = df_pivot['Savings_Rate'].mean()
         st.metric(
             label="Monthly Avg Rate",
-            value=f"{avg_rate:.1f}%",
+            value=f"{summary['avg_monthly_rate']:.1f}%",
             help="Average of each month's savings rate (treats each month equally)"
         )
 
     with metric_col2:
-        # Rate of averages (more accurate)
-        total_income = df_pivot['Income_Display'].sum()
-        total_savings = df_pivot['Savings'].sum()
-        overall_rate = (total_savings / total_income * 100) if total_income > 0 else 0
         st.metric(
             label="Overall Rate",
-            value=f"{overall_rate:.1f}%",
+            value=f"{summary['overall_rate']:.1f}%",
             help="Total saved / Total income (weighted by income amount)"
         )
 
     with metric_col3:
-        avg_savings = df_pivot['Savings'].mean()
         st.metric(
             label="Monthly Avg Amount",
-            value=f"${avg_savings:,.0f}"
+            value=f"${summary['avg_monthly_amount']:,.0f}"
         )
 
     with metric_col4:
-        total_saved = df_pivot['Savings'].sum()
-        num_months = len(df_pivot)
         st.metric(
             label="Overall Amount",
-            value=f"${total_saved:,.0f}",
-            help=f"Total saved over {num_months} months"
+            value=f"${summary['total_saved']:,.0f}",
+            help=f"Total saved over {summary['num_months']} months"
         )
 
 
@@ -139,11 +167,8 @@ def create_savings_rate_chart(
     Returns:
         Altair chart
     """
-    # Common axis settings
     x_axis = alt.X('Month:O', axis=alt.Axis(labelAngle=-45, title='Month'), sort=None)
-    y_axis_config = {'labelLimit': 100, 'labelPadding': 5}
 
-    # Line chart for savings rate
     line = alt.Chart(df_pivot).mark_line(
         color=COLOR_INCOME,
         strokeWidth=3,
@@ -151,7 +176,7 @@ def create_savings_rate_chart(
     ).encode(
         x=x_axis,
         y=alt.Y('Savings_Rate:Q',
-                axis=alt.Axis(title='Savings Rate (%)', **y_axis_config),
+                axis=alt.Axis(title='Savings Rate (%)', labelLimit=100, labelPadding=5),
                 scale=alt.Scale(zero=True)),
         tooltip=[
             alt.Tooltip('Month:O', title='Month'),
@@ -175,7 +200,7 @@ def create_savings_rate_chart(
         strokeWidth=2
     ).encode(y='y:Q')
 
-    return (line + zero_line + target_line).properties(
+    return (line + zero_line + target_line).properties(  # type: ignore[no-any-return]
         height=CHART_HEIGHT_STANDARD,
         title='Savings Rate Over Time',
         width='container'
@@ -193,9 +218,7 @@ def create_income_expense_chart(
     Returns:
         Altair chart
     """
-    # Common axis settings
     x_axis = alt.X('Month:O', axis=alt.Axis(labelAngle=-45, title='Month'), sort=None)
-    y_axis_config = {'labelLimit': 100, 'labelPadding': 5}
 
     # Prepare bar chart data
     df_bars = df_pivot[['Month', 'Income_Display', 'Expense_Display']].copy()
@@ -210,7 +233,7 @@ def create_income_expense_chart(
     # Bar chart
     bars = alt.Chart(df_long_bars).mark_bar().encode(
         x=x_axis,
-        y=alt.Y('Amount:Q', axis=alt.Axis(title='Amount ($)', **y_axis_config)),
+        y=alt.Y('Amount:Q', axis=alt.Axis(title='Amount ($)', labelLimit=100, labelPadding=5)),
         color=alt.Color('Category:N',
                        scale=alt.Scale(
                            domain=['Income', 'Expense'],
@@ -239,7 +262,7 @@ def create_income_expense_chart(
         ]
     )
 
-    return (bars + net_line).resolve_scale(color='independent').properties(
+    return (bars + net_line).resolve_scale(color='independent').properties(  # type: ignore[no-any-return]
         height=CHART_HEIGHT_STANDARD,
         title='Monthly Income vs Expenses',
         width='container'

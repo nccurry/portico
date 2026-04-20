@@ -14,6 +14,7 @@ import pytest
 
 from scripts.generate_test_fixtures import (
     AccountAnonymization,
+    PATTERN_MIN,
     SYNTHETIC_ZERO_ACCOUNT,
     _composite_key_display,
     _format_money,
@@ -25,6 +26,8 @@ from scripts.generate_test_fixtures import (
     build_account_mapping,
     build_token_mapping,
     collect_description_tokens,
+    sample_balance_history,
+    validate_pattern_minimums,
 )
 
 
@@ -324,3 +327,86 @@ class TestAnonymizeFlow:
         from scripts.generate_test_fixtures import BALANCE_HISTORY_RAW_COLUMNS
         assert list(out.columns) == BALANCE_HISTORY_RAW_COLUMNS
         assert out["Balance"].iloc[0] == "$1,000.00"
+
+    def test_balance_history_preserves_time(self) -> None:
+        """Time column should reflect the original Time, not Date."""
+        import datetime
+
+        synth_bh = pd.DataFrame({
+            "Date": [pd.Timestamp("2026-03-10"), pd.Timestamp("2026-03-10")],
+            "Time": [datetime.time(9, 30, 0), datetime.time(14, 45, 15)],
+            "Account": ["Checking", "Checking"],
+            "Account #": ["1234", "1234"],
+            "Account ID": ["aid-1", "aid-1"],
+            "Balance ID": ["bal-1", "bal-2"],
+            "Institution": ["BankA", "BankA"],
+            "Balance": [1000.00, 1050.00],
+            "Class": ["Asset", "Asset"],
+            "Type": ["Account", "Account"],
+            "Account Status": ["Open", "Open"],
+        })
+        accounts = build_account_mapping(synth_bh)
+        out = anonymize_balance_history(synth_bh, accounts)
+        assert "09:30:00" in out["Time"].iloc[0]
+        assert "14:45:15" in out["Time"].iloc[1]
+
+
+# ---------------------------------------------------------------------------
+# sample_balance_history always keeps the latest row
+# ---------------------------------------------------------------------------
+
+
+class TestSampleBalanceHistory:
+
+    def test_latest_row_always_kept(self) -> None:
+        """When stride-sampling dense accounts, the last observation survives."""
+        dates = pd.date_range("2025-01-01", periods=200, freq="D")
+        df = pd.DataFrame({
+            "Date": dates,
+            "Account ID": ["acct-1"] * 200,
+            "Balance": range(200),
+        })
+        from scripts.generate_test_fixtures import MAX_BALANCE_ROWS_PER_ACCOUNT
+        assert len(df) > MAX_BALANCE_ROWS_PER_ACCOUNT
+
+        sampled = sample_balance_history(df)
+        latest_date = dates[-1]
+        assert latest_date in sampled["Date"].values
+
+    def test_small_account_untouched(self) -> None:
+        """Accounts under the cap pass through without stride-sampling."""
+        dates = pd.date_range("2025-01-01", periods=10, freq="D")
+        df = pd.DataFrame({
+            "Date": dates,
+            "Account ID": ["acct-1"] * 10,
+            "Balance": range(10),
+        })
+        sampled = sample_balance_history(df)
+        assert len(sampled) == 10
+
+
+# ---------------------------------------------------------------------------
+# PATTERN_MIN enforcement on fixtures
+# ---------------------------------------------------------------------------
+
+
+class TestPatternMinValidation:
+    """validate_pattern_minimums should pass on the committed fixtures."""
+
+    def test_all_pattern_min_keys_present(self) -> None:
+        expected_keys = {
+            "duplicate_pairs", "recurring_merchants", "top_n_ties",
+            "cross_year_categories", "over_budget_categories",
+            "under_budget_categories", "single_account_groups",
+            "zero_total_groups", "all_liability_groups",
+        }
+        assert set(PATTERN_MIN.keys()) == expected_keys
+
+    def test_validates_without_error(self, fixture_files: dict[str, pd.DataFrame]) -> None:
+        """The committed fixtures must satisfy all PATTERN_MIN guarantees."""
+        validate_pattern_minimums(
+            fixture_files["transactions"],
+            fixture_files["balance_history"],
+            fixture_files["categories"],
+            fixture_files["accounts"],
+        )

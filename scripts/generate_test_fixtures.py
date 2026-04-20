@@ -382,7 +382,12 @@ def sample_transactions(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def sample_balance_history(df: pd.DataFrame) -> pd.DataFrame:
-    """Cap rows per account to keep the fixture small."""
+    """Cap rows per account to keep the fixture small.
+
+    The latest row per account is always preserved so that downstream
+    "latest balance" logic (which keeps the last row by Date/Time) sees
+    the correct snapshot.
+    """
     df = df.copy()
     df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
     df = df.dropna(subset=["Date"])
@@ -393,7 +398,11 @@ def sample_balance_history(df: pd.DataFrame) -> pd.DataFrame:
         group = group.sort_values("Date")
         if len(group) > MAX_BALANCE_ROWS_PER_ACCOUNT:
             stride = len(group) // MAX_BALANCE_ROWS_PER_ACCOUNT + 1
-            sampled.append(group.iloc[::stride])
+            strided = group.iloc[::stride]
+            last_row = group.iloc[[-1]]
+            if strided.index[-1] != last_row.index[0]:
+                strided = pd.concat([strided, last_row])
+            sampled.append(strided)
         else:
             sampled.append(group)
     return pd.concat(sampled, ignore_index=True).sort_values("Date").reset_index(drop=True)
@@ -635,12 +644,42 @@ def _shape_transactions_raw(df: pd.DataFrame) -> pd.DataFrame:
     return out[TRANSACTIONS_RAW_COLUMNS]
 
 
+def _combine_date_time(date_val: Any, time_val: Any) -> str:
+    """Combine a Date and a Time value into ``MM/DD/YYYY HH:MM:SS``.
+
+    The Date supplies the calendar date; the Time supplies the time-of-day.
+    Falls back to midnight when Time is missing or unparseable.
+    """
+    d = pd.to_datetime(date_val, errors="coerce")
+    if pd.isna(d):
+        return ""
+    # time_val may be datetime.time, Timestamp, or string
+    try:
+        if hasattr(time_val, "hour"):
+            h, m, s = time_val.hour, time_val.minute, time_val.second
+        else:
+            t = pd.to_datetime(time_val, errors="coerce")
+            if pd.isna(t):
+                h, m, s = 0, 0, 0
+            else:
+                h, m, s = t.hour, t.minute, t.second
+    except Exception:
+        h, m, s = 0, 0, 0
+    combined = d.replace(hour=h, minute=m, second=s)
+    return combined.strftime("%m/%d/%Y %H:%M:%S")
+
+
 def _shape_balance_history_raw(df: pd.DataFrame) -> pd.DataFrame:
     """Format Balance History columns to match the live shape."""
     out = pd.DataFrame()
     out["Unnamed: 0"] = [None] * len(df)
     out["Date"] = df["Date"].apply(_format_date_slash)
-    out["Time"] = df["Date"].apply(_format_datetime_slash)
+    if "Time" in df.columns:
+        out["Time"] = df.apply(
+            lambda r: _combine_date_time(r["Date"], r["Time"]), axis=1,
+        )
+    else:
+        out["Time"] = df["Date"].apply(_format_datetime_slash)
     out["Account"] = df["Account"]
     out["Account #"] = df["Account #"]
     out["Account ID"] = df["Account ID"]
@@ -1074,6 +1113,139 @@ def write_injection_manifest(log: InjectionLog) -> None:
 # ---------------------------------------------------------------------------
 
 
+def validate_pattern_minimums(
+    transactions: pd.DataFrame,
+    balance_history: pd.DataFrame,
+    categories: pd.DataFrame,
+    accounts_df: pd.DataFrame,
+) -> None:
+    """Fail fast if any PATTERN_MIN guarantee is not met post-injection."""
+    errors: list[str] = []
+
+    txn_dates = pd.to_datetime(transactions["Date"], format="mixed")
+    txn_descs = transactions["Full Description"].astype(str)
+    txn_amounts = transactions["Amount"].apply(
+        lambda v: float(str(v).replace("$", "").replace(",", "")) if pd.notna(v) else 0.0
+    )
+
+    # duplicate_pairs: count (Date, Amount, Description) combos appearing ≥2 times
+    dup_key = txn_dates.dt.date.astype(str) + "|" + txn_amounts.astype(str) + "|" + txn_descs
+    dup_counts = dup_key.value_counts()
+    n_dup_pairs = int((dup_counts >= 2).sum())
+    if n_dup_pairs < PATTERN_MIN["duplicate_pairs"]:
+        errors.append(f"duplicate_pairs: {n_dup_pairs} < {PATTERN_MIN['duplicate_pairs']}")
+
+    # recurring_merchants: first-two-word merchants appearing in ≥4 distinct months
+    merchants = txn_descs.str.split().str[:2].str.join(" ").str.lower()
+    months = txn_dates.dt.to_period("M").astype(str)
+    merchant_months = pd.DataFrame({"merchant": merchants, "month": months})
+    merchant_month_counts = merchant_months.groupby("merchant")["month"].nunique()
+    n_recurring = int((merchant_month_counts >= 4).sum())
+    if n_recurring < PATTERN_MIN["recurring_merchants"]:
+        errors.append(f"recurring_merchants: {n_recurring} < {PATTERN_MIN['recurring_merchants']}")
+
+    # top_n_ties: expense amounts appearing ≥2 times
+    expense_amounts = txn_amounts[txn_amounts < 0]
+    tie_counts = expense_amounts.value_counts()
+    n_ties = int((tie_counts >= 2).sum())
+    if n_ties < PATTERN_MIN["top_n_ties"]:
+        errors.append(f"top_n_ties: {n_ties} < {PATTERN_MIN['top_n_ties']}")
+
+    # cross_year_categories: categories with transactions in ≥2 distinct years
+    cat_years = pd.DataFrame({
+        "category": transactions["Category"].astype(str),
+        "year": txn_dates.dt.year,
+    })
+    cat_year_counts = cat_years.groupby("category")["year"].nunique()
+    n_cross = int((cat_year_counts >= 2).sum())
+    if n_cross < PATTERN_MIN["cross_year_categories"]:
+        errors.append(f"cross_year_categories: {n_cross} < {PATTERN_MIN['cross_year_categories']}")
+
+    # over/under_budget_categories: compare budget vs actual in latest month
+    budget_cols = [c for c in categories.columns if isinstance(c, pd.Timestamp)]
+    if budget_cols:
+        latest_budget_col = max(budget_cols)
+        budget_by_cat = categories.set_index("Category")[latest_budget_col].dropna()
+        budget_by_cat = budget_by_cat[budget_by_cat > 0]
+        ref_month = latest_budget_col.strftime("%m/%Y")
+        txn_month = txn_dates.dt.strftime("%m/%Y")
+        month_txns = transactions[txn_month == ref_month]
+        actual_by_cat = (
+            month_txns.groupby("Category")["Amount"]
+            .apply(lambda s: s.apply(
+                lambda v: abs(float(str(v).replace("$", "").replace(",", "")))
+                if pd.notna(v) else 0.0
+            ).sum())
+        )
+        n_over = 0
+        n_under = 0
+        for cat_name in budget_by_cat.index:
+            if cat_name in actual_by_cat.index:
+                actual = actual_by_cat[cat_name]
+                budget = budget_by_cat[cat_name]
+                if actual > budget:
+                    n_over += 1
+                elif actual < budget:
+                    n_under += 1
+        if n_over < PATTERN_MIN["over_budget_categories"]:
+            errors.append(
+                f"over_budget_categories: {n_over} < {PATTERN_MIN['over_budget_categories']}"
+            )
+        if n_under < PATTERN_MIN["under_budget_categories"]:
+            errors.append(
+                f"under_budget_categories: {n_under} < {PATTERN_MIN['under_budget_categories']}"
+            )
+
+    # single_account_groups: groups with exactly 1 account
+    acct_per_group = accounts_df.groupby("Group")["Account"].nunique()
+    n_single = int((acct_per_group == 1).sum())
+    if n_single < PATTERN_MIN["single_account_groups"]:
+        errors.append(f"single_account_groups: {n_single} < {PATTERN_MIN['single_account_groups']}")
+
+    # Build BH → group mapping via composite key (same join the scrub pipeline uses)
+    bh_composite_keys = (
+        balance_history["Account"].astype(str) + " - " +
+        balance_history["Account #"].fillna("").astype(str) + " (" +
+        balance_history["Account ID"].astype(str).str[-4:].str.upper() + ")"
+    ).str.lower()
+    acct_group_map = dict(
+        zip(accounts_df["Account"].str.lower(), accounts_df["Group"])
+    )
+    bh_groups = bh_composite_keys.map(acct_group_map)
+
+    # zero_total_groups: groups whose balance rows sum to 0
+    bh_bal = balance_history["Balance"].apply(
+        lambda v: float(str(v).replace("$", "").replace(",", "")) if pd.notna(v) else 0.0
+    )
+    group_totals = pd.DataFrame({"group": bh_groups, "bal": bh_bal}).groupby("group")["bal"].sum()
+    n_zero = int((group_totals.abs() < 0.01).sum())
+    if n_zero < PATTERN_MIN["zero_total_groups"]:
+        errors.append(f"zero_total_groups: {n_zero} < {PATTERN_MIN['zero_total_groups']}")
+
+    # all_liability_groups: groups where every row's Class is Liability
+    bh_with_group = pd.DataFrame({
+        "group": bh_groups,
+        "class": balance_history["Class"].fillna(""),
+    })
+    bh_with_group = bh_with_group[bh_with_group["group"].notna()]
+    if not bh_with_group.empty:
+        group_classes = bh_with_group.groupby("group")["class"].apply(
+            lambda s: set(s.dropna()) == {"Liability"}
+        )
+        n_liability = int(group_classes.sum())
+    else:
+        n_liability = 0
+    if n_liability < PATTERN_MIN["all_liability_groups"]:
+        errors.append(
+            f"all_liability_groups: {n_liability} < {PATTERN_MIN['all_liability_groups']}"
+        )
+
+    if errors:
+        sys.exit(
+            "ERROR: PATTERN_MIN guarantees not met:\n  " + "\n  ".join(errors)
+        )
+
+
 def validate_balance_join(
     balance_history: pd.DataFrame, accounts_df: pd.DataFrame
 ) -> None:
@@ -1145,6 +1317,9 @@ def main() -> None:  # pragma: no cover - thin orchestrator
     # naturally lands -- but add a final check.
     print("[fixture-gen] validating cross-sheet join")
     validate_balance_join(balance_history, accounts_df)
+
+    print("[fixture-gen] validating PATTERN_MIN guarantees")
+    validate_pattern_minimums(transactions, balance_history, categories, accounts_df)
 
     print("[fixture-gen] writing CSVs to", FIXTURES_DIR)
     write_csvs(transactions, balance_history, categories, accounts_df)
