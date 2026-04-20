@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          allow-prereleases: true
+
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Install Task
+        uses: arduino/setup-task@v2
+        with:
+          version: 3.x
+
+      - name: Create venv and install deps
+        run: |
+          uv venv .venv --python 3.14
+          uv pip install -r requirements.txt --python .venv/bin/python
+          uv pip install -r requirements-dev.txt --python .venv/bin/python
+
+      - name: Lint (ruff + mypy)
+        run: task lint
+
+      - name: Test with coverage
+        run: task test:coverage
+
+      - name: Verify coverage thresholds
+        run: |
+          .venv/bin/python -m pytest \
+            --cov=src \
+            --cov-fail-under=80 \
+            -q
