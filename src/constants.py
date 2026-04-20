@@ -65,6 +65,7 @@ COLOR_PLACEHOLDER: Final[str] = 'lightgray'
 COLOR_BUDGET: Final[str] = '#a0a0a0'
 COLOR_OVER_BUDGET: Final[str] = '#e15759'
 COLOR_UNDER_BUDGET: Final[str] = '#59a14f'
+COLOR_ADDITIONAL_SPENDING: Final[str] = 'mediumpurple'
 
 # Tableau10 color palette for category charts
 COLOR_PALETTE: Final[list[str]] = [
@@ -92,6 +93,15 @@ DEFAULT_EXCLUDE_CATEGORIES_FI: Final[list[str]] = [
 DEFAULT_EXCLUDE_GROUPS_INCOME_SAVINGS: Final[list[str]] = [
     'Travel',
     'Donations',
+]
+
+# FI page also excludes Income groups by default — they never affect the
+# spending average (which is Type=='Expense' only) but keeping them out
+# declutters the "transactions used" expander.
+DEFAULT_EXCLUDE_GROUPS_FI: Final[list[str]] = [
+    'Travel',
+    'Donations',
+    'Income',
 ]
 
 DEFAULT_EXCLUDE_GROUPS_SPENDING: Final[list[str]] = [

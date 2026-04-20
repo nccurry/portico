@@ -52,6 +52,12 @@ class FIFilters(TypedDict):
     expected_return_rate: float
     spending_lookback_months: int
     projection_years: int
+    supplemental_annual_income: float
+    supplemental_annual_spending: float
+    override_annual_spending: bool
+    annual_spending_override: float
+    override_portfolio_value: bool
+    portfolio_value_override: float
 
 
 type AnyFilters = IncomeExpenseFilters | SpendingFilters | BudgetFilters | FIFilters
@@ -107,12 +113,17 @@ class SpendingSummary(TypedDict):
 class FISummary(TypedDict):
     """Financial Independence metrics for the FI page.
 
-    ``runway_years`` is ``None`` when expected returns cover spending (the
-    portfolio never depletes).
+    ``annual_spending`` is the data-derived baseline; ``supplemental_spending``
+    is added on top to model planned/extra outflows. ``runway_years`` is
+    ``None`` when expected returns + supplemental income cover total spending
+    (baseline + supplemental). ``coverage_ratio`` is
+    ``(annual_return + supplemental_income) / (annual_spending + supplemental_spending)``.
     """
 
     portfolio_value: float
     annual_return: float
     annual_spending: float
+    supplemental_spending: float
+    supplemental_income: float
     coverage_ratio: float
     runway_years: float | None
