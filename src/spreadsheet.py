@@ -490,6 +490,14 @@ class BalanceHistorySpreadsheet(Spreadsheet):
         # Sum across all accounts for each date
         return pivot.sum(axis=1).rename("Balance")
 
+    def get_portfolio_value(
+            self,
+            account_names: list[str],
+            as_of: datetime.datetime | None = None,
+    ) -> tuple[pd.DataFrame, float]:
+        """Return per-account latest balances and signed total for *account_names*."""
+        return get_portfolio_value(self.scrubbed_df, account_names, as_of)
+
     def get_balance_history_by_account_id(
             self,
             account_id: str,
@@ -560,6 +568,68 @@ def get_latest_balance_by_group(
 
     total = float(df["Balance"].sum())
     return df, total
+
+
+def get_all_accounts(balance_history_df: pd.DataFrame) -> list[str]:
+    """Return sorted unique Account names, dropping rows marked Hide="Hide"."""
+    df = balance_history_df
+    if "Hide" in df.columns:
+        df = df[df["Hide"] != "Hide"]
+    accounts = df["Account"].dropna().unique()
+    return sorted(str(a) for a in accounts if str(a).strip())
+
+
+def get_portfolio_value(
+    balance_history_df: pd.DataFrame,
+    account_names: list[str],
+    as_of: datetime.datetime | None = None,
+) -> tuple[pd.DataFrame, float]:
+    """Sum the latest signed balance for each account in *account_names*.
+
+    Liabilities count negatively (matching :func:`calculate_net_worth_summary`),
+    so mixing an asset and a margin loan yields the correct net contribution.
+
+    Parameters
+    ----------
+    balance_history_df:
+        Scrubbed BalanceHistory frame.
+    account_names:
+        Accounts to include in the portfolio total.
+    as_of:
+        Upper bound on observations; defaults to the data's max date.
+
+    Returns
+    -------
+    tuple[pd.DataFrame, float]
+        ``(per_account_df, signed_total)`` where ``per_account_df`` has
+        ``[Account, Balance]`` with one row per selected account (balance is
+        signed by Class). Empty selection returns an empty frame and 0.0.
+    """
+    empty = pd.DataFrame(columns=["Account", "Balance"])
+    if not account_names:
+        return empty, 0.0
+
+    df = balance_history_df.copy()
+    if "Hide" in df.columns:
+        df = df[df["Hide"] != "Hide"]
+
+    if as_of is None:
+        as_of = df["Date"].max()
+    df = df[df["Date"] <= as_of]
+    df = df[df["Account"].isin(account_names)]
+
+    if df.empty:
+        return empty, 0.0
+
+    df = df.sort_values(by=["Date", "Time"])
+    df = df.drop_duplicates("Account ID", keep="last")
+
+    multiplier = df["Class"].map({"Liability": -1, "Asset": 1}).fillna(1)
+    df = df.assign(Balance=df["Balance"] * multiplier)
+
+    per_account = df.filter(["Account", "Balance"]).reset_index(drop=True)
+    total = float(per_account["Balance"].sum())
+    return per_account, total
 
 
 def calculate_net_worth_summary(

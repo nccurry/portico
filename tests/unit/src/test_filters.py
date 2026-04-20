@@ -2,8 +2,8 @@
 import pandas as pd
 from datetime import timedelta
 
-from src.filters import calculate_date_range, apply_transaction_filters
-from tests._helpers import _make_row, _df_from_rows
+from src.filters import apply_transaction_filters, calculate_date_range, default_fi_accounts
+from tests._helpers import _df_from_rows, _make_row
 
 
 # ---------------------------------------------------------------------------
@@ -284,3 +284,93 @@ class TestApplyTransactionFilters:
         result = apply_transaction_filters(scrubbed_transactions_df, filters)
         # Include takes precedence, so Groceries is still included (it's in Food group)
         assert "Groceries" in result["Category"].values
+
+    def test_expense_threshold_exactly_equal_kept(self) -> None:
+        """An expense exactly equal to the threshold is kept (uses <=, not <)."""
+        df = _df_from_rows(
+            _make_row("2024-01-01", "Rent", -1000.0, "Bills", "Expense"),
+        )
+        filters = {"filter_large_expenses": True, "expense_threshold": 1000}
+        result = apply_transaction_filters(df, filters)
+        assert "Rent" in result["Category"].values
+
+    def test_expense_threshold_just_above_dropped(self) -> None:
+        """An expense $0.01 above threshold is dropped."""
+        df = _df_from_rows(
+            _make_row("2024-01-01", "Rent", -1000.01, "Bills", "Expense"),
+        )
+        filters = {"filter_large_expenses": True, "expense_threshold": 1000}
+        result = apply_transaction_filters(df, filters)
+        assert result.empty
+
+    def test_missing_threshold_uses_default(self) -> None:
+        """filter_large_expenses=True without an explicit threshold uses the default."""
+        df = _df_from_rows(
+            _make_row("2024-01-01", "Normal", -50.0, "Food", "Expense"),
+        )
+        filters = {"filter_large_expenses": True}
+        # Should not raise, should use DEFAULT_EXPENSE_THRESHOLD
+        result = apply_transaction_filters(df, filters)
+        assert "Normal" in result["Category"].values
+
+    def test_filter_large_expenses_false_ignores_threshold(self) -> None:
+        """When the flag is False, threshold is irrelevant and all expenses pass."""
+        df = _df_from_rows(
+            _make_row("2024-01-01", "Big", -99999.0, "Food", "Expense"),
+        )
+        filters = {"filter_large_expenses": False, "expense_threshold": 100}
+        result = apply_transaction_filters(df, filters)
+        assert "Big" in result["Category"].values
+
+    def test_include_with_empty_lists_acts_like_no_include(self) -> None:
+        """Empty include_groups AND empty include_categories falls through to excludes."""
+        df = _df_from_rows(
+            _make_row("2024-01-01", "A", -50.0, "Food", "Expense"),
+            _make_row("2024-01-02", "B", -100.0, "Bills", "Expense"),
+        )
+        filters = {
+            "include_groups": [],
+            "include_categories": [],
+            "exclude_groups": ["Food"],
+        }
+        result = apply_transaction_filters(df, filters)
+        # Food excluded, Bills kept
+        assert len(result) == 1
+        assert result.iloc[0]["Group"] == "Bills"
+
+    def test_nan_amount_with_large_income_filter(self) -> None:
+        """NaN Amount with income filter: Type != 'Income' is False (Type is Income),
+        abs(NaN) <= threshold is False → row dropped."""
+        df = _df_from_rows(
+            _make_row("2024-01-01", "Pay", 3000.0, "Income", "Income"),
+            _make_row("2024-01-02", "NanPay", float('nan'), "Income", "Income"),
+        )
+        filters = {"filter_large_income": True, "income_threshold": 10000}
+        result = apply_transaction_filters(df, filters)
+        assert "NanPay" not in result["Category"].values
+
+
+class TestDefaultFiAccounts:
+    """default_fi_accounts drives the FI page's include_accounts default."""
+
+    def test_matches_substring_case_insensitive(self) -> None:
+        all_accounts = ["401k Fidelity", "Roth IRA Vanguard", "Joe Checking", "Brokerage Individual"]
+        # "Individual" pattern should match "Brokerage Individual"
+        result = default_fi_accounts(all_accounts, all_savings_accounts=[])
+        assert "Brokerage Individual" in result
+        assert "Joe Checking" not in result
+
+    def test_unions_savings_accounts(self) -> None:
+        all_accounts = ["Joe Checking", "Ally Savings", "HSA Fidelity"]
+        result = default_fi_accounts(all_accounts, all_savings_accounts=["Ally Savings"])
+        assert "Ally Savings" in result
+        assert "HSA Fidelity" in result
+        assert "Joe Checking" not in result
+
+    def test_preserves_input_order(self) -> None:
+        all_accounts = ["ZZZ Savings", "AAA HSA"]
+        result = default_fi_accounts(all_accounts, all_savings_accounts=["ZZZ Savings"])
+        assert result == ["ZZZ Savings", "AAA HSA"]
+
+    def test_no_matches_returns_empty(self) -> None:
+        assert default_fi_accounts(["Joe Checking"], all_savings_accounts=[]) == []

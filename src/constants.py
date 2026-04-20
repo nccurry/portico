@@ -15,6 +15,25 @@ MIN_SAVINGS_RATE: Final[int] = 0
 MAX_SAVINGS_RATE: Final[int] = 100
 SAVINGS_RATE_STEP: Final[int] = 5
 
+# Financial Independence page
+DEFAULT_EXPECTED_RETURN_RATE: Final[float] = 7.0
+DEFAULT_FI_SPENDING_LOOKBACK_MONTHS: Final[int] = 12
+DEFAULT_FI_PROJECTION_YEARS: Final[int] = 30
+FI_SPENDING_LOOKBACK_OPTIONS: Final[list[int]] = [6, 12, 24, 36]
+
+# Default portfolio accounts pre-selected in the FI filter panel.
+# Matched case-insensitively against Account names; also unions any account
+# whose Group is "Savings".
+DEFAULT_FI_INCLUDED_ACCOUNTS: Final[list[str]] = [
+    "Treasury Bond",
+    "HSA",
+    "Individual",
+    "NVIDIA",
+    "Corp IRA",
+    "Traditional IRA",
+    "Equity Awards",
+]
+
 # Date filtering
 SPARKLINE_HISTORY_DAYS: Final[int] = 365
 SPARKLINE_SAMPLE_FREQUENCY: Final[str] = 'W'
@@ -63,6 +82,11 @@ DEFAULT_EXCLUDE_CATEGORIES: Final[list[str]] = [
     'Stock Purchase',
     'Investment',
     'Home Improvements',
+]
+
+# FI page treats HSA spending as real spending (medical), so don't exclude it.
+DEFAULT_EXCLUDE_CATEGORIES_FI: Final[list[str]] = [
+    c for c in DEFAULT_EXCLUDE_CATEGORIES if c != 'HSA'
 ]
 
 DEFAULT_EXCLUDE_GROUPS_INCOME_SAVINGS: Final[list[str]] = [

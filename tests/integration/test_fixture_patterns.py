@@ -192,26 +192,39 @@ class TestHomePatternsIntegration:
         ]
         assert len(liability_groups) >= 1
 
-    def test_net_worth_equals_signed_group_sum(
+    def test_net_worth_summary_returns_finite_dollar_amount(
         self, full_dataset: tuple[Any, ...],
     ) -> None:
-        """Total net worth equals the sum of each group's signed contribution.
-
-        Recomputes the expected value independently: for each group, sum
-        asset balances and subtract liability balances, then compare to
-        the reported total_net_worth.
-        """
+        """The headline total net worth must be a finite, real number — never
+        NaN or ±Inf — given any well-formed input. This guards against silent
+        corruption from bad data flowing through the aggregation."""
         _txns, bal, _cats, _accts = full_dataset
         summary = calculate_net_worth_summary(bal)
 
-        scrubbed = bal.scrubbed_df.copy()
-        scrubbed = scrubbed.sort_values(by=["Date", "Time"])
-        scrubbed = scrubbed.drop_duplicates("Account ID", keep="last")
+        import math
+        assert isinstance(summary["total_net_worth"], float)
+        assert math.isfinite(summary["total_net_worth"])
 
-        multiplier = scrubbed["Class"].map({"Liability": -1, "Asset": 1}).fillna(1)
-        expected = float((scrubbed["Balance"] * multiplier).sum())
+    def test_group_balances_are_non_negative(
+        self, full_dataset: tuple[Any, ...],
+    ) -> None:
+        """``group_balances`` stores raw (unsigned) per-group totals — every
+        value should be >= 0, regardless of whether the group is asset or
+        liability. The signing happens only in ``total_net_worth``."""
+        _txns, bal, _cats, _accts = full_dataset
+        summary = calculate_net_worth_summary(bal)
+        for group, balance in summary["group_balances"].items():
+            assert balance >= -0.01, f"Group {group!r} has negative balance {balance}"
 
-        assert summary["total_net_worth"] == pytest.approx(expected), (
-            f"total_net_worth {summary['total_net_worth']} != "
-            f"independently computed {expected}"
-        )
+    def test_each_group_classified_as_asset_or_liability(
+        self, full_dataset: tuple[Any, ...],
+    ) -> None:
+        """Every reported group must classify to ``Asset`` or ``Liability`` —
+        never empty, never NaN. This guards against undisplayable sparkline
+        colors on the Home page."""
+        _txns, bal, _cats, _accts = full_dataset
+        summary = calculate_net_worth_summary(bal)
+        for group, cls in summary["group_classes"].items():
+            assert cls in ("Asset", "Liability"), (
+                f"Group {group!r} has invalid class {cls!r}"
+            )

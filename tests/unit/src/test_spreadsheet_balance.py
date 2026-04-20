@@ -18,6 +18,8 @@ import pytest
 from src.spreadsheet import (
     calculate_group_sparkline,
     calculate_net_worth_sparkline,
+    get_all_accounts,
+    get_portfolio_value,
 )
 from tests._helpers import _balance_df, _utc
 
@@ -264,3 +266,213 @@ class TestLatestBalanceEdgeCases:
         df_result, total = bs.get_latest_balance_by_group("Assets")
         assert total == pytest.approx(15000)
         assert len(df_result) == 2
+
+    def test_negative_asset_balance_handled(self, make_balance_spreadsheet: Callable[[pd.DataFrame | None], BalanceHistorySpreadsheet]) -> None:
+        """Negative asset balance (e.g. overdraft) is summed as-is."""
+        df = _balance_df([
+            {"Date": "2024-01-01", "Time": "2024-01-01 08:00:00", "Account": "Overdraft", "Account ID": "a1",
+             "Institution": "Bank", "Group": "Assets", "Class": "Asset", "Balance": -50, "Hide": ""},
+            {"Date": "2024-01-01", "Time": "2024-01-01 09:00:00", "Account": "Savings", "Account ID": "a2",
+             "Institution": "Bank", "Group": "Assets", "Class": "Asset", "Balance": 1000, "Hide": ""},
+        ])
+        bs = make_balance_spreadsheet(df)
+        _, total = bs.get_latest_balance_by_group("Assets")
+        assert total == pytest.approx(950)
+
+    def test_exact_same_timestamp_stable_order(self, make_balance_spreadsheet: Callable[[pd.DataFrame | None], BalanceHistorySpreadsheet]) -> None:
+        """Two rows with the exact same Date+Time: keep='last' picks the row
+        that appears later in the input. Document the stable tie-break behavior."""
+        df = _balance_df([
+            {"Date": "2024-01-01", "Time": "2024-01-01 12:00:00", "Account": "Checking", "Account ID": "a1",
+             "Institution": "Bank", "Group": "Assets", "Class": "Asset", "Balance": 100, "Hide": ""},
+            {"Date": "2024-01-01", "Time": "2024-01-01 12:00:00", "Account": "Checking", "Account ID": "a1",
+             "Institution": "Bank", "Group": "Assets", "Class": "Asset", "Balance": 200, "Hide": ""},
+        ])
+        bs = make_balance_spreadsheet(df)
+        _, total = bs.get_latest_balance_by_group("Assets")
+        assert total == pytest.approx(200)
+
+
+class TestSparklineMath:
+    """Verify the core math of the sparkline helpers — forward-fill, resampling,
+    and sign handling."""
+
+    def test_net_worth_equals_assets_minus_liabilities_at_each_point(self) -> None:
+        """NetWorth at each week = sum(asset balances) - sum(liability balances)
+        using the forward-filled latest balance per account per week."""
+        df = _balance_df([
+            {"Date": "2024-01-01", "Account": "Checking", "Account ID": "a1",
+             "Institution": "Bank", "Group": "Assets", "Class": "Asset",
+             "Balance": 5000, "Hide": ""},
+            {"Date": "2024-01-01", "Account": "Credit", "Account ID": "a2",
+             "Institution": "Chase", "Group": "Credit", "Class": "Liability",
+             "Balance": 1000, "Hide": ""},
+            {"Date": "2024-01-15", "Account": "Checking", "Account ID": "a1",
+             "Institution": "Bank", "Group": "Assets", "Class": "Asset",
+             "Balance": 6000, "Hide": ""},
+            {"Date": "2024-01-15", "Account": "Credit", "Account ID": "a2",
+             "Institution": "Chase", "Group": "Credit", "Class": "Liability",
+             "Balance": 1500, "Hide": ""},
+        ])
+        start = _utc(2024, 1, 1)
+        end = _utc(2024, 1, 21)
+        result = calculate_net_worth_sparkline.__wrapped__(df, start, end)  # type: ignore[attr-defined]
+        # By the last week both accounts have reported: 6000 - 1500 = 4500
+        assert result["NetWorth"].iloc[-1] == pytest.approx(4500.0)
+
+    def test_sparkline_balance_column_is_sum_not_average(self) -> None:
+        """Weekly resample + ffill + sum means the group total is the sum of
+        each account's latest balance, not the average."""
+        df = _balance_df([
+            {"Date": "2024-01-01", "Account": "A", "Account ID": "aa",
+             "Institution": "Bank", "Group": "Assets", "Class": "Asset",
+             "Balance": 100, "Hide": ""},
+            {"Date": "2024-01-01", "Account": "B", "Account ID": "bb",
+             "Institution": "Bank", "Group": "Assets", "Class": "Asset",
+             "Balance": 200, "Hide": ""},
+            {"Date": "2024-01-01", "Account": "C", "Account ID": "cc",
+             "Institution": "Bank", "Group": "Assets", "Class": "Asset",
+             "Balance": 300, "Hide": ""},
+        ])
+        start = _utc(2024, 1, 1)
+        end = _utc(2024, 1, 14)
+        result = calculate_group_sparkline.__wrapped__(df, "Assets", start, end)  # type: ignore[attr-defined]
+        # Sum is 600, not avg 200. Later weeks are forward-filled.
+        non_nan_balances = result["Balance"].dropna()
+        assert len(non_nan_balances) >= 1
+        assert non_nan_balances.iloc[-1] == pytest.approx(600.0)
+
+    def test_nan_class_defaults_to_multiplier_1(self) -> None:
+        """Accounts with missing Class are treated as Assets (multiplier 1)."""
+        df = _balance_df([
+            {"Date": "2024-01-01", "Account": "Unknown", "Account ID": "u1",
+             "Institution": "Bank", "Group": "???", "Class": None,
+             "Balance": 500, "Hide": ""},
+            {"Date": "2024-01-01", "Account": "Known", "Account ID": "k1",
+             "Institution": "Bank", "Group": "Assets", "Class": "Asset",
+             "Balance": 1000, "Hide": ""},
+        ])
+        start = _utc(2024, 1, 1)
+        end = _utc(2024, 1, 7)
+        result = calculate_net_worth_sparkline.__wrapped__(df, start, end)  # type: ignore[attr-defined]
+        # Both treated as positive contribution: 500 + 1000 = 1500
+        assert result["NetWorth"].iloc[-1] == pytest.approx(1500.0)
+
+    def test_date_range_filter_excludes_out_of_range_weeks(self) -> None:
+        """Weeks outside [start_date, end_date] are filtered out of the result."""
+        df = _balance_df([
+            {"Date": f"2024-{m:02d}-01", "Account": "Checking", "Account ID": "a1",
+             "Institution": "Bank", "Group": "Assets", "Class": "Asset",
+             "Balance": 1000 * m, "Hide": ""}
+            for m in range(1, 7)
+        ])
+        start = _utc(2024, 3, 1)
+        end = _utc(2024, 4, 30)
+        result = calculate_group_sparkline.__wrapped__(df, "Assets", start, end)  # type: ignore[attr-defined]
+        # All result dates should be within [start, end]
+        assert (result["Date"] >= start).all()
+        assert (result["Date"] <= end).all()
+
+
+class TestGetAllAccounts:
+    """Verify get_all_accounts filters Hide rows and returns sorted uniques."""
+
+    def test_excludes_hidden_accounts(self, fi_balance_df: pd.DataFrame) -> None:
+        result = get_all_accounts(fi_balance_df)
+        assert "Hidden Acct" not in result
+
+    def test_returns_sorted_unique_accounts(self, fi_balance_df: pd.DataFrame) -> None:
+        result = get_all_accounts(fi_balance_df)
+        assert result == sorted(set(result))
+        assert set(result) == {"Brokerage", "401k", "HSA", "Savings", "Margin Loan"}
+
+    def test_empty_frame(self) -> None:
+        df = pd.DataFrame(columns=["Date", "Account", "Hide"])
+        assert get_all_accounts(df) == []
+
+
+class TestGetPortfolioValue:
+    """Math coverage for get_portfolio_value against fi_balance_df.
+
+    Hand-computed totals are inlined next to each assertion so the test is
+    the spec.
+    """
+
+    def test_sums_selected_assets_at_latest_date(self, fi_balance_df: pd.DataFrame) -> None:
+        # Brokerage latest = 120000 (2024-02-01 20:00), 401k latest = 220000
+        # Expected: 120000 + 220000 = 340000
+        _, total = get_portfolio_value(fi_balance_df, ["Brokerage", "401k"])
+        assert total == pytest.approx(340000)
+
+    def test_signs_liabilities_negatively(self, fi_balance_df: pd.DataFrame) -> None:
+        # Brokerage latest 120000 (Asset), Margin Loan 5000 (Liability)
+        # Expected: 120000 - 5000 = 115000
+        _, total = get_portfolio_value(fi_balance_df, ["Brokerage", "Margin Loan"])
+        assert total == pytest.approx(115000)
+
+    def test_single_account_liability_only(self, fi_balance_df: pd.DataFrame) -> None:
+        _, total = get_portfolio_value(fi_balance_df, ["Margin Loan"])
+        assert total == pytest.approx(-5000)
+
+    def test_all_five_accounts(self, fi_balance_df: pd.DataFrame) -> None:
+        # Brokerage 120000 + 401k 220000 + HSA 15000 + Savings 11000 - Margin 5000 = 361000
+        _, total = get_portfolio_value(
+            fi_balance_df, ["Brokerage", "401k", "HSA", "Savings", "Margin Loan"]
+        )
+        assert total == pytest.approx(361000)
+
+    def test_ignores_unselected_accounts(self, fi_balance_df: pd.DataFrame) -> None:
+        # Same selection as test_sums_selected_assets, adding HSA bumps total by 15000
+        _, base = get_portfolio_value(fi_balance_df, ["Brokerage", "401k"])
+        _, with_hsa = get_portfolio_value(fi_balance_df, ["Brokerage", "401k", "HSA"])
+        assert with_hsa - base == pytest.approx(15000)
+
+    def test_uses_latest_time_on_same_date(self, fi_balance_df: pd.DataFrame) -> None:
+        # Brokerage has two entries on 2024-02-01: 115000 at 08:00, 120000 at 20:00
+        # Latest Time (20:00) wins: 120000
+        _, total = get_portfolio_value(fi_balance_df, ["Brokerage"])
+        assert total == pytest.approx(120000)
+
+    def test_respects_as_of_earlier_date(self, fi_balance_df: pd.DataFrame) -> None:
+        # as_of=2024-01-01 → Brokerage 100000, 401k 200000 (Feb observations excluded)
+        _, total = get_portfolio_value(
+            fi_balance_df, ["Brokerage", "401k"], as_of=_utc(2024, 1, 1)
+        )
+        assert total == pytest.approx(300000)
+
+    def test_empty_selection_returns_zero(self, fi_balance_df: pd.DataFrame) -> None:
+        df_result, total = get_portfolio_value(fi_balance_df, [])
+        assert total == 0.0
+        assert df_result.empty
+        assert list(df_result.columns) == ["Account", "Balance"]
+
+    def test_unknown_account_returns_zero(self, fi_balance_df: pd.DataFrame) -> None:
+        df_result, total = get_portfolio_value(fi_balance_df, ["Does Not Exist"])
+        assert total == 0.0
+        assert df_result.empty
+
+    def test_excludes_hidden_accounts_even_if_selected(self, fi_balance_df: pd.DataFrame) -> None:
+        # "Hidden Acct" has Hide="Hide" and Balance=99000; selecting it should be ignored.
+        _, total = get_portfolio_value(fi_balance_df, ["Brokerage", "Hidden Acct"])
+        assert total == pytest.approx(120000)
+
+    def test_per_account_frame_shape(self, fi_balance_df: pd.DataFrame) -> None:
+        df_result, _ = get_portfolio_value(
+            fi_balance_df, ["Brokerage", "401k", "Margin Loan"]
+        )
+        assert list(df_result.columns) == ["Account", "Balance"]
+        assert len(df_result) == 3
+        # Verify each account's balance row (signed) matches the latest observation.
+        bal_by_account = dict(zip(df_result["Account"], df_result["Balance"], strict=True))
+        assert bal_by_account["Brokerage"] == pytest.approx(120000)
+        assert bal_by_account["401k"] == pytest.approx(220000)
+        assert bal_by_account["Margin Loan"] == pytest.approx(-5000)
+
+    def test_method_wrapper_delegates(
+        self,
+        fi_balance_df: pd.DataFrame,
+        make_balance_spreadsheet: Callable[[pd.DataFrame | None], BalanceHistorySpreadsheet],
+    ) -> None:
+        bs = make_balance_spreadsheet(fi_balance_df)
+        _, total = bs.get_portfolio_value(["Brokerage", "401k"])
+        assert total == pytest.approx(340000)

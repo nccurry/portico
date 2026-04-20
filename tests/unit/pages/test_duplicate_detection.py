@@ -234,6 +234,119 @@ class TestFindDuplicatesEfficient:
         assert len(with_desc) == 0
         assert len(without_desc) == 1
 
+    def test_min_amount_boundary_exactly_equal_included(self) -> None:
+        """Amount exactly equal to min_amount uses >= so it is included."""
+        df = _make_df([
+            {'Date': '2024-01-15', 'Amount': -10.00},
+            {'Date': '2024-01-15', 'Amount': -10.00},
+        ])
+        result = find_duplicates_efficient(df, days_threshold=1, min_amount=10,
+                                           check_same_account=False, check_same_category=False,
+                                           require_same_description=True)
+        assert len(result) == 1
+
+    def test_min_amount_boundary_below_excluded(self) -> None:
+        """Amount just below min_amount is excluded (9.99 < 10.00)."""
+        df = _make_df([
+            {'Date': '2024-01-15', 'Amount': -9.99},
+            {'Date': '2024-01-15', 'Amount': -9.99},
+        ])
+        result = find_duplicates_efficient(df, days_threshold=1, min_amount=10,
+                                           check_same_account=False, check_same_category=False,
+                                           require_same_description=True)
+        assert len(result) == 0
+
+    def test_days_threshold_zero_only_same_day(self) -> None:
+        """days_threshold=0 matches only same-day transactions."""
+        df = _make_df([
+            {'Date': '2024-01-15', 'Amount': -50.00},
+            {'Date': '2024-01-16', 'Amount': -50.00},
+        ])
+        result = find_duplicates_efficient(df, days_threshold=0, min_amount=10,
+                                           check_same_account=False, check_same_category=False,
+                                           require_same_description=True)
+        assert len(result) == 0
+
+    def test_days_threshold_exactly_matches(self) -> None:
+        """days_apart == days_threshold is included (<=, not <)."""
+        df = _make_df([
+            {'Date': '2024-01-15', 'Amount': -50.00},
+            {'Date': '2024-01-18', 'Amount': -50.00},  # 3 days apart
+        ])
+        result = find_duplicates_efficient(df, days_threshold=3, min_amount=10,
+                                           check_same_account=False, check_same_category=False,
+                                           require_same_description=True)
+        assert len(result) == 1
+
+    def test_positive_and_negative_same_abs_value_not_duplicates(self) -> None:
+        """A -100 expense and a +100 refund should NOT match (different signs)."""
+        df = _make_df([
+            {'Date': '2024-01-15', 'Amount': -100.00, 'Full Description': 'STORE'},
+            {'Date': '2024-01-15', 'Amount': 100.00, 'Full Description': 'STORE'},
+        ])
+        result = find_duplicates_efficient(df, days_threshold=1, min_amount=10,
+                                           check_same_account=False, check_same_category=False,
+                                           require_same_description=True)
+        # Merge is on exact Amount match, and -100 != 100, so no pair
+        assert len(result) == 0
+
+    def test_large_value_precision(self) -> None:
+        """Large matching amounts still merge correctly (no float drift)."""
+        df = _make_df([
+            {'Date': '2024-01-15', 'Amount': -12345.67},
+            {'Date': '2024-01-15', 'Amount': -12345.67},
+        ])
+        result = find_duplicates_efficient(df, days_threshold=1, min_amount=10,
+                                           check_same_account=False, check_same_category=False,
+                                           require_same_description=True)
+        assert len(result) == 1
+
+    def test_n_identical_transactions_produce_n_choose_2_pairs(self) -> None:
+        """4 identical transactions produce C(4,2) = 6 unordered pairs."""
+        df = _make_df([
+            {'Date': '2024-01-15', 'Amount': -50.00},
+            {'Date': '2024-01-15', 'Amount': -50.00},
+            {'Date': '2024-01-15', 'Amount': -50.00},
+            {'Date': '2024-01-15', 'Amount': -50.00},
+        ])
+        result = find_duplicates_efficient(df, days_threshold=1, min_amount=10,
+                                           check_same_account=False, check_same_category=False,
+                                           require_same_description=True)
+        assert len(result) == 6
+
+    def test_self_pair_not_counted(self) -> None:
+        """A single transaction cannot be a duplicate of itself.
+        (Row 0 is never paired with row 0 due to _row_id_1 < _row_id_2 filter.)"""
+        df = _make_df([
+            {'Date': '2024-01-15', 'Amount': -50.00},
+        ])
+        result = find_duplicates_efficient(df, days_threshold=1, min_amount=10,
+                                           check_same_account=False, check_same_category=False,
+                                           require_same_description=True)
+        assert len(result) == 0
+
+    def test_description_whitespace_and_case_normalized(self) -> None:
+        """normalize_description handles whitespace and case on both sides of pair."""
+        df = _make_df([
+            {'Date': '2024-01-15', 'Amount': -50.00, 'Full Description': '  STORE PURCHASE  '},
+            {'Date': '2024-01-15', 'Amount': -50.00, 'Full Description': 'store purchase'},
+        ])
+        result = find_duplicates_efficient(df, days_threshold=1, min_amount=10,
+                                           check_same_account=False, check_same_category=False,
+                                           require_same_description=True)
+        assert len(result) == 1
+
+    def test_days_apart_populated_correctly(self) -> None:
+        """Days_Apart column should contain the actual date difference."""
+        df = _make_df([
+            {'Date': '2024-01-15', 'Amount': -50.00},
+            {'Date': '2024-01-17', 'Amount': -50.00},
+        ])
+        result = find_duplicates_efficient(df, days_threshold=3, min_amount=10,
+                                           check_same_account=False, check_same_category=False,
+                                           require_same_description=True)
+        assert result.iloc[0]['Days_Apart'] == 2
+
     def test_empty_input(self) -> None:
         df = pd.DataFrame({
             'Date': pd.Series([], dtype='datetime64[ns, UTC]'),
