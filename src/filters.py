@@ -40,7 +40,7 @@ def render_income_expense_filters(all_groups: list[str]) -> IncomeExpenseFilters
     Returns:
         dictionary containing all filter selections
     """
-    with st.expander("⚙️ Filter Settings", expanded=False):
+    with st.expander("Filter Settings", expanded=False):
         col_filter1, col_filter2 = st.columns(2)
 
         with col_filter1:
@@ -125,7 +125,7 @@ def render_spending_filters(
     Returns:
         dictionary containing all filter selections
     """
-    with st.expander("⚙️ Filter Settings", expanded=False):
+    with st.expander("Filter Settings", expanded=False):
         col_filter1, col_filter2 = st.columns(2)
 
         with col_filter1:
@@ -526,4 +526,3 @@ def apply_transaction_filters(
         df = df[(df['Type'] != 'Income') | (df['Amount'].abs() <= threshold)]
 
     return df
-

@@ -112,7 +112,7 @@ def create_year_comparison_chart(pivoted_df: pd.DataFrame, label: str) -> alt.Ch
 
 def display_transaction_table(transactions_df: pd.DataFrame, label: str) -> None:
     """Display an interactive dataframe table in an expander"""
-    with st.expander(f"📊 View {label} Transactions ({len(transactions_df)} rows)"):
+    with st.expander(f"View {label} Transactions ({len(transactions_df)} rows)"):
         if transactions_df.empty:
             st.info("No transactions found")
             return
@@ -301,7 +301,7 @@ def display_transactions_expander(
         default_sort_column: Column to sort by before display
         default_sort_ascending: Sort order
     """
-    with st.expander(f"📋 {title} ({len(df)} transactions)"):
+    with st.expander(f"{title} ({len(df)} transactions)"):
         if df.empty:
             st.info("No transactions found")
             return
@@ -316,4 +316,3 @@ def display_transactions_expander(
             hide_index=True,
             column_config=get_transaction_column_config()
         )
-

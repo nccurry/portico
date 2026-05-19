@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import altair as alt
 
-from src.spreadsheet import load_transactions_data, load_balance_history_data, TransactionsSpreadsheet, BalanceHistorySpreadsheet
+from src.spreadsheet import load_transactions_data, TransactionsSpreadsheet
 from src.filters import render_income_expense_filters, apply_transaction_filters
 from src.page_helpers import get_transaction_column_config, display_transactions_expander
 from src.custom_types import IncomeExpenseFilters
@@ -282,7 +282,7 @@ def display_data_tables(
         df_filtered_by_amount: Transactions filtered out by amount thresholds only
     """
     # Monthly summary table
-    with st.expander("📊 View Monthly Savings Data"):
+    with st.expander("View Monthly Savings Data"):
         display_df = df_pivot[['Month', 'Income_Display', 'Expense_Display', 'Savings', 'Savings_Rate']].copy()
 
         st.dataframe(
@@ -300,7 +300,7 @@ def display_data_tables(
 
     # Transactions filtered out by amount thresholds
     if not df_filtered_by_amount.empty:
-        with st.expander(f"🚫 Filtered Large Transactions ({len(df_filtered_by_amount)} excluded from savings calculation)"):
+        with st.expander(f"Filtered Large Transactions ({len(df_filtered_by_amount)} excluded from savings calculation)"):
             st.caption(
                 "These transactions match your category/group filters but were excluded due to "
                 "exceeding the income or expense thresholds. They are NOT included in the savings rate calculation above."
@@ -331,7 +331,7 @@ def display_data_tables(
             )
 
     # Large transactions table
-    with st.expander("💰 View Large Transactions"):
+    with st.expander("View Large Transactions"):
         large_transaction_threshold = st.slider(
             "Minimum Amount to Show ($)",
             min_value=100,
@@ -360,7 +360,6 @@ def display_data_tables(
 
 def configure_page(
     transactions_spreadsheet: TransactionsSpreadsheet,
-    balance_history_spreadsheet: BalanceHistorySpreadsheet
 ) -> None:
     """Render sidebar filters, summary metrics, and charts for income vs. expenses."""
     st.header("Income, Expenses & Savings")
@@ -445,9 +444,8 @@ def main() -> None:
     st.set_page_config(layout="wide")
 
     transactions_spreadsheet = load_transactions_data()
-    balance_history_spreadsheet = load_balance_history_data()
 
-    configure_page(transactions_spreadsheet, balance_history_spreadsheet)
+    configure_page(transactions_spreadsheet)
 
 
 if __name__ == "__main__":

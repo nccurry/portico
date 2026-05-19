@@ -4,12 +4,10 @@ from datetime import timedelta
 
 from src.spreadsheet import (
     BalanceHistorySpreadsheet,
-    TransactionsSpreadsheet,
     calculate_group_sparkline,
     calculate_net_worth_sparkline,
     calculate_net_worth_summary,
     load_balance_history_data,
-    load_transactions_data,
 )
 from src.page_helpers import create_sparkline_chart
 from src.constants import (
@@ -24,7 +22,6 @@ from src.constants import (
 
 
 def configure_page(
-        transaction_spreadsheet: TransactionsSpreadsheet,
         balance_history_spreadsheet: BalanceHistorySpreadsheet
 ) -> None:
     """Render the home page: net worth sparkline and per-group balance cards."""
@@ -133,10 +130,9 @@ def main() -> None:
     """Streamlit entry point for the Home page."""
     st.set_page_config(layout="wide")
 
-    transactions_spreadsheet = load_transactions_data()
     balance_history_spreadsheet = load_balance_history_data()
 
-    configure_page(transactions_spreadsheet, balance_history_spreadsheet)
+    configure_page(balance_history_spreadsheet)
 
 if __name__ == "__main__":
     main()

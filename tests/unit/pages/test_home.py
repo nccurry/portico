@@ -10,7 +10,8 @@ import pandas as pd
 import pytest
 
 from src.spreadsheet import BalanceHistorySpreadsheet, calculate_net_worth_summary
-from tests.conftest import BALANCE_HISTORY_SCRUBBED_COLUMNS, _ts
+from tests._helpers import _ts
+from tests.fixtures.dataframes import BALANCE_HISTORY_SCRUBBED_COLUMNS
 
 
 class TestNetWorthCalculation:

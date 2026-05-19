@@ -6,6 +6,7 @@ from tests._helpers import _make_recurring_df
 from tests._pages import subscriptions
 
 detect_recurring_transactions = subscriptions.detect_recurring_transactions
+subscription_match_mask = subscriptions._subscription_match_mask
 
 
 class TestDetectRecurringTransactions:
@@ -247,23 +248,35 @@ class TestDetectRecurringTransactions:
         # Merchant is first 3 words (implementation uses 'first_three')
         assert result.iloc[0]["Merchant"].lower().startswith("netflix streaming")
 
-    def test_results_sorted_by_raw_avg_amount_descending(self) -> None:
-        """Code sorts ``Avg_Amount`` with ``ascending=False``. Because expenses
-        are stored as negative numbers, this currently puts the LEAST expensive
-        subscription first (-4.99 > -99.99), which contradicts the function's
-        docstring claim of "most expensive first".
-
-        This test documents the actual behavior so any future fix is visible.
-        If the sort is changed to ``abs(Avg_Amount)``, update this test.
-        """
+    def test_results_sorted_by_monthly_cost_descending(self) -> None:
+        """Detected subscriptions are sorted most expensive first."""
         df1 = _make_recurring_df(merchant='EXPENSIVE SERVICE', amount=-99.99, months=6)
         df2 = _make_recurring_df(merchant='CHEAP SERVICE', amount=-4.99, months=6)
         df = pd.concat([df1, df2], ignore_index=True)
         result = detect_recurring_transactions(df, min_occurrences=3, min_months=3)
-        # Currently: sort by raw Avg_Amount descending → least-negative first
-        assert result.iloc[0]["Avg_Amount"] > result.iloc[-1]["Avg_Amount"]
-        assert result.iloc[0]["Avg_Amount"] == pytest.approx(-4.99)
-        assert result.iloc[-1]["Avg_Amount"] == pytest.approx(-99.99)
+        assert result.iloc[0]["Monthly_Cost"] == pytest.approx(99.99)
+        assert result.iloc[-1]["Monthly_Cost"] == pytest.approx(4.99)
+        assert result.iloc[0]["Annual_Cost"] > result.iloc[-1]["Annual_Cost"]
+
+    def test_subscription_match_mask_uses_exact_merchant_key(self) -> None:
+        """A detail view match must not pull unrelated merchants with the same first word."""
+        dates = pd.to_datetime(['2024-01-15', '2024-01-15'], utc=True)
+        df = pd.DataFrame({
+            'Date': dates,
+            'Amount': [-9.99, -9.99],
+            'Type': ['Expense', 'Expense'],
+            'Category': ['Entertainment', 'Entertainment'],
+            'Group': ['Entertainment', 'Entertainment'],
+            'Account': ['Checking', 'Checking'],
+            'Month': ['2024-01', '2024-01'],
+            'Full Description': ['APPLE MUSIC MONTHLY', 'APPLE ICLOUD STORAGE'],
+            'Institution': ['Bank', 'Bank'],
+            'Account #': ['1234', '1234'],
+        })
+
+        mask = subscription_match_mask(df, 'APPLE MUSIC MONTHLY', 9.99)
+
+        assert mask.tolist() == [True, False]
 
     def test_days_between_calculation(self) -> None:
         """Days_Between should equal (last - first) / (count - 1)."""

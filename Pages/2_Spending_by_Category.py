@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import altair as alt
 
-from src.spreadsheet import load_transactions_data, load_balance_history_data, TransactionsSpreadsheet, BalanceHistorySpreadsheet
+from src.spreadsheet import load_transactions_data, TransactionsSpreadsheet
 from src.filters import render_spending_filters, apply_transaction_filters, calculate_date_range
 from src.page_helpers import get_transaction_column_config, display_transactions_expander
 from src.custom_types import SpendingFilters, DistributionStats, SpendingSummary
@@ -417,7 +417,7 @@ def display_distribution_section(
     # Pareto insight
     st.subheader("80/20 Analysis (Pareto Principle)")
     st.info(
-        f"💡 **Key Insight:** The top {stats['pareto_pct']:.1f}% of your transactions "
+        f"**Key Insight:** The top {stats['pareto_pct']:.1f}% of your transactions "
         f"account for 80% of your total spending.\n\n"
         f"This means {100 - stats['pareto_pct']:.1f}% of transactions are smaller purchases "
         f"that make up only 20% of your spending."
@@ -439,7 +439,7 @@ def display_distribution_section(
         st.altair_chart(boxplot, width='stretch')
 
     # Explanation
-    with st.expander("ℹ️ How to Read These Charts"):  # noqa: RUF001
+    with st.expander("How to Read These Charts"):
         st.markdown("""
         **Histogram (Left):**
         - Shows how many transactions fall in each dollar amount range
@@ -463,7 +463,7 @@ def display_data_tables(df_period: pd.DataFrame, df_by_category: pd.DataFrame) -
         df_by_category: Category summary data
     """
     # Large transactions table
-    with st.expander("💰 View Large Transactions"):
+    with st.expander("View Large Transactions"):
         large_transaction_threshold = st.slider(
             "Minimum Amount to Show ($)",
             min_value=100,
@@ -492,7 +492,6 @@ def display_data_tables(df_period: pd.DataFrame, df_by_category: pd.DataFrame) -
 
 def configure_page(
     transactions_spreadsheet: TransactionsSpreadsheet,
-    balance_history_spreadsheet: BalanceHistorySpreadsheet
 ) -> None:
     """Render sidebar filters, category breakdowns, and distribution charts."""
     st.header("Spending by Category")
@@ -578,9 +577,8 @@ def main() -> None:
     st.set_page_config(layout="wide")
 
     transactions_spreadsheet = load_transactions_data()
-    balance_history_spreadsheet = load_balance_history_data()
 
-    configure_page(transactions_spreadsheet, balance_history_spreadsheet)
+    configure_page(transactions_spreadsheet)
 
 
 if __name__ == "__main__":
