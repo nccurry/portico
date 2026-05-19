@@ -3,7 +3,7 @@ import streamlit as st
 import pandas as pd
 import altair as alt
 
-from src.spreadsheet import load_transactions_data, load_balance_history_data, TransactionsSpreadsheet, BalanceHistorySpreadsheet
+from src.spreadsheet import load_transactions_data, TransactionsSpreadsheet
 from src.page_helpers import get_transaction_column_config, extract_merchant_name
 from src.constants import (
     CHART_HEIGHT_STANDARD,
@@ -17,7 +17,6 @@ def detect_recurring_transactions(
     df: pd.DataFrame,
     min_occurrences: int = 3,
     min_months: int = 3,
-    amount_tolerance: float = 0.01
 ) -> pd.DataFrame:
     """Detect potential subscriptions using amount + merchant patterns.
 
@@ -25,7 +24,6 @@ def detect_recurring_transactions(
         df: Transaction dataframe
         min_occurrences: Minimum number of occurrences to flag as subscription
         min_months: Minimum number of unique months to flag as subscription
-        amount_tolerance: Tolerance for amount matching (as fraction, e.g., 0.01 = 1%)
 
     Returns:
         DataFrame of detected subscriptions with summary info
@@ -71,13 +69,24 @@ def detect_recurring_transactions(
         (grouped['Days_Between'] <= 40)
     ].copy()
 
-    # Sort by amount (most expensive first)
-    subscriptions = subscriptions.sort_values('Avg_Amount', ascending=False)
-
     # Calculate annual cost estimate
-    subscriptions['Annual_Cost'] = subscriptions['Avg_Amount'].abs() * 12
+    subscriptions['Monthly_Cost'] = subscriptions['Avg_Amount'].abs()
+    subscriptions['Annual_Cost'] = subscriptions['Monthly_Cost'] * 12
+
+    # Sort by cost, most expensive first
+    subscriptions = subscriptions.sort_values('Monthly_Cost', ascending=False)
 
     return subscriptions
+
+
+def _subscription_match_mask(
+    df: pd.DataFrame,
+    merchant: str,
+    amount_rounded: float,
+) -> pd.Series:
+    """Return rows matching the same merchant key and rounded amount."""
+    merchant_keys = df['Full Description'].apply(lambda x: extract_merchant_name(x, 'first_three'))
+    return (merchant_keys == merchant) & (df['Amount'].abs().round(2) == amount_rounded)
 
 
 def create_subscription_timeline(
@@ -104,18 +113,14 @@ def create_subscription_timeline(
         merchant = sub['Merchant']
         amount = sub['Amount_Rounded']
 
-        # Find matching transactions
-        matches = df[
-            (df['Full Description'].str.contains(merchant.split()[0], case=False, na=False)) &
-            (df['Amount'].abs().round(2) == amount)
-        ].copy()
+        matches = df[_subscription_match_mask(df, merchant, amount)].copy()
 
         if not matches.empty:
             timeline_data.append({
                 'Merchant': merchant[:30],  # Truncate long names
                 'First_Date': matches['Date'].min(),
                 'Last_Date': matches['Date'].max(),
-                'Amount': sub['Avg_Amount']
+                'Amount': sub['Monthly_Cost']
             })
 
     timeline_df = pd.DataFrame(timeline_data)
@@ -166,7 +171,7 @@ def create_subscription_cost_chart(subscriptions: pd.DataFrame) -> alt.Chart:
     top_subs['Merchant_Short'] = top_subs['Merchant'].str[:30]
 
     chart = alt.Chart(top_subs).mark_bar().encode(
-        x=alt.X('Avg_Amount:Q', title='Monthly Cost ($)'),
+        x=alt.X('Monthly_Cost:Q', title='Monthly Cost ($)'),
         y=alt.Y('Merchant_Short:N',
                sort='-x',
                title='Subscription',
@@ -174,7 +179,7 @@ def create_subscription_cost_chart(subscriptions: pd.DataFrame) -> alt.Chart:
         color=alt.value(COLOR_EXPENSE),
         tooltip=[
             alt.Tooltip('Merchant:N', title='Merchant'),
-            alt.Tooltip('Avg_Amount:Q', title='Monthly Cost', format='$,.2f'),
+            alt.Tooltip('Monthly_Cost:Q', title='Monthly Cost', format='$,.2f'),
             alt.Tooltip('Annual_Cost:Q', title='Annual Cost', format='$,.2f'),
             alt.Tooltip('Count:Q', title='# Charges'),
             alt.Tooltip('Category:N', title='Category')
@@ -191,14 +196,13 @@ def create_subscription_cost_chart(subscriptions: pd.DataFrame) -> alt.Chart:
 
 def configure_page(
     transactions_spreadsheet: TransactionsSpreadsheet,
-    balance_history_spreadsheet: BalanceHistorySpreadsheet
 ) -> None:
     """Detect recurring charges and render subscription timelines and tables."""
     st.header("Subscription Tracker")
     st.caption("Automatically detect recurring charges and subscriptions")
 
     # Detection settings
-    with st.expander("⚙️ Detection Settings", expanded=False):
+    with st.expander("Detection Settings", expanded=False):
         col1, col2 = st.columns(2)
 
         with col1:
@@ -240,8 +244,8 @@ def configure_page(
 
     # Display summary metrics
     if not subscriptions.empty:
-        total_monthly = subscriptions['Avg_Amount'].abs().sum()
-        total_annual = subscriptions['Annual_Cost'].abs().sum()
+        total_monthly = subscriptions['Monthly_Cost'].sum()
+        total_annual = subscriptions['Annual_Cost'].sum()
         num_subs = len(subscriptions)
 
         col1, col2, col3, col4 = st.columns(4)
@@ -293,7 +297,7 @@ def configure_page(
 
         # Prepare display dataframe
         display_df = subscriptions[[
-            'Merchant', 'Category', 'Avg_Amount', 'Annual_Cost',
+            'Merchant', 'Category', 'Monthly_Cost', 'Annual_Cost',
             'Count', 'Unique_Months', 'First_Date', 'Last_Date', 'Account'
         ]].copy()
 
@@ -305,7 +309,7 @@ def configure_page(
             column_config={
                 'Merchant': st.column_config.TextColumn('Merchant'),
                 'Category': st.column_config.TextColumn('Category'),
-                'Avg_Amount': st.column_config.NumberColumn('Monthly Cost', format='$%.2f'),
+                'Monthly_Cost': st.column_config.NumberColumn('Monthly Cost', format='$%.2f'),
                 'Annual_Cost': st.column_config.NumberColumn('Annual Cost', format='$%.2f'),
                 'Count': st.column_config.NumberColumn('# Charges'),
                 'Unique_Months': st.column_config.NumberColumn('# Months'),
@@ -316,21 +320,17 @@ def configure_page(
         )
 
         # Show individual transactions for each subscription
-        with st.expander("📋 View Individual Charges by Subscription"):
+        with st.expander("View Individual Charges by Subscription"):
             selected_merchant = st.selectbox(
                 "Select Subscription",
                 options=subscriptions['Merchant'].tolist()
             )
 
             if selected_merchant:
-                # Get the amount for this subscription
-                sub_amount = subscriptions[subscriptions['Merchant'] == selected_merchant]['Amount_Rounded'].iloc[0]
-
-                # Find all matching transactions
-                merchant_first_word = selected_merchant.split()[0]
+                selected_subscription = subscriptions[subscriptions['Merchant'] == selected_merchant].iloc[0]
+                sub_amount = selected_subscription['Amount_Rounded']
                 matching_transactions = df[
-                    (df['Full Description'].str.contains(merchant_first_word, case=False, na=False)) &
-                    (df['Amount'].abs().round(2) == sub_amount)
+                    _subscription_match_mask(df, selected_merchant, sub_amount)
                 ].copy()
 
                 matching_transactions = matching_transactions.sort_values('Date', ascending=False)
@@ -356,11 +356,9 @@ def main() -> None:
     st.set_page_config(layout="wide")
 
     transactions_spreadsheet = load_transactions_data()
-    balance_history_spreadsheet = load_balance_history_data()
 
-    configure_page(transactions_spreadsheet, balance_history_spreadsheet)
+    configure_page(transactions_spreadsheet)
 
 
 if __name__ == "__main__":
     main()
-

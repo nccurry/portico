@@ -60,10 +60,6 @@ class FIFilters(TypedDict):
     portfolio_value_override: float
 
 
-type AnyFilters = IncomeExpenseFilters | SpendingFilters | BudgetFilters | FIFilters
-"""Union of all page-specific filter dicts."""
-
-
 class TopTransactionsStats(TypedDict):
     """Summary statistics returned alongside the top-N transactions table."""
 

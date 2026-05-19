@@ -69,7 +69,6 @@ class TestHomeSmoke:
             "../Home.py",
             make_full_dataset,
             [
-                "src.spreadsheet.load_transactions_data",
                 "src.spreadsheet.load_balance_history_data",
             ],
         )
@@ -87,7 +86,6 @@ class TestIncomeAndSavingsSmoke:
             make_full_dataset,
             [
                 "src.spreadsheet.load_transactions_data",
-                "src.spreadsheet.load_balance_history_data",
             ],
         )
         assert not at.exception
@@ -104,7 +102,6 @@ class TestSpendingByCategorySmoke:
             make_full_dataset,
             [
                 "src.spreadsheet.load_transactions_data",
-                "src.spreadsheet.load_balance_history_data",
             ],
         )
         assert not at.exception
@@ -137,7 +134,6 @@ class TestDuplicateDetectionSmoke:
             make_full_dataset,
             [
                 "src.spreadsheet.load_transactions_data",
-                "src.spreadsheet.load_balance_history_data",
             ],
         )
         assert not at.exception
@@ -154,7 +150,6 @@ class TestSubscriptionsSmoke:
             make_full_dataset,
             [
                 "src.spreadsheet.load_transactions_data",
-                "src.spreadsheet.load_balance_history_data",
             ],
         )
         assert not at.exception
@@ -171,7 +166,6 @@ class TestMerchantAnalysisSmoke:
             make_full_dataset,
             [
                 "src.spreadsheet.load_transactions_data",
-                "src.spreadsheet.load_balance_history_data",
             ],
         )
         assert not at.exception

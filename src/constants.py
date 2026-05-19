@@ -35,8 +35,6 @@ DEFAULT_FI_INCLUDED_ACCOUNTS: Final[list[str]] = [
 ]
 
 # Date filtering
-SPARKLINE_HISTORY_DAYS: Final[int] = 365
-SPARKLINE_SAMPLE_FREQUENCY: Final[str] = 'W'
 SPARKLINE_LOOKBACK_OPTIONS: Final[dict[str, int | None]] = {
     "3M": 90,
     "6M": 180,
@@ -49,7 +47,6 @@ SPARKLINE_LOOKBACK_DEFAULT: Final[str] = "1Y"
 
 # Display settings
 TRANSACTION_TABLE_HEIGHT: Final[int] = 600
-DEFAULT_PAGE_SIZE: Final[int] = 100
 CHART_HEIGHT_STANDARD: Final[int] = 350
 CHART_HEIGHT_SPARKLINE: Final[int] = 50
 CHART_HEIGHT_NET_WORTH_SPARKLINE: Final[int] = 60
@@ -147,4 +144,3 @@ TIME_PERIODS: Final[list[str]] = [
     "Year to Date",
     "All Time"
 ]
-

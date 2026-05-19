@@ -3,7 +3,7 @@ import streamlit as st
 import pandas as pd
 import altair as alt
 
-from src.spreadsheet import load_transactions_data, load_balance_history_data, TransactionsSpreadsheet, BalanceHistorySpreadsheet
+from src.spreadsheet import load_transactions_data, TransactionsSpreadsheet
 from src.page_helpers import get_transaction_column_config, extract_merchant_name
 from src.filters import calculate_date_range
 from src.constants import TIME_PERIODS, CHART_HEIGHT_STANDARD, COLOR_PALETTE
@@ -220,14 +220,13 @@ def create_merchant_timeline(
 
 def configure_page(
     transactions_spreadsheet: TransactionsSpreadsheet,
-    balance_history_spreadsheet: BalanceHistorySpreadsheet
 ) -> None:
     """Render top-merchant charts, spending timelines, and per-merchant tables."""
     st.header("Merchant Analysis")
     st.caption("Track spending patterns by merchant/vendor")
 
     # Settings
-    with st.expander("⚙️ Analysis Settings", expanded=False):
+    with st.expander("Analysis Settings", expanded=False):
         col1, col2, col3 = st.columns(3)
 
         with col1:
@@ -370,7 +369,7 @@ def configure_page(
         )
 
         # Show transactions for selected merchant
-        with st.expander("📋 View Transactions by Merchant"):
+        with st.expander("View Transactions by Merchant"):
             selected_merchant = st.selectbox(
                 "Select Merchant",
                 options=filtered_stats['Merchant'].tolist()
@@ -402,9 +401,8 @@ def main() -> None:
     st.set_page_config(layout="wide")
 
     transactions_spreadsheet = load_transactions_data()
-    balance_history_spreadsheet = load_balance_history_data()
 
-    configure_page(transactions_spreadsheet, balance_history_spreadsheet)
+    configure_page(transactions_spreadsheet)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 
-from src.spreadsheet import load_transactions_data, load_balance_history_data, TransactionsSpreadsheet, BalanceHistorySpreadsheet
+from src.spreadsheet import load_transactions_data, TransactionsSpreadsheet
 from src.constants import MIN_DUPLICATE_AMOUNT, DEFAULT_DUPLICATE_DAYS_THRESHOLD
 
 
@@ -91,13 +91,12 @@ def find_duplicates_efficient(
 
 def configure_page(
         transactions_spreadsheet: TransactionsSpreadsheet,
-        balance_history_spreadsheet: BalanceHistorySpreadsheet
 ) -> None:
     """Render detection settings and display flagged duplicate transactions."""
     st.header("Potential Duplicate Transactions")
 
     # Configuration options
-    with st.expander("⚙️ Detection Settings", expanded=False):
+    with st.expander("Detection Settings", expanded=False):
         col1, col2 = st.columns(2)
 
         with col1:
@@ -204,7 +203,7 @@ def configure_page(
         )
 
         # Summary by month
-        with st.expander("📊 Duplicates by Month"):
+        with st.expander("Duplicates by Month"):
             monthly_summary = df_duplicates.groupby('Month').agg({
                 'Amount': ['count', lambda x: x.abs().sum()]  # type: ignore[misc]
             }).reset_index()
@@ -222,7 +221,7 @@ def configure_page(
                 }
             )
     else:
-        st.success("✓ No potential duplicates found with current settings!")
+        st.success("No potential duplicates found with current settings.")
         st.info("Try adjusting the detection settings if you think there might be duplicates.")
 
 
@@ -231,11 +230,9 @@ def main() -> None:
     st.set_page_config(layout="wide")
 
     transactions_spreadsheet = load_transactions_data()
-    balance_history_spreadsheet = load_balance_history_data()
 
-    configure_page(transactions_spreadsheet, balance_history_spreadsheet)
+    configure_page(transactions_spreadsheet)
 
 
 if __name__ == "__main__":
     main()
-
