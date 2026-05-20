@@ -4,7 +4,8 @@ import altair as alt
 
 from src.spreadsheet import load_transactions_data, TransactionsSpreadsheet
 from src.filters import render_income_expense_filters, apply_transaction_filters
-from src.page_helpers import get_transaction_column_config, display_transactions_expander
+from src.page_helpers import get_transaction_column_config, display_transactions_expander, render_data_refresh_controls
+from src.reporting_periods import completed_month_window, current_month_string
 from src.custom_types import IncomeExpenseFilters
 from src.constants import (
     CHART_HEIGHT_STANDARD,
@@ -380,8 +381,12 @@ def configure_page(
     filters = render_income_expense_filters(all_groups)
 
     # Calculate date range based on time frame
-    current_month = pd.Timestamp.now(tz='UTC').strftime('%Y-%m')
-    start_month = (pd.Timestamp.now(tz='UTC') - pd.DateOffset(months=time_frame_months)).strftime('%Y-%m')
+    current_month = current_month_string(transactions_spreadsheet.scrubbed_df, anchor_to_data=True)
+    start_month, _end_month = completed_month_window(
+        time_frame_months,
+        transactions_spreadsheet.scrubbed_df,
+        anchor_to_data=True,
+    )
 
     # Process data with filters
     df_pivot = process_income_expense_data(transactions_spreadsheet, filters)
@@ -442,6 +447,7 @@ def configure_page(
 def main() -> None:
     """Streamlit entry point for the Income & Savings page."""
     st.set_page_config(layout="wide")
+    render_data_refresh_controls()
 
     transactions_spreadsheet = load_transactions_data()
 

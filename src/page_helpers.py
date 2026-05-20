@@ -3,11 +3,21 @@ from typing import Any
 import streamlit as st
 import pandas as pd
 import altair as alt
-from datetime import datetime
-
-
 from src.spreadsheet import TransactionsSpreadsheet
 from src.constants import COLOR_PLACEHOLDER
+from src.analysis.merchants import extract_merchant_name
+
+__all__ = [
+    "create_sparkline_chart",
+    "create_year_comparison_chart",
+    "display_transaction_table",
+    "display_transactions_expander",
+    "extract_merchant_name",
+    "get_transaction_column_config",
+    "prepare_year_comparison_data",
+    "render_data_refresh_controls",
+    "render_year_over_year_page",
+]
 
 
 def prepare_year_comparison_data(monthly_amounts_df: pd.DataFrame) -> pd.DataFrame:
@@ -41,12 +51,11 @@ def create_year_comparison_chart(pivoted_df: pd.DataFrame, label: str) -> alt.Ch
     if pivoted_df.empty:
         return alt.Chart(pd.DataFrame()).mark_text().encode(text=alt.value("No data available"))  # type: ignore[no-any-return]
 
-    current_year = datetime.now().year
-
     # Reshape data for Altair (need long format)
     df_long = pivoted_df.reset_index()
     df_long = df_long.melt(id_vars='Month', var_name='Year', value_name='Amount')
     df_long['Year'] = df_long['Year'].astype(str)
+    current_year = max(int(year) for year in df_long['Year'].unique())
 
     # Current year is green, last year off-white, older years progressively darker
     years = sorted(df_long['Year'].unique(), reverse=True)
@@ -239,33 +248,6 @@ def create_sparkline_chart(
     return chart  # type: ignore[no-any-return]
 
 
-def extract_merchant_name(description: object, method: str = 'first_word') -> str:
-    """Extract merchant name from transaction description.
-
-    Args:
-        description: Full transaction description
-        method: Extraction method ('first_word', 'first_two', 'first_three')
-
-    Returns:
-        Extracted merchant name
-    """
-    if pd.isna(description):  # type: ignore[call-overload]
-        return 'Unknown'
-
-    words = str(description).split()
-    if not words:
-        return 'Unknown'
-
-    if method == 'first_word':
-        return words[0]
-    elif method == 'first_two':
-        return ' '.join(words[:2])
-    elif method == 'first_three':
-        return ' '.join(words[:3])
-    else:
-        return words[0]
-
-
 def get_transaction_column_config() -> dict[str, Any]:
     """Standard column configuration for transaction dataframes.
 
@@ -316,3 +298,18 @@ def display_transactions_expander(
             hide_index=True,
             column_config=get_transaction_column_config()
         )
+
+
+def render_data_refresh_controls() -> None:
+    """Render shared cache refresh controls in the sidebar."""
+    if "data_last_refreshed" not in st.session_state:
+        st.session_state["data_last_refreshed"] = pd.Timestamp.now(tz="UTC")
+
+    with st.sidebar:
+        loaded_at = pd.Timestamp(st.session_state["data_last_refreshed"])
+        st.caption(f"Data loaded: {loaded_at.strftime('%Y-%m-%d %H:%M UTC')}")
+        if st.button("Refresh data", key="refresh_data"):
+            st.cache_data.clear()
+            st.cache_resource.clear()
+            st.session_state["data_last_refreshed"] = pd.Timestamp.now(tz="UTC")
+            st.rerun()

@@ -4,75 +4,10 @@ import pandas as pd
 import altair as alt
 
 from src.spreadsheet import load_transactions_data, TransactionsSpreadsheet
-from src.page_helpers import get_transaction_column_config, extract_merchant_name
+from src.page_helpers import get_transaction_column_config, render_data_refresh_controls
 from src.filters import calculate_date_range
+from src.analysis.merchants import enrich_with_merchant, analyze_merchants
 from src.constants import TIME_PERIODS, CHART_HEIGHT_STANDARD, COLOR_PALETTE
-
-
-def enrich_with_merchant(
-    df: pd.DataFrame,
-    extraction_method: str = 'first_two',
-) -> pd.DataFrame:
-    """Add a ``Merchant`` column derived from ``Full Description``.
-
-    Returns a copy — the original DataFrame is never mutated.
-    """
-    enriched = df.copy()
-    enriched['Merchant'] = enriched['Full Description'].apply(
-        lambda x: extract_merchant_name(x, extraction_method)
-    )
-    return enriched
-
-
-def analyze_merchants(
-    df: pd.DataFrame,
-    min_transactions: int = 1,
-) -> pd.DataFrame:
-    """Aggregate spending statistics by merchant.
-
-    Args:
-        df: Transaction dataframe **with a ``Merchant`` column** (see
-            :func:`enrich_with_merchant`).
-        min_transactions: Minimum transactions to include merchant.
-
-    Returns:
-        DataFrame with merchant analysis.
-    """
-    df_expenses = df[df['Type'] == 'Expense'].copy()
-
-    if df_expenses.empty:
-        return pd.DataFrame()
-
-    # Group by merchant
-    merchant_stats = df_expenses.groupby('Merchant').agg({
-        'Amount': ['sum', 'mean', 'count'],
-        'Date': ['min', 'max'],
-        'Category': lambda x: x.mode().iloc[0] if not x.mode().empty else (x.iloc[0] if not x.empty else 'Unknown'),  # type: ignore[misc]
-        'Account': lambda x: x.mode().iloc[0] if not x.mode().empty else (x.iloc[0] if not x.empty else 'Unknown')  # type: ignore[misc]
-    }).reset_index()
-
-    # Flatten column names
-    merchant_stats.columns = [
-        'Merchant', 'Total_Spent', 'Avg_Transaction', 'Num_Transactions',
-        'First_Transaction', 'Last_Transaction', 'Primary_Category', 'Primary_Account'
-    ]
-
-    # Convert amounts to positive
-    merchant_stats['Total_Spent'] = merchant_stats['Total_Spent'].abs()
-    merchant_stats['Avg_Transaction'] = merchant_stats['Avg_Transaction'].abs()
-
-    # Filter by minimum transactions
-    merchant_stats = merchant_stats[merchant_stats['Num_Transactions'] >= min_transactions]
-
-    # Sort by total spent
-    merchant_stats = merchant_stats.sort_values('Total_Spent', ascending=False)
-
-    # Calculate days between first and last transaction
-    merchant_stats['Days_Active'] = (
-        merchant_stats['Last_Transaction'] - merchant_stats['First_Transaction']
-    ).dt.days
-
-    return merchant_stats
 
 
 def create_top_merchants_chart(
@@ -239,8 +174,8 @@ def configure_page(
         with col2:
             extraction_method = st.selectbox(
                 "Merchant Name Extraction",
-                ['first_word', 'first_two', 'first_three'],
-                index=1,
+                ['normalized', 'first_word', 'first_two', 'first_three'],
+                index=0,
                 help="How to extract merchant name from transaction description"
             )
 
@@ -257,7 +192,7 @@ def configure_page(
     df = transactions_spreadsheet.scrubbed_df.copy()
 
     # Calculate date range
-    start_date, end_date = calculate_date_range(time_period, df)
+    start_date, end_date = calculate_date_range(time_period, df, anchor_to_data=True)
 
     # Filter to date range
     df_period = df[(df['Date'] >= start_date) & (df['Date'] <= end_date)].copy()
@@ -399,6 +334,7 @@ def configure_page(
 def main() -> None:
     """Streamlit entry point for the Merchant Analysis page."""
     st.set_page_config(layout="wide")
+    render_data_refresh_controls()
 
     transactions_spreadsheet = load_transactions_data()
 

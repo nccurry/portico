@@ -1,7 +1,7 @@
 import streamlit as st
 
 from src.spreadsheet import load_transactions_data, TransactionsSpreadsheet
-from src.page_helpers import render_year_over_year_page
+from src.page_helpers import render_year_over_year_page, render_data_refresh_controls
 
 
 def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
@@ -31,6 +31,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
 def main() -> None:
     """Streamlit entry point for the Year over Year page."""
     st.set_page_config(layout="wide")
+    render_data_refresh_controls()
 
     transactions_spreadsheet = load_transactions_data()
 

@@ -8,6 +8,68 @@ import streamlit as st
 from streamlit_gsheets import GSheetsConnection
 
 
+class SpreadsheetSchemaError(ValueError):
+    """Raised when an imported sheet is missing required columns."""
+
+
+TRANSACTIONS_REQUIRED_COLUMNS: frozenset[str] = frozenset({
+    "Date",
+    "Category",
+    "Amount",
+    "Account",
+    "Month",
+    "Week",
+    "Full Description",
+    "Institution",
+    "Account #",
+    "Date Added",
+    "Categorized Date",
+})
+BALANCE_HISTORY_REQUIRED_COLUMNS: frozenset[str] = frozenset({
+    "Date",
+    "Time",
+    "Balance",
+    "Account",
+    "Account #",
+    "Account ID",
+    "Institution",
+    "Class",
+    "Month",
+    "Week",
+    "Date Added",
+})
+CATEGORIES_REQUIRED_COLUMNS: frozenset[str] = frozenset({
+    "Category",
+    "Group",
+    "Type",
+    "Hide From Reports",
+})
+
+
+def validate_required_columns(
+    df: pd.DataFrame,
+    required_columns: frozenset[str],
+    sheet_name: str,
+) -> None:
+    """Raise when ``df`` is missing required Tiller columns."""
+    missing = sorted(required_columns - set(df.columns))
+    if missing:
+        joined = ", ".join(missing)
+        raise SpreadsheetSchemaError(f"{sheet_name} sheet is missing required columns: {joined}")
+
+
+def validate_min_columns(
+    df: pd.DataFrame,
+    min_columns: int,
+    sheet_name: str,
+) -> None:
+    """Raise when ``df`` has fewer than ``min_columns`` columns."""
+    if len(df.columns) < min_columns:
+        raise SpreadsheetSchemaError(
+            f"{sheet_name} sheet must have at least {min_columns} columns; found {len(df.columns)}"
+        )
+
+
 class NetWorthSummary(TypedDict):
     """Aggregated net worth view for the Home page.
 
@@ -35,7 +97,13 @@ class Spreadsheet(metaclass=ABCMeta):
     def __init__(self) -> None:
         """Load the spreadsheet from Google Sheets and scrub it."""
         self.load()
-        self.scrub()
+        try:
+            self.scrub()
+        except SpreadsheetSchemaError as e:
+            st.error(str(e))
+            st.info("Check that the configured Google Sheet tab matches the expected Tiller sheet.")
+            st.stop()
+            raise
 
     def load(self) -> None:
         """Load data from the external spreadsheet"""
@@ -65,6 +133,7 @@ class CategoriesSpreadsheet(Spreadsheet):
     def scrub(self) -> None:
         """Clean up the data stored in self.raw_df"""
         df = self.raw_df.copy()
+        validate_required_columns(df, CATEGORIES_REQUIRED_COLUMNS, "Categories")
 
         # Metadata columns (first 4)
         meta = df.filter(["Category", "Group", "Type", "Hide From Reports"]).copy()
@@ -120,6 +189,7 @@ class AccountsSpreadsheet(Spreadsheet):
     def scrub(self) -> None:
         """Clean up the data stored in self.raw_df"""
         df = self.raw_df.copy()
+        validate_min_columns(df, 4, "Accounts")
         # Columns A-D are user-managed: Account (composite key), Class Override, Group, Hide
         df = df.iloc[:, :4]
         df.columns = ["Account", "Class Override", "Group", "Hide"]
@@ -138,6 +208,7 @@ class TransactionsSpreadsheet(Spreadsheet):
     def scrub(self) -> None:
         """Clean up the data stored in self.raw_df"""
         df = self.raw_df.copy()
+        validate_required_columns(df, TRANSACTIONS_REQUIRED_COLUMNS, "Transactions")
 
         # Drop empty column
         df = df.drop("Unnamed: 0", axis=1, errors='ignore')
@@ -401,6 +472,7 @@ class BalanceHistorySpreadsheet(Spreadsheet):
     def scrub(self) -> None:
         """Clean up the data stored in self.raw_df"""
         df = self.raw_df.copy()
+        validate_required_columns(df, BALANCE_HISTORY_REQUIRED_COLUMNS, "Balance History")
 
         # Drop empty column
         df = df.drop("Unnamed: 0", axis=1, errors='ignore')

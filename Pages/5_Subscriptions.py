@@ -4,89 +4,12 @@ import pandas as pd
 import altair as alt
 
 from src.spreadsheet import load_transactions_data, TransactionsSpreadsheet
-from src.page_helpers import get_transaction_column_config, extract_merchant_name
+from src.page_helpers import get_transaction_column_config, render_data_refresh_controls
+from src.analysis.subscriptions import detect_recurring_transactions, _subscription_match_mask
 from src.constants import (
     CHART_HEIGHT_STANDARD,
     COLOR_EXPENSE,
-    SUBSCRIPTION_EXCLUDED_CATEGORIES,
-    SUBSCRIPTION_EXCLUDED_CATEGORY_PATTERN,
 )
-
-
-def detect_recurring_transactions(
-    df: pd.DataFrame,
-    min_occurrences: int = 3,
-    min_months: int = 3,
-) -> pd.DataFrame:
-    """Detect potential subscriptions using amount + merchant patterns.
-
-    Args:
-        df: Transaction dataframe
-        min_occurrences: Minimum number of occurrences to flag as subscription
-        min_months: Minimum number of unique months to flag as subscription
-
-    Returns:
-        DataFrame of detected subscriptions with summary info
-    """
-    df_expenses = df[
-        (df['Type'] == 'Expense') &
-        (~df['Category'].isin(SUBSCRIPTION_EXCLUDED_CATEGORIES)) &
-        (~df['Category'].str.contains(SUBSCRIPTION_EXCLUDED_CATEGORY_PATTERN, case=False, na=False, regex=True))
-    ].copy()
-
-    # Extract merchant name (first few words of description)
-    df_expenses['Merchant'] = df_expenses['Full Description'].apply(lambda x: extract_merchant_name(x, 'first_three'))
-
-    # Round amounts to avoid minor differences (e.g., tax variations)
-    df_expenses['Amount_Rounded'] = df_expenses['Amount'].abs().round(2)
-
-    # Group by Merchant + Amount
-    grouped = df_expenses.groupby(['Merchant', 'Amount_Rounded']).agg({
-        'Date': ['count', 'min', 'max'],
-        'Month': 'nunique',
-        'Amount': 'mean',
-        'Category': lambda x: x.mode().iloc[0] if not x.mode().empty else (x.iloc[0] if not x.empty else ''),  # type: ignore[misc]
-        'Account': lambda x: x.mode().iloc[0] if not x.mode().empty else (x.iloc[0] if not x.empty else '')  # type: ignore[misc]
-    }).reset_index()
-
-    # Flatten column names
-    grouped.columns = ['Merchant', 'Amount_Rounded', 'Count', 'First_Date', 'Last_Date',
-                      'Unique_Months', 'Avg_Amount', 'Category', 'Account']
-
-    # Calculate days between transactions (guard against Count == 1)
-    count_minus_1 = (grouped['Count'] - 1).replace(0, 1)
-    grouped['Days_Between'] = (grouped['Last_Date'] - grouped['First_Date']).dt.days / count_minus_1
-    grouped.loc[grouped['Count'] == 1, 'Days_Between'] = 0
-
-    # Flag as subscription if:
-    # - Appears min_occurrences+ times
-    # - Roughly monthly cadence (20-40 days between charges on average)
-    # - Spans min_months+ unique months
-    subscriptions = grouped[
-        (grouped['Count'] >= min_occurrences) &
-        (grouped['Unique_Months'] >= min_months) &
-        (grouped['Days_Between'] >= 20) &
-        (grouped['Days_Between'] <= 40)
-    ].copy()
-
-    # Calculate annual cost estimate
-    subscriptions['Monthly_Cost'] = subscriptions['Avg_Amount'].abs()
-    subscriptions['Annual_Cost'] = subscriptions['Monthly_Cost'] * 12
-
-    # Sort by cost, most expensive first
-    subscriptions = subscriptions.sort_values('Monthly_Cost', ascending=False)
-
-    return subscriptions
-
-
-def _subscription_match_mask(
-    df: pd.DataFrame,
-    merchant: str,
-    amount_rounded: float,
-) -> pd.Series:
-    """Return rows matching the same merchant key and rounded amount."""
-    merchant_keys = df['Full Description'].apply(lambda x: extract_merchant_name(x, 'first_three'))
-    return (merchant_keys == merchant) & (df['Amount'].abs().round(2) == amount_rounded)
 
 
 def create_subscription_timeline(
@@ -223,10 +146,18 @@ def configure_page(
             )
 
         with col2:
+            cadence_options = st.multiselect(
+                "Cadences",
+                options=["Monthly", "Quarterly", "Annual"],
+                default=["Monthly"],
+                help="Recurring charge cadences to include",
+            )
+
             st.info(
                 "Subscriptions are detected by finding recurring charges with:\n"
-                "- Same merchant and amount\n"
-                "- Roughly monthly cadence (20-40 days apart)\n"
+                "- Stable normalized merchant name\n"
+                "- Similar transaction amount\n"
+                "- Matching recurrence cadence\n"
                 "- Minimum number of occurrences and months\n\n"
                 "**Excluded:** Mortgage, loans, rent, investments (401k, HSA, stock purchases)"
             )
@@ -239,7 +170,8 @@ def configure_page(
         subscriptions = detect_recurring_transactions(
             df,
             min_occurrences=min_occurrences,
-            min_months=min_months
+            min_months=min_months,
+            allowed_cadences=cadence_options,
         )
 
     # Display summary metrics
@@ -298,6 +230,7 @@ def configure_page(
         # Prepare display dataframe
         display_df = subscriptions[[
             'Merchant', 'Category', 'Monthly_Cost', 'Annual_Cost',
+            'Cadence', 'Confidence', 'Status', 'Next_Expected_Date',
             'Count', 'Unique_Months', 'First_Date', 'Last_Date', 'Account'
         ]].copy()
 
@@ -311,6 +244,10 @@ def configure_page(
                 'Category': st.column_config.TextColumn('Category'),
                 'Monthly_Cost': st.column_config.NumberColumn('Monthly Cost', format='$%.2f'),
                 'Annual_Cost': st.column_config.NumberColumn('Annual Cost', format='$%.2f'),
+                'Cadence': st.column_config.TextColumn('Cadence'),
+                'Confidence': st.column_config.ProgressColumn('Confidence', min_value=0, max_value=100),
+                'Status': st.column_config.TextColumn('Status'),
+                'Next_Expected_Date': st.column_config.DateColumn('Next Expected', format='YYYY-MM-DD'),
                 'Count': st.column_config.NumberColumn('# Charges'),
                 'Unique_Months': st.column_config.NumberColumn('# Months'),
                 'First_Date': st.column_config.DateColumn('First Charge', format='YYYY-MM-DD'),
@@ -354,6 +291,7 @@ def configure_page(
 def main() -> None:
     """Streamlit entry point for the Subscriptions page."""
     st.set_page_config(layout="wide")
+    render_data_refresh_controls()
 
     transactions_spreadsheet = load_transactions_data()
 

@@ -4,7 +4,8 @@ import altair as alt
 
 from src.spreadsheet import load_transactions_data, TransactionsSpreadsheet
 from src.filters import apply_transaction_filters, calculate_date_range
-from src.page_helpers import get_transaction_column_config, extract_merchant_name
+from src.analysis.merchants import normalize_merchant_name
+from src.page_helpers import get_transaction_column_config, render_data_refresh_controls
 from src.custom_types import TopTransactionsStats
 from src.constants import (
     TIME_PERIODS,
@@ -96,7 +97,7 @@ def find_recurring_large_expenses(top_n_df: pd.DataFrame) -> pd.DataFrame:
 
     df = top_n_df.copy()
     df['Merchant'] = df['Full Description'].apply(
-        lambda x: extract_merchant_name(x, method='first_two')
+        lambda x: normalize_merchant_name(x, method='first_three')
     )
 
     recurring = df.groupby('Merchant').agg(
@@ -126,7 +127,11 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
     with col2:
         n = st.slider("Number of transactions", min_value=10, max_value=100, value=25, step=5)
 
-    start_date, end_date = calculate_date_range(period, transactions_spreadsheet.scrubbed_df)
+    start_date, end_date = calculate_date_range(
+        period,
+        transactions_spreadsheet.scrubbed_df,
+        anchor_to_data=True,
+    )
 
     # Filter transactions
     df = transactions_spreadsheet.scrubbed_df.copy()
@@ -212,6 +217,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
 def main() -> None:
     """Streamlit entry point for the Top Transactions page."""
     st.set_page_config(layout="wide")
+    render_data_refresh_controls()
 
     transactions_spreadsheet = load_transactions_data()
     configure_page(transactions_spreadsheet)

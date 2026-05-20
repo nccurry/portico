@@ -16,7 +16,10 @@ from src.spreadsheet import (
     BalanceHistorySpreadsheet,
     CategoriesSpreadsheet,
     Spreadsheet,
+    SpreadsheetSchemaError,
     TransactionsSpreadsheet,
+    validate_min_columns,
+    validate_required_columns,
 )
 
 
@@ -159,6 +162,19 @@ class TestLoadErrorHandling:
             mock_error.assert_called_once()
             assert "no creds" in mock_error.call_args[0][0]
             mock_stop.assert_called_once()
+
+
+class TestSchemaValidation:
+
+    def test_validate_required_columns_reports_missing_names(self) -> None:
+        df = pd.DataFrame({"Date": ["2024-01-01"]})
+        with pytest.raises(SpreadsheetSchemaError, match="Amount"):
+            validate_required_columns(df, frozenset({"Date", "Amount"}), "Transactions")
+
+    def test_validate_min_columns_reports_count(self) -> None:
+        df = pd.DataFrame({"a": [1], "b": [2]})
+        with pytest.raises(SpreadsheetSchemaError, match="at least 4"):
+            validate_min_columns(df, 4, "Accounts")
 
 
 # ===================================================================

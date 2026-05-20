@@ -15,7 +15,8 @@ from src.constants import (
 )
 from src.custom_types import FIFilters, FISummary
 from src.filters import apply_transaction_filters, render_fi_filters
-from src.page_helpers import display_transactions_expander
+from src.page_helpers import display_transactions_expander, render_data_refresh_controls
+from src.reporting_periods import completed_month_window
 from src.spreadsheet import (
     BalanceHistorySpreadsheet,
     TransactionsSpreadsheet,
@@ -210,12 +211,16 @@ def _build_spending_filters(filters: FIFilters) -> dict[str, object]:
     }
 
 
-def _spending_window_months(lookback_months: int) -> tuple[str, str]:
+def _spending_window_months(
+    lookback_months: int,
+    transactions_df: pd.DataFrame | None = None,
+) -> tuple[str, str]:
     """Return (start_month, end_month) as YYYY-MM, excluding the current month."""
-    now = pd.Timestamp.now(tz="UTC")
-    end = (now - pd.DateOffset(months=1)).strftime("%Y-%m")
-    start = (now - pd.DateOffset(months=lookback_months)).strftime("%Y-%m")
-    return start, end
+    return completed_month_window(
+        lookback_months,
+        transactions_df,
+        anchor_to_data=transactions_df is not None,
+    )
 
 
 def _render_metric_row(summary: FISummary) -> None:
@@ -385,8 +390,8 @@ def configure_page(
         calculated_portfolio_value, portfolio_override
     )
 
-    start_month, end_month = _spending_window_months(filters["spending_lookback_months"])
     tx_df = transactions_spreadsheet.scrubbed_df.copy()
+    start_month, end_month = _spending_window_months(filters["spending_lookback_months"], tx_df)
     tx_df = apply_transaction_filters(tx_df, _build_spending_filters(filters))
     avg_monthly_spending, monthly_totals = calculate_avg_monthly_spending(
         tx_df, start_month, end_month
@@ -478,6 +483,7 @@ def configure_page(
 def main() -> None:
     """Streamlit entry point for the Financial Independence page."""
     st.set_page_config(layout="wide")
+    render_data_refresh_controls()
 
     transactions_spreadsheet = load_transactions_data()
     balance_history_spreadsheet = load_balance_history_data()
