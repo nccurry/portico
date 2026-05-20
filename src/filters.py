@@ -5,7 +5,7 @@ from typing import Any
 import streamlit as st
 
 import pandas as pd
-from datetime import timedelta
+from src.reporting_periods import calculate_date_range as _calculate_date_range
 
 from src.constants import (
     DEFAULT_EXCLUDE_CATEGORIES,
@@ -446,6 +446,8 @@ def render_fi_filters(
 def calculate_date_range(
     period: str,
     df: pd.DataFrame | None = None,
+    *,
+    anchor_to_data: bool = False,
 ) -> tuple[pd.Timestamp, pd.Timestamp]:
     """Calculate start and end dates for a given period string.
 
@@ -456,29 +458,7 @@ def calculate_date_range(
     Returns:
         Tuple of (start_date, end_date) as pandas Timestamps
     """
-    now = pd.Timestamp.now(tz='UTC')
-
-    if period == "This Month":
-        return now.replace(day=1), now
-    elif period == "Last Month":
-        start = (now.replace(day=1) - timedelta(days=1)).replace(day=1)
-        end = now.replace(day=1) - timedelta(days=1)
-        return start, end
-    elif period == "Last 3 Months":
-        return now - timedelta(days=90), now
-    elif period == "Last 6 Months":
-        return now - timedelta(days=180), now
-    elif period == "Last 12 Months":
-        return now - timedelta(days=365), now
-    elif period == "Year to Date":
-        return now.replace(month=1, day=1), now
-    elif period == "All Time":
-        if df is not None:
-            return df['Date'].min(), now
-        return now - timedelta(days=365*5), now  # Default to 5 years
-    else:
-        # Default to last 3 months
-        return now - timedelta(days=90), now
+    return _calculate_date_range(period, df, anchor_to_data=anchor_to_data)
 
 
 def apply_transaction_filters(

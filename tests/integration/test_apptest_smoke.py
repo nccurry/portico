@@ -219,3 +219,21 @@ class TestFinancialIndependenceSmoke:
             ],
         )
         assert not at.exception
+
+
+@pytest.mark.uses_real_dates
+class TestDataHealthSmoke:
+
+    def test_runs_without_exception(
+        self, make_full_dataset: Callable[..., tuple[Any, Any, Any, Any]],
+    ) -> None:
+        at = _make_app(
+            "10_Data_Health.py",
+            make_full_dataset,
+            [
+                "src.spreadsheet.load_transactions_data",
+                "src.spreadsheet.load_balance_history_data",
+                "src.spreadsheet.load_categories_data",
+            ],
+        )
+        assert not at.exception

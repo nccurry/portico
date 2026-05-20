@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from src.analysis.merchants import normalize_merchant_name
 from src.page_helpers import extract_merchant_name
 from tests._helpers import _make_merchant_df
 from tests._pages import merchant_analysis as _mod
@@ -59,6 +60,9 @@ class TestExtractMerchantName:
     def test_multiple_internal_spaces_collapsed_by_split(self) -> None:
         """str.split() collapses runs of whitespace."""
         assert extract_merchant_name('UBER    *TRIP    NYC', 'first_three') == 'UBER *TRIP NYC'
+
+    def test_normalized_removes_payment_noise_and_ids(self) -> None:
+        assert normalize_merchant_name("POS PURCHASE KROGER #1234 STORE") == "KROGER STORE"
 
 
 class TestEnrichWithMerchant:

@@ -4,6 +4,12 @@ import streamlit as st
 import pandas as pd
 import altair as alt
 
+from src.analysis.budget import (
+    build_unified_budget_table,
+    calculate_projected_spend,
+    get_budget_vs_actual,
+    get_ytd_budget_vs_actual,
+)
 from src.spreadsheet import (
     load_transactions_data,
     load_categories_data,
@@ -11,178 +17,12 @@ from src.spreadsheet import (
     CategoriesSpreadsheet,
 )
 from src.filters import render_budget_filters, apply_transaction_filters
-from src.page_helpers import display_transactions_expander
-from src.custom_types import BudgetFilters
+from src.page_helpers import display_transactions_expander, render_data_refresh_controls
 from src.constants import (
     COLOR_BUDGET,
     COLOR_OVER_BUDGET,
     COLOR_UNDER_BUDGET,
 )
-
-
-# ---------------------------------------------------------------------------
-# Pure helper functions (testable without Streamlit)
-# ---------------------------------------------------------------------------
-
-def get_budget_vs_actual(
-    budget_df: pd.DataFrame,
-    transactions_df: pd.DataFrame,
-    month_str: str,
-    filters: BudgetFilters,
-) -> pd.DataFrame:
-    """Compare budgets to actual spending for a given month.
-
-    Returns:
-        DataFrame with Category, Group, Type, Budget, Spent, Remaining, Pct_Used
-    """
-    month_num = int(month_str.split("-")[1])
-
-    budgets = budget_df[budget_df["Month_Num"] == month_num][
-        ["Category", "Group", "Type", "Budget"]
-    ].copy()
-
-    txns = transactions_df[transactions_df["Month"] == month_str].copy()
-    txns = apply_transaction_filters(txns, filters)
-    txns = txns[txns["Type"] == "Expense"]
-
-    actuals = (
-        txns.groupby("Category")["Amount"]
-        .sum()
-        .abs()
-        .reset_index()
-        .rename(columns={"Amount": "Spent"})
-    )
-
-    result = budgets.merge(actuals, on="Category", how="outer")
-    result["Budget"] = pd.to_numeric(result["Budget"], errors="coerce").fillna(0)
-    result["Spent"] = pd.to_numeric(result["Spent"], errors="coerce").fillna(0)
-
-    if not txns.empty:
-        txn_meta = txns[["Category", "Group", "Type"]].drop_duplicates("Category")
-        missing = result["Group"].isna()
-        if missing.any():
-            filled = result.loc[missing, ["Category"]].merge(txn_meta, on="Category", how="left")
-            result.loc[missing, "Group"] = filled["Group"].values
-            result.loc[missing, "Type"] = filled["Type"].values
-
-    if filters.get("exclude_groups"):
-        result = result[~result["Group"].isin(filters["exclude_groups"])]
-    if filters.get("exclude_categories"):
-        result = result[~result["Category"].isin(filters["exclude_categories"])]
-
-    result["Remaining"] = result["Budget"] - result["Spent"]
-    result["Pct_Used"] = result.apply(
-        lambda r: (r["Spent"] / r["Budget"] * 100) if r["Budget"] > 0 else (0 if r["Spent"] == 0 else float("inf")),
-        axis=1,
-    )
-
-    if not filters.get("show_zero_budget", False):
-        result = result[(result["Budget"] > 0) | (result["Spent"] > 0)]
-        result = result[result["Budget"] > 0]
-
-    return result.sort_values("Pct_Used", ascending=False).reset_index(drop=True)
-
-
-def get_ytd_budget_vs_actual(
-    budget_df: pd.DataFrame,
-    transactions_df: pd.DataFrame,
-    month_str: str,
-    filters: BudgetFilters,
-) -> pd.DataFrame:
-    """Compare YTD cumulative budgets to actual spending through a given month.
-
-    Returns:
-        DataFrame with Category, Group, Type, Budget, Spent, Remaining, Pct_Used
-    """
-    year = month_str.split("-")[0]
-    month_num = int(month_str.split("-")[1])
-
-    budgets = budget_df[budget_df["Month_Num"].between(1, month_num)].copy()
-    budgets = (
-        budgets.groupby(["Category", "Group", "Type"])["Budget"]
-        .sum()
-        .reset_index()
-    )
-
-    ytd_months = [f"{year}-{m:02d}" for m in range(1, month_num + 1)]
-    txns = transactions_df[transactions_df["Month"].isin(ytd_months)].copy()
-    txns = apply_transaction_filters(txns, filters)
-    txns = txns[txns["Type"] == "Expense"]
-
-    actuals = (
-        txns.groupby("Category")["Amount"]
-        .sum()
-        .abs()
-        .reset_index()
-        .rename(columns={"Amount": "Spent"})
-    )
-
-    result = budgets.merge(actuals, on="Category", how="outer")
-    result["Budget"] = pd.to_numeric(result["Budget"], errors="coerce").fillna(0)
-    result["Spent"] = pd.to_numeric(result["Spent"], errors="coerce").fillna(0)
-
-    if not txns.empty:
-        txn_meta = txns[["Category", "Group", "Type"]].drop_duplicates("Category")
-        missing = result["Group"].isna()
-        if missing.any():
-            filled = result.loc[missing, ["Category"]].merge(txn_meta, on="Category", how="left")
-            result.loc[missing, "Group"] = filled["Group"].values
-            result.loc[missing, "Type"] = filled["Type"].values
-
-    if filters.get("exclude_groups"):
-        result = result[~result["Group"].isin(filters["exclude_groups"])]
-    if filters.get("exclude_categories"):
-        result = result[~result["Category"].isin(filters["exclude_categories"])]
-
-    result["Remaining"] = result["Budget"] - result["Spent"]
-    result["Pct_Used"] = result.apply(
-        lambda r: (r["Spent"] / r["Budget"] * 100) if r["Budget"] > 0 else (0 if r["Spent"] == 0 else float("inf")),
-        axis=1,
-    )
-
-    if not filters.get("show_zero_budget", False):
-        result = result[(result["Budget"] > 0) | (result["Spent"] > 0)]
-        result = result[result["Budget"] > 0]
-
-    return result.sort_values("Pct_Used", ascending=False).reset_index(drop=True)
-
-
-def build_unified_budget_table(
-    monthly_df: pd.DataFrame,
-    ytd_df: pd.DataFrame,
-) -> pd.DataFrame:
-    """Merge monthly and YTD budget comparisons into a single table.
-
-    Returns:
-        DataFrame with Category, Group, Mo_Budget, Mo_Spent, Mo_Pct,
-        YTD_Budget, YTD_Spent, YTD_Pct — sorted by Mo_Pct descending.
-    """
-    monthly = monthly_df[["Category", "Group", "Budget", "Spent", "Pct_Used"]].rename(
-        columns={"Budget": "Mo_Budget", "Spent": "Mo_Spent", "Pct_Used": "Mo_Pct"}
-    )
-    ytd = ytd_df[["Category", "Budget", "Spent", "Pct_Used"]].rename(
-        columns={"Budget": "YTD_Budget", "Spent": "YTD_Spent", "Pct_Used": "YTD_Pct"}
-    )
-
-    merged = monthly.merge(ytd, on="Category", how="outer")
-
-    for col in ["Mo_Budget", "Mo_Spent", "Mo_Pct", "YTD_Budget", "YTD_Spent", "YTD_Pct"]:
-        merged[col] = merged[col].fillna(0)
-    merged["Group"] = merged["Group"].fillna("")
-
-    return merged.sort_values("Mo_Pct", ascending=False).reset_index(drop=True)
-
-
-def calculate_projected_spend(
-    spent: float,
-    days_elapsed: int,
-    days_in_month: int,
-) -> float:
-    """Project end-of-month spend based on current pace."""
-    if days_elapsed <= 0:
-        return 0.0
-    daily_rate = spent / days_elapsed
-    return daily_rate * days_in_month
 
 
 # ---------------------------------------------------------------------------
@@ -399,6 +239,7 @@ def configure_page(
 def main() -> None:
     """Streamlit entry point for the Budget page."""
     st.set_page_config(layout="wide")
+    render_data_refresh_controls()
 
     transactions_spreadsheet = load_transactions_data()
     categories_spreadsheet = load_categories_data()

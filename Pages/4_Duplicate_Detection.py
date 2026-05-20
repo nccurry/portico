@@ -3,6 +3,7 @@ import pandas as pd
 
 from src.spreadsheet import load_transactions_data, TransactionsSpreadsheet
 from src.constants import MIN_DUPLICATE_AMOUNT, DEFAULT_DUPLICATE_DAYS_THRESHOLD
+from src.page_helpers import render_data_refresh_controls
 
 
 def normalize_description(desc: str) -> str:
@@ -228,6 +229,7 @@ def configure_page(
 def main() -> None:
     """Streamlit entry point for the Duplicate Detection page."""
     st.set_page_config(layout="wide")
+    render_data_refresh_controls()
 
     transactions_spreadsheet = load_transactions_data()
 

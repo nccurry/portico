@@ -1,5 +1,4 @@
 import streamlit as st
-import pandas as pd
 from datetime import timedelta
 
 from src.spreadsheet import (
@@ -9,7 +8,8 @@ from src.spreadsheet import (
     calculate_net_worth_summary,
     load_balance_history_data,
 )
-from src.page_helpers import create_sparkline_chart
+from src.page_helpers import create_sparkline_chart, render_data_refresh_controls
+from src.reporting_periods import reporting_anchor
 from src.constants import (
     SPARKLINE_LOOKBACK_OPTIONS,
     SPARKLINE_LOOKBACK_DEFAULT,
@@ -51,7 +51,7 @@ def configure_page(
         if selected_lookback is None:
             selected_lookback = SPARKLINE_LOOKBACK_DEFAULT
 
-    end_date = pd.Timestamp.now(tz='UTC')
+    end_date = reporting_anchor(balance_history_spreadsheet.scrubbed_df, anchor_to_data=True)
     lookback_days = SPARKLINE_LOOKBACK_OPTIONS[selected_lookback]
     if lookback_days is None:
         start_date = balance_history_spreadsheet.scrubbed_df["Date"].min()
@@ -129,6 +129,7 @@ def configure_page(
 def main() -> None:
     """Streamlit entry point for the Home page."""
     st.set_page_config(layout="wide")
+    render_data_refresh_controls()
 
     balance_history_spreadsheet = load_balance_history_data()
 

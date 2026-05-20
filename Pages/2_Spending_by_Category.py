@@ -4,7 +4,7 @@ import altair as alt
 
 from src.spreadsheet import load_transactions_data, TransactionsSpreadsheet
 from src.filters import render_spending_filters, apply_transaction_filters, calculate_date_range
-from src.page_helpers import get_transaction_column_config, display_transactions_expander
+from src.page_helpers import get_transaction_column_config, display_transactions_expander, render_data_refresh_controls
 from src.custom_types import SpendingFilters, DistributionStats, SpendingSummary
 from src.constants import (
     TIME_PERIODS,
@@ -510,7 +510,11 @@ def configure_page(
     )
 
     # Calculate date range based on selection
-    start_date, end_date = calculate_date_range(period, transactions_spreadsheet.scrubbed_df)
+    start_date, end_date = calculate_date_range(
+        period,
+        transactions_spreadsheet.scrubbed_df,
+        anchor_to_data=True,
+    )
 
     # Process data
     df_period, df_by_category = process_spending_data(
@@ -575,6 +579,7 @@ def configure_page(
 def main() -> None:
     """Streamlit entry point for the Spending by Category page."""
     st.set_page_config(layout="wide")
+    render_data_refresh_controls()
 
     transactions_spreadsheet = load_transactions_data()
 
