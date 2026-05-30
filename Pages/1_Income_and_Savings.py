@@ -43,20 +43,10 @@ def process_income_expense_data(
     monthly_expense = df_expense.groupby('Month')['Amount'].sum()
 
     # Combine into one dataframe
-    df_pivot = pd.DataFrame({
-        'Month': monthly_income.index.union(monthly_expense.index)
-    })
-    df_pivot = df_pivot.merge(
-        monthly_income.to_frame('Income'),
-        left_on='Month',
-        right_index=True,
-        how='left'
-    ).merge(
-        monthly_expense.to_frame('Expense'),
-        left_on='Month',
-        right_index=True,
-        how='left'
-    ).fillna(0)
+    df_pivot = pd.concat(
+        [monthly_income.rename('Income'), monthly_expense.rename('Expense')],
+        axis=1,
+    ).fillna(0).reset_index()
 
     # Income should already be positive, Expense should be negative
     # Savings = Income + Expense (since Expense is negative, this subtracts it)
@@ -85,17 +75,17 @@ def calculate_savings_summary(df_pivot: pd.DataFrame) -> SavingsSummary:
     Parameters
     ----------
     df_pivot:
-        Output of :func:`process_income_expense_data` — one row per month with
+        Output of :func:`process_income_expense_data` - one row per month with
         ``Savings_Rate``, ``Savings``, and ``Income_Display`` columns.
 
     Returns
     -------
     SavingsSummary
-        ``avg_monthly_rate`` — simple mean of per-month rates (treats each
-        month equally).  ``overall_rate`` — total savings / total income
-        (income-weighted).  ``avg_monthly_amount`` — mean monthly dollar
-        savings.  ``total_saved`` — sum of savings across all months.
-        ``num_months`` — row count.
+        ``avg_monthly_rate`` - simple mean of per-month rates (treats each
+        month equally).  ``overall_rate`` - total savings / total income
+        (income-weighted).  ``avg_monthly_amount`` - mean monthly dollar
+        savings.  ``total_saved`` - sum of savings across all months.
+        ``num_months`` - row count.
     """
     if df_pivot.empty:
         return SavingsSummary(

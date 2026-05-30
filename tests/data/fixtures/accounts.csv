@@ -1,0 +1,8 @@
+Account,Class Override,Group,Hide
+Checking-B - xxxx1001 (AB01),,Savings,
+Credit-H - xxxx2002 (CD02),,Credit Cards,
+HSA - xxxx3003 (EF03),,Investments,
+Individual Brokerage - xxxx4004 (GH04),,Investments,
+Corp IRA - xxxx5005 (IJ05),,Retirement,
+Mortgage - xxxx6006 (KL06),,Liabilities,
+ZeroSum-A - xxxx0001 (ZS01),,_SyntheticZeroGroup,

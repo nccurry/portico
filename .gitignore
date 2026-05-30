@@ -1,6 +1,8 @@
 .streamlit
 .venv
+.tools/
 *.csv
+!tests/data/fixtures/*.csv
 .idea
 *.xlsx
 .coverage
