@@ -1,0 +1,22 @@
+Unnamed: 0,Date,Time,Account,Account #,Account ID,Balance ID,Institution,Balance,Month,Week,Type,Class,Account Status,Date Added
+0,02/17/2026,02/17/2026 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-000,Aurora Bank,"$6,000.00",02/01/2026,02/16/2026,Depository,Asset,Active,01/01/2025
+1,03/17/2026,03/17/2026 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-001,Aurora Bank,"$6,500.00",03/01/2026,03/16/2026,Depository,Asset,Active,01/01/2025
+2,04/17/2026,04/17/2026 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-002,Aurora Bank,"$6,200.00",04/01/2026,04/13/2026,Depository,Asset,Active,01/01/2025
+3,02/17/2026,02/17/2026 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-003,Harbor Card,"$1,800.00",02/01/2026,02/16/2026,Credit,Liability,Active,01/01/2025
+4,03/17/2026,03/17/2026 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-004,Harbor Card,"$2,000.00",03/01/2026,03/16/2026,Credit,Liability,Active,01/01/2025
+5,04/17/2026,04/17/2026 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-005,Harbor Card,"$1,700.00",04/01/2026,04/13/2026,Credit,Liability,Active,01/01/2025
+6,02/17/2026,02/17/2026 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-006,Fidelity,"$15,000.00",02/01/2026,02/16/2026,Depository,Asset,Active,01/01/2025
+7,03/17/2026,03/17/2026 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-007,Fidelity,"$15,500.00",03/01/2026,03/16/2026,Depository,Asset,Active,01/01/2025
+8,04/17/2026,04/17/2026 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-008,Fidelity,"$16,000.00",04/01/2026,04/13/2026,Depository,Asset,Active,01/01/2025
+9,02/17/2026,02/17/2026 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-009,Vanguard,"$120,000.00",02/01/2026,02/16/2026,Depository,Asset,Active,01/01/2025
+10,03/17/2026,03/17/2026 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-010,Vanguard,"$125,000.00",03/01/2026,03/16/2026,Depository,Asset,Active,01/01/2025
+11,04/17/2026,04/17/2026 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-011,Vanguard,"$130,000.00",04/01/2026,04/13/2026,Depository,Asset,Active,01/01/2025
+12,02/17/2026,02/17/2026 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-ira-012,Vanguard,"$220,000.00",02/01/2026,02/16/2026,Depository,Asset,Active,01/01/2025
+13,03/17/2026,03/17/2026 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-ira-013,Vanguard,"$225,000.00",03/01/2026,03/16/2026,Depository,Asset,Active,01/01/2025
+14,04/17/2026,04/17/2026 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-ira-014,Vanguard,"$230,000.00",04/01/2026,04/13/2026,Depository,Asset,Active,01/01/2025
+15,02/17/2026,02/17/2026 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-015,Keystone Home,"$199,000.00",02/01/2026,02/16/2026,Credit,Liability,Active,01/01/2025
+16,03/17/2026,03/17/2026 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-016,Keystone Home,"$198,500.00",03/01/2026,03/16/2026,Credit,Liability,Active,01/01/2025
+17,04/17/2026,04/17/2026 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-017,Keystone Home,"$198,000.00",04/01/2026,04/13/2026,Credit,Liability,Active,01/01/2025
+18,02/17/2026,02/17/2026 08:00:00,ZeroSum-A,xxxx0001,zerosum0000000000000ZS01,bal-zero-018,Synthetic Bank,$0.00,02/01/2026,02/16/2026,Depository,Asset,Active,01/01/2025
+19,03/17/2026,03/17/2026 08:00:00,ZeroSum-A,xxxx0001,zerosum0000000000000ZS01,bal-zero-019,Synthetic Bank,$0.00,03/01/2026,03/16/2026,Depository,Asset,Active,01/01/2025
+20,04/17/2026,04/17/2026 08:00:00,ZeroSum-A,xxxx0001,zerosum0000000000000ZS01,bal-zero-020,Synthetic Bank,$0.00,04/01/2026,04/13/2026,Depository,Asset,Active,01/01/2025

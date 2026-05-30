@@ -35,7 +35,7 @@ def full_date_range() -> tuple[pd.Timestamp, pd.Timestamp]:
 
 
 # ---------------------------------------------------------------------------
-# Real CSV fixtures (committed anonymized data from tests/data/fixtures/)
+# Real CSV fixtures (generated anonymized data from tests/data/fixtures/)
 # ---------------------------------------------------------------------------
 #
 # These drive the real Spreadsheet.scrub() pipeline end-to-end.
@@ -51,28 +51,35 @@ def full_date_range() -> tuple[pd.Timestamp, pd.Timestamp]:
 _FIXTURES_DIR = Path(__file__).resolve().parents[1] / "data" / "fixtures"
 
 
+def _read_fixture_csv(name: str) -> pd.DataFrame:
+    path = _FIXTURES_DIR / f"{name}.csv"
+    if not path.exists():
+        pytest.skip(f"{path.name} is missing; run scripts/generate_test_fixtures.py")
+    return pd.read_csv(path)
+
+
 @pytest.fixture(scope="session")
 def real_transactions_csv_df() -> pd.DataFrame:
     """Raw-shape transactions.csv from tests/data/fixtures/."""
-    return pd.read_csv(_FIXTURES_DIR / "transactions.csv")
+    return _read_fixture_csv("transactions")
 
 
 @pytest.fixture(scope="session")
 def real_balance_csv_df() -> pd.DataFrame:
     """Raw-shape balance_history.csv from tests/data/fixtures/."""
-    return pd.read_csv(_FIXTURES_DIR / "balance_history.csv")
+    return _read_fixture_csv("balance_history")
 
 
 @pytest.fixture(scope="session")
 def real_categories_csv_df() -> pd.DataFrame:
     """Raw categories.csv (with budget month columns) from tests/data/fixtures/."""
-    return pd.read_csv(_FIXTURES_DIR / "categories.csv")
+    return _read_fixture_csv("categories")
 
 
 @pytest.fixture(scope="session")
 def real_accounts_csv_df() -> pd.DataFrame:
     """Raw accounts.csv from tests/data/fixtures/."""
-    return pd.read_csv(_FIXTURES_DIR / "accounts.csv")
+    return _read_fixture_csv("accounts")
 
 
 @pytest.fixture(scope="session")

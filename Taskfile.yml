@@ -3,8 +3,10 @@ version: '3'
 
 vars:
   VENV: .venv
-  PYTHON: '{{if eq OS "windows"}}{{.VENV}}/Scripts/python{{else}}{{.VENV}}/bin/python{{end}}'
-  UV: uv
+  PYTHON: '{{if eq OS "windows"}}{{.VENV}}/Scripts/python.exe{{else}}{{.VENV}}/bin/python{{end}}'
+  UV: '{{if eq OS "windows"}}.tools/bin/uv.exe{{else}}.tools/bin/uv{{end}}'
+  TASK: '{{if eq OS "windows"}}.tools/bin/task.exe{{else}}.tools/bin/task{{end}}'
+  LINT_PATHS: src/ Pages/ tests/ Home.py
 
 tasks:
   # ========================================
@@ -12,77 +14,58 @@ tasks:
   # ========================================
 
   setup:
-    desc: "Setup development environment (auto-detects platform)"
+    desc: "Set up the development environment"
     cmds:
-      - task: setup:{{OS}}
+      - task: deps:install
 
-  setup:windows:
-    desc: "Complete Windows development environment setup"
-    platforms: [windows]
+  deps:install:
+    desc: "Install pinned tools, Python, and dependencies"
     cmds:
-      - task: setup:check
-      - echo "[SETUP] Starting Windows development environment setup..."
-      - task: setup:venv
-      - task: setup:deps
+      - task: deps:task:install
+      - task: deps:python:install
+      - task: deps:sync
       - task: setup:verify
-      - echo "[OK] Setup complete! Run 'task test' to run tests."
+      - echo "[OK] Setup complete. Run 'task test' to run tests."
 
-  setup:linux:
-    desc: "Complete Linux development environment setup"
-    platforms: [linux, darwin]
+  deps:task:install:
+    desc: "Install the pinned Task runner locally"
     cmds:
-      - task: setup:check
-      - echo "[SETUP] Starting Linux development environment setup..."
-      - task: setup:venv
-      - task: setup:deps
-      - task: setup:verify
-      - echo "[OK] Setup complete! Run 'task test' to run tests."
+      - cmd: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/bootstrap.ps1 -SkipSetup
+        platforms: [windows]
+      - cmd: sh scripts/bootstrap.sh --skip-setup
+        platforms: [linux, darwin]
+
+  deps:python:install:
+    desc: "Install pinned uv and Python locally"
+    cmds:
+      - cmd: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-python-toolchain.ps1
+        platforms: [windows]
+      - cmd: sh scripts/install-python-toolchain.sh
+        platforms: [linux, darwin]
+
+  deps:sync:
+    desc: "Install Python dependencies"
+    cmds:
+      - echo "[SETUP] Installing dependencies..."
+      - '{{.UV}} sync --dev'
 
   setup:check:
     desc: "Check development environment status"
     cmds:
       - echo "=== Development Environment Check ==="
-      - task: setup:check:python
-      - task: setup:check:uv
+      - '{{.TASK}} --version'
+      - '{{.UV}} --version'
+      - '{{.UV}} run --dev python --version'
       - echo "=== Check complete ==="
-
-  setup:check:python:
-    desc: "Check if Python is available in venv"
-    cmds:
-      - cmd: '{{.PYTHON}} --version'
-        ignore_error: true
-
-  setup:check:uv:
-    desc: "Check if uv is installed"
-    cmds:
-      - cmd: '{{.UV}} --version'
-        ignore_error: true
-
-  setup:venv:
-    desc: "Create virtual environment with uv"
-    cmds:
-      - echo "[SETUP] Creating virtual environment..."
-      - '{{.UV}} venv {{.VENV}} --python 3.14'
-      - echo "[OK] Virtual environment created"
-    status:
-      - test -d {{.VENV}}
-
-  setup:deps:
-    desc: "Install all dependencies (app + dev)"
-    cmds:
-      - echo "[SETUP] Installing dependencies..."
-      - '{{.UV}} pip install -r requirements.txt --python {{.PYTHON}}'
-      - '{{.UV}} pip install -r requirements-dev.txt --python {{.PYTHON}}'
-      - echo "[OK] Dependencies installed"
 
   setup:verify:
     desc: "Verify setup is working"
     cmds:
       - echo "=== Verifying setup ==="
       - task: setup:check
-      - '{{.PYTHON}} -c "import streamlit; import pandas; import altair; print(\"[OK] All imports successful\")"'
-      - '{{.PYTHON}} -m pytest --version'
-      - echo "[OK] All verification checks passed!"
+      - '{{.UV}} run --dev python -c "import streamlit; import pandas; import altair; print(\"[OK] All imports successful\")"'
+      - '{{.UV}} run --dev pytest --version'
+      - echo "[OK] All verification checks passed."
 
   # ========================================
   # Package Management
@@ -94,11 +77,22 @@ tasks:
       - '{{.UV}} pip list --outdated --python {{.PYTHON}}'
 
   pkg:update:
-    desc: "Update all packages to latest versions"
+    desc: "Update direct dependencies to latest exact pins"
     cmds:
-      - '{{.UV}} pip install --upgrade -r requirements.txt --python {{.PYTHON}}'
-      - '{{.UV}} pip install --upgrade -r requirements-dev.txt --python {{.PYTHON}}'
-      - echo "Packages updated. Run 'task test' to verify nothing broke."
+      - '{{.UV}} add --bounds exact altair@latest pandas@latest st-gsheets-connection@latest streamlit@latest'
+      - '{{.UV}} add --dev --bounds exact freezegun@latest mypy@latest pandas-stubs@latest pytest@latest pytest-cov@latest ruff@latest'
+      - '{{.UV}} lock --upgrade'
+      - '{{.UV}} sync --dev'
+      - echo "Packages updated. Run 'task check' to verify nothing broke."
+
+  # ========================================
+  # Fixtures
+  # ========================================
+
+  fixtures:generate:
+    desc: "Generate anonymized integration-test CSV fixtures"
+    cmds:
+      - '{{.UV}} run --dev python scripts/generate_test_fixtures.py'
 
   # ========================================
   # Testing
@@ -107,32 +101,42 @@ tasks:
   test:
     desc: "Run all tests"
     cmds:
-      - '{{.PYTHON}} -m pytest'
+      - '{{.UV}} run --dev pytest'
+
+  test:unit:
+    desc: "Run unit tests"
+    cmds:
+      - '{{.UV}} run --dev pytest tests/unit'
+
+  test:integration:
+    desc: "Run integration tests"
+    cmds:
+      - '{{.UV}} run --dev pytest tests/integration'
 
   test:verbose:
     desc: "Run all tests with verbose output"
     cmds:
-      - '{{.PYTHON}} -m pytest -v'
+      - '{{.UV}} run --dev pytest -v'
 
   test:file:
     desc: "Run tests for a specific file (usage: task test:file -- test_spreadsheet.py)"
     cmds:
-      - '{{.PYTHON}} -m pytest tests/{{.CLI_ARGS}} -v'
+      - '{{.UV}} run --dev pytest tests/{{.CLI_ARGS}} -v'
 
   test:match:
     desc: "Run tests matching a pattern (usage: task test:match -- test_filter)"
     cmds:
-      - '{{.PYTHON}} -m pytest -k "{{.CLI_ARGS}}" -v'
+      - '{{.UV}} run --dev pytest -k "{{.CLI_ARGS}}" -v'
 
   test:coverage:
     desc: "Run tests with coverage report"
     cmds:
-      - '{{.PYTHON}} -m pytest --cov=src --cov=Pages --cov-report=term-missing --cov-fail-under=80'
+      - '{{.UV}} run --dev pytest --cov=src --cov=Pages --cov-report=term-missing --cov-fail-under=80'
 
   test:coverage:src:
     desc: "Run tests with src/ coverage gate (>=90%)"
     cmds:
-      - '{{.PYTHON}} -m pytest --cov=src --cov-report=term-missing --cov-fail-under=90'
+      - '{{.UV}} run --dev pytest --cov=src --cov-report=term-missing --cov-fail-under=90'
 
   # ========================================
   # Linting
@@ -141,14 +145,14 @@ tasks:
   lint:
     desc: "Run ruff and mypy"
     cmds:
-      - '{{.PYTHON}} -m ruff check src/ Pages/ tests/ Home.py'
-      - '{{.PYTHON}} -m mypy'
+      - '{{.UV}} run --dev ruff check {{.LINT_PATHS}}'
+      - '{{.UV}} run --dev mypy'
 
   lint:fix:
     desc: "Auto-fix ruff issues, then run mypy"
     cmds:
-      - '{{.PYTHON}} -m ruff check --fix src/ Pages/ tests/ Home.py'
-      - '{{.PYTHON}} -m mypy'
+      - '{{.UV}} run --dev ruff check --fix {{.LINT_PATHS}}'
+      - '{{.UV}} run --dev mypy'
 
   # ========================================
   # All Checks
@@ -167,4 +171,4 @@ tasks:
   run:
     desc: "Run the Streamlit app"
     cmds:
-      - '{{.PYTHON}} -m streamlit run Home.py'
+      - '{{.UV}} run --dev streamlit run Home.py'

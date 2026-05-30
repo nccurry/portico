@@ -13,35 +13,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.14"
-          allow-prereleases: true
-
-      - uses: astral-sh/setup-uv@v6
-
-      - name: Install Task
-        uses: arduino/setup-task@v2
-        with:
-          version: 3.x
-
-      - name: Cache venv
+      - name: Cache tools, Python, and venv
         uses: actions/cache@v4
         with:
-          path: .venv
-          key: venv-${{ runner.os }}-py314-${{ hashFiles('requirements*.txt', 'pyproject.toml') }}
+          path: |
+            .tools
+            .venv
+            ~/.cache/uv
+          key: bootstrap-${{ runner.os }}-${{ hashFiles('pyproject.toml', 'uv.lock', 'scripts/bootstrap.sh') }}
 
-      - name: Create venv and install deps
-        run: |
-          uv venv .venv --python 3.14
-          uv pip install -r requirements.txt --python .venv/bin/python
-          uv pip install -r requirements-dev.txt --python .venv/bin/python
+      - name: Bootstrap environment
+        run: sh scripts/bootstrap.sh
 
       - name: Lint (ruff + mypy)
-        run: task lint
+        run: .tools/bin/task lint
 
       - name: Test with coverage (src/ >= 90%)
-        run: task test:coverage:src
+        run: .tools/bin/task test:coverage:src
 
       - name: Test with coverage (combined >= 80%)
-        run: task test:coverage
+        run: .tools/bin/task test:coverage
