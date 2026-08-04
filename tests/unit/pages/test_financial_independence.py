@@ -1,4 +1,4 @@
-"""Tests for Pages/9_Financial_Independence.py — FI math and spending helpers.
+"""Tests for financial-independence math and spending helpers.
 
 Math assertions reference closed-form expected values (inlined in comments next
 to each assertion), so each test doubles as executable specification.
@@ -12,13 +12,13 @@ import pandas as pd
 import pytest
 
 from src.filters import apply_transaction_filters
-from tests._pages import financial_independence as _mod
-
-calculate_avg_monthly_spending = _mod.calculate_avg_monthly_spending
-calculate_fi_metrics = _mod.calculate_fi_metrics
-project_portfolio = _mod.project_portfolio
-resolve_annual_spending = _mod.resolve_annual_spending
-resolve_portfolio_value = _mod.resolve_portfolio_value
+from src.analysis.financial_independence import (
+    calculate_avg_monthly_spending,
+    calculate_fi_metrics,
+    project_portfolio,
+    resolve_annual_spending,
+    resolve_portfolio_value,
+)
 
 
 class TestCalculateFiMetrics:

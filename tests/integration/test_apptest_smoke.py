@@ -25,10 +25,28 @@ from streamlit.testing.v1 import AppTest
 _PAGE_DIR = "Pages"
 
 
+def _metric_values(at: AppTest) -> list[tuple[str, str, str]]:
+    """Return rendered metric labels, values, and deltas in page order."""
+    return [(metric.label, metric.value, metric.delta) for metric in at.metric]
+
+
+def _select_three_months(at: AppTest) -> None:
+    at.selectbox[0].set_value(3)
+
+
+def _select_top_ten(at: AppTest) -> None:
+    at.slider[0].set_value(10)
+
+
+def _set_five_percent_return(at: AppTest) -> None:
+    at.number_input[1].set_value(5.0)
+
+
 def _make_app(
     page_file: str,
     make_full_dataset: Callable[..., tuple[Any, Any, Any, Any]],
     patches: list[str],
+    interact: Callable[[AppTest], None] | None = None,
 ) -> AppTest:
     """Build an ``AppTest`` for *page_file* with the given loader patches."""
     txns, bal, cats, accts = make_full_dataset()
@@ -48,6 +66,9 @@ def _make_app(
     try:
         at = AppTest.from_file(f"{_PAGE_DIR}/{page_file}", default_timeout=30)
         at.run()
+        if interact is not None:
+            interact(at)
+            at.run()
     finally:
         for c in ctx:
             c.stop()
@@ -73,6 +94,15 @@ class TestHomeSmoke:
             ],
         )
         assert not at.exception
+        assert _metric_values(at) == [
+            ("Total Net Worth", "$182,500.00", ""),
+            ("Credit Cards", "$1,700.00", ""),
+            ("Retirement", "$230,000.00", ""),
+            ("Investments", "$146,000.00", ""),
+            ("Savings", "$6,200.00", ""),
+            ("Liabilities", "$198,000.00", ""),
+            ("_SyntheticZeroGroup", "$0.00", ""),
+        ]
 
 
 @pytest.mark.uses_real_dates
@@ -89,6 +119,29 @@ class TestIncomeAndSavingsSmoke:
             ],
         )
         assert not at.exception
+        assert _metric_values(at) == [
+            ("Monthly Avg Rate", "44.2%", ""),
+            ("Overall Rate", "44.2%", ""),
+            ("Monthly Avg Amount", "$2,211", ""),
+            ("Overall Amount", "$24,323", ""),
+        ]
+
+    def test_three_month_selection_updates_metrics(
+        self, make_full_dataset: Callable[..., tuple[Any, Any, Any, Any]],
+    ) -> None:
+        at = _make_app(
+            "1_Income_and_Savings.py",
+            make_full_dataset,
+            ["src.spreadsheet.load_transactions_data"],
+            _select_three_months,
+        )
+        assert not at.exception
+        assert _metric_values(at) == [
+            ("Monthly Avg Rate", "19.5%", ""),
+            ("Overall Rate", "19.5%", ""),
+            ("Monthly Avg Amount", "$977", ""),
+            ("Overall Amount", "$2,932", ""),
+        ]
 
 
 @pytest.mark.uses_real_dates
@@ -105,6 +158,22 @@ class TestSpendingByCategorySmoke:
             ],
         )
         assert not at.exception
+        assert _metric_values(at) == [
+            ("Total Spending", "$12,057.57", ""),
+            ("Top Category", "Shopping", "$5,000.00"),
+            ("Active Categories", "6", ""),
+            ("Median Transaction", "$150.00", ""),
+            ("Average Transaction", "$548.07", ""),
+            ("75th Percentile", "$400.00", ""),
+            ("90th Percentile", "$1600.00", ""),
+            ("Total Transactions", "22", ""),
+            ("# Transactions", "6", ""),
+            ("% of Total $", "0.6%", ""),
+            ("# Transactions", "7", ""),
+            ("% of Total $", "5.6%", ""),
+            ("# Transactions", "9", ""),
+            ("% of Total $", "93.7%", ""),
+        ]
 
 
 @pytest.mark.uses_real_dates
@@ -121,6 +190,11 @@ class TestYearOverYearSmoke:
             ],
         )
         assert not at.exception
+        assert [tab.label for tab in at.tabs] == ["By Category", "By Group"]
+        assert len(at.dataframe) == 6
+        assert at.dataframe[0].value.to_numpy().sum() == pytest.approx(5_275.30)
+        assert at.dataframe[2].value.to_numpy().sum() == pytest.approx(5_000.0)
+        assert at.dataframe[4].value.to_numpy().sum() == pytest.approx(95.94)
 
 
 @pytest.mark.uses_real_dates
@@ -137,6 +211,12 @@ class TestDuplicateDetectionSmoke:
             ],
         )
         assert not at.exception
+        assert _metric_values(at) == [
+            ("Potential Duplicates", "3", ""),
+            ("Total Amount", "$249.49", ""),
+            ("Affected Months", "3", ""),
+        ]
+        assert at.dataframe[1].value["Total_Amount"].sum() == pytest.approx(249.49)
 
 
 @pytest.mark.uses_real_dates
@@ -153,6 +233,12 @@ class TestSubscriptionsSmoke:
             ],
         )
         assert not at.exception
+        assert _metric_values(at) == [
+            ("Detected Subscriptions", "5", ""),
+            ("Total Monthly Cost", "$695.98", ""),
+            ("Projected Annual Cost", "$8,351.76", ""),
+            ("Average Subscription", "$139.20/mo", ""),
+        ]
 
 
 @pytest.mark.uses_real_dates
@@ -169,6 +255,12 @@ class TestMerchantAnalysisSmoke:
             ],
         )
         assert not at.exception
+        assert _metric_values(at) == [
+            ("Total Merchants", "8", ""),
+            ("Total Spent", "$32,884.87", ""),
+            ("Top Merchant", "APARTMENT RENT", "$19,200.00"),
+            ("Avg Spent/Merchant", "$4,110.61", ""),
+        ]
 
 
 @pytest.mark.uses_real_dates
@@ -186,6 +278,16 @@ class TestBudgetSmoke:
             ],
         )
         assert not at.exception
+        assert _metric_values(at) == [
+            ("Monthly Budget", "$6,940.00", ""),
+            ("Monthly Spent", "$2,645.98", ""),
+            ("Remaining", "$4,294.02", ""),
+            ("% Used", "38.1%", ""),
+            ("YTD Budget", "$26,710.00", ""),
+            ("YTD Spent", "$14,713.55", ""),
+            ("YTD Remaining", "$11,996.45", ""),
+            ("YTD % Used", "55.1%", ""),
+        ]
 
 
 @pytest.mark.uses_real_dates
@@ -202,6 +304,29 @@ class TestTopTransactionsSmoke:
             ],
         )
         assert not at.exception
+        assert _metric_values(at) == [
+            ("Total (Top N)", "$28,600.00", ""),
+            ("Total Spending", "$33,322.52", ""),
+            ("% of Total", "85.8%", ""),
+            ("All Expenses", "70", ""),
+        ]
+
+    def test_top_ten_selection_updates_metrics(
+        self, make_full_dataset: Callable[..., tuple[Any, Any, Any, Any]],
+    ) -> None:
+        at = _make_app(
+            "8_Top_Transactions.py",
+            make_full_dataset,
+            ["src.spreadsheet.load_transactions_data"],
+            _select_top_ten,
+        )
+        assert not at.exception
+        assert _metric_values(at) == [
+            ("Total (Top N)", "$17,800.00", ""),
+            ("Total Spending", "$33,322.52", ""),
+            ("% of Total", "53.4%", ""),
+            ("All Expenses", "70", ""),
+        ]
 
 
 @pytest.mark.uses_real_dates
@@ -219,6 +344,36 @@ class TestFinancialIndependenceSmoke:
             ],
         )
         assert not at.exception
+        assert _metric_values(at) == [
+            ("Portfolio Value", "$382,200", ""),
+            ("Annual Spending", "$33,465", ""),
+            ("Supplemental Income", "$0", ""),
+            ("Additional Spending", "$0", ""),
+            ("Expected Annual Return", "$26,754", ""),
+            ("Coverage", "79.9%", "Not yet"),
+            ("Runway", "23.7 yrs", ""),
+            ("Total Spending", "$33,465", "$-6,711 vs inflow"),
+        ]
+
+    def test_return_rate_scenario_updates_fi_metrics(
+        self, make_full_dataset: Callable[..., tuple[Any, Any, Any, Any]],
+    ) -> None:
+        at = _make_app(
+            "9_Financial_Independence.py",
+            make_full_dataset,
+            [
+                "src.spreadsheet.load_transactions_data",
+                "src.spreadsheet.load_balance_history_data",
+            ],
+            _set_five_percent_return,
+        )
+        assert not at.exception
+        assert _metric_values(at)[4:] == [
+            ("Expected Annual Return", "$19,110", ""),
+            ("Coverage", "57.1%", "Not yet"),
+            ("Runway", "17.3 yrs", ""),
+            ("Total Spending", "$33,465", "$-14,355 vs inflow"),
+        ]
 
 
 @pytest.mark.uses_real_dates
@@ -237,3 +392,10 @@ class TestDataHealthSmoke:
             ],
         )
         assert not at.exception
+        assert _metric_values(at) == [
+            ("Uncategorized", "0", ""),
+            ("Sign Issues", "0", ""),
+            ("Unmapped Accounts", "0", ""),
+            ("Stale Accounts", "0", ""),
+            ("Unbudgeted Categories", "0", ""),
+        ]

@@ -1,4 +1,4 @@
-"""Tests for Pages/1_Income_and_Savings.py - process_income_expense_data and savings summary."""
+"""Tests for income, expense, and savings calculations."""
 from collections.abc import Callable
 from typing import Any
 
@@ -6,10 +6,7 @@ import pytest
 import pandas as pd
 
 from src.spreadsheet import TransactionsSpreadsheet
-from tests._pages import income_and_savings as _mod
-
-process_income_expense_data = _mod.process_income_expense_data
-calculate_savings_summary = _mod.calculate_savings_summary
+from src.analysis.income import calculate_savings_summary, process_income_expense_data
 
 
 class TestProcessIncomeExpenseData:

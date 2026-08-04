@@ -6,7 +6,12 @@ import altair as alt
 from src.spreadsheet import load_transactions_data, TransactionsSpreadsheet
 from src.page_helpers import get_transaction_column_config, render_data_refresh_controls
 from src.filters import calculate_date_range
-from src.analysis.merchants import enrich_with_merchant, analyze_merchants
+from src.analysis.merchants import (
+    analyze_merchants,
+    enrich_with_merchant,
+    prepare_merchant_timeline,
+    summarize_merchants,
+)
 from src.constants import TIME_PERIODS, CHART_HEIGHT_STANDARD, COLOR_PALETTE
 
 
@@ -118,20 +123,11 @@ def create_merchant_timeline(
             text=alt.value("No merchant data available")
         )
 
-    # Get top N merchants
-    top_merchants_list = merchant_stats.head(top_n)['Merchant'].tolist()
-
-    # Filter to those merchants
-    df_top = df[df['Merchant'].isin(top_merchants_list) & (df['Type'] == 'Expense')].copy()
-
-    if df_top.empty:
+    timeline = prepare_merchant_timeline(df, merchant_stats, top_n)
+    if timeline.empty:
         return alt.Chart(pd.DataFrame()).mark_text().encode(  # type: ignore[no-any-return]
             text=alt.value("No timeline data available")
         )
-
-    # Group by merchant and month
-    df_top['Amount_Abs'] = df_top['Amount'].abs()
-    timeline = df_top.groupby(['Merchant', 'Month'])['Amount_Abs'].sum().reset_index()
 
     # Create line chart
     chart = alt.Chart(timeline).mark_line(point=True).encode(
@@ -208,36 +204,33 @@ def configure_page(
 
     # Display summary metrics
     if not merchant_stats.empty:
-        total_spent = merchant_stats['Total_Spent'].sum()
-        num_merchants = len(merchant_stats)
-        top_merchant = merchant_stats.iloc[0]
-        avg_per_merchant = total_spent / num_merchants
+        summary = summarize_merchants(merchant_stats)
 
         col1, col2, col3, col4 = st.columns(4)
 
         with col1:
             st.metric(
                 label="Total Merchants",
-                value=num_merchants
+                value=summary["count"]
             )
 
         with col2:
             st.metric(
                 label="Total Spent",
-                value=f"${total_spent:,.2f}"
+                value=f"${summary['total_spent']:,.2f}"
             )
 
         with col3:
             st.metric(
                 label="Top Merchant",
-                value=top_merchant['Merchant'][:20],
-                delta=f"${top_merchant['Total_Spent']:,.2f}"
+                value=summary["top_merchant"][:20],
+                delta=f"${summary['top_merchant_spent']:,.2f}"
             )
 
         with col4:
             st.metric(
                 label="Avg Spent/Merchant",
-                value=f"${avg_per_merchant:,.2f}"
+                value=f"${summary['average_spent']:,.2f}"
             )
 
         st.divider()
@@ -343,4 +336,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

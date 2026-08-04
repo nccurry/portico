@@ -1,93 +1,12 @@
 import streamlit as st
-import pandas as pd
-
 from src.spreadsheet import load_transactions_data, TransactionsSpreadsheet
 from src.constants import MIN_DUPLICATE_AMOUNT, DEFAULT_DUPLICATE_DAYS_THRESHOLD
 from src.page_helpers import render_data_refresh_controls
-
-
-def normalize_description(desc: str) -> str:
-    """Normalize a transaction description for comparison."""
-    if not isinstance(desc, str):
-        return ""
-    return desc.strip().lower()
-
-
-def find_duplicates_efficient(
-    df: pd.DataFrame,
-    days_threshold: int,
-    min_amount: float,
-    check_same_account: bool,
-    check_same_category: bool,
-    require_same_description: bool,
-) -> pd.DataFrame:
-    """Find potential duplicate transactions using vectorized operations.
-
-    Args:
-        df: Transaction dataframe
-        days_threshold: Maximum days apart to consider duplicates
-        min_amount: Minimum transaction amount to check
-        check_same_account: Only flag if same account
-        check_same_category: Only flag if same category
-        require_same_description: Only flag if descriptions match
-
-    Returns:
-        DataFrame of potential duplicate pairs
-    """
-    df_filtered = df[df['Amount'].abs() >= min_amount].copy()
-
-    if df_filtered.empty:
-        return pd.DataFrame()
-
-    df_filtered = df_filtered.sort_values(['Amount', 'Date']).reset_index(drop=True)
-    df_filtered['_row_id'] = range(len(df_filtered))
-    df_filtered['_norm_desc'] = df_filtered['Full Description'].apply(normalize_description)
-
-    # Self-join on amount to find matching transaction amounts
-    duplicates = df_filtered.merge(
-        df_filtered,
-        on='Amount',
-        suffixes=('_1', '_2')
-    )
-
-    # Filter to only pairs where first transaction comes before second
-    duplicates = duplicates[duplicates['_row_id_1'] < duplicates['_row_id_2']]
-
-    # Calculate date difference in days
-    duplicates['Days_Apart'] = (
-        duplicates['Date_2'] - duplicates['Date_1']
-    ).dt.days.abs()
-
-    # Apply date threshold filter
-    duplicates = duplicates[duplicates['Days_Apart'] <= days_threshold]
-
-    # Apply account filter if requested
-    if check_same_account:
-        duplicates = duplicates[duplicates['Account_1'] == duplicates['Account_2']]
-
-    # Apply category filter if requested
-    if check_same_category:
-        duplicates = duplicates[duplicates['Category_1'] == duplicates['Category_2']]
-
-    # Apply description filter if requested
-    if require_same_description:
-        duplicates = duplicates[duplicates['_norm_desc_1'] == duplicates['_norm_desc_2']]
-
-    # Format output dataframe
-    result = pd.DataFrame({
-        'Date1': duplicates['Date_1'],
-        'Date2': duplicates['Date_2'],
-        'Days_Apart': duplicates['Days_Apart'],
-        'Amount': duplicates['Amount'],
-        'Category': duplicates['Category_1'],
-        'Account1': duplicates['Account_1'],
-        'Account2': duplicates['Account_2'],
-        'Description1': duplicates['Full Description_1'],
-        'Description2': duplicates['Full Description_2'],
-        'Month': duplicates['Month_1']
-    })
-
-    return result
+from src.analysis.duplicates import (
+    find_duplicates_efficient,
+    summarize_duplicates,
+    summarize_duplicates_by_month,
+)
 
 
 def configure_page(
@@ -149,6 +68,7 @@ def configure_page(
         check_same_category=check_same_category,
         require_same_description=require_same_description,
     )
+    summary = summarize_duplicates(df_duplicates)
 
     # Show summary
     col1, col2, col3 = st.columns(3)
@@ -156,29 +76,27 @@ def configure_page(
     with col1:
         st.metric(
             label="Potential Duplicates",
-            value=len(df_duplicates)
+            value=summary["pair_count"]
         )
 
     with col2:
-        if len(df_duplicates) > 0:
-            total_amount = df_duplicates['Amount'].abs().sum()
+        if summary["pair_count"]:
             st.metric(
                 label="Total Amount",
-                value=f"${total_amount:,.2f}"
+                value=f"${summary['total_amount']:,.2f}"
             )
 
     with col3:
-        if len(df_duplicates) > 0:
-            unique_months = df_duplicates['Month'].nunique()
+        if summary["pair_count"]:
             st.metric(
                 label="Affected Months",
-                value=unique_months
+                value=summary["affected_months"]
             )
 
     st.divider()
 
     # Display duplicates
-    if len(df_duplicates) > 0:
+    if summary["pair_count"]:
         st.subheader("Potential Duplicate Pairs")
 
         # Sort by most recent first
@@ -205,11 +123,7 @@ def configure_page(
 
         # Summary by month
         with st.expander("Duplicates by Month"):
-            monthly_summary = df_duplicates.groupby('Month').agg({
-                'Amount': ['count', lambda x: x.abs().sum()]  # type: ignore[misc]
-            }).reset_index()
-            monthly_summary.columns = ['Month', 'Count', 'Total_Amount']
-            monthly_summary = monthly_summary.sort_values('Month', ascending=False)
+            monthly_summary = summarize_duplicates_by_month(df_duplicates)
 
             st.dataframe(
                 monthly_summary,

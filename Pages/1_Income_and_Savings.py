@@ -6,7 +6,11 @@ from src.spreadsheet import load_transactions_data, TransactionsSpreadsheet
 from src.filters import render_income_expense_filters, apply_transaction_filters
 from src.page_helpers import get_transaction_column_config, display_transactions_expander, render_data_refresh_controls
 from src.reporting_periods import completed_month_window, current_month_string
-from src.custom_types import IncomeExpenseFilters
+from src.analysis.income import (
+    calculate_savings_summary,
+    process_income_expense_data,
+    summarize_filtered_transactions,
+)
 from src.constants import (
     CHART_HEIGHT_STANDARD,
     COLOR_INCOME,
@@ -14,98 +18,6 @@ from src.constants import (
     COLOR_SAVINGS,
     DEFAULT_LARGE_TRANSACTION_THRESHOLD
 )
-from src.custom_types import SavingsSummary
-
-
-def process_income_expense_data(
-    transactions_spreadsheet: TransactionsSpreadsheet,
-    filters: IncomeExpenseFilters
-) -> pd.DataFrame:
-    """Apply filters and calculate monthly income/expense/savings data.
-
-    Args:
-        transactions_spreadsheet: Transactions data
-        filters: Dictionary of filter settings
-
-    Returns:
-        DataFrame with monthly summaries
-    """
-    # Get all transactions and apply filters
-    df = transactions_spreadsheet.scrubbed_df.copy()
-    df = apply_transaction_filters(df, filters)
-
-    # Separate income and expenses
-    df_income = df[df['Type'] == 'Income'].copy()
-    df_expense = df[df['Type'] == 'Expense'].copy()
-
-    # Calculate monthly totals
-    monthly_income = df_income.groupby('Month')['Amount'].sum()
-    monthly_expense = df_expense.groupby('Month')['Amount'].sum()
-
-    # Combine into one dataframe
-    df_pivot = pd.concat(
-        [monthly_income.rename('Income'), monthly_expense.rename('Expense')],
-        axis=1,
-    ).fillna(0).reset_index()
-
-    # Income should already be positive, Expense should be negative
-    # Savings = Income + Expense (since Expense is negative, this subtracts it)
-    df_pivot['Savings'] = df_pivot['Income'] + df_pivot['Expense']
-    df_pivot['Net'] = df_pivot['Savings']
-
-    # For display purposes, create absolute value columns
-    df_pivot['Income_Display'] = df_pivot['Income'].abs()
-    df_pivot['Expense_Display'] = df_pivot['Expense'].abs()
-
-    # Calculate savings rate percentage
-    df_pivot['Savings_Rate'] = df_pivot.apply(
-        lambda row: (row['Savings'] / row['Income_Display'] * 100) if row['Income_Display'] > 0.01 else 0,
-        axis=1
-    )
-
-    # Sort by month
-    df_pivot = df_pivot.sort_values('Month')
-
-    return df_pivot
-
-
-def calculate_savings_summary(df_pivot: pd.DataFrame) -> SavingsSummary:
-    """Derive aggregate savings metrics from monthly income/expense pivot data.
-
-    Parameters
-    ----------
-    df_pivot:
-        Output of :func:`process_income_expense_data` - one row per month with
-        ``Savings_Rate``, ``Savings``, and ``Income_Display`` columns.
-
-    Returns
-    -------
-    SavingsSummary
-        ``avg_monthly_rate`` - simple mean of per-month rates (treats each
-        month equally).  ``overall_rate`` - total savings / total income
-        (income-weighted).  ``avg_monthly_amount`` - mean monthly dollar
-        savings.  ``total_saved`` - sum of savings across all months.
-        ``num_months`` - row count.
-    """
-    if df_pivot.empty:
-        return SavingsSummary(
-            avg_monthly_rate=0.0,
-            overall_rate=0.0,
-            avg_monthly_amount=0.0,
-            total_saved=0.0,
-            num_months=0,
-        )
-
-    total_income = float(df_pivot["Income_Display"].sum())
-    total_saved = float(df_pivot["Savings"].sum())
-
-    return SavingsSummary(
-        avg_monthly_rate=float(df_pivot["Savings_Rate"].mean()),
-        overall_rate=(total_saved / total_income * 100) if total_income > 0 else 0.0,
-        avg_monthly_amount=float(df_pivot["Savings"].mean()),
-        total_saved=total_saved,
-        num_months=len(df_pivot),
-    )
 
 
 def display_summary_metrics(df_pivot: pd.DataFrame) -> None:
@@ -298,16 +210,23 @@ def display_data_tables(
             )
 
             # Show summary stats
+            filtered_summary = summarize_filtered_transactions(df_filtered_by_amount)
             col1, col2, col3 = st.columns(3)
             with col1:
-                total_filtered = df_filtered_by_amount['Amount'].sum()
-                st.metric("Total Amount Filtered", f"${abs(total_filtered):,.2f}")
+                st.metric(
+                    "Total Amount Filtered",
+                    f"${filtered_summary['total_amount']:,.2f}",
+                )
             with col2:
-                income_filtered = df_filtered_by_amount[df_filtered_by_amount['Type'] == 'Income']['Amount'].sum()
-                st.metric("Large Income Excluded", f"${abs(income_filtered):,.2f}")
+                st.metric(
+                    "Large Income Excluded",
+                    f"${filtered_summary['income_amount']:,.2f}",
+                )
             with col3:
-                expense_filtered = df_filtered_by_amount[df_filtered_by_amount['Type'] == 'Expense']['Amount'].sum()
-                st.metric("Large Expenses Excluded", f"${abs(expense_filtered):,.2f}")
+                st.metric(
+                    "Large Expenses Excluded",
+                    f"${filtered_summary['expense_amount']:,.2f}",
+                )
 
             st.divider()
 

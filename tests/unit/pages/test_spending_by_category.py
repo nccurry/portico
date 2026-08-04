@@ -1,4 +1,4 @@
-"""Tests for Pages/2_Spending_by_Category.py - process_spending_data, calculate_distribution_stats, and spending summary."""
+"""Tests for category spending and transaction-distribution calculations."""
 from collections.abc import Callable
 from typing import Any
 
@@ -6,11 +6,11 @@ import pytest
 import pandas as pd
 
 from src.spreadsheet import TransactionsSpreadsheet
-from tests._pages import spending_by_category as _mod
-
-process_spending_data = _mod.process_spending_data
-calculate_distribution_stats = _mod.calculate_distribution_stats
-calculate_spending_summary = _mod.calculate_spending_summary
+from src.analysis.spending import (
+    calculate_distribution_stats,
+    calculate_spending_summary,
+    process_spending_data,
+)
 
 
 class TestProcessSpendingData:
@@ -343,9 +343,8 @@ class TestParetoAnalysis:
         df = self._expense_df([100] * 10)
         stats = calculate_distribution_stats(df)
         # cumsum: [100, 200, ..., 1000]; 80% threshold = 800
-        # cumsum <= 800: rows 1..8 (count=8); +1 = 9
-        # pareto_pct = 9/10 * 100 = 90%
-        assert stats['pareto_pct'] == pytest.approx(90.0)
+        # The eighth transaction reaches the threshold exactly.
+        assert stats['pareto_pct'] == pytest.approx(80.0)
 
     def test_empty_df_pareto_is_zero(self) -> None:
         """An empty DataFrame produces pareto_pct = 0 without division error."""

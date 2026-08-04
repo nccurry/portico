@@ -1,15 +1,15 @@
-"""Tests for Pages/6_Merchant_Analysis.py - merchant enrichment and analysis."""
+"""Tests for merchant enrichment and analysis."""
 import numpy as np
 import pandas as pd
 import pytest
 
-from src.analysis.merchants import normalize_merchant_name
+from src.analysis.merchants import (
+    analyze_merchants,
+    enrich_with_merchant,
+    normalize_merchant_name,
+)
 from src.page_helpers import extract_merchant_name
 from tests._helpers import _make_merchant_df
-from tests._pages import merchant_analysis as _mod
-
-enrich_with_merchant = _mod.enrich_with_merchant
-analyze_merchants = _mod.analyze_merchants
 
 
 class TestExtractMerchantName:
@@ -89,7 +89,7 @@ class TestAnalyzeMerchants:
     def _enrich_and_analyze(
         self, df: pd.DataFrame, method: str = 'first_word', min_transactions: int = 1
     ) -> pd.DataFrame:
-        return analyze_merchants(enrich_with_merchant(df, method), min_transactions=min_transactions)  # type: ignore[no-any-return]
+        return analyze_merchants(enrich_with_merchant(df, method), min_transactions=min_transactions)
 
     def test_groups_by_merchant(self) -> None:
         result = self._enrich_and_analyze(_make_merchant_df())

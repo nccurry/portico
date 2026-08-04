@@ -7,8 +7,8 @@ import pandas as pd
 import pytest
 
 from src.spreadsheet import Spreadsheet, CategoriesSpreadsheet
+from src.analysis import budget as _mod
 from tests._helpers import _transactions_df
-from tests._pages import budget as _mod
 
 
 # ---------------------------------------------------------------------------
@@ -135,7 +135,7 @@ class TestGetBudgetVsActual:
         }
 
     def _get_fn(self) -> Callable[..., pd.DataFrame]:
-        return _mod.get_budget_vs_actual  # type: ignore[no-any-return]
+        return _mod.get_budget_vs_actual
 
     def test_basic_budget_vs_actual(self, budget_df: pd.DataFrame, transactions_df: pd.DataFrame, no_filters: dict[str, Any]) -> None:
         fn = self._get_fn()
@@ -421,7 +421,7 @@ class TestGetYtdBudgetVsActual:
         }
 
     def _get_fn(self) -> Callable[..., pd.DataFrame]:
-        return _mod.get_ytd_budget_vs_actual  # type: ignore[no-any-return]
+        return _mod.get_ytd_budget_vs_actual
 
     def test_ytd_through_march(self, budget_df: pd.DataFrame, transactions_df: pd.DataFrame, no_filters: dict[str, Any]) -> None:
         fn = self._get_fn()
@@ -511,7 +511,7 @@ class TestGetYtdBudgetVsActual:
 class TestBuildUnifiedBudgetTable:
 
     def _get_fn(self) -> Callable[..., pd.DataFrame]:
-        return _mod.build_unified_budget_table  # type: ignore[no-any-return]
+        return _mod.build_unified_budget_table
 
     def test_merges_monthly_and_ytd(self) -> None:
         fn = self._get_fn()
@@ -592,7 +592,7 @@ class TestBuildUnifiedBudgetTable:
 class TestProjectedSpend:
 
     def _get_fn(self) -> Callable[..., float]:
-        return _mod.calculate_projected_spend  # type: ignore[no-any-return]
+        return _mod.calculate_projected_spend
 
     def test_basic_projection(self) -> None:
         fn = self._get_fn()

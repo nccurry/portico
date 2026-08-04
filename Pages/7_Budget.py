@@ -6,9 +6,11 @@ import altair as alt
 
 from src.analysis.budget import (
     build_unified_budget_table,
+    calculate_category_projections,
     calculate_projected_spend,
     get_budget_vs_actual,
     get_ytd_budget_vs_actual,
+    summarize_budget,
 )
 from src.spreadsheet import (
     load_transactions_data,
@@ -118,56 +120,52 @@ def configure_page(
         filters,
     )
 
-    # Monthly summary metrics
-    total_budget = budget_actual["Budget"].sum()
-    total_spent = budget_actual["Spent"].sum()
-    total_remaining = total_budget - total_spent
-    pct_used = (total_spent / total_budget * 100) if total_budget > 0 else 0
+    monthly_summary = summarize_budget(budget_actual)
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        st.metric("Monthly Budget", f"${total_budget:,.2f}")
+        st.metric("Monthly Budget", f"${monthly_summary['budget']:,.2f}")
     with col2:
-        st.metric("Monthly Spent", f"${total_spent:,.2f}")
+        st.metric("Monthly Spent", f"${monthly_summary['spent']:,.2f}")
     with col3:
         st.metric(
             "Remaining",
-            f"${total_remaining:,.2f}",
-            delta_color="inverse" if total_remaining >= 0 else "normal",
+            f"${monthly_summary['remaining']:,.2f}",
+            delta_color="inverse" if monthly_summary["remaining"] >= 0 else "normal",
         )
     with col4:
-        st.metric("% Used", f"{pct_used:.1f}%")
+        st.metric("% Used", f"{monthly_summary['pct_used']:.1f}%")
 
-    ytd_budget = ytd_actual["Budget"].sum()
-    ytd_spent = ytd_actual["Spent"].sum()
-    ytd_remaining = ytd_budget - ytd_spent
-    ytd_pct = (ytd_spent / ytd_budget * 100) if ytd_budget > 0 else 0
+    ytd_summary = summarize_budget(ytd_actual)
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        st.metric("YTD Budget", f"${ytd_budget:,.2f}")
+        st.metric("YTD Budget", f"${ytd_summary['budget']:,.2f}")
     with col2:
-        st.metric("YTD Spent", f"${ytd_spent:,.2f}")
+        st.metric("YTD Spent", f"${ytd_summary['spent']:,.2f}")
     with col3:
         st.metric(
             "YTD Remaining",
-            f"${ytd_remaining:,.2f}",
-            delta_color="inverse" if ytd_remaining >= 0 else "normal",
+            f"${ytd_summary['remaining']:,.2f}",
+            delta_color="inverse" if ytd_summary["remaining"] >= 0 else "normal",
         )
     with col4:
-        st.metric("YTD % Used", f"{ytd_pct:.1f}%")
+        st.metric("YTD % Used", f"{ytd_summary['pct_used']:.1f}%")
 
     # Projection for current month
-    if selected_month == current_month_str and total_budget > 0:
+    if selected_month == current_month_str and monthly_summary["budget"] > 0:
         days_elapsed = now.day
         days_in_month = calendar.monthrange(now.year, now.month)[1]
         days_remaining = days_in_month - days_elapsed
-        projected = calculate_projected_spend(total_spent, days_elapsed, days_in_month)
+        projected = calculate_projected_spend(
+            monthly_summary["spent"], days_elapsed, days_in_month
+        )
 
-        proj_color = "red" if projected > total_budget else "green"
+        proj_color = "red" if projected > monthly_summary["budget"] else "green"
         st.markdown(
             f"**{days_remaining} days remaining** in {now.strftime('%B')} "
-            f"&mdash; On pace to spend: :{proj_color}[**${projected:,.2f}**] of ${total_budget:,.2f} budget"
+            f"&mdash; On pace to spend: :{proj_color}[**${projected:,.2f}**] "
+            f"of ${monthly_summary['budget']:,.2f} budget"
         )
 
     if budget_actual.empty:
@@ -176,7 +174,7 @@ def configure_page(
         # Bar chart for selected month
         st.altair_chart(
             create_budget_category_chart(budget_actual, f"Budget vs Actual — {selected_month}"),
-            use_container_width=True,
+            width="stretch",
         )
 
         # Unified budget table
@@ -212,14 +210,15 @@ def configure_page(
         if selected_month == current_month_str:
             days_elapsed = now.day
             days_in_month = calendar.monthrange(now.year, now.month)[1]
-            for _, row in budget_actual.iterrows():
-                if row["Budget"] > 0:
-                    proj = calculate_projected_spend(row["Spent"], days_elapsed, days_in_month)
-                    color = "red" if proj > row["Budget"] else "green"
-                    st.caption(
-                        f"**{row['Category']}**: On pace: :{color}[${proj:,.0f}] "
-                        f"of ${row['Budget']:,.0f} budget"
-                    )
+            projections = calculate_category_projections(
+                budget_actual, days_elapsed, days_in_month
+            )
+            for _, row in projections.iterrows():
+                color = "red" if row["Over_Budget"] else "green"
+                st.caption(
+                    f"**{row['Category']}**: On pace: :{color}[${row['Projected']:,.0f}] "
+                    f"of ${row['Budget']:,.0f} budget"
+                )
 
     # Transactions
     st.divider()

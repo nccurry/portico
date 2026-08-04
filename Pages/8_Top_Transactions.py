@@ -1,114 +1,20 @@
 import streamlit as st
-import pandas as pd
 import altair as alt
 
 from src.spreadsheet import load_transactions_data, TransactionsSpreadsheet
 from src.filters import apply_transaction_filters, calculate_date_range
-from src.analysis.merchants import normalize_merchant_name
+from src.analysis.top_transactions import (
+    find_recurring_large_expenses,
+    get_category_breakdown,
+    get_top_transactions,
+)
 from src.page_helpers import get_transaction_column_config, render_data_refresh_controls
-from src.custom_types import TopTransactionsStats
 from src.constants import (
     TIME_PERIODS,
     CHART_HEIGHT_STANDARD,
     TRANSACTION_TABLE_HEIGHT,
     COLOR_PALETTE,
 )
-
-
-# ---------------------------------------------------------------------------
-# Pure helper functions (testable without Streamlit)
-# ---------------------------------------------------------------------------
-
-def get_top_transactions(
-    df: pd.DataFrame,
-    n: int,
-    start_date: pd.Timestamp,
-    end_date: pd.Timestamp,
-) -> tuple[pd.DataFrame, TopTransactionsStats]:
-    """Get the N largest expense transactions in a date range.
-
-    Args:
-        df: Filtered transactions dataframe
-        n: Number of top transactions to return
-        start_date: Start of period
-        end_date: End of period
-
-    Returns:
-        Tuple of (top_n_df, summary_stats dict)
-    """
-    expenses = df[
-        (df['Type'] == 'Expense') &
-        (df['Date'] >= start_date) &
-        (df['Date'] <= end_date)
-    ].copy()
-
-    if expenses.empty:
-        return pd.DataFrame(), {
-            'total_top_n': 0,
-            'total_spending': 0,
-            'pct_of_total': 0,
-            'num_transactions': 0,
-        }
-
-    expenses['Abs_Amount'] = expenses['Amount'].abs()
-    total_spending = expenses['Abs_Amount'].sum()
-
-    expenses = expenses.sort_values(
-        ['Abs_Amount', 'Date'], ascending=[False, True],
-    )
-    top_n = expenses.head(n)
-    total_top_n = top_n['Abs_Amount'].sum()
-
-    pct_of_total = (total_top_n / total_spending * 100) if total_spending > 0 else 0
-
-    return top_n, {
-        'total_top_n': total_top_n,
-        'total_spending': total_spending,
-        'pct_of_total': pct_of_total,
-        'num_transactions': len(expenses),
-    }
-
-
-def get_category_breakdown(top_n_df: pd.DataFrame) -> pd.DataFrame:
-    """Get category breakdown of top transactions.
-
-    Returns:
-        DataFrame with Category, Total, Count columns sorted by Total descending
-    """
-    if top_n_df.empty:
-        return pd.DataFrame(columns=['Category', 'Total', 'Count'])
-
-    breakdown = top_n_df.groupby('Category').agg(
-        Total=('Abs_Amount', 'sum'),
-        Count=('Abs_Amount', 'count'),
-    ).reset_index().sort_values('Total', ascending=False)
-
-    return breakdown
-
-
-def find_recurring_large_expenses(top_n_df: pd.DataFrame) -> pd.DataFrame:
-    """Identify merchants that appear multiple times in top transactions.
-
-    Returns:
-        DataFrame with Merchant, Count, Total columns
-    """
-    if top_n_df.empty:
-        return pd.DataFrame(columns=['Merchant', 'Count', 'Total'])
-
-    df = top_n_df.copy()
-    df['Merchant'] = df['Full Description'].apply(
-        lambda x: normalize_merchant_name(x, method='first_three')
-    )
-
-    recurring = df.groupby('Merchant').agg(
-        Count=('Abs_Amount', 'count'),
-        Total=('Abs_Amount', 'sum'),
-    ).reset_index()
-
-    # Only show merchants with 2+ appearances
-    recurring = recurring[recurring['Count'] >= 2].sort_values('Total', ascending=False)
-
-    return recurring
 
 
 # ---------------------------------------------------------------------------
@@ -179,7 +85,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
                 height=min(len(breakdown) * 30 + 50, CHART_HEIGHT_STANDARD),
                 width='container',
             )
-            st.altair_chart(chart, use_container_width=True)
+            st.altair_chart(chart, width="stretch")
 
     with table_col:
         st.subheader("Recurring Large Expenses")
@@ -189,7 +95,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
             st.dataframe(
                 recurring,
                 hide_index=True,
-                use_container_width=True,
+                width="stretch",
                 column_config={
                     'Merchant': st.column_config.TextColumn('Merchant'),
                     'Count': st.column_config.NumberColumn('Occurrences'),
@@ -209,7 +115,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
         display_df,
         height=TRANSACTION_TABLE_HEIGHT,
         hide_index=True,
-        use_container_width=True,
+        width="stretch",
         column_config=get_transaction_column_config(),
     )
 

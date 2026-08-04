@@ -1,12 +1,12 @@
-"""Tests for Pages/10_Top_Transactions.py - top transaction analysis."""
+"""Tests for top-transaction analysis."""
 import pytest
 import pandas as pd
 
-from tests._pages import top_transactions as _mod
-
-get_top_transactions = _mod.get_top_transactions
-get_category_breakdown = _mod.get_category_breakdown
-find_recurring_large_expenses = _mod.find_recurring_large_expenses
+from src.analysis.top_transactions import (
+    find_recurring_large_expenses,
+    get_category_breakdown,
+    get_top_transactions,
+)
 
 
 class TestGetTopTransactions:

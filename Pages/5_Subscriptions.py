@@ -5,7 +5,12 @@ import altair as alt
 
 from src.spreadsheet import load_transactions_data, TransactionsSpreadsheet
 from src.page_helpers import get_transaction_column_config, render_data_refresh_controls
-from src.analysis.subscriptions import detect_recurring_transactions, _subscription_match_mask
+from src.analysis.subscriptions import (
+    _subscription_match_mask,
+    detect_recurring_transactions,
+    prepare_subscription_timeline,
+    summarize_subscriptions,
+)
 from src.constants import (
     CHART_HEIGHT_STANDARD,
     COLOR_EXPENSE,
@@ -30,23 +35,7 @@ def create_subscription_timeline(
             text=alt.value("No subscriptions detected")
         )
 
-    # For each subscription, get all matching transactions
-    timeline_data = []
-    for _, sub in subscriptions.iterrows():
-        merchant = sub['Merchant']
-        amount = sub['Amount_Rounded']
-
-        matches = df[_subscription_match_mask(df, merchant, amount)].copy()
-
-        if not matches.empty:
-            timeline_data.append({
-                'Merchant': merchant[:30],  # Truncate long names
-                'First_Date': matches['Date'].min(),
-                'Last_Date': matches['Date'].max(),
-                'Amount': sub['Monthly_Cost']
-            })
-
-    timeline_df = pd.DataFrame(timeline_data)
+    timeline_df = prepare_subscription_timeline(df, subscriptions)
 
     if timeline_df.empty:
         return alt.Chart(pd.DataFrame()).mark_text().encode(  # type: ignore[no-any-return]
@@ -176,35 +165,32 @@ def configure_page(
 
     # Display summary metrics
     if not subscriptions.empty:
-        total_monthly = subscriptions['Monthly_Cost'].sum()
-        total_annual = subscriptions['Annual_Cost'].sum()
-        num_subs = len(subscriptions)
+        summary = summarize_subscriptions(subscriptions)
 
         col1, col2, col3, col4 = st.columns(4)
 
         with col1:
             st.metric(
                 label="Detected Subscriptions",
-                value=num_subs
+                value=summary["count"]
             )
 
         with col2:
             st.metric(
                 label="Total Monthly Cost",
-                value=f"${total_monthly:,.2f}"
+                value=f"${summary['monthly_cost']:,.2f}"
             )
 
         with col3:
             st.metric(
                 label="Projected Annual Cost",
-                value=f"${total_annual:,.2f}"
+                value=f"${summary['annual_cost']:,.2f}"
             )
 
         with col4:
-            avg_cost = total_monthly / num_subs
             st.metric(
                 label="Average Subscription",
-                value=f"${avg_cost:,.2f}/mo"
+                value=f"${summary['average_monthly_cost']:,.2f}/mo"
             )
 
         st.divider()

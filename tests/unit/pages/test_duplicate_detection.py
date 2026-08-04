@@ -1,11 +1,8 @@
-"""Tests for Pages/4_Duplicate_Detection.py - normalize_description and find_duplicates_efficient."""
+"""Tests for duplicate-transaction detection."""
 import pandas as pd
 
 from tests._helpers import _make_df
-from tests._pages import duplicate_detection as _mod
-
-find_duplicates_efficient = _mod.find_duplicates_efficient
-normalize_description = _mod.normalize_description
+from src.analysis.duplicates import find_duplicates_efficient, normalize_description
 
 
 class TestNormalizeDescription:
