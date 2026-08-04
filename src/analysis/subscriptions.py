@@ -5,6 +5,7 @@ from typing import Final
 import pandas as pd
 
 from src.analysis.merchants import _mode_or_first, normalize_merchant_name
+from src.custom_types import SubscriptionSummary
 from src.constants import (
     SUBSCRIPTION_EXCLUDED_CATEGORIES,
     SUBSCRIPTION_EXCLUDED_CATEGORY_PATTERN,
@@ -115,6 +116,52 @@ def detect_recurring_transactions(
     return grouped[SUBSCRIPTION_COLUMNS].reset_index(drop=True)
 
 
+def summarize_subscriptions(subscriptions: pd.DataFrame) -> SubscriptionSummary:
+    """Return aggregate monthly and annual subscription costs."""
+    count = len(subscriptions)
+    monthly_cost = (
+        float(subscriptions["Monthly_Cost"].sum()) if count else 0.0
+    )
+    annual_cost = monthly_cost * 12
+    return SubscriptionSummary(
+        count=count,
+        monthly_cost=monthly_cost,
+        annual_cost=annual_cost,
+        average_monthly_cost=monthly_cost / count if count else 0.0,
+    )
+
+
+def prepare_subscription_timeline(
+    transactions: pd.DataFrame,
+    subscriptions: pd.DataFrame,
+) -> pd.DataFrame:
+    """Return first/last matching charges and monthly cost per subscription."""
+    timeline: list[dict[str, object]] = []
+    for _, subscription in subscriptions.iterrows():
+        merchant = str(subscription["Merchant"])
+        matches = transactions[
+            _subscription_match_mask(
+                transactions,
+                merchant,
+                float(subscription["Amount_Rounded"]),
+            )
+        ]
+        if matches.empty:
+            continue
+        timeline.append(
+            {
+                "Merchant": merchant[:30],
+                "First_Date": matches["Date"].min(),
+                "Last_Date": matches["Date"].max(),
+                "Amount": float(subscription["Monthly_Cost"]),
+            }
+        )
+    return pd.DataFrame(
+        timeline,
+        columns=["Merchant", "First_Date", "Last_Date", "Amount"],
+    )
+
+
 def _subscription_match_mask(
     df: pd.DataFrame,
     merchant: str,
@@ -128,7 +175,10 @@ def _subscription_match_mask(
     target = normalize_merchant_name(merchant, method="first_three")
     amounts = df["Amount"].abs()
     tolerance = max(amount_tolerance_abs, abs(amount_rounded) * amount_tolerance_pct)
-    return (merchant_keys == target) & ((amounts - amount_rounded).abs() <= tolerance)
+    matches = (merchant_keys == target) & ((amounts - amount_rounded).abs() <= tolerance)
+    if "Type" in df.columns:
+        matches &= df["Type"] == "Expense"
+    return matches
 
 
 def _assign_amount_clusters(

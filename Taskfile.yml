@@ -133,12 +133,12 @@ tasks:
   test:coverage:
     desc: "Run tests with coverage report"
     cmds:
-      - '{{.UV}} run --dev pytest --cov=src --cov=Pages --cov-report=term-missing --cov-fail-under=80'
+      - '{{.UV}} run --dev pytest --cov=src --cov=Pages --cov-branch --cov-report=term-missing --cov-fail-under=80'
 
   test:coverage:src:
     desc: "Run tests with src/ coverage gate (>=90%)"
     cmds:
-      - '{{.UV}} run --dev pytest --cov=src --cov-report=term-missing --cov-fail-under=90'
+      - '{{.UV}} run --dev pytest --cov=src --cov-branch --cov-report=term-missing --cov-fail-under=90'
 
   # ========================================
   # Linting

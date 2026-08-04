@@ -1,8 +1,11 @@
 """Budget comparison calculations shared by the Budget page and tests."""
 
+from collections.abc import Mapping
+from typing import Any
+
 import pandas as pd
 
-from src.custom_types import BudgetFilters
+from src.custom_types import BudgetSummary
 from src.filters import apply_transaction_filters
 
 
@@ -10,7 +13,7 @@ def _budget_comparison(
     budget_df: pd.DataFrame,
     transactions_df: pd.DataFrame,
     month_str: str,
-    filters: BudgetFilters,
+    filters: Mapping[str, Any],
     *,
     ytd: bool,
 ) -> pd.DataFrame:
@@ -79,7 +82,7 @@ def get_budget_vs_actual(
     budget_df: pd.DataFrame,
     transactions_df: pd.DataFrame,
     month_str: str,
-    filters: BudgetFilters,
+    filters: Mapping[str, Any],
 ) -> pd.DataFrame:
     """Compare monthly budget to actual spending for ``month_str``."""
     return _budget_comparison(budget_df, transactions_df, month_str, filters, ytd=False)
@@ -89,7 +92,7 @@ def get_ytd_budget_vs_actual(
     budget_df: pd.DataFrame,
     transactions_df: pd.DataFrame,
     month_str: str,
-    filters: BudgetFilters,
+    filters: Mapping[str, Any],
 ) -> pd.DataFrame:
     """Compare YTD cumulative budget to actual spending through ``month_str``."""
     return _budget_comparison(budget_df, transactions_df, month_str, filters, ytd=True)
@@ -125,3 +128,35 @@ def calculate_projected_spend(
     if days_elapsed <= 0:
         return 0.0
     return spent / days_elapsed * days_in_month
+
+
+def summarize_budget(comparison: pd.DataFrame) -> BudgetSummary:
+    """Return aggregate budget, spending, remaining, and utilization."""
+    budget = float(comparison["Budget"].sum()) if not comparison.empty else 0.0
+    spent = float(comparison["Spent"].sum()) if not comparison.empty else 0.0
+    return BudgetSummary(
+        budget=budget,
+        spent=spent,
+        remaining=budget - spent,
+        pct_used=spent / budget * 100 if budget > 0 else 0.0,
+    )
+
+
+def calculate_category_projections(
+    comparison: pd.DataFrame,
+    days_elapsed: int,
+    days_in_month: int,
+) -> pd.DataFrame:
+    """Return budgeted categories with projected end-of-month spending."""
+    budgeted = comparison[comparison["Budget"] > 0][
+        ["Category", "Budget", "Spent"]
+    ].copy()
+    budgeted["Projected"] = budgeted["Spent"].apply(
+        lambda spent: calculate_projected_spend(
+            float(spent),
+            days_elapsed,
+            days_in_month,
+        )
+    )
+    budgeted["Over_Budget"] = budgeted["Projected"] > budgeted["Budget"]
+    return budgeted

@@ -13,19 +13,12 @@ import pandas as pd
 import pytest
 
 from src.constants import MIN_DUPLICATE_AMOUNT, DEFAULT_DUPLICATE_DAYS_THRESHOLD
+from src.analysis.budget import get_budget_vs_actual
+from src.analysis.duplicates import find_duplicates_efficient
+from src.analysis.subscriptions import detect_recurring_transactions
+from src.analysis.top_transactions import get_top_transactions
 from src.filters import apply_transaction_filters
 from src.spreadsheet import calculate_net_worth_summary
-from tests._pages import (
-    duplicate_detection,
-    subscriptions,
-    top_transactions,
-    budget,
-)
-
-find_duplicates_efficient = duplicate_detection.find_duplicates_efficient
-detect_recurring_transactions = subscriptions.detect_recurring_transactions
-get_top_transactions = top_transactions.get_top_transactions
-get_budget_vs_actual = budget.get_budget_vs_actual
 
 
 @pytest.fixture

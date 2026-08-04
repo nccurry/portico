@@ -1,12 +1,12 @@
-"""Tests for Pages/5_Subscriptions.py - detect_recurring_transactions."""
+"""Tests for recurring-transaction detection."""
 import pytest
 import pandas as pd
 
 from tests._helpers import _make_recurring_df
-from tests._pages import subscriptions
-
-detect_recurring_transactions = subscriptions.detect_recurring_transactions
-subscription_match_mask = subscriptions._subscription_match_mask
+from src.analysis.subscriptions import (
+    _subscription_match_mask as subscription_match_mask,
+    detect_recurring_transactions,
+)
 
 
 class TestDetectRecurringTransactions:

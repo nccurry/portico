@@ -12,17 +12,14 @@ import pandas as pd
 import pytest
 
 from src.constants import DEFAULT_EXCLUDE_GROUPS_INCOME_SAVINGS
+from src.analysis.financial_independence import calculate_avg_monthly_spending
+from src.analysis.income import process_income_expense_data
+from src.analysis.spending import process_spending_data
 from src.filters import apply_transaction_filters
 from src.spreadsheet import get_all_accounts, get_portfolio_value
-from tests._pages import financial_independence, income_and_savings, spending_by_category
 
 if TYPE_CHECKING:
     from src.spreadsheet import TransactionsSpreadsheet
-
-process_income_expense_data = income_and_savings.process_income_expense_data
-process_spending_data = spending_by_category.process_spending_data
-calculate_avg_monthly_spending = financial_independence.calculate_avg_monthly_spending
-
 
 # ---------------------------------------------------------------------------
 # Filter pipeline integrity

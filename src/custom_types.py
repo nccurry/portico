@@ -84,6 +84,9 @@ class DistributionStats(TypedDict):
     small_pct: float
     medium_pct: float
     large_pct: float
+    small_count_pct: float
+    medium_count_pct: float
+    large_count_pct: float
     pareto_pct: float
 
 
@@ -95,6 +98,51 @@ class SavingsSummary(TypedDict):
     avg_monthly_amount: float
     total_saved: float
     num_months: int
+
+
+class FilteredTransactionSummary(TypedDict):
+    """Totals for transactions excluded by amount filters."""
+
+    count: int
+    total_amount: float
+    income_amount: float
+    expense_amount: float
+
+
+class DuplicateSummary(TypedDict):
+    """Headline values for potential duplicate pairs."""
+
+    pair_count: int
+    total_amount: float
+    affected_months: int
+
+
+class SubscriptionSummary(TypedDict):
+    """Headline recurring-charge costs."""
+
+    count: int
+    monthly_cost: float
+    annual_cost: float
+    average_monthly_cost: float
+
+
+class MerchantSummary(TypedDict):
+    """Headline merchant spending metrics."""
+
+    count: int
+    total_spent: float
+    top_merchant: str
+    top_merchant_spent: float
+    average_spent: float
+
+
+class BudgetSummary(TypedDict):
+    """Aggregate budget-versus-actual values for a period."""
+
+    budget: float
+    spent: float
+    remaining: float
+    pct_used: float
 
 
 class SpendingSummary(TypedDict):
@@ -121,5 +169,8 @@ class FISummary(TypedDict):
     annual_spending: float
     supplemental_spending: float
     supplemental_income: float
+    total_spending: float
+    total_inflow: float
+    cashflow_gap: float
     coverage_ratio: float
     runway_years: float | None

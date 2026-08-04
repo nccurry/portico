@@ -5,6 +5,14 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
+from src.analysis.financial_independence import (
+    calculate_avg_monthly_spending,
+    calculate_fi_metrics,
+    get_savings_accounts as _get_savings_accounts,
+    project_portfolio,
+    resolve_annual_spending,
+    resolve_portfolio_value,
+)
 from src.constants import (
     CHART_HEIGHT_STANDARD,
     COLOR_ADDITIONAL_SPENDING,
@@ -25,180 +33,6 @@ from src.spreadsheet import (
     load_balance_history_data,
     load_transactions_data,
 )
-
-
-def _get_savings_accounts(bal_df: pd.DataFrame) -> list[str]:
-    """Return Account names whose Group is 'Savings' (case-insensitive)."""
-    if "Group" not in bal_df.columns:
-        return []
-    df = bal_df
-    if "Hide" in df.columns:
-        df = df[df["Hide"] != "Hide"]
-    mask = df["Group"].astype(str).str.lower() == "savings"
-    return sorted(df[mask]["Account"].dropna().unique().tolist())
-
-
-def resolve_annual_spending(
-    avg_monthly_spending: float,
-    override_value: float | None,
-) -> float:
-    """Return ``override_value`` if not None, else ``avg_monthly_spending * 12``.
-
-    The override completely replaces the data-derived baseline; additional
-    spending is layered on top separately by ``calculate_fi_metrics``.
-    """
-    if override_value is not None:
-        return float(override_value)
-    return avg_monthly_spending * 12
-
-
-def resolve_portfolio_value(
-    calculated_value: float,
-    override_value: float | None,
-) -> float:
-    """Return ``override_value`` if not None, else ``calculated_value``.
-
-    Used to spot-test scenarios where the user wants to ignore the data-derived
-    portfolio total and plug in a hypothetical balance.
-    """
-    if override_value is not None:
-        return float(override_value)
-    return calculated_value
-
-
-def calculate_avg_monthly_spending(
-    df: pd.DataFrame,
-    start_month: str,
-    end_month: str,
-) -> tuple[float, pd.DataFrame]:
-    """Return (avg_monthly_spend, monthly_totals_df) for Expense rows in window.
-
-    Parameters
-    ----------
-    df:
-        Already-filtered transactions. Expenses must have ``Type='Expense'`` and
-        a negative ``Amount``; only expense rows contribute to the average.
-    start_month, end_month:
-        Inclusive ``YYYY-MM`` bounds on the ``Month`` column.
-
-    Returns
-    -------
-    tuple[float, pd.DataFrame]
-        ``(avg, totals)`` where ``avg`` is mean monthly spend as a positive
-        float and ``totals`` has columns ``Month`` and ``Spending`` (positive).
-        Returns ``(0.0, empty_df)`` when no expense rows are in range.
-    """
-    totals_cols = ["Month", "Spending"]
-    if df.empty:
-        return 0.0, pd.DataFrame(columns=totals_cols)
-
-    expenses = df[df["Type"] == "Expense"].copy()
-    expenses = expenses[
-        (expenses["Month"] >= start_month) & (expenses["Month"] <= end_month)
-    ]
-    if expenses.empty:
-        return 0.0, pd.DataFrame(columns=totals_cols)
-
-    monthly = (
-        expenses.groupby("Month")["Amount"]
-        .sum()
-        .abs()
-        .reset_index()
-        .rename(columns={"Amount": "Spending"})
-        .sort_values("Month")
-        .reset_index(drop=True)
-    )
-    avg = float(monthly["Spending"].mean())
-    return avg, monthly
-
-
-def calculate_fi_metrics(
-    portfolio_value: float,
-    annual_spending: float,
-    rate_pct: float,
-    annual_income: float = 0.0,
-    additional_annual_spending: float = 0.0,
-) -> FISummary:
-    """Derive FI metrics from portfolio size, spending, return, and income.
-
-    ``rate_pct`` is a percentage (e.g. ``7.0`` for 7%). ``annual_income``
-    (default 0) offsets withdrawals; ``additional_annual_spending`` (default 0)
-    adds to the data-derived baseline. Coverage is
-    ``(return + income) / (spending + additional)``. Runway uses the
-    closed-form for ``B_{n+1} = B_n*(1+r) - ((S + S') - I)`` and is ``None``
-    when total inflow fully covers total spending.
-    """
-    r = rate_pct / 100.0
-    annual_return = portfolio_value * r
-    total_spending = annual_spending + additional_annual_spending
-    net_withdrawal = total_spending - annual_income
-
-    if total_spending <= 0:
-        coverage = (
-            float("inf")
-            if portfolio_value > 0 or annual_return > 0 or annual_income > 0
-            else 0.0
-        )
-        return FISummary(
-            portfolio_value=portfolio_value,
-            annual_return=annual_return,
-            annual_spending=annual_spending,
-            supplemental_spending=additional_annual_spending,
-            supplemental_income=annual_income,
-            coverage_ratio=coverage,
-            runway_years=None,
-        )
-
-    coverage = (annual_return + annual_income) / total_spending
-
-    if net_withdrawal <= 0:
-        runway: float | None = None
-    elif portfolio_value <= 0:
-        runway = 0.0
-    elif r <= 0:
-        runway = portfolio_value / net_withdrawal
-    elif annual_return >= net_withdrawal:
-        runway = None
-    else:
-        runway = math.log(
-            net_withdrawal / (net_withdrawal - portfolio_value * r)
-        ) / math.log(1.0 + r)
-
-    return FISummary(
-        portfolio_value=portfolio_value,
-        annual_return=annual_return,
-        annual_spending=annual_spending,
-        supplemental_spending=additional_annual_spending,
-        supplemental_income=annual_income,
-        coverage_ratio=coverage,
-        runway_years=runway,
-    )
-
-
-def project_portfolio(
-    portfolio_value: float,
-    annual_spending: float,
-    rate_pct: float,
-    years: int,
-    annual_income: float = 0.0,
-    additional_annual_spending: float = 0.0,
-) -> pd.DataFrame:
-    """Simulate ``B_{n+1} = B_n*(1+r) - ((S + S') - I)`` for ``years`` years.
-
-    ``annual_income`` (default 0) reduces the net annual withdrawal;
-    ``additional_annual_spending`` (default 0) increases it. Balance is clamped
-    at 0 once depleted so downstream charts do not plot negatives.
-    """
-    r = rate_pct / 100.0
-    net_withdrawal = (annual_spending + additional_annual_spending) - annual_income
-    balances: list[float] = [portfolio_value]
-    b = portfolio_value
-    for _ in range(years):
-        b = b * (1.0 + r) - net_withdrawal
-        if b < 0:
-            b = 0.0
-        balances.append(b)
-    return pd.DataFrame({"Year": list(range(years + 1)), "Balance": balances})
 
 
 def _build_spending_filters(filters: FIFilters) -> dict[str, object]:
@@ -225,9 +59,6 @@ def _spending_window_months(
 
 def _render_metric_row(summary: FISummary) -> None:
     """FI metrics in three unlabeled rows: raw, adjustments, then calculated."""
-    total_spending = summary["annual_spending"] + summary["supplemental_spending"]
-    total_inflow = summary["annual_return"] + summary["supplemental_income"]
-
     cov = summary["coverage_ratio"]
     cov_str = "Infinite" if math.isinf(cov) else f"{cov * 100:.1f}%"
     cov_delta = None if math.isinf(cov) else ("Covered" if cov >= 1 else "Not yet")
@@ -278,8 +109,8 @@ def _render_metric_row(summary: FISummary) -> None:
     with calc[3]:
         st.metric(
             "Total Spending",
-            f"${total_spending:,.0f}",
-            delta=f"${total_inflow - total_spending:,.0f} vs inflow",
+            f"${summary['total_spending']:,.0f}",
+            delta=f"${summary['cashflow_gap']:,.0f} vs inflow",
             delta_color="normal",
             help="Annual Spending + Additional Spending. Delta is total inflow minus total spending.",
         )
@@ -291,7 +122,6 @@ def _create_comparison_chart(summary: FISummary) -> alt.LayerChart:
     Left bar stacks Annual Return + Supplemental Income; right bar shows
     Annual Spending. A dashed rule at the spending level marks break-even.
     """
-    total_spending = summary["annual_spending"] + summary["supplemental_spending"]
     rows = [
         {"Bar": "Inflow", "Component": "Annual Return", "Amount": summary["annual_return"]},
         {"Bar": "Inflow", "Component": "Supplemental Income", "Amount": summary["supplemental_income"]},
@@ -322,7 +152,7 @@ def _create_comparison_chart(summary: FISummary) -> alt.LayerChart:
         ],
     )
     breakeven = alt.Chart(
-        pd.DataFrame({"y": [total_spending]})
+        pd.DataFrame({"y": [summary["total_spending"]]})
     ).mark_rule(color=COLOR_SAVINGS, strokeDash=[5, 5], strokeWidth=2).encode(y="y:Q")
 
     return (bars + breakeven).properties(  # type: ignore[no-any-return]

@@ -3,88 +3,22 @@ import pandas as pd
 import altair as alt
 
 from src.spreadsheet import load_transactions_data, TransactionsSpreadsheet
-from src.filters import render_spending_filters, apply_transaction_filters, calculate_date_range
+from src.filters import render_spending_filters, calculate_date_range
 from src.page_helpers import get_transaction_column_config, display_transactions_expander, render_data_refresh_controls
-from src.custom_types import SpendingFilters, DistributionStats, SpendingSummary
+from src.analysis.spending import (
+    calculate_distribution_stats,
+    calculate_spending_summary,
+    prepare_amount_histogram,
+    prepare_category_boxplot,
+    prepare_spending_trend,
+    process_spending_data,
+)
 from src.constants import (
     TIME_PERIODS,
     CHART_HEIGHT_STANDARD,
     COLOR_PALETTE,
     DEFAULT_LARGE_TRANSACTION_THRESHOLD
 )
-
-
-def process_spending_data(
-    transactions_spreadsheet: TransactionsSpreadsheet,
-    filters: SpendingFilters,
-    start_date: pd.Timestamp,
-    end_date: pd.Timestamp
-) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Apply filters and calculate spending by category.
-
-    Args:
-        transactions_spreadsheet: Transactions data
-        filters: Dictionary of filter settings
-        start_date: Period start date
-        end_date: Period end date
-
-    Returns:
-        Tuple of (filtered_df, category_summary_df)
-    """
-    # Get all transactions and apply filters
-    df = transactions_spreadsheet.scrubbed_df.copy()
-    df = apply_transaction_filters(df, filters)
-
-    # Filter to date range and expenses only
-    df_period = df[
-        (df['Date'] >= start_date) &
-        (df['Date'] <= end_date) &
-        (df['Type'] == 'Expense')
-    ].copy()
-
-    # Group by category
-    df_by_category = df_period.groupby('Category')['Amount'].sum().reset_index()
-    df_by_category['Amount'] = df_by_category['Amount'].abs()
-    df_by_category = df_by_category.sort_values('Amount', ascending=False)
-
-    # Calculate totals and percentages
-    total_spending = df_by_category['Amount'].sum()
-    if total_spending > 0:
-        df_by_category['Percentage'] = (df_by_category['Amount'] / total_spending * 100).round(1)
-    else:
-        df_by_category['Percentage'] = 0
-
-    return df_period, df_by_category
-
-
-def calculate_spending_summary(df_by_category: pd.DataFrame) -> SpendingSummary:
-    """Derive aggregate spending metrics from the category breakdown.
-
-    Parameters
-    ----------
-    df_by_category:
-        Output of :func:`process_spending_data` — one row per category with
-        ``Amount`` (absolute) and ``Percentage`` columns, sorted descending.
-
-    Returns
-    -------
-    SpendingSummary
-        ``total_spending``, ``top_category``, ``top_category_amount``, and
-        ``num_categories``.
-    """
-    if df_by_category.empty:
-        return SpendingSummary(
-            total_spending=0.0,
-            top_category="",
-            top_category_amount=0.0,
-            num_categories=0,
-        )
-    return SpendingSummary(
-        total_spending=float(df_by_category["Amount"].sum()),
-        top_category=str(df_by_category.iloc[0]["Category"]),
-        top_category_amount=float(df_by_category.iloc[0]["Amount"]),
-        num_categories=len(df_by_category),
-    )
 
 
 def display_summary_metrics(df_by_category: pd.DataFrame) -> None:
@@ -129,10 +63,7 @@ def create_spending_trend_chart(
     Returns:
         Altair chart
     """
-    # Get monthly spending for top categories
-    df_monthly = df_period[df_period['Category'].isin(top_categories)].copy()
-    df_monthly['Amount'] = df_monthly['Amount'].abs()
-    df_monthly_grouped = df_monthly.groupby(['Month', 'Category'])['Amount'].sum().reset_index()
+    df_monthly_grouped = prepare_spending_trend(df_period, top_categories)
 
     # Create line chart with shared color scale
     chart = alt.Chart(df_monthly_grouped).mark_line(point=True, strokeWidth=3).encode(
@@ -201,15 +132,9 @@ def create_amount_histogram(df_period: pd.DataFrame) -> alt.Chart:
             text=alt.value("No transaction data available")
         )
 
-    df_hist = df_period.copy()
-    df_hist['Amount_Abs'] = df_hist['Amount'].abs()
-
-    bins = [0, 10, 25, 50, 100, 250, 500, 1000, 5000, 100000]
     labels = ['$0-10', '$10-25', '$25-50', '$50-100', '$100-250',
               '$250-500', '$500-1K', '$1K-5K', '$5K+']
-
-    df_hist['Amount_Range'] = pd.cut(df_hist['Amount_Abs'], bins=bins, labels=labels, include_lowest=True)
-    bin_counts = df_hist.groupby('Amount_Range', observed=True).size().reset_index(name='Count')
+    bin_counts = prepare_amount_histogram(df_period)
 
     chart = alt.Chart(bin_counts).mark_bar().encode(
         x=alt.X('Amount_Range:N',
@@ -244,15 +169,8 @@ def create_category_boxplot(df_period: pd.DataFrame) -> alt.Chart:
             text=alt.value("No transaction data available")
         )
 
-    # Get top 10 categories by total spending
-    top_categories = (df_period.groupby('Category')['Amount']
-                     .sum()
-                     .abs()
-                     .nlargest(10)
-                     .index.tolist())
-
-    df_box = df_period[df_period['Category'].isin(top_categories)].copy()
-    df_box['Amount_Abs'] = df_box['Amount'].abs()
+    df_box = prepare_category_boxplot(df_period)
+    top_categories = df_box['Category'].unique()
 
     # Create box plot
     chart = alt.Chart(df_box).mark_boxplot(size=30).encode(
@@ -275,62 +193,6 @@ def create_category_boxplot(df_period: pd.DataFrame) -> alt.Chart:
     )
 
     return chart  # type: ignore[no-any-return]
-
-
-def calculate_distribution_stats(df_period: pd.DataFrame) -> DistributionStats:
-    """Calculate summary statistics about transaction amount distribution.
-
-    Args:
-        df_period: Filtered transaction data
-
-    Returns:
-        Dictionary of statistics
-    """
-    amounts = df_period['Amount'].abs()
-
-    # Calculate percentiles
-    p25 = amounts.quantile(0.25)
-    p50 = amounts.quantile(0.50)  # Median
-    p75 = amounts.quantile(0.75)
-    p80 = amounts.quantile(0.80)
-    p90 = amounts.quantile(0.90)
-
-    # Calculate mean
-    mean = amounts.mean()
-
-    # Count transactions in different ranges
-    small_count = len(amounts[amounts < 25])
-    medium_count = len(amounts[(amounts >= 25) & (amounts < 250)])
-    large_count = len(amounts[amounts >= 250])
-
-    # Calculate what % of spending each represents
-    total_spending = amounts.sum()
-    small_pct = (amounts[amounts < 25].sum() / total_spending * 100) if total_spending > 0 else 0
-    medium_pct = (amounts[(amounts >= 25) & (amounts < 250)].sum() / total_spending * 100) if total_spending > 0 else 0
-    large_pct = (amounts[amounts >= 250].sum() / total_spending * 100) if total_spending > 0 else 0
-
-    # Pareto analysis - what % of transactions account for 80% of spending
-    sorted_amounts = amounts.sort_values(ascending=False)
-    cumsum = sorted_amounts.cumsum()
-    threshold_80 = total_spending * 0.8
-    transactions_for_80 = min(len(cumsum[cumsum <= threshold_80]) + 1, len(amounts))
-    pareto_pct = (transactions_for_80 / len(amounts) * 100) if len(amounts) > 0 else 0
-
-    return {
-        'median': p50,
-        'mean': mean,
-        'p25': p25,
-        'p75': p75,
-        'p80': p80,
-        'p90': p90,
-        'small_count': small_count,
-        'medium_count': medium_count,
-        'large_count': large_count,
-        'small_pct': small_pct,
-        'medium_pct': medium_pct,
-        'large_pct': large_pct,
-        'pareto_pct': pareto_pct
-    }
 
 
 def display_distribution_section(
@@ -395,22 +257,19 @@ def display_distribution_section(
         st.markdown("### Small (<$25)")
         st.metric("# Transactions", f"{stats['small_count']:,}")
         st.metric("% of Total $", f"{stats['small_pct']:.1f}%")
-        pct_of_count = (stats['small_count'] / len(df_period) * 100) if len(df_period) > 0 else 0
-        st.caption(f"{pct_of_count:.1f}% of all transactions")
+        st.caption(f"{stats['small_count_pct']:.1f}% of all transactions")
 
     with breakdown_col2:
         st.markdown("### Medium ($25-$250)")
         st.metric("# Transactions", f"{stats['medium_count']:,}")
         st.metric("% of Total $", f"{stats['medium_pct']:.1f}%")
-        pct_of_count = (stats['medium_count'] / len(df_period) * 100) if len(df_period) > 0 else 0
-        st.caption(f"{pct_of_count:.1f}% of all transactions")
+        st.caption(f"{stats['medium_count_pct']:.1f}% of all transactions")
 
     with breakdown_col3:
         st.markdown("### Large (>$250)")
         st.metric("# Transactions", f"{stats['large_count']:,}")
         st.metric("% of Total $", f"{stats['large_pct']:.1f}%")
-        pct_of_count = (stats['large_count'] / len(df_period) * 100) if len(df_period) > 0 else 0
-        st.caption(f"{pct_of_count:.1f}% of all transactions")
+        st.caption(f"{stats['large_count_pct']:.1f}% of all transactions")
 
     st.divider()
 
