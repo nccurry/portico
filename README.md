@@ -40,8 +40,6 @@ Useful package tasks:
 
 Integration tests use anonymized CSV fixtures under `tests/data/fixtures/`.
 If those CSVs are missing, integration tests skip with a generator message.
-The formulas, sign conventions, and supporting tests are cataloged in
-[`docs/calculation-audit.md`](docs/calculation-audit.md).
 
 To regenerate fixtures from a local Tiller export:
 
