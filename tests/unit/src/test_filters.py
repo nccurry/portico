@@ -33,18 +33,15 @@ class TestCalculateDateRange:
 
     def test_last_3_months(self) -> None:
         start, end = calculate_date_range("Last 3 Months")
-        diff = (end - start).days
-        assert abs(diff - 90) < 2
+        assert start == end - pd.DateOffset(months=3)
 
     def test_last_6_months(self) -> None:
         start, end = calculate_date_range("Last 6 Months")
-        diff = (end - start).days
-        assert abs(diff - 180) < 2
+        assert start == end - pd.DateOffset(months=6)
 
     def test_last_12_months(self) -> None:
         start, end = calculate_date_range("Last 12 Months")
-        diff = (end - start).days
-        assert abs(diff - 365) < 2
+        assert start == end - pd.DateOffset(months=12)
 
     def test_year_to_date(self) -> None:
         start, end = calculate_date_range("Year to Date")
@@ -68,15 +65,11 @@ class TestCalculateDateRange:
 
     def test_all_time_without_df(self) -> None:
         start, end = calculate_date_range("All Time")
-        diff = (end - start).days
-        # Should default to ~5 years (1825 days)
-        assert abs(diff - 365 * 5) < 2
+        assert start == end - pd.DateOffset(years=5)
 
     def test_unknown_period(self) -> None:
         start, end = calculate_date_range("Made Up Period")
-        diff = (end - start).days
-        # Defaults to last 3 months (90 days)
-        assert abs(diff - 90) < 2
+        assert start == end - pd.DateOffset(months=3)
 
 
 # ---------------------------------------------------------------------------

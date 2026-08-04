@@ -79,8 +79,10 @@ tasks:
   pkg:update:
     desc: "Update direct dependencies to latest exact pins"
     cmds:
-      - '{{.UV}} add --bounds exact altair@latest pandas@latest st-gsheets-connection@latest streamlit@latest'
-      - '{{.UV}} add --dev --bounds exact freezegun@latest mypy@latest pandas-stubs@latest pytest@latest pytest-cov@latest ruff@latest'
+      - '{{.UV}} remove --no-sync altair pandas st-gsheets-connection streamlit'
+      - '{{.UV}} add --no-sync --bounds exact altair pandas st-gsheets-connection streamlit'
+      - '{{.UV}} remove --dev --no-sync freezegun mypy pandas-stubs pytest pytest-cov ruff'
+      - '{{.UV}} add --dev --no-sync --bounds exact freezegun mypy pandas-stubs pytest pytest-cov ruff'
       - '{{.UV}} lock --upgrade'
       - '{{.UV}} sync --dev'
       - echo "Packages updated. Run 'task check' to verify nothing broke."
