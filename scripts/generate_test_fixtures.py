@@ -1,8 +1,10 @@
-"""Generate anonymized, raw-shape CSV fixtures from a local Tiller export.
+"""Generate local anonymized, raw-shape CSV fixtures from a Tiller export.
 
 Reads ``example_data/tillder_data_v2.0.xlsx`` (gitignored, local-only) and
-emits four CSVs under ``tests/data/fixtures/`` plus a ``REFERENCE_DATE.txt``
-and ``INJECTED_ROWS.md`` manifest.
+emits four CSVs under ``.local/test-fixtures/`` plus a ``REFERENCE_DATE.txt``
+and ``INJECTED_ROWS.md`` manifest. The output preserves financial patterns
+and must never be committed. The repository's test fixtures are fully
+synthetic and are maintained separately under ``tests/data/fixtures/``.
 
 The CSVs preserve the *raw* (pre-scrub) column shapes so the test suite can
 drive the real ``Spreadsheet.scrub()`` pipeline end-to-end.
@@ -36,9 +38,9 @@ import pandas as pd
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SOURCE_XLSX = REPO_ROOT / "example_data" / "tillder_data_v2.0.xlsx"
-FIXTURES_DIR = REPO_ROOT / "tests" / "data" / "fixtures"
+FIXTURES_DIR = REPO_ROOT / ".local" / "test-fixtures"
 
-# Sampling caps -- keeps the committed CSVs small while preserving patterns.
+# Sampling caps -- keeps local output small while preserving patterns.
 SAMPLE_MONTHS = 24
 MAX_TRANSACTIONS_PER_CATEGORY = 60
 MAX_TRANSACTIONS_TOTAL = 1500

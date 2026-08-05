@@ -55,7 +55,7 @@ _FIXTURES_DIR = Path(__file__).resolve().parents[1] / "data" / "fixtures"
 def _read_fixture_csv(name: str) -> pd.DataFrame:
     path = _FIXTURES_DIR / f"{name}.csv"
     if not path.exists():
-        pytest.skip(f"{path.name} is missing; run scripts/generate_test_fixtures.py")
+        pytest.skip(f"committed synthetic fixture {path.name} is missing")
     return pd.read_csv(path)
 
 
@@ -85,7 +85,7 @@ def real_accounts_csv_df() -> pd.DataFrame:
 
 @pytest.fixture(scope="session")
 def reference_date() -> pd.Timestamp:
-    """ISO date emitted by scripts/generate_test_fixtures.py.
+    """ISO date stored with the committed synthetic fixtures.
 
     Use with @pytest.mark.uses_real_dates to keep date-sensitive logic stable
     against the committed fixture.

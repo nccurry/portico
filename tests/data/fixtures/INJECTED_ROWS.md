@@ -1,6 +1,6 @@
 # Synthetic rows injected into fixtures
 
-These rows were not present in the source xlsx with the required pattern shape; the generator added them deterministically.
+All committed fixture data is synthetic. These rows add specific test patterns to the base synthetic data.
 Identifying tuple = (Date | Amount | Description | Account).
 
 ## transactions.csv
