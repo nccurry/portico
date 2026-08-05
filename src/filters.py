@@ -5,9 +5,8 @@ import pandas as pd
 from src.reporting_periods import calculate_date_range as _calculate_date_range
 
 from src.constants import (
-    DEFAULT_EXCLUDE_CATEGORIES,
-    DEFAULT_EXCLUDE_CATEGORIES_FI,
-    DEFAULT_EXCLUDE_GROUPS_FI,
+    DEFAULT_EXCLUDE_CATEGORIES_INCOME_SAVINGS,
+    DEFAULT_EXCLUDE_CATEGORIES_SPENDING,
     DEFAULT_EXCLUDE_GROUPS_INCOME_SAVINGS,
     DEFAULT_EXCLUDE_GROUPS_SPENDING,
     DEFAULT_EXPENSE_THRESHOLD,
@@ -31,7 +30,10 @@ from src.custom_types import (
 )
 
 
-def render_income_expense_filters(all_groups: list[str]) -> IncomeExpenseFilters:
+def render_income_expense_filters(
+    all_categories: list[str],
+    all_groups: list[str],
+) -> IncomeExpenseFilters:
     """Render filter controls for Income & Savings page.
 
     Returns:
@@ -50,15 +52,19 @@ def render_income_expense_filters(all_groups: list[str]) -> IncomeExpenseFilters
 
             exclude_categories = st.multiselect(
                 "Exclude Categories",
-                options=DEFAULT_EXCLUDE_CATEGORIES,
-                default=['Tax Return Payment', 'Given Gift', 'Christmas', '401k', 'HSA', 'Stock Purchase'],
+                options=all_categories,
+                default=[
+                    category
+                    for category in DEFAULT_EXCLUDE_CATEGORIES_INCOME_SAVINGS
+                    if category in all_categories
+                ],
                 help="Exclude specific one-time or non-recurring transaction categories"
             )
 
         with col_filter2:
             filter_large_income = st.checkbox(
                 "Filter Large Income",
-                value=True,
+                value=False,
                 help="Exclude individual large income transactions above a threshold (bonuses, stock gains)"
             )
 
@@ -75,7 +81,7 @@ def render_income_expense_filters(all_groups: list[str]) -> IncomeExpenseFilters
 
             filter_large_expenses = st.checkbox(
                 "Filter Large Expenses",
-                value=True,
+                value=False,
                 help="Exclude individual large expense transactions above a threshold"
             )
 
@@ -151,15 +157,19 @@ def render_spending_filters(
 
             exclude_categories = st.multiselect(
                 "Exclude Categories",
-                options=DEFAULT_EXCLUDE_CATEGORIES,
-                default=DEFAULT_EXCLUDE_CATEGORIES,
+                options=all_categories,
+                default=[
+                    category
+                    for category in DEFAULT_EXCLUDE_CATEGORIES_SPENDING
+                    if category in all_categories
+                ],
                 help="Exclude specific one-time or non-recurring transaction categories"
             )
 
         with col_filter2:
             filter_large_expenses = st.checkbox(
                 "Filter Large Expenses",
-                value=True,
+                value=False,
                 help="Exclude individual large expense transactions above a threshold"
             )
 
@@ -263,6 +273,7 @@ def default_fi_accounts(all_accounts: list[str], all_savings_accounts: list[str]
 
 def render_fi_filters(
     all_accounts: list[str],
+    all_categories: list[str],
     all_groups: list[str],
     all_savings_accounts: list[str],
 ) -> FIFilters:
@@ -293,24 +304,20 @@ def render_fi_filters(
             exclude_groups = st.multiselect(
                 "Exclude Groups",
                 options=all_groups,
-                default=[g for g in DEFAULT_EXCLUDE_GROUPS_FI if g in all_groups],
-                help=(
-                    "Exclude entire transaction groups from the spending average. "
-                    "Income groups are excluded by default (they never affect the "
-                    "average but cleaning them up reduces noise in the transactions table)."
-                ),
+                default=[],
+                help="Exclude entire transaction groups from the spending average",
             )
 
             exclude_categories = st.multiselect(
                 "Exclude Categories",
-                options=DEFAULT_EXCLUDE_CATEGORIES,
-                default=DEFAULT_EXCLUDE_CATEGORIES_FI,
+                options=all_categories,
+                default=[],
                 help="Exclude non-recurring categories from the spending average",
             )
 
             filter_large_expenses = st.checkbox(
                 "Filter Large Expenses",
-                value=True,
+                value=False,
                 help="Exclude individual large expense transactions above a threshold",
             )
 

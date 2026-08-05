@@ -12,6 +12,7 @@ from src.analysis.budget import (
     build_group_budget_table,
     filter_budget_transactions,
     get_budget_vs_actual,
+    get_default_budget_groups,
     get_group_budget_vs_actual,
     get_trailing_group_guidance,
     get_ytd_group_budget_vs_actual,
@@ -21,7 +22,6 @@ from src.constants import (
     COLOR_BUDGET,
     COLOR_OVER_BUDGET,
     COLOR_UNDER_BUDGET,
-    DEFAULT_BUDGET_GROUPS,
     DEFAULT_EXPENSE_THRESHOLD,
 )
 from src.custom_types import BudgetFilters
@@ -215,21 +215,29 @@ def main() -> None:
         st.info("No transaction data available")
         st.stop()
 
+    selected_month = st.selectbox("Month", months, index=0)
     available_groups = transactions_spreadsheet.get_all_groups()
-    default_groups = [group for group in DEFAULT_BUDGET_GROUPS if group in available_groups]
+    default_groups = get_default_budget_groups(budget_df, selected_month, available_groups)
     selected_groups_value = st.pills(
         "Budget groups",
         available_groups,
         default=default_groups,
         selection_mode="multi",
-        help="The dashboard defaults to the four discretionary groups that most affect cash flow.",
+        help="Defaults to groups with a nonzero expense budget for the selected month.",
+        key=f"budget_groups_{selected_month}",
+        persist_state="session",
     )
     selected_groups = list(selected_groups_value or [])
     if not selected_groups:
-        st.info("Select at least one budget group")
+        if default_groups:
+            st.info("Select at least one budget group")
+        else:
+            st.info(
+                f"No nonzero expense budgets are configured for {selected_month}. "
+                "Select a group to inspect it."
+            )
         st.stop()
 
-    selected_month = st.selectbox("Month", months, index=0)
     adjusted_filters = render_budget_filters(
         transactions_spreadsheet.get_all_categories(),
         selected_groups,

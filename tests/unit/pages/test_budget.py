@@ -746,6 +746,33 @@ class TestGroupBudgetDashboard:
         assert result.iloc[0]["Annualized_Reduction"] == pytest.approx((100 - 3000) * 12)
 
 
+class TestDefaultBudgetGroups:
+    def test_uses_positive_expense_budgets_for_selected_month(self) -> None:
+        budgets = pd.DataFrame([
+            {"Category": "Shopping", "Group": "Shopping", "Type": "Expense", "Month": "2026-08", "Budget": 2500},
+            {"Category": "Groceries", "Group": "Food", "Type": "Expense", "Month": "2026-08", "Budget": 2000},
+            {"Category": "Travel", "Group": "Travel", "Type": "Expense", "Month": "2026-08", "Budget": 0},
+            {"Category": "Streaming", "Group": "Entertainment", "Type": "Expense", "Month": "2026-08", "Budget": 50},
+            {"Category": "Paycheck", "Group": "Income", "Type": "Income", "Month": "2026-08", "Budget": 100},
+            {"Category": "Travel", "Group": "Travel", "Type": "Expense", "Month": "2026-09", "Budget": 1000},
+        ])
+        available = ["Shopping", "Food", "Travel", "Entertainment", "Income"]
+
+        assert _mod.get_default_budget_groups(budgets, "2026-08", available) == [
+            "Shopping",
+            "Food",
+            "Entertainment",
+        ]
+        assert _mod.get_default_budget_groups(budgets, "2026-09", available) == ["Travel"]
+
+    def test_no_positive_budget_returns_no_defaults(self) -> None:
+        budgets = pd.DataFrame([
+            {"Category": "Travel", "Group": "Travel", "Type": "Expense", "Month": "2026-08", "Budget": 0},
+        ])
+        assert _mod.get_default_budget_groups(budgets, "2026-08", ["Travel"]) == []
+        assert _mod.get_default_budget_groups(budgets, "2026-09", ["Travel"]) == []
+
+
 # ---------------------------------------------------------------------------
 # Projected spend calculation
 # ---------------------------------------------------------------------------

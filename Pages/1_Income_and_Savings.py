@@ -273,6 +273,9 @@ def configure_page(
 ) -> None:
     """Render sidebar filters, summary metrics, and charts for income vs. expenses."""
     st.header("Income, Expenses & Savings")
+    st.caption(
+        "Controlled baseline: dependable income compared with routine expenses you can plan around."
+    )
 
     # Time frame selector
     time_frame_col1, _time_frame_col2 = st.columns([1, 4])
@@ -284,10 +287,11 @@ def configure_page(
             format_func=lambda x: f"Last {x} Months"
         )
 
+    all_categories = transactions_spreadsheet.get_all_categories()
     all_groups = transactions_spreadsheet.get_all_groups()
 
     # Render filter controls and get selections
-    filters = render_income_expense_filters(all_groups)
+    filters = render_income_expense_filters(all_categories, all_groups)
 
     # Calculate date range based on time frame
     current_month = current_month_string(transactions_spreadsheet.scrubbed_df, anchor_to_data=True)

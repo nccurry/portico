@@ -8,6 +8,23 @@ from src.custom_types import BudgetFilters, BudgetSummary
 from src.filters import apply_transaction_filters
 
 
+def get_default_budget_groups(
+    budget_df: pd.DataFrame,
+    month_str: str,
+    available_groups: Sequence[str],
+) -> list[str]:
+    """Return available expense groups with a positive budget for the month."""
+    if budget_df.empty:
+        return []
+    monthly = budget_df[
+        (budget_df["Month"] == month_str)
+        & (budget_df["Type"] == "Expense")
+        & (pd.to_numeric(budget_df["Budget"], errors="coerce").fillna(0) > 0)
+    ]
+    budgeted_groups = set(monthly["Group"].dropna())
+    return [group for group in available_groups if group in budgeted_groups]
+
+
 def _period_months(month_str: str, *, ytd: bool) -> list[str]:
     """Return the selected month or its year-to-date month range."""
     if not ytd:
