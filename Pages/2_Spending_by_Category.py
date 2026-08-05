@@ -354,6 +354,9 @@ def configure_page(
 ) -> None:
     """Render sidebar filters, category breakdowns, and distribution charts."""
     st.header("Spending by Category")
+    st.caption(
+        "Discretionary focus: food, ordinary shopping, and entertainment expenses most suitable for cost cutting."
+    )
 
     all_categories = transactions_spreadsheet.get_all_categories()
     all_groups = transactions_spreadsheet.get_all_groups()

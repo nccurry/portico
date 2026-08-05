@@ -1,9 +1,17 @@
 """Tests for src/filters.py — calculate_date_range and apply_transaction_filters."""
 import pandas as pd
 from datetime import timedelta
+from unittest.mock import MagicMock, patch
 
 from src.custom_types import TransactionFilterOptions
-from src.filters import apply_transaction_filters, calculate_date_range, default_fi_accounts
+from src.filters import (
+    apply_transaction_filters,
+    calculate_date_range,
+    default_fi_accounts,
+    render_fi_filters,
+    render_income_expense_filters,
+    render_spending_filters,
+)
 from tests._helpers import _df_from_rows, _make_row
 
 
@@ -368,3 +376,86 @@ class TestDefaultFiAccounts:
 
     def test_no_matches_returns_empty(self) -> None:
         assert default_fi_accounts(["Joe Checking"], all_savings_accounts=[]) == []
+
+
+def _mock_filter_widgets(mock_st: MagicMock) -> None:
+    """Make Streamlit widgets return their configured defaults."""
+    mock_st.columns.return_value = [MagicMock(), MagicMock()]
+    mock_st.multiselect.side_effect = lambda *args, **kwargs: list(kwargs["default"])
+    mock_st.checkbox.side_effect = lambda *args, **kwargs: kwargs["value"]
+    mock_st.number_input.side_effect = lambda *args, **kwargs: kwargs["value"]
+    mock_st.selectbox.side_effect = (
+        lambda *args, **kwargs: kwargs["options"][kwargs["index"]]
+    )
+
+
+class TestPageFilterDefaults:
+    def test_income_defaults_to_dependable_income_and_routine_expenses(self) -> None:
+        categories = [
+            "Paycheck",
+            "401k",
+            "HSA",
+            "Tax Return Refund",
+            "Investment",
+            "Credit Card Rewards",
+            "RSU",
+            "ESPP",
+            "Bonus",
+            "Received Gift",
+            "Tax Return Payment",
+            "Christmas",
+            "Home Repairs",
+            "Automobile Repairs",
+            "Home Improvements",
+            "Misc Maintainence",
+            "Groceries",
+        ]
+        with patch("src.filters.st") as mock_st:
+            _mock_filter_widgets(mock_st)
+            result = render_income_expense_filters(
+                categories,
+                ["Bills", "Food", "Travel", "Donations"],
+            )
+
+        assert result["exclude_groups"] == ["Travel", "Donations"]
+        assert set(result["exclude_categories"]) == set(categories) - {
+            "Paycheck",
+            "401k",
+            "HSA",
+            "Groceries",
+        }
+        assert result["filter_large_income"] is False
+        assert result["filter_large_expenses"] is False
+
+    def test_spending_defaults_to_discretionary_groups(self) -> None:
+        with patch("src.filters.st") as mock_st:
+            _mock_filter_widgets(mock_st)
+            result = render_spending_filters(
+                ["Christmas", "Misc Shopping", "Groceries"],
+                ["Bills", "Income", "Donations", "Maintenance", "Travel", "Food", "Shopping"],
+            )
+
+        assert result["exclude_groups"] == [
+            "Bills",
+            "Income",
+            "Donations",
+            "Maintenance",
+            "Travel",
+        ]
+        assert result["exclude_categories"] == ["Christmas"]
+        assert result["filter_large_expenses"] is False
+
+    def test_fi_defaults_to_unfiltered_actual_spending(self) -> None:
+        with patch("src.filters.st") as mock_st:
+            _mock_filter_widgets(mock_st)
+            result = render_fi_filters(
+                ["Checking", "Savings", "Individual"],
+                ["Misc Travel", "Given Gift", "Tax Return Payment", "Home Improvements"],
+                ["Bills", "Donations", "Income", "Maintenance", "Travel"],
+                ["Savings"],
+            )
+
+        assert result["include_accounts"] == ["Savings", "Individual"]
+        assert result["exclude_groups"] == []
+        assert result["exclude_categories"] == []
+        assert result["filter_large_expenses"] is False

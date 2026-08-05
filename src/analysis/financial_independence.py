@@ -8,13 +8,13 @@ from src.custom_types import FISummary
 
 
 def get_savings_accounts(balance_history: pd.DataFrame) -> list[str]:
-    """Return visible accounts assigned to the Savings group."""
+    """Return visible accounts assigned to the Saving or Savings group."""
     if "Group" not in balance_history.columns:
         return []
     balances = balance_history
     if "Hide" in balances.columns:
         balances = balances[balances["Hide"] != "Hide"]
-    savings = balances["Group"].astype(str).str.lower() == "savings"
+    savings = balances["Group"].astype(str).str.lower().isin({"saving", "savings"})
     return sorted(balances.loc[savings, "Account"].dropna().unique().tolist())
 
 

@@ -278,14 +278,14 @@ class TestBudgetSmoke:
         )
         assert not at.exception
         assert _metric_values(at) == [
-            ("Monthly budget", "$4,150.00", ""),
-            ("Monthly spent", "$915.99", ""),
-            ("Monthly remaining", "$3,234.01", ""),
-            ("Monthly used", "22.1%", ""),
-            ("YTD budget", "$15,550.00", ""),
-            ("YTD spent", "$7,793.59", ""),
-            ("YTD remaining", "$7,756.41", ""),
-            ("YTD used", "50.1%", ""),
+            ("Monthly budget", "$5,940.00", ""),
+            ("Monthly spent", "$2,645.98", ""),
+            ("Monthly remaining", "$3,294.02", ""),
+            ("Monthly used", "44.5%", ""),
+            ("YTD budget", "$22,710.00", ""),
+            ("YTD spent", "$14,713.55", ""),
+            ("YTD remaining", "$7,996.45", ""),
+            ("YTD used", "64.8%", ""),
         ]
 
 
@@ -368,10 +368,10 @@ class TestFinancialIndependenceSmoke:
         )
         assert not at.exception
         assert _metric_values(at)[4:] == [
-            ("Expected Annual Return", "$19,110", ""),
-            ("Coverage", "57.1%", "Not yet"),
-            ("Runway", "17.3 yrs", ""),
-            ("Total Spending", "$33,465", "$-14,355 vs inflow"),
+            ("Expected Annual Return", "$26,754", ""),
+            ("Coverage", "79.9%", "Not yet"),
+            ("Runway", "23.7 yrs", ""),
+            ("Total Spending", "$33,465", "$-6,711 vs inflow"),
         ]
 
 

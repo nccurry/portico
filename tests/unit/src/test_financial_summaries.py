@@ -349,9 +349,9 @@ def test_savings_account_selection_handles_missing_and_hidden_groups() -> None:
     ) == ["Savings"]
     balances = pd.DataFrame(
         {
-            "Account": ["Visible", "Hidden", "Checking"],
-            "Group": ["savings", "Savings", "Cash"],
-            "Hide": ["", "Hide", ""],
+            "Account": ["Visible Singular", "Visible Plural", "Hidden", "Checking"],
+            "Group": ["saving", "Savings", "Savings", "Cash"],
+            "Hide": ["", "", "Hide", ""],
         }
     )
-    assert get_savings_accounts(balances) == ["Visible"]
+    assert get_savings_accounts(balances) == ["Visible Plural", "Visible Singular"]

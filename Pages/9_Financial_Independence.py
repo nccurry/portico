@@ -197,16 +197,16 @@ def configure_page(
     """Render the Financial Independence page."""
     st.header("Financial Independence")
     st.caption(
-        "Compare expected investment returns to average spending and project "
-        "portfolio runway over time."
+        "Conservative baseline: all actual non-transfer spending is included unless you apply a scenario filter."
     )
 
     bal_df = balance_history_spreadsheet.scrubbed_df
     all_accounts = get_all_accounts(bal_df)
+    all_categories = transactions_spreadsheet.get_all_categories()
     all_groups = transactions_spreadsheet.get_all_groups()
     savings_accounts = _get_savings_accounts(bal_df)
 
-    filters = render_fi_filters(all_accounts, all_groups, savings_accounts)
+    filters = render_fi_filters(all_accounts, all_categories, all_groups, savings_accounts)
 
     per_account_df, calculated_portfolio_value = get_portfolio_value(
         bal_df, filters["include_accounts"]
@@ -223,6 +223,7 @@ def configure_page(
     tx_df = transactions_spreadsheet.scrubbed_df.copy()
     start_month, end_month = _spending_window_months(filters["spending_lookback_months"], tx_df)
     tx_df = apply_transaction_filters(tx_df, _build_spending_filters(filters))
+    tx_df = tx_df[tx_df["Type"] == "Expense"]
     avg_monthly_spending, monthly_totals = calculate_avg_monthly_spending(
         tx_df, start_month, end_month
     )

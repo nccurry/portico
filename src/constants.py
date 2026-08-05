@@ -11,12 +11,6 @@ DEFAULT_DUPLICATE_DAYS_THRESHOLD: Final[int] = 1
 
 # Savings and budget targets
 DEFAULT_SAVINGS_RATE_TARGET: Final[int] = 20
-DEFAULT_BUDGET_GROUPS: Final[list[str]] = [
-    "Shopping",
-    "Food",
-    "Travel",
-    "Entertainment",
-]
 MIN_SAVINGS_RATE: Final[int] = 0
 MAX_SAVINGS_RATE: Final[int] = 100
 SAVINGS_RATE_STEP: Final[int] = 5
@@ -77,20 +71,20 @@ COLOR_PALETTE: Final[list[str]] = [
 ]
 
 # Default filter lists
-DEFAULT_EXCLUDE_CATEGORIES: Final[list[str]] = [
-    'Tax Return Payment',
-    'Given Gift',
-    'Christmas',
-    '401k',
-    'HSA',
-    'Stock Purchase',
+DEFAULT_EXCLUDE_CATEGORIES_INCOME_SAVINGS: Final[list[str]] = [
+    'Tax Return Refund',
     'Investment',
+    'Credit Card Rewards',
+    'RSU',
+    'ESPP',
+    'Bonus',
+    'Received Gift',
+    'Tax Return Payment',
+    'Christmas',
+    'Home Repairs',
+    'Automobile Repairs',
     'Home Improvements',
-]
-
-# FI page treats HSA spending as real spending (medical), so don't exclude it.
-DEFAULT_EXCLUDE_CATEGORIES_FI: Final[list[str]] = [
-    c for c in DEFAULT_EXCLUDE_CATEGORIES if c != 'HSA'
+    'Misc Maintainence',
 ]
 
 DEFAULT_EXCLUDE_GROUPS_INCOME_SAVINGS: Final[list[str]] = [
@@ -98,26 +92,15 @@ DEFAULT_EXCLUDE_GROUPS_INCOME_SAVINGS: Final[list[str]] = [
     'Donations',
 ]
 
-# FI page also excludes Income groups by default — they never affect the
-# spending average (which is Type=='Expense' only) but keeping them out
-# declutters the "transactions used" expander.
-DEFAULT_EXCLUDE_GROUPS_FI: Final[list[str]] = [
-    'Travel',
-    'Donations',
-    'Income',
-]
+# Categories hidden from the discretionary spending view by default.
+DEFAULT_EXCLUDE_CATEGORIES_SPENDING: Final[list[str]] = ['Christmas']
 
 DEFAULT_EXCLUDE_GROUPS_SPENDING: Final[list[str]] = [
     'Bills',
     'Income',
     'Donations',
-    'Investment',
-]
-
-DEFAULT_EXCLUDE_GROUPS_BUDGET: Final[list[str]] = [
-    'Transfer',
-    'Income',
-    'Investment',
+    'Maintenance',
+    'Travel',
 ]
 
 # Subscription detection — categories excluded from recurring-charge detection
