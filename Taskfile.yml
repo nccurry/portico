@@ -10,6 +10,9 @@ vars:
   LINT_PATHS: src/ Pages/ tests/ scripts/ Home.py
   ADDRESS: '{{default "0.0.0.0" .ADDRESS}}'
   PORT: '{{default "8501" .PORT}}'
+  PERIOD_END: '{{default "" .PERIOD_END}}'
+  FORCE: '{{default "false" .FORCE}}'
+  OUTPUT: '{{default "text" .OUTPUT}}'
 
 tasks:
   # ========================================
@@ -184,7 +187,7 @@ tasks:
     internal: true
     platforms: [linux, darwin]
     cmds:
-      - sh -n scripts/bootstrap.sh scripts/install-python-toolchain.sh scripts/systemd-service.sh
+      - sh -n scripts/bootstrap.sh scripts/install-python-toolchain.sh scripts/systemd-service.sh scripts/systemd-discord.sh
 
   format:
     desc: "Apply safe lint fixes, then run mypy"
@@ -222,6 +225,73 @@ tasks:
     desc: "Run Streamlit with the systemd production settings"
     cmds:
       - '{{.STREAMLIT}} run Home.py --server.address={{.ADDRESS | quote}} --server.port={{.PORT | quote}} --server.headless=true --server.runOnSave=false --client.showErrorDetails=false'
+
+  # ========================================
+  # Weekly Discord Summary
+  # ========================================
+
+  discord:check:
+    desc: "Install runtime dependencies and check Discord summary configuration"
+    cmds:
+      - task: deps:install:runtime
+      - task: discord:check:run
+
+  discord:check:run:
+    internal: true
+    cmds:
+      - '{{.PYTHON}} scripts/weekly-discord-summary.py check --output={{.OUTPUT | quote}}'
+
+  discord:preview:
+    desc: "Print the weekly expense summary without contacting Discord"
+    preconditions:
+      - sh: '{{.PYTHON}} --version'
+        msg: "Runtime dependencies are missing. Run 'task discord:check'."
+    cmds:
+      - '{{.PYTHON}} scripts/weekly-discord-summary.py preview --output={{.OUTPUT | quote}} {{if .PERIOD_END}}--period-end={{.PERIOD_END | quote}}{{end}}'
+
+  discord:test:
+    desc: "Send a Discord connection test without financial data"
+    preconditions:
+      - sh: '{{.PYTHON}} --version'
+        msg: "Runtime dependencies are missing. Run 'task discord:check'."
+    cmds:
+      - '{{.PYTHON}} scripts/weekly-discord-summary.py test --output={{.OUTPUT | quote}}'
+
+  discord:send:
+    desc: "Send the weekly expense summary now"
+    preconditions:
+      - sh: '{{.PYTHON}} --version'
+        msg: "Runtime dependencies are missing. Run 'task discord:check'."
+    cmds:
+      - '{{.PYTHON}} scripts/weekly-discord-summary.py send --output={{.OUTPUT | quote}} {{if .PERIOD_END}}--period-end={{.PERIOD_END | quote}}{{end}} {{if eq .FORCE "true"}}--force{{end}}'
+
+  discord:install:
+    desc: "Install runtime dependencies and the weekly Discord systemd timer"
+    platforms: [linux]
+    preconditions:
+      - sh: test "$(id -u)" -ne 0
+        msg: "Run installation as a non-root user with sudo access."
+    cmds:
+      - task: deps:install:runtime
+      - sh scripts/systemd-discord.sh install
+
+  discord:uninstall:
+    desc: "Remove the weekly Discord systemd units"
+    platforms: [linux]
+    cmds:
+      - sh scripts/systemd-discord.sh uninstall
+
+  discord:status:
+    desc: "Show the Discord timer status and last result"
+    platforms: [linux]
+    cmds:
+      - sh scripts/systemd-discord.sh status
+
+  discord:logs:
+    desc: "Follow weekly Discord notifier logs"
+    platforms: [linux]
+    cmds:
+      - sh scripts/systemd-discord.sh logs
 
   # ========================================
   # Linux Installation

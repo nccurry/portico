@@ -1,0 +1,323 @@
+from __future__ import annotations
+
+import datetime as dt
+from email.message import Message
+from io import BytesIO
+import json
+import os
+from pathlib import Path
+from unittest.mock import patch
+from urllib.error import HTTPError
+
+import pytest
+
+from src.discord_notifier import (
+    NotifierConfig,
+    NotifierError,
+    google_export_url,
+    load_config,
+    load_state,
+    main,
+    post_webhook,
+    read_google_sheet,
+    report_payload,
+    save_delivery,
+    test_payload as build_test_payload,
+    was_sent,
+)
+from src.weekly_expenses import (
+    CategoryTotal,
+    ReportPeriod,
+    UncategorizedTotal,
+    WeeklyExpenseReport,
+)
+
+
+def sample_report() -> WeeklyExpenseReport:
+    return WeeklyExpenseReport(
+        period=ReportPeriod(
+            start=dt.date(2026, 7, 26),
+            end=dt.date(2026, 8, 1),
+            comparison_start=dt.date(2026, 7, 19),
+            comparison_end=dt.date(2026, 7, 25),
+        ),
+        categories=(
+            CategoryTotal("Everyday Food", 120.0, 100.0),
+            CategoryTotal("Local Dining", 40.0, 60.0),
+        ),
+        selected_total=160.0,
+        previous_selected_total=160.0,
+        all_expenses_total=900.0,
+        uncategorized=UncategorizedTotal(
+            amount=30.0,
+            previous_amount=20.0,
+            count=2,
+            previous_count=1,
+            outstanding_count=4,
+        ),
+    )
+
+
+def sample_config() -> NotifierConfig:
+    return NotifierConfig(
+        transactions_url="https://docs.google.com/spreadsheets/d/example/edit?gid=1",
+        categories_url="https://docs.google.com/spreadsheets/d/example/edit?gid=2",
+        webhook_url="https://discord.com/api/webhooks/123/test-token",
+        categories=("Everyday Food", "Local Dining"),
+    )
+
+
+def test_load_config_preserves_category_order(tmp_path: Path) -> None:
+    secrets = tmp_path / "secrets.toml"
+    secrets.write_text(
+        """
+[connections.transactions]
+spreadsheet = "https://docs.google.com/spreadsheets/d/example/edit?gid=1"
+[connections.categories]
+spreadsheet = "https://docs.google.com/spreadsheets/d/example/edit?gid=2"
+[notifications.discord]
+webhook_url = "https://discord.com/api/webhooks/123/test-token"
+categories = ["Everyday Food", "Local Dining"]
+""".strip(),
+        encoding="utf-8",
+    )
+
+    config = load_config(secrets)
+
+    assert config.categories == ("Everyday Food", "Local Dining")
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "http://discord.com/api/webhooks/123/test-token",
+        "https://example.com/api/webhooks/123/test-token",
+        "https://discord.com/channels/123/test-token",
+    ],
+)
+def test_load_config_rejects_malformed_webhooks(tmp_path: Path, url: str) -> None:
+    secrets = tmp_path / "secrets.toml"
+    secrets.write_text(
+        f"""
+[connections.transactions]
+spreadsheet = "https://docs.google.com/spreadsheets/d/example/edit?gid=1"
+[connections.categories]
+spreadsheet = "https://docs.google.com/spreadsheets/d/example/edit?gid=2"
+[notifications.discord]
+webhook_url = "{url}"
+categories = ["Everyday Food"]
+""".strip(),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(NotifierError, match="Discord webhook URL"):
+        load_config(secrets)
+
+
+def test_load_config_rejects_duplicate_categories(tmp_path: Path) -> None:
+    secrets = tmp_path / "secrets.toml"
+    secrets.write_text(
+        """
+[connections.transactions]
+spreadsheet = "https://docs.google.com/spreadsheets/d/example/edit?gid=1"
+[connections.categories]
+spreadsheet = "https://docs.google.com/spreadsheets/d/example/edit?gid=2"
+[notifications.discord]
+webhook_url = "https://discord.com/api/webhooks/123/test-token"
+categories = ["Everyday Food", "Everyday Food"]
+""".strip(),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(NotifierError, match="duplicates"):
+        load_config(secrets)
+
+
+def test_google_export_url_supports_query_and_fragment_gid() -> None:
+    query = google_export_url("https://docs.google.com/spreadsheets/d/example/edit?gid=42")
+    fragment = google_export_url("https://docs.google.com/spreadsheets/d/example/edit#gid=43")
+
+    assert query == "https://docs.google.com/spreadsheets/d/example/export?format=csv&gid=42"
+    assert fragment == "https://docs.google.com/spreadsheets/d/example/export?format=csv&gid=43"
+
+
+def test_read_google_sheet_returns_csv_without_streamlit() -> None:
+    response = BytesIO(b"Column A,Column B\n1,2\n")
+
+    with patch("src.discord_notifier.urlopen", return_value=response):
+        frame = read_google_sheet(
+            "https://docs.google.com/spreadsheets/d/example/edit?gid=42",
+            "Example",
+        )
+
+    assert frame.to_dict(orient="records") == [{"Column A": 1, "Column B": 2}]
+
+
+def test_report_payload_has_expected_totals_and_disables_mentions() -> None:
+    payload = report_payload(sample_report())
+    embed = payload["embeds"][0]
+
+    assert payload["allowed_mentions"] == {"parse": []}
+    assert embed["title"] == "Weekly expense summary"
+    assert "Everyday Food" in embed["fields"][0]["value"]
+    assert "$120.00" in embed["fields"][0]["value"]
+    assert "more" in embed["fields"][0]["value"]
+    assert "less" in embed["fields"][0]["value"]
+    assert embed["fields"][1]["name"] == "Uncategorized"
+    assert "$30.00 net outflow" in embed["fields"][1]["value"]
+    assert "2 transactions this week" in embed["fields"][1]["value"]
+    assert "4 transactions outstanding" in embed["fields"][1]["value"]
+    assert "$160.00" in embed["fields"][2]["value"]
+    assert "$900.00" in embed["fields"][3]["value"]
+    assert embed["color"] == 0x95A5A6
+
+
+def test_test_payload_contains_no_financial_values() -> None:
+    serialized = json.dumps(build_test_payload())
+
+    assert "financial data" in serialized
+    assert "$" not in serialized
+
+
+def test_post_webhook_uses_wait_and_returns_message_id() -> None:
+    response = BytesIO(b'{"id":"message-1"}')
+
+    with patch("src.discord_notifier.urlopen", return_value=response) as mock_urlopen:
+        message_id = post_webhook(sample_config().webhook_url, build_test_payload())
+
+    request = mock_urlopen.call_args.args[0]
+    assert request.full_url.endswith("?wait=true")
+    assert message_id == "message-1"
+
+
+def test_discord_http_error_does_not_expose_webhook() -> None:
+    error = HTTPError("private-url", 401, "Unauthorized", Message(), None)
+    with (
+        patch("src.discord_notifier.urlopen", side_effect=error),
+        pytest.raises(NotifierError, match="HTTP 401") as raised,
+    ):
+        post_webhook(sample_config().webhook_url, build_test_payload())
+
+    assert "private-url" not in str(raised.value)
+    assert "test-token" not in str(raised.value)
+
+
+def test_delivery_state_is_atomic_and_suppresses_duplicates(tmp_path: Path) -> None:
+    state_path = tmp_path / ".local" / "state.json"
+    period_end = dt.date(2026, 8, 1)
+
+    assert not was_sent(period_end, state_path)
+    save_delivery(period_end, "message-1", state_path)
+
+    assert was_sent(period_end, state_path)
+    assert load_state(state_path)["sent_periods"]["2026-08-01"]["message_id"] == "message-1"
+    if os.name != "nt":
+        assert state_path.stat().st_mode & 0o777 == 0o600
+
+
+def test_preview_json_is_machine_readable(capsys: pytest.CaptureFixture[str]) -> None:
+    with (
+        patch("src.discord_notifier.load_config", return_value=sample_config()),
+        patch("src.discord_notifier.build_report", return_value=sample_report()),
+    ):
+        exit_code = main(
+            ["preview", "--period-end", "2026-08-01", "--output", "json"]
+        )
+
+    output = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert output["status"] == "ok"
+    assert output["categories"][0]["name"] == "Everyday Food"
+    assert output["uncategorized"] == {
+        "amount": 30.0,
+        "change": 10.0,
+        "count": 2,
+        "count_change": 1,
+        "outstanding_count": 4,
+        "previous_amount": 20.0,
+        "previous_count": 1,
+    }
+
+
+def test_send_skips_period_already_in_state(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    state_path = tmp_path / "state.json"
+    save_delivery(dt.date(2026, 8, 1), "message-1", state_path)
+
+    with (
+        patch("src.discord_notifier.load_config", return_value=sample_config()),
+        patch("src.discord_notifier.build_report", return_value=sample_report()) as build,
+        patch("src.discord_notifier.post_webhook") as post,
+    ):
+        exit_code = main(
+            [
+                "send",
+                "--period-end",
+                "2026-08-01",
+                "--state",
+                str(state_path),
+                "--output",
+                "json",
+            ]
+        )
+
+    assert exit_code == 0
+    assert json.loads(capsys.readouterr().out)["status"] == "skipped"
+    build.assert_not_called()
+    post.assert_not_called()
+
+
+def test_force_sends_an_existing_period(tmp_path: Path) -> None:
+    state_path = tmp_path / "state.json"
+    save_delivery(dt.date(2026, 8, 1), "message-1", state_path)
+
+    with (
+        patch("src.discord_notifier.load_config", return_value=sample_config()),
+        patch("src.discord_notifier.build_report", return_value=sample_report()),
+        patch("src.discord_notifier.post_webhook", return_value="message-2") as post,
+    ):
+        exit_code = main(
+            [
+                "send",
+                "--period-end",
+                "2026-08-01",
+                "--state",
+                str(state_path),
+                "--force",
+            ]
+        )
+
+    assert exit_code == 0
+    post.assert_called_once()
+    assert load_state(state_path)["sent_periods"]["2026-08-01"]["message_id"] == "message-2"
+
+
+def test_send_failure_does_not_record_delivery(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    state_path = tmp_path / "state.json"
+
+    with (
+        patch("src.discord_notifier.load_config", return_value=sample_config()),
+        patch("src.discord_notifier.build_report", return_value=sample_report()),
+        patch("src.discord_notifier.post_webhook", side_effect=NotifierError("Discord failed.")),
+    ):
+        exit_code = main(
+            [
+                "send",
+                "--period-end",
+                "2026-08-01",
+                "--state",
+                str(state_path),
+                "--output",
+                "json",
+            ]
+        )
+
+    output = json.loads(capsys.readouterr().out)
+    assert exit_code == 1
+    assert output["status"] == "error"
+    assert not state_path.exists()

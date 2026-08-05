@@ -1,4 +1,5 @@
-.streamlit
+.streamlit/*
+!.streamlit/secrets.example.toml
 .venv
 .tools/
 .local/

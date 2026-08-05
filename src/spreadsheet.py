@@ -7,24 +7,14 @@ import pandas as pd
 import streamlit as st
 from streamlit_gsheets import GSheetsConnection
 
+from src.scrubbing import (
+    SpreadsheetSchemaError as SpreadsheetSchemaError,
+    scrub_categories,
+    scrub_transactions,
+    validate_required_columns as validate_required_columns,
+)
 
-class SpreadsheetSchemaError(ValueError):
-    """Raised when an imported sheet is missing required columns."""
 
-
-TRANSACTIONS_REQUIRED_COLUMNS: frozenset[str] = frozenset({
-    "Date",
-    "Category",
-    "Amount",
-    "Account",
-    "Month",
-    "Week",
-    "Full Description",
-    "Institution",
-    "Account #",
-    "Date Added",
-    "Categorized Date",
-})
 BALANCE_HISTORY_REQUIRED_COLUMNS: frozenset[str] = frozenset({
     "Date",
     "Time",
@@ -38,26 +28,6 @@ BALANCE_HISTORY_REQUIRED_COLUMNS: frozenset[str] = frozenset({
     "Week",
     "Date Added",
 })
-CATEGORIES_REQUIRED_COLUMNS: frozenset[str] = frozenset({
-    "Category",
-    "Group",
-    "Type",
-    "Hide From Reports",
-})
-
-
-def validate_required_columns(
-    df: pd.DataFrame,
-    required_columns: frozenset[str],
-    sheet_name: str,
-) -> None:
-    """Raise when ``df`` is missing required Tiller columns."""
-    missing = sorted(required_columns - set(df.columns))
-    if missing:
-        joined = ", ".join(missing)
-        raise SpreadsheetSchemaError(f"{sheet_name} sheet is missing required columns: {joined}")
-
-
 def validate_min_columns(
     df: pd.DataFrame,
     min_columns: int,
@@ -132,45 +102,7 @@ class CategoriesSpreadsheet(Spreadsheet):
     @override
     def scrub(self) -> None:
         """Clean up the data stored in self.raw_df"""
-        df = self.raw_df.copy()
-        validate_required_columns(df, CATEGORIES_REQUIRED_COLUMNS, "Categories")
-
-        # Metadata columns (first 4)
-        meta = df.filter(["Category", "Group", "Type", "Hide From Reports"]).copy()
-        meta = meta.dropna(subset=["Category"])
-        self.scrubbed_df = meta
-
-        # Budget columns (columns 5+) have date headers from Google Sheets.
-        # Keep the full year-month so January budgets from different years do
-        # not overwrite each other.
-        budget_frames: list[pd.DataFrame] = []
-        for col in df.columns[4:]:
-            try:
-                dt = pd.to_datetime(col)
-            except (ValueError, TypeError):
-                continue
-            cleaned = df[col].astype(str).str.replace(r'[$,]', '', regex=True)
-            budget_frames.append(pd.DataFrame({
-                "Category": df["Category"],
-                "Month": dt.strftime("%Y-%m"),
-                "Budget": pd.to_numeric(cleaned, errors="coerce").fillna(0),
-            }))
-
-        if not budget_frames:
-            self.budget_df = pd.DataFrame(
-                columns=["Category", "Month", "Budget", "Group", "Type"]
-            )
-            return
-
-        budget_long = pd.concat(budget_frames, ignore_index=True)
-        budget_long = budget_long.dropna(subset=["Category"])
-
-        # Join with metadata for Group/Type
-        budget_long = budget_long.merge(
-            meta[["Category", "Group", "Type"]], on="Category", how="left"
-        )
-
-        self.budget_df = budget_long
+        self.scrubbed_df, self.budget_df = scrub_categories(self.raw_df)
 
 
 class AccountsSpreadsheet(Spreadsheet):
@@ -200,37 +132,8 @@ class TransactionsSpreadsheet(Spreadsheet):
     @override
     def scrub(self) -> None:
         """Clean up the data stored in self.raw_df"""
-        df = self.raw_df.copy()
-        validate_required_columns(df, TRANSACTIONS_REQUIRED_COLUMNS, "Transactions")
-
-        # Drop empty column
-        df = df.drop("Unnamed: 0", axis=1, errors='ignore')
-
-        # Recast Amount column as float
-        df["Amount"] = df["Amount"].replace(r'[\$,]', '', regex=True).astype(float)
-
-        # Recast dates as datetime (utc=True handles mixed timezones)
-        df["Date"] = pd.to_datetime(df["Date"], format='mixed', utc=True)
-        df["Month"] = pd.to_datetime(df["Month"], format='mixed', utc=True)
-        df["Week"] = pd.to_datetime(df["Week"], format='mixed', utc=True)
-        df["Date Added"] = pd.to_datetime(df["Date Added"], format='mixed', utc=True)
-        df["Categorized Date"] = pd.to_datetime(df["Categorized Date"], format='mixed', utc=True)
-
-        # Use better strings for Month and Week columns
-        df["Month"] = df["Month"].dt.strftime('%Y-%m')
-        df["Week"] = df["Week"].dt.strftime('%U')
-
-        # Join with Categories to populate Group, Type, and Hide From Reports
-        df = df.drop(columns=["Group", "Type", "Hide From Reports"], errors="ignore")
         categories = load_categories_data()
-        df = df.merge(categories.scrubbed_df, on="Category", how="left")
-        df["Group"] = df["Group"].fillna("Uncategorized")
-        df["Type"] = df["Type"].fillna("")
-        df["Hide From Reports"] = df["Hide From Reports"].fillna("")
-
-        df = df.filter(["Date", "Category", "Amount", "Account", "Month", "Full Description", "Group", "Type", "Institution", "Account #"])
-
-        self.scrubbed_df = df
+        self.scrubbed_df = scrub_transactions(self.raw_df, categories.scrubbed_df)
 
     def get_total_months(
             self
