@@ -46,7 +46,7 @@ ignore = [
 
 [tool.mypy]
 python_version = "3.14"
-files = ["src", "Pages", "tests", "scripts", "Home.py"]
+files = ["src", "pages", "tests", "scripts", "Home.py"]
 strict = true
 explicit_package_bases = true
 enable_error_code = ["explicit-override", "ignore-without-code"]

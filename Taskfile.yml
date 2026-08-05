@@ -7,7 +7,7 @@ vars:
   STREAMLIT: '{{if eq OS "windows"}}{{.VENV}}/Scripts/streamlit.exe{{else}}{{.VENV}}/bin/streamlit{{end}}'
   UV: '{{if eq OS "windows"}}.tools/bin/uv.exe{{else}}.tools/bin/uv{{end}}'
   TASK: '{{if eq OS "windows"}}.tools/bin/task.exe{{else}}.tools/bin/task{{end}}'
-  LINT_PATHS: src/ Pages/ tests/ scripts/ Home.py
+  LINT_PATHS: src/ pages/ tests/ scripts/ Home.py
   ADDRESS: '{{default "0.0.0.0" .ADDRESS}}'
   PORT: '{{default "8501" .PORT}}'
   PERIOD_END: '{{default "" .PERIOD_END}}'
@@ -165,7 +165,7 @@ tasks:
   test:coverage:
     desc: "Run tests with coverage report"
     cmds:
-      - '{{.UV}} run --locked --dev pytest --cov=src --cov=Pages --cov-branch --cov-report=term-missing --cov-fail-under=80'
+      - '{{.UV}} run --locked --dev pytest --cov=src --cov=pages --cov-branch --cov-report=term-missing --cov-fail-under=80'
 
   test:coverage:src:
     desc: "Run tests with src/ coverage gate (>=90%)"

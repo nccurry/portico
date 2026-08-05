@@ -1,7 +1,7 @@
-"""Centralized loaders for ``Pages/N_Foo.py`` modules.
+"""Centralized loaders for ``pages/N_Foo.py`` modules.
 
-The Streamlit ``Pages/`` directory uses leading-digit module names that are
-not legal Python identifiers, so we cannot ``import Pages.1_Income_and_Savings``
+The Streamlit ``pages/`` directory uses leading-digit module names that are
+not legal Python identifiers, so we cannot ``import pages.1_Income_and_Savings``
 in the normal way. ``importlib.import_module`` works because it accepts the
 module name as a string. This file centralizes the lookup so test files do
 not each carry their own copy of the workaround.
@@ -16,7 +16,7 @@ from types import ModuleType
 
 
 def _load(name: str) -> ModuleType:
-    return import_module(f"Pages.{name}")
+    return import_module(f"pages.{name}")
 
 
 income_and_savings: ModuleType = _load("1_Income_and_Savings")
