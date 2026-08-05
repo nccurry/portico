@@ -1,16 +1,14 @@
 """Tests for category spending and transaction-distribution calculations."""
-from collections.abc import Callable
-from typing import Any
-
 import pytest
 import pandas as pd
 
-from src.spreadsheet import TransactionsSpreadsheet
+from src.custom_types import SpendingFilters
 from src.analysis.spending import (
     calculate_distribution_stats,
     calculate_spending_summary,
     process_spending_data,
 )
+from tests.custom_types import TransactionsSpreadsheetFactory
 
 
 class TestProcessSpendingData:
@@ -18,8 +16,8 @@ class TestProcessSpendingData:
     def test_filters_to_expenses_only(
         self,
         spending_transactions_df: pd.DataFrame,
-        basic_spending_filters: dict[str, Any],
-        make_transactions_spreadsheet: Callable[..., TransactionsSpreadsheet],
+        basic_spending_filters: SpendingFilters,
+        make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
     ) -> None:
         ts = make_transactions_spreadsheet(spending_transactions_df)
         start = pd.Timestamp('2024-01-01', tz='UTC')
@@ -33,8 +31,8 @@ class TestProcessSpendingData:
     def test_category_grouping_with_abs_amounts(
         self,
         spending_transactions_df: pd.DataFrame,
-        basic_spending_filters: dict[str, Any],
-        make_transactions_spreadsheet: Callable[..., TransactionsSpreadsheet],
+        basic_spending_filters: SpendingFilters,
+        make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
     ) -> None:
         ts = make_transactions_spreadsheet(spending_transactions_df)
         start = pd.Timestamp('2024-01-01', tz='UTC')
@@ -52,8 +50,8 @@ class TestProcessSpendingData:
     def test_percentages_sum_to_100(
         self,
         spending_transactions_df: pd.DataFrame,
-        basic_spending_filters: dict[str, Any],
-        make_transactions_spreadsheet: Callable[..., TransactionsSpreadsheet],
+        basic_spending_filters: SpendingFilters,
+        make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
     ) -> None:
         ts = make_transactions_spreadsheet(spending_transactions_df)
         start = pd.Timestamp('2024-01-01', tz='UTC')
@@ -152,8 +150,8 @@ class TestCalculateDistributionStats:
     def test_date_range_filters_transactions(
         self,
         spending_transactions_df: pd.DataFrame,
-        basic_spending_filters: dict[str, Any],
-        make_transactions_spreadsheet: Callable[..., TransactionsSpreadsheet],
+        basic_spending_filters: SpendingFilters,
+        make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
     ) -> None:
         """Only transactions within the date range are included."""
         ts = make_transactions_spreadsheet(spending_transactions_df)
@@ -168,8 +166,8 @@ class TestCalculateDistributionStats:
 
     def test_zero_spending_returns_zero_percentages(
         self,
-        basic_spending_filters: dict[str, Any],
-        make_transactions_spreadsheet: Callable[..., TransactionsSpreadsheet],
+        basic_spending_filters: SpendingFilters,
+        make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
     ) -> None:
         """No expenses in range produces zero percentages."""
         df = pd.DataFrame({
@@ -427,8 +425,8 @@ class TestProcessSpendingDataCorners:
 
     def test_same_category_in_multiple_months_aggregates(
         self,
-        basic_spending_filters: dict[str, Any],
-        make_transactions_spreadsheet: Callable[..., TransactionsSpreadsheet],
+        basic_spending_filters: SpendingFilters,
+        make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
     ) -> None:
         """Same category across different months sums into one row in df_by_category."""
         df = pd.DataFrame({
@@ -454,8 +452,8 @@ class TestProcessSpendingDataCorners:
 
     def test_output_sorted_descending_by_amount(
         self,
-        basic_spending_filters: dict[str, Any],
-        make_transactions_spreadsheet: Callable[..., TransactionsSpreadsheet],
+        basic_spending_filters: SpendingFilters,
+        make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
     ) -> None:
         """df_by_category must be sorted descending so calculate_spending_summary
         can trust iloc[0] as the top category."""
@@ -483,8 +481,8 @@ class TestProcessSpendingDataCorners:
 
     def test_date_range_inclusive_on_both_ends(
         self,
-        basic_spending_filters: dict[str, Any],
-        make_transactions_spreadsheet: Callable[..., TransactionsSpreadsheet],
+        basic_spending_filters: SpendingFilters,
+        make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
     ) -> None:
         """start_date and end_date are both inclusive (>= and <=)."""
         df = pd.DataFrame({
@@ -510,7 +508,7 @@ class TestProcessSpendingDataCorners:
 
     def test_excluded_groups_filter_removed_from_total(
         self,
-        make_transactions_spreadsheet: Callable[..., TransactionsSpreadsheet],
+        make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
     ) -> None:
         """Filter excluding a group drops its expenses from df_by_category."""
         df = pd.DataFrame({
@@ -526,7 +524,7 @@ class TestProcessSpendingDataCorners:
             'Account #': ['1234'] * 2,
         })
         ts = make_transactions_spreadsheet(df)
-        filters = {
+        filters: SpendingFilters = {
             'include_groups': [],
             'include_categories': [],
             'exclude_groups': ['Bills'],
@@ -544,8 +542,8 @@ class TestProcessSpendingDataCorners:
 
     def test_income_always_excluded(
         self,
-        basic_spending_filters: dict[str, Any],
-        make_transactions_spreadsheet: Callable[..., TransactionsSpreadsheet],
+        basic_spending_filters: SpendingFilters,
+        make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
     ) -> None:
         """Even positive expense-shaped Income rows are excluded from spending."""
         df = pd.DataFrame({
@@ -572,8 +570,8 @@ class TestProcessSpendingDataCorners:
 
     def test_percentages_rounded_to_one_decimal(
         self,
-        basic_spending_filters: dict[str, Any],
-        make_transactions_spreadsheet: Callable[..., TransactionsSpreadsheet],
+        basic_spending_filters: SpendingFilters,
+        make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
     ) -> None:
         """Percentages are rounded to 1 decimal — verify they're not raw floats."""
         df = pd.DataFrame({
@@ -600,8 +598,8 @@ class TestProcessSpendingDataCorners:
 
     def test_refund_positive_expense_amount_absolute(
         self,
-        basic_spending_filters: dict[str, Any],
-        make_transactions_spreadsheet: Callable[..., TransactionsSpreadsheet],
+        basic_spending_filters: SpendingFilters,
+        make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
     ) -> None:
         """A positive-amount row classified as Expense (rare partial refund)
         is absorbed via abs() — so a +50 expense shows as $50 in the category total."""

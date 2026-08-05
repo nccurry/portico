@@ -1,11 +1,10 @@
 """Data Health page: surface sheet mapping and data-quality issues."""
 
-from typing import Any
-
 import pandas as pd
 import streamlit as st
 
 from src.analysis.data_health import DataHealthReport, build_data_health_report
+from src.custom_types import ColumnConfig
 from src.page_helpers import get_transaction_column_config, render_data_refresh_controls
 from src.spreadsheet import (
     BalanceHistorySpreadsheet,
@@ -22,7 +21,7 @@ def _display_issue_table(
     df: pd.DataFrame,
     *,
     height: int = 350,
-    column_config: dict[str, Any] | None = None,
+    column_config: ColumnConfig | None = None,
 ) -> None:
     """Display one data-health issue table."""
     with st.expander(f"{title} ({len(df)})", expanded=not df.empty):

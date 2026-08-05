@@ -5,10 +5,29 @@ for production code live here. Inline Final, ClassVar, and one-shot parameter
 annotations stay at their usage site.
 """
 
-from typing import TypedDict
+from collections.abc import Sequence
+from typing import ReadOnly, TypedDict
+
+from streamlit.elements.lib.column_config_utils import ColumnConfigMappingInput
 
 
-class IncomeExpenseFilters(TypedDict):
+type ColumnConfig = ColumnConfigMappingInput
+
+
+class TransactionFilterOptions(TypedDict, total=False):
+    """Optional filters understood by the shared transaction pipeline."""
+
+    include_groups: ReadOnly[Sequence[str]]
+    include_categories: ReadOnly[Sequence[str]]
+    exclude_groups: ReadOnly[Sequence[str]]
+    exclude_categories: ReadOnly[Sequence[str]]
+    filter_large_income: ReadOnly[bool]
+    income_threshold: ReadOnly[int]
+    filter_large_expenses: ReadOnly[bool]
+    expense_threshold: ReadOnly[int]
+
+
+class IncomeExpenseFilters(TransactionFilterOptions):
     """Sidebar filter state for the Income & Savings page."""
 
     exclude_groups: list[str]
@@ -20,7 +39,7 @@ class IncomeExpenseFilters(TypedDict):
     target_rate: int
 
 
-class SpendingFilters(TypedDict):
+class SpendingFilters(TransactionFilterOptions):
     """Sidebar filter state for the Spending by Category page."""
 
     include_groups: list[str]
@@ -31,7 +50,7 @@ class SpendingFilters(TypedDict):
     expense_threshold: int
 
 
-class BudgetFilters(TypedDict):
+class BudgetFilters(TransactionFilterOptions):
     """Sidebar filter state for the Budget page."""
 
     exclude_groups: list[str]
@@ -41,7 +60,7 @@ class BudgetFilters(TypedDict):
     show_zero_budget: bool
 
 
-class FIFilters(TypedDict):
+class FIFilters(TransactionFilterOptions):
     """Sidebar filter state for the Financial Independence page."""
 
     include_accounts: list[str]

@@ -4,11 +4,9 @@ These tests do NOT read the source xlsx. They exercise the generator's pure
 helpers against synthetic inputs and validate invariants on the committed
 fixture artifacts under ``tests/data/fixtures/``.
 """
-from __future__ import annotations
-
 import re
+from datetime import time
 from pathlib import Path
-from typing import Any
 
 import pandas as pd
 import pytest
@@ -19,6 +17,7 @@ from scripts.generate_test_fixtures import (
     SYNTHETIC_ZERO_ACCOUNT,
     _composite_key_display,
     _format_money,
+    _has_time_parts,
     _index_to_letters,
     _normalize_token,
     anonymize_balance_history,
@@ -31,6 +30,7 @@ from scripts.generate_test_fixtures import (
     sample_transactions,
     validate_pattern_minimums,
 )
+from tests.custom_types import DataFrameRow
 
 
 _FIXTURES_DIR = Path(__file__).resolve().parents[2] / "data" / "fixtures"
@@ -43,6 +43,12 @@ _FIXTURES_DIR = Path(__file__).resolve().parents[2] / "data" / "fixtures"
 
 class TestNormalizeToken:
     """``_normalize_token`` strips punctuation and lowercases."""
+
+    def test_time_parts_guard(self) -> None:
+        """The runtime guard recognizes supported time-bearing values."""
+        assert _has_time_parts(time(12, 30))
+        assert _has_time_parts(pd.Timestamp("2024-01-01 12:30"))
+        assert not _has_time_parts("12:30")
 
     def test_lowercases(self) -> None:
         assert _normalize_token("AmaZON") == "amazon"
@@ -471,7 +477,7 @@ class TestValidatorAgreesWithPageHelpers:
     """
 
     def _base_txn(self, date: str, amount: float, desc: str,
-                  account: str = "Checking", category: str = "Groceries") -> dict[str, Any]:
+                  account: str = "Checking", category: str = "Groceries") -> DataFrameRow:
         return {
             "Date": date, "Category": category, "Amount": amount,
             "Account": account, "Month": date[:7],
@@ -484,8 +490,7 @@ class TestValidatorAgreesWithPageHelpers:
         """The validator's self-join duplicate logic (same account, same
         description, within 1 day, >= $10) matches find_duplicates_efficient
         on identical data."""
-        from tests._pages import duplicate_detection
-        find_dupes = duplicate_detection.find_duplicates_efficient
+        from src.analysis.duplicates import find_duplicates_efficient
 
         rows = [
             self._base_txn("2024-01-15", -50.0, "STORE PURCHASE", "Checking"),
@@ -501,7 +506,7 @@ class TestValidatorAgreesWithPageHelpers:
         df_scrubbed["Type"] = "Expense"
         df_scrubbed["Group"] = "Food"
 
-        page_result = find_dupes(
+        page_result = find_duplicates_efficient(
             df_scrubbed, days_threshold=1, min_amount=10,
             check_same_account=True, check_same_category=False,
             require_same_description=True,
@@ -535,8 +540,7 @@ class TestValidatorAgreesWithPageHelpers:
         """Same amount, same day, same account — but different descriptions.
         Neither the page helper (with description matching) nor the validator
         should count these as a duplicate pair."""
-        from tests._pages import duplicate_detection
-        find_dupes = duplicate_detection.find_duplicates_efficient
+        from src.analysis.duplicates import find_duplicates_efficient
 
         rows = [
             self._base_txn("2024-01-15", -50.0, "KROGER STORE", "Checking"),
@@ -550,7 +554,7 @@ class TestValidatorAgreesWithPageHelpers:
         df_scrubbed["Type"] = "Expense"
         df_scrubbed["Group"] = "Food"
 
-        page_result = find_dupes(
+        page_result = find_duplicates_efficient(
             df_scrubbed, days_threshold=1, min_amount=10,
             check_same_account=True, check_same_category=False,
             require_same_description=True,
@@ -560,8 +564,7 @@ class TestValidatorAgreesWithPageHelpers:
     def test_recurring_validator_agrees_with_page5_cadence(self) -> None:
         """A merchant with monthly cadence is detected by both the validator
         and detect_recurring_transactions."""
-        from tests._pages import subscriptions
-        detect_recurring = subscriptions.detect_recurring_transactions
+        from src.analysis.subscriptions import detect_recurring_transactions
 
         dates = pd.date_range("2024-01-15", periods=6, freq="MS") + pd.Timedelta(days=14)
         rows = [
@@ -579,14 +582,13 @@ class TestValidatorAgreesWithPageHelpers:
         df_scrubbed["Type"] = "Expense"
         df_scrubbed["Group"] = "Entertainment"
 
-        page_result = detect_recurring(df_scrubbed)
+        page_result = detect_recurring_transactions(df_scrubbed)
         assert len(page_result) >= 1, "Page helper should detect the subscription"
 
     def test_recurring_validator_rejects_non_monthly_cadence(self) -> None:
         """A merchant that appears frequently but with 5-day cadence (not 20-40)
         should NOT be flagged as a subscription by detect_recurring_transactions."""
-        from tests._pages import subscriptions
-        detect_recurring = subscriptions.detect_recurring_transactions
+        from src.analysis.subscriptions import detect_recurring_transactions
 
         dates = pd.date_range("2024-01-01", periods=10, freq="5D")
         rows = [
@@ -601,7 +603,7 @@ class TestValidatorAgreesWithPageHelpers:
         df_scrubbed["Type"] = "Expense"
         df_scrubbed["Group"] = "Food"
 
-        page_result = detect_recurring(df_scrubbed)
+        page_result = detect_recurring_transactions(df_scrubbed)
         assert len(page_result) == 0, "Page helper should not flag 5-day cadence"
 
     def test_top_n_tie_validator_checks_boundary(self) -> None:

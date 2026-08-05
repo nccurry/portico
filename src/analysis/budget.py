@@ -1,41 +1,78 @@
 """Budget comparison calculations shared by the Budget page and tests."""
 
-from collections.abc import Mapping
-from typing import Any
+from collections.abc import Sequence
 
 import pandas as pd
 
-from src.custom_types import BudgetSummary
+from src.custom_types import BudgetFilters, BudgetSummary
 from src.filters import apply_transaction_filters
+
+
+def _period_months(month_str: str, *, ytd: bool) -> list[str]:
+    """Return the selected month or its year-to-date month range."""
+    if not ytd:
+        return [month_str]
+    year, month = (int(part) for part in month_str.split("-"))
+    return [f"{year}-{number:02d}" for number in range(1, month + 1)]
+
+
+def _budget_rows(
+    budget_df: pd.DataFrame,
+    months: Sequence[str],
+    filters: BudgetFilters,
+    groups: Sequence[str] | None = None,
+) -> pd.DataFrame:
+    """Filter budget rows to the selected period and analytical scope."""
+    budgets = budget_df[budget_df["Month"].isin(months)].copy()
+    budgets = budgets[budgets["Type"] == "Expense"]
+    if groups is not None:
+        budgets = budgets[budgets["Group"].isin(groups)]
+    if filters.get("exclude_groups"):
+        budgets = budgets[~budgets["Group"].isin(filters["exclude_groups"])]
+    if filters.get("exclude_categories"):
+        budgets = budgets[~budgets["Category"].isin(filters["exclude_categories"])]
+    return budgets
+
+
+def filter_budget_transactions(
+    transactions_df: pd.DataFrame,
+    month_str: str,
+    filters: BudgetFilters,
+    *,
+    groups: Sequence[str] | None = None,
+    ytd: bool = False,
+) -> pd.DataFrame:
+    """Return expense transactions used by a monthly or YTD budget view."""
+    months = _period_months(month_str, ytd=ytd)
+    transactions = transactions_df[transactions_df["Month"].isin(months)].copy()
+    transactions = apply_transaction_filters(transactions, filters)
+    transactions = transactions[transactions["Type"] == "Expense"]
+    if groups is not None:
+        transactions = transactions[transactions["Group"].isin(groups)]
+    return transactions
 
 
 def _budget_comparison(
     budget_df: pd.DataFrame,
     transactions_df: pd.DataFrame,
     month_str: str,
-    filters: Mapping[str, Any],
+    filters: BudgetFilters,
     *,
     ytd: bool,
 ) -> pd.DataFrame:
-    year = month_str.split("-")[0]
-    month_num = int(month_str.split("-")[1])
-
-    if ytd:
-        budgets = budget_df[budget_df["Month_Num"].between(1, month_num)].copy()
-        budgets = budgets.groupby(["Category", "Group", "Type"])["Budget"].sum().reset_index()
-        months = [f"{year}-{m:02d}" for m in range(1, month_num + 1)]
-        txns = transactions_df[transactions_df["Month"].isin(months)].copy()
-    else:
-        budgets = budget_df[budget_df["Month_Num"] == month_num][
-            ["Category", "Group", "Type", "Budget"]
-        ].copy()
-        txns = transactions_df[transactions_df["Month"] == month_str].copy()
-
-    txns = apply_transaction_filters(txns, filters)
-    txns = txns[txns["Type"] == "Expense"]
+    """Compare category budgets and actuals for one period."""
+    months = _period_months(month_str, ytd=ytd)
+    budgets = _budget_rows(budget_df, months, filters)
+    budgets = budgets.groupby(["Category", "Group", "Type"])["Budget"].sum().reset_index()
+    transactions = filter_budget_transactions(
+        transactions_df,
+        month_str,
+        filters,
+        ytd=ytd,
+    )
 
     actuals = (
-        txns.groupby("Category")["Amount"]
+        transactions.groupby("Category")["Amount"]
         .sum()
         .abs()
         .reset_index()
@@ -46,31 +83,62 @@ def _budget_comparison(
     result["Budget"] = pd.to_numeric(result["Budget"], errors="coerce").fillna(0)
     result["Spent"] = pd.to_numeric(result["Spent"], errors="coerce").fillna(0)
 
-    if not txns.empty:
-        txn_meta = txns[["Category", "Group", "Type"]].drop_duplicates("Category")
+    if not transactions.empty:
+        metadata = transactions[["Category", "Group", "Type"]].drop_duplicates("Category")
         missing = result["Group"].isna()
         if missing.any():
-            filled = result.loc[missing, ["Category"]].merge(txn_meta, on="Category", how="left")
+            filled = result.loc[missing, ["Category"]].merge(metadata, on="Category", how="left")
             result.loc[missing, "Group"] = filled["Group"].values
             result.loc[missing, "Type"] = filled["Type"].values
-
-    if filters.get("exclude_groups"):
-        result = result[~result["Group"].isin(filters["exclude_groups"])]
-    if filters.get("exclude_categories"):
-        result = result[~result["Category"].isin(filters["exclude_categories"])]
 
     result["Remaining"] = result["Budget"] - result["Spent"]
     result["Pct_Used"] = _pct_used(result["Spent"], result["Budget"])
 
     if not filters.get("show_zero_budget", False):
-        result = result[(result["Budget"] > 0) | (result["Spent"] > 0)]
         result = result[result["Budget"] > 0]
 
     return result.sort_values("Pct_Used", ascending=False).reset_index(drop=True)
 
 
+def _group_budget_comparison(
+    budget_df: pd.DataFrame,
+    transactions_df: pd.DataFrame,
+    month_str: str,
+    filters: BudgetFilters,
+    groups: Sequence[str],
+    *,
+    ytd: bool,
+) -> pd.DataFrame:
+    """Compare group budgets to all group spending, including unbudgeted categories."""
+    months = _period_months(month_str, ytd=ytd)
+    budgets = _budget_rows(budget_df, months, filters, groups)
+    budgets = budgets.groupby("Group")["Budget"].sum().reset_index()
+    transactions = filter_budget_transactions(
+        transactions_df,
+        month_str,
+        filters,
+        groups=groups,
+        ytd=ytd,
+    )
+    actuals = (
+        transactions.groupby("Group")["Amount"]
+        .sum()
+        .abs()
+        .reset_index()
+        .rename(columns={"Amount": "Spent"})
+    )
+
+    selected_groups = pd.DataFrame({"Group": list(groups)})
+    result = selected_groups.merge(budgets, on="Group", how="left").merge(actuals, on="Group", how="left")
+    for column in ["Budget", "Spent"]:
+        result[column] = pd.to_numeric(result[column], errors="coerce").fillna(0.0).astype(float)
+    result["Remaining"] = result["Budget"] - result["Spent"]
+    result["Pct_Used"] = _pct_used(result["Spent"], result["Budget"])
+    return result.sort_values("Pct_Used", ascending=False).reset_index(drop=True)
+
+
 def _pct_used(spent: pd.Series, budget: pd.Series) -> pd.Series:
-    """Return percent-used values, using inf for unbudgeted spending."""
+    """Return percent-used values, using infinity for unbudgeted spending."""
     result = pd.Series(0.0, index=spent.index)
     budgeted = budget > 0
     result.loc[budgeted] = spent.loc[budgeted] / budget.loc[budgeted] * 100
@@ -82,9 +150,9 @@ def get_budget_vs_actual(
     budget_df: pd.DataFrame,
     transactions_df: pd.DataFrame,
     month_str: str,
-    filters: Mapping[str, Any],
+    filters: BudgetFilters,
 ) -> pd.DataFrame:
-    """Compare monthly budget to actual spending for ``month_str``."""
+    """Compare monthly category budgets to actual spending."""
     return _budget_comparison(budget_df, transactions_df, month_str, filters, ytd=False)
 
 
@@ -92,17 +160,113 @@ def get_ytd_budget_vs_actual(
     budget_df: pd.DataFrame,
     transactions_df: pd.DataFrame,
     month_str: str,
-    filters: Mapping[str, Any],
+    filters: BudgetFilters,
 ) -> pd.DataFrame:
-    """Compare YTD cumulative budget to actual spending through ``month_str``."""
+    """Compare YTD category budgets to actual spending."""
     return _budget_comparison(budget_df, transactions_df, month_str, filters, ytd=True)
+
+
+def get_group_budget_vs_actual(
+    budget_df: pd.DataFrame,
+    transactions_df: pd.DataFrame,
+    month_str: str,
+    filters: BudgetFilters,
+    groups: Sequence[str],
+) -> pd.DataFrame:
+    """Compare monthly group budgets to all actual spending in those groups."""
+    return _group_budget_comparison(
+        budget_df,
+        transactions_df,
+        month_str,
+        filters,
+        groups,
+        ytd=False,
+    )
+
+
+def get_ytd_group_budget_vs_actual(
+    budget_df: pd.DataFrame,
+    transactions_df: pd.DataFrame,
+    month_str: str,
+    filters: BudgetFilters,
+    groups: Sequence[str],
+) -> pd.DataFrame:
+    """Compare YTD group budgets to all actual spending in those groups."""
+    return _group_budget_comparison(
+        budget_df,
+        transactions_df,
+        month_str,
+        filters,
+        groups,
+        ytd=True,
+    )
+
+
+def get_trailing_group_guidance(
+    budget_df: pd.DataFrame,
+    transactions_df: pd.DataFrame,
+    month_str: str,
+    filters: BudgetFilters,
+    groups: Sequence[str],
+    *,
+    lookback_months: int = 12,
+) -> pd.DataFrame:
+    """Compare current targets with average spending in prior complete months."""
+    selected_period = pd.Period(month_str, freq="M")
+    periods = pd.period_range(end=selected_period - 1, periods=lookback_months, freq="M")
+    months = periods.astype(str).tolist()
+
+    budgets = _budget_rows(budget_df, [month_str], filters, groups)
+    targets = budgets.groupby("Group")["Budget"].sum().rename("Monthly_Target")
+
+    transactions = transactions_df[transactions_df["Month"].isin(months)].copy()
+    transactions = apply_transaction_filters(transactions, filters)
+    transactions = transactions[
+        (transactions["Type"] == "Expense") & transactions["Group"].isin(groups)
+    ]
+    averages = (
+        transactions.groupby("Group")["Amount"].sum().abs().div(lookback_months).rename("Monthly_Average")
+    )
+
+    result = pd.DataFrame({"Group": list(groups)}).set_index("Group")
+    result = result.join(targets).join(averages).fillna(0.0).reset_index()
+    result["Monthly_Reduction"] = result["Monthly_Average"] - result["Monthly_Target"]
+    result["Annualized_Reduction"] = result["Monthly_Reduction"] * 12
+    return result.sort_values("Monthly_Reduction", ascending=False).reset_index(drop=True)
+
+
+def build_group_budget_table(
+    gross_monthly: pd.DataFrame,
+    adjusted_monthly: pd.DataFrame,
+    gross_ytd: pd.DataFrame,
+    adjusted_ytd: pd.DataFrame,
+) -> pd.DataFrame:
+    """Combine gross and adjusted monthly/YTD group results for display."""
+    monthly = gross_monthly[["Group", "Budget", "Spent"]].rename(
+        columns={"Budget": "Monthly_Budget", "Spent": "Monthly_Gross"}
+    )
+    monthly_adjusted = adjusted_monthly[["Group", "Spent"]].rename(columns={"Spent": "Monthly_Adjusted"})
+    ytd = gross_ytd[["Group", "Budget", "Spent"]].rename(
+        columns={"Budget": "YTD_Budget", "Spent": "YTD_Gross"}
+    )
+    ytd_adjusted = adjusted_ytd[["Group", "Spent"]].rename(columns={"Spent": "YTD_Adjusted"})
+
+    result = monthly.merge(monthly_adjusted, on="Group", how="outer")
+    result = result.merge(ytd, on="Group", how="outer").merge(ytd_adjusted, on="Group", how="outer")
+    numeric_columns = [column for column in result.columns if column != "Group"]
+    result[numeric_columns] = result[numeric_columns].fillna(0.0)
+    result["Monthly_Excluded"] = result["Monthly_Gross"] - result["Monthly_Adjusted"]
+    result["YTD_Excluded"] = result["YTD_Gross"] - result["YTD_Adjusted"]
+    result["Monthly_Pct"] = _pct_used(result["Monthly_Adjusted"], result["Monthly_Budget"])
+    result["YTD_Pct"] = _pct_used(result["YTD_Adjusted"], result["YTD_Budget"])
+    return result.sort_values("YTD_Pct", ascending=False).reset_index(drop=True)
 
 
 def build_unified_budget_table(
     monthly_df: pd.DataFrame,
     ytd_df: pd.DataFrame,
 ) -> pd.DataFrame:
-    """Merge monthly and YTD budget comparisons into one display table."""
+    """Merge monthly and YTD category comparisons into one display table."""
     monthly = monthly_df[["Category", "Group", "Budget", "Spent", "Pct_Used"]].rename(
         columns={"Budget": "Mo_Budget", "Spent": "Mo_Spent", "Pct_Used": "Mo_Pct"}
     )
@@ -111,19 +275,13 @@ def build_unified_budget_table(
     )
 
     merged = monthly.merge(ytd, on="Category", how="outer")
-
-    for col in ["Mo_Budget", "Mo_Spent", "Mo_Pct", "YTD_Budget", "YTD_Spent", "YTD_Pct"]:
-        merged[col] = merged[col].fillna(0)
+    for column in ["Mo_Budget", "Mo_Spent", "Mo_Pct", "YTD_Budget", "YTD_Spent", "YTD_Pct"]:
+        merged[column] = merged[column].fillna(0)
     merged["Group"] = merged["Group"].fillna("")
-
     return merged.sort_values("Mo_Pct", ascending=False).reset_index(drop=True)
 
 
-def calculate_projected_spend(
-    spent: float,
-    days_elapsed: int,
-    days_in_month: int,
-) -> float:
+def calculate_projected_spend(spent: float, days_elapsed: int, days_in_month: int) -> float:
     """Project end-of-month spend based on current pace."""
     if days_elapsed <= 0:
         return 0.0
@@ -148,15 +306,9 @@ def calculate_category_projections(
     days_in_month: int,
 ) -> pd.DataFrame:
     """Return budgeted categories with projected end-of-month spending."""
-    budgeted = comparison[comparison["Budget"] > 0][
-        ["Category", "Budget", "Spent"]
-    ].copy()
+    budgeted = comparison[comparison["Budget"] > 0][["Category", "Budget", "Spent"]].copy()
     budgeted["Projected"] = budgeted["Spent"].apply(
-        lambda spent: calculate_projected_spend(
-            float(spent),
-            days_elapsed,
-            days_in_month,
-        )
+        lambda spent: calculate_projected_spend(float(spent), days_elapsed, days_in_month)
     )
     budgeted["Over_Budget"] = budgeted["Projected"] > budgeted["Budget"]
     return budgeted

@@ -1,10 +1,32 @@
 """Streamlit test isolation and date-freezing fixtures."""
 from collections.abc import Generator
-from typing import Any
+from collections.abc import Callable
+from datetime import tzinfo
+from typing import overload
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
+
+
+@overload
+def _passthrough_decorator[**P, R](
+    func: Callable[P, R],
+    /,
+) -> Callable[P, R]: ...
+
+
+@overload
+def _passthrough_decorator[**P, R](
+    **kwargs: object,
+) -> Callable[[Callable[P, R]], Callable[P, R]]: ...
+
+
+def _passthrough_decorator(*args: object, **kwargs: object) -> object:
+    """Return the function unchanged whether used directly or with options."""
+    if args and callable(args[0]):
+        return args[0]
+    return lambda func: func
 
 
 # 1. disable_streamlit  (autouse)
@@ -13,12 +35,6 @@ import pytest
 @pytest.fixture(autouse=True)
 def disable_streamlit() -> Generator[None]:
     """Neuter Streamlit decorators and helpers so tests never touch a running app."""
-    def _passthrough_decorator(*args: Any, **kwargs: Any) -> Any:
-        """Return the function unchanged whether used as @decorator or @decorator(...)."""
-        if args and callable(args[0]):
-            return args[0]
-        return lambda fn: fn
-
     with (
         patch("streamlit.cache_data", side_effect=_passthrough_decorator),
         patch("streamlit.cache_resource", side_effect=_passthrough_decorator),
@@ -53,10 +69,9 @@ def frozen_time(
     iso = reference_date.isoformat()
     frozen_utc = reference_date if reference_date.tz is not None else reference_date.tz_localize("UTC")
 
-    @classmethod  # type: ignore[misc]
     def _frozen_now(
         cls: type[pd.Timestamp],
-        tz: Any = None,
+        tz: str | tzinfo | None = None,
     ) -> pd.Timestamp:
         """Return REFERENCE_DATE in the requested tz (or naive)."""
         if tz is None:
@@ -64,9 +79,9 @@ def frozen_time(
         return frozen_utc.tz_convert(tz)
 
     original_now = pd.Timestamp.now
-    pd.Timestamp.now = _frozen_now  # type: ignore[method-assign,assignment]
+    setattr(pd.Timestamp, "now", classmethod(_frozen_now))
     try:
         with freeze_time(iso, tz_offset=0):
             yield
     finally:
-        pd.Timestamp.now = original_now  # type: ignore[method-assign]
+        setattr(pd.Timestamp, "now", original_now)

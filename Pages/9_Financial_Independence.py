@@ -21,7 +21,7 @@ from src.constants import (
     COLOR_INCOME,
     COLOR_SAVINGS,
 )
-from src.custom_types import FIFilters, FISummary
+from src.custom_types import FIFilters, FISummary, TransactionFilterOptions
 from src.filters import apply_transaction_filters, render_fi_filters
 from src.page_helpers import display_transactions_expander, render_data_refresh_controls
 from src.reporting_periods import completed_month_window
@@ -35,7 +35,7 @@ from src.spreadsheet import (
 )
 
 
-def _build_spending_filters(filters: FIFilters) -> dict[str, object]:
+def _build_spending_filters(filters: FIFilters) -> TransactionFilterOptions:
     """Project FIFilters onto the shape expected by apply_transaction_filters."""
     return {
         "exclude_groups": filters["exclude_groups"],

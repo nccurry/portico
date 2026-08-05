@@ -1,7 +1,5 @@
 """Pure duplicate-transaction detection and summaries."""
 
-from __future__ import annotations
-
 import pandas as pd
 
 from src.custom_types import DuplicateSummary

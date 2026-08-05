@@ -1,14 +1,33 @@
 """Tests for budget functionality: CategoriesSpreadsheet budget parsing and budget vs actual."""
 from collections.abc import Callable
-from typing import Any
+from typing import Protocol
 from unittest.mock import patch
 
 import pandas as pd
 import pytest
 
+from src.custom_types import BudgetFilters
 from src.spreadsheet import Spreadsheet, CategoriesSpreadsheet
 from src.analysis import budget as _mod
 from tests._helpers import _transactions_df
+
+
+type BudgetComparisonFunction = Callable[
+    [pd.DataFrame, pd.DataFrame, str, BudgetFilters],
+    pd.DataFrame,
+]
+type BudgetTableFunction = Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame]
+
+
+class ProjectedSpendFunction(Protocol):
+    """Calculate projected spending while preserving keyword arguments."""
+
+    def __call__(
+        self,
+        spent: float,
+        days_elapsed: int,
+        days_in_month: int,
+    ) -> float: ...
 
 
 # ---------------------------------------------------------------------------
@@ -23,7 +42,7 @@ class TestCategoriesBudgetParsing:
 
     def test_budget_df_has_expected_columns(self, raw_categories_with_budget_df: pd.DataFrame) -> None:
         cs = self._make(raw_categories_with_budget_df)
-        assert set(cs.budget_df.columns) == {"Category", "Month_Num", "Budget", "Group", "Type"}
+        assert set(cs.budget_df.columns) == {"Category", "Month", "Budget", "Group", "Type"}
 
     def test_budget_df_has_12_months_per_category(self, raw_categories_with_budget_df: pd.DataFrame) -> None:
         cs = self._make(raw_categories_with_budget_df)
@@ -34,15 +53,15 @@ class TestCategoriesBudgetParsing:
         cs = self._make(raw_categories_with_budget_df)
         assert cs.budget_df["Category"].isna().sum() == 0
 
-    def test_month_nums_are_1_to_12(self, raw_categories_with_budget_df: pd.DataFrame) -> None:
+    def test_months_preserve_year_and_month(self, raw_categories_with_budget_df: pd.DataFrame) -> None:
         cs = self._make(raw_categories_with_budget_df)
-        assert sorted(cs.budget_df["Month_Num"].unique()) == list(range(1, 13))
+        assert sorted(cs.budget_df["Month"].unique()) == [f"2023-{month:02d}" for month in range(1, 13)]
 
     def test_budget_values_correct(self, raw_categories_with_budget_df: pd.DataFrame) -> None:
         cs = self._make(raw_categories_with_budget_df)
         # Groceries has $500 budget for all months
         groceries_jan = cs.budget_df[
-            (cs.budget_df["Category"] == "Groceries") & (cs.budget_df["Month_Num"] == 1)
+            (cs.budget_df["Category"] == "Groceries") & (cs.budget_df["Month"] == "2023-01")
         ]
         assert groceries_jan.iloc[0]["Budget"] == pytest.approx(500)
 
@@ -50,9 +69,25 @@ class TestCategoriesBudgetParsing:
         cs = self._make(raw_categories_with_budget_df)
         # Restaurants: $200 most months but $250 in March
         rest_mar = cs.budget_df[
-            (cs.budget_df["Category"] == "Restaurants") & (cs.budget_df["Month_Num"] == 3)
+            (cs.budget_df["Category"] == "Restaurants") & (cs.budget_df["Month"] == "2023-03")
         ]
         assert rest_mar.iloc[0]["Budget"] == pytest.approx(250)
+
+    def test_same_month_number_in_multiple_years_is_preserved(self) -> None:
+        raw = pd.DataFrame({
+            "Category": ["Groceries"],
+            "Group": ["Food"],
+            "Type": ["Expense"],
+            "Hide From Reports": [""],
+            pd.Timestamp("2023-01-01"): [500],
+            pd.Timestamp("2024-01-01"): [600],
+        })
+        cs = self._make(raw)
+        groceries = cs.budget_df[cs.budget_df["Category"] == "Groceries"]
+        assert groceries.set_index("Month")["Budget"].to_dict() == {
+            "2023-01": 500,
+            "2024-01": 600,
+        }
 
     def test_nan_budget_becomes_zero(self) -> None:
         raw = pd.DataFrame({
@@ -65,7 +100,7 @@ class TestCategoriesBudgetParsing:
         })
         cs = self._make(raw)
         jan = cs.budget_df[
-            (cs.budget_df["Category"] == "Groceries") & (cs.budget_df["Month_Num"] == 1)
+            (cs.budget_df["Category"] == "Groceries") & (cs.budget_df["Month"] == "2023-01")
         ]
         assert jan.iloc[0]["Budget"] == pytest.approx(0)
 
@@ -78,7 +113,7 @@ class TestCategoriesBudgetParsing:
         })
         cs = self._make(raw)
         assert cs.budget_df.empty
-        assert set(cs.budget_df.columns) == {"Category", "Month_Num", "Budget", "Group", "Type"}
+        assert set(cs.budget_df.columns) == {"Category", "Month", "Budget", "Group", "Type"}
 
     def test_group_and_type_joined(self, raw_categories_with_budget_df: pd.DataFrame) -> None:
         cs = self._make(raw_categories_with_budget_df)
@@ -103,7 +138,7 @@ class TestGetBudgetVsActual:
     def budget_df(self) -> pd.DataFrame:
         return pd.DataFrame({
             "Category": ["Groceries", "Groceries", "Restaurants", "Restaurants", "Electric", "Electric"],
-            "Month_Num": [1, 3, 1, 3, 1, 3],
+            "Month": ["2024-01", "2024-03", "2024-01", "2024-03", "2024-01", "2024-03"],
             "Budget": [500, 500, 200, 250, 150, 175],
             "Group": ["Food", "Food", "Food", "Food", "Bills", "Bills"],
             "Type": ["Expense", "Expense", "Expense", "Expense", "Expense", "Expense"],
@@ -125,7 +160,7 @@ class TestGetBudgetVsActual:
         ])
 
     @pytest.fixture
-    def no_filters(self) -> dict[str, Any]:
+    def no_filters(self) -> BudgetFilters:
         return {
             "exclude_groups": [],
             "exclude_categories": [],
@@ -134,10 +169,10 @@ class TestGetBudgetVsActual:
             "show_zero_budget": False,
         }
 
-    def _get_fn(self) -> Callable[..., pd.DataFrame]:
+    def _get_fn(self) -> BudgetComparisonFunction:
         return _mod.get_budget_vs_actual
 
-    def test_basic_budget_vs_actual(self, budget_df: pd.DataFrame, transactions_df: pd.DataFrame, no_filters: dict[str, Any]) -> None:
+    def test_basic_budget_vs_actual(self, budget_df: pd.DataFrame, transactions_df: pd.DataFrame, no_filters: BudgetFilters) -> None:
         fn = self._get_fn()
         result = fn(budget_df, transactions_df, "2024-01", no_filters)
 
@@ -147,7 +182,7 @@ class TestGetBudgetVsActual:
         assert groceries["Remaining"] == pytest.approx(150)
         assert groceries["Pct_Used"] == pytest.approx(70)
 
-    def test_over_budget(self, budget_df: pd.DataFrame, transactions_df: pd.DataFrame, no_filters: dict[str, Any]) -> None:
+    def test_over_budget(self, budget_df: pd.DataFrame, transactions_df: pd.DataFrame, no_filters: BudgetFilters) -> None:
         fn = self._get_fn()
         result = fn(budget_df, transactions_df, "2024-01", no_filters)
 
@@ -157,7 +192,7 @@ class TestGetBudgetVsActual:
         assert restaurants["Remaining"] == pytest.approx(-50)
         assert restaurants["Pct_Used"] == pytest.approx(125)
 
-    def test_no_spending(self, budget_df: pd.DataFrame, no_filters: dict[str, Any]) -> None:
+    def test_no_spending(self, budget_df: pd.DataFrame, no_filters: BudgetFilters) -> None:
         fn = self._get_fn()
         empty_txns = _transactions_df([
             {"Date": "2024-01-01", "Category": "Salary", "Amount": 5000, "Account": "Checking",
@@ -170,7 +205,7 @@ class TestGetBudgetVsActual:
         assert groceries["Remaining"] == pytest.approx(500)
         assert groceries["Pct_Used"] == pytest.approx(0)
 
-    def test_no_budget_hidden_by_default(self, budget_df: pd.DataFrame, no_filters: dict[str, Any]) -> None:
+    def test_no_budget_hidden_by_default(self, budget_df: pd.DataFrame, no_filters: BudgetFilters) -> None:
         fn = self._get_fn()
         txns = _transactions_df([
             {"Date": "2024-01-10", "Category": "Amazon", "Amount": -100, "Account": "Checking",
@@ -179,7 +214,7 @@ class TestGetBudgetVsActual:
         result = fn(budget_df, txns, "2024-01", no_filters)
         assert "Amazon" not in result["Category"].values
 
-    def test_no_budget_shown_with_toggle(self, budget_df: pd.DataFrame, no_filters: dict[str, Any]) -> None:
+    def test_no_budget_shown_with_toggle(self, budget_df: pd.DataFrame, no_filters: BudgetFilters) -> None:
         fn = self._get_fn()
         no_filters["show_zero_budget"] = True
         txns = _transactions_df([
@@ -191,7 +226,7 @@ class TestGetBudgetVsActual:
         assert amazon["Budget"] == pytest.approx(0)
         assert amazon["Spent"] == pytest.approx(100)
 
-    def test_pct_used_inf_when_zero_budget_and_spending(self, budget_df: pd.DataFrame, no_filters: dict[str, Any]) -> None:
+    def test_pct_used_inf_when_zero_budget_and_spending(self, budget_df: pd.DataFrame, no_filters: BudgetFilters) -> None:
         """Pct_Used should be inf when Budget=0 and Spent>0."""
         fn = self._get_fn()
         no_filters["show_zero_budget"] = True
@@ -203,7 +238,7 @@ class TestGetBudgetVsActual:
         amazon = result[result["Category"] == "Amazon"].iloc[0]
         assert amazon["Pct_Used"] == float("inf")
 
-    def test_pct_used_zero_when_zero_budget_zero_spending(self, budget_df: pd.DataFrame, no_filters: dict[str, Any]) -> None:
+    def test_pct_used_zero_when_zero_budget_zero_spending(self, budget_df: pd.DataFrame, no_filters: BudgetFilters) -> None:
         """Pct_Used should be 0 when Budget=0 and Spent=0."""
         fn = self._get_fn()
         no_filters["show_zero_budget"] = True
@@ -217,7 +252,7 @@ class TestGetBudgetVsActual:
         groceries = result[result["Category"] == "Groceries"].iloc[0]
         assert groceries["Pct_Used"] == pytest.approx(20)
 
-    def test_exclude_groups_filter(self, budget_df: pd.DataFrame, transactions_df: pd.DataFrame, no_filters: dict[str, Any]) -> None:
+    def test_exclude_groups_filter(self, budget_df: pd.DataFrame, transactions_df: pd.DataFrame, no_filters: BudgetFilters) -> None:
         fn = self._get_fn()
         no_filters["exclude_groups"] = ["Food"]
         result = fn(budget_df, transactions_df, "2024-01", no_filters)
@@ -225,14 +260,14 @@ class TestGetBudgetVsActual:
         assert "Restaurants" not in result["Category"].values
         assert "Electric" in result["Category"].values
 
-    def test_exclude_categories_filter(self, budget_df: pd.DataFrame, transactions_df: pd.DataFrame, no_filters: dict[str, Any]) -> None:
+    def test_exclude_categories_filter(self, budget_df: pd.DataFrame, transactions_df: pd.DataFrame, no_filters: BudgetFilters) -> None:
         fn = self._get_fn()
         no_filters["exclude_categories"] = ["Groceries"]
         result = fn(budget_df, transactions_df, "2024-01", no_filters)
         assert "Groceries" not in result["Category"].values
         assert "Restaurants" in result["Category"].values
 
-    def test_empty_month(self, budget_df: pd.DataFrame, no_filters: dict[str, Any]) -> None:
+    def test_empty_month(self, budget_df: pd.DataFrame, no_filters: BudgetFilters) -> None:
         fn = self._get_fn()
         empty_txns = pd.DataFrame(columns=[
             "Date", "Category", "Amount", "Account", "Month",
@@ -242,7 +277,7 @@ class TestGetBudgetVsActual:
         assert len(result) == 3  # Groceries, Restaurants, Electric
         assert (result["Spent"] == 0).all()
 
-    def test_group_rollup(self, budget_df: pd.DataFrame, transactions_df: pd.DataFrame, no_filters: dict[str, Any]) -> None:
+    def test_group_rollup(self, budget_df: pd.DataFrame, transactions_df: pd.DataFrame, no_filters: BudgetFilters) -> None:
         fn = self._get_fn()
         result = fn(budget_df, transactions_df, "2024-01", no_filters)
         group_result = result.groupby("Group").agg(
@@ -254,7 +289,7 @@ class TestGetBudgetVsActual:
         assert food["Budget"] == pytest.approx(700)
         assert food["Spent"] == pytest.approx(600)
 
-    def test_uses_correct_month_budget(self, budget_df: pd.DataFrame, no_filters: dict[str, Any]) -> None:
+    def test_uses_correct_month_budget(self, budget_df: pd.DataFrame, no_filters: BudgetFilters) -> None:
         """March has different budget amounts than January."""
         fn = self._get_fn()
         txns = _transactions_df([
@@ -265,7 +300,7 @@ class TestGetBudgetVsActual:
         rest = result[result["Category"] == "Restaurants"].iloc[0]
         assert rest["Budget"] == pytest.approx(250)  # March budget, not 200
 
-    def test_pct_used_exactly_100(self, budget_df: pd.DataFrame, no_filters: dict[str, Any]) -> None:
+    def test_pct_used_exactly_100(self, budget_df: pd.DataFrame, no_filters: BudgetFilters) -> None:
         """Spending exactly matches budget — Pct_Used is 100 and Remaining is 0."""
         fn = self._get_fn()
         txns = _transactions_df([
@@ -277,7 +312,7 @@ class TestGetBudgetVsActual:
         assert groceries["Pct_Used"] == pytest.approx(100.0)
         assert groceries["Remaining"] == pytest.approx(0.0)
 
-    def test_multiple_txns_same_category_sum(self, budget_df: pd.DataFrame, no_filters: dict[str, Any]) -> None:
+    def test_multiple_txns_same_category_sum(self, budget_df: pd.DataFrame, no_filters: BudgetFilters) -> None:
         """Many small expenses in the same category aggregate correctly."""
         fn = self._get_fn()
         txns = _transactions_df([
@@ -292,7 +327,7 @@ class TestGetBudgetVsActual:
         assert groceries["Spent"] == pytest.approx(500.0)
         assert groceries["Pct_Used"] == pytest.approx(100.0)
 
-    def test_sorted_descending_by_pct_used(self, budget_df: pd.DataFrame, transactions_df: pd.DataFrame, no_filters: dict[str, Any]) -> None:
+    def test_sorted_descending_by_pct_used(self, budget_df: pd.DataFrame, transactions_df: pd.DataFrame, no_filters: BudgetFilters) -> None:
         """Result must be sorted desc by Pct_Used so worst-offender is on top."""
         fn = self._get_fn()
         result = fn(budget_df, transactions_df, "2024-01", no_filters)
@@ -300,7 +335,7 @@ class TestGetBudgetVsActual:
         assert pcts == sorted(pcts, reverse=True)
         assert result.iloc[0]["Category"] == "Restaurants"  # 125% over
 
-    def test_income_transactions_excluded_from_spent(self, budget_df: pd.DataFrame, no_filters: dict[str, Any]) -> None:
+    def test_income_transactions_excluded_from_spent(self, budget_df: pd.DataFrame, no_filters: BudgetFilters) -> None:
         """Positive Income rows never count as 'Spent' even if miscategorized."""
         fn = self._get_fn()
         txns = _transactions_df([
@@ -314,7 +349,7 @@ class TestGetBudgetVsActual:
         # Only the -100 expense counts, not the +500 income
         assert groceries["Spent"] == pytest.approx(100.0)
 
-    def test_transactions_from_other_months_ignored(self, budget_df: pd.DataFrame, no_filters: dict[str, Any]) -> None:
+    def test_transactions_from_other_months_ignored(self, budget_df: pd.DataFrame, no_filters: BudgetFilters) -> None:
         """Only transactions from the target month contribute to Spent."""
         fn = self._get_fn()
         txns = _transactions_df([
@@ -327,7 +362,7 @@ class TestGetBudgetVsActual:
         groceries = result[result["Category"] == "Groceries"].iloc[0]
         assert groceries["Spent"] == pytest.approx(100.0)
 
-    def test_floating_point_precision(self, budget_df: pd.DataFrame, no_filters: dict[str, Any]) -> None:
+    def test_floating_point_precision(self, budget_df: pd.DataFrame, no_filters: BudgetFilters) -> None:
         """Fractional cents produce stable Pct_Used without float drift."""
         fn = self._get_fn()
         txns = _transactions_df([
@@ -344,7 +379,7 @@ class TestGetBudgetVsActual:
         assert groceries["Spent"] == pytest.approx(100.0, abs=1e-9)
         assert groceries["Pct_Used"] == pytest.approx(20.0, abs=1e-9)
 
-    def test_category_in_budget_but_zero_spent(self, budget_df: pd.DataFrame, no_filters: dict[str, Any]) -> None:
+    def test_category_in_budget_but_zero_spent(self, budget_df: pd.DataFrame, no_filters: BudgetFilters) -> None:
         """A budgeted category with no spending shows Spent=0, Pct_Used=0."""
         fn = self._get_fn()
         # Only Groceries has spending, not Electric
@@ -358,7 +393,7 @@ class TestGetBudgetVsActual:
         assert electric["Pct_Used"] == pytest.approx(0.0)
         assert electric["Remaining"] == pytest.approx(150.0)  # full budget remains
 
-    def test_category_rows_have_group_filled(self, budget_df: pd.DataFrame, no_filters: dict[str, Any]) -> None:
+    def test_category_rows_have_group_filled(self, budget_df: pd.DataFrame, no_filters: BudgetFilters) -> None:
         """Category rows that only appear in transactions (no budget) still get
         Group filled in from the transaction, not NaN."""
         fn = self._get_fn()
@@ -384,9 +419,9 @@ class TestGetYtdBudgetVsActual:
         """Budget data with months 1-3 for two categories."""
         rows = []
         for month in range(1, 13):
-            rows.append({"Category": "Groceries", "Month_Num": month, "Budget": 500,
+            rows.append({"Category": "Groceries", "Month": f"2024-{month:02d}", "Budget": 500,
                          "Group": "Food", "Type": "Expense"})
-            rows.append({"Category": "Restaurants", "Month_Num": month, "Budget": 200,
+            rows.append({"Category": "Restaurants", "Month": f"2024-{month:02d}", "Budget": 200,
                          "Group": "Food", "Type": "Expense"})
         return pd.DataFrame(rows)
 
@@ -411,7 +446,7 @@ class TestGetYtdBudgetVsActual:
         ])
 
     @pytest.fixture
-    def no_filters(self) -> dict[str, Any]:
+    def no_filters(self) -> BudgetFilters:
         return {
             "exclude_groups": [],
             "exclude_categories": [],
@@ -420,10 +455,10 @@ class TestGetYtdBudgetVsActual:
             "show_zero_budget": False,
         }
 
-    def _get_fn(self) -> Callable[..., pd.DataFrame]:
+    def _get_fn(self) -> BudgetComparisonFunction:
         return _mod.get_ytd_budget_vs_actual
 
-    def test_ytd_through_march(self, budget_df: pd.DataFrame, transactions_df: pd.DataFrame, no_filters: dict[str, Any]) -> None:
+    def test_ytd_through_march(self, budget_df: pd.DataFrame, transactions_df: pd.DataFrame, no_filters: BudgetFilters) -> None:
         fn = self._get_fn()
         result = fn(budget_df, transactions_df, "2024-03", no_filters)
 
@@ -435,7 +470,7 @@ class TestGetYtdBudgetVsActual:
         assert groceries["Remaining"] == pytest.approx(100)
         assert groceries["Pct_Used"] == pytest.approx(1400 / 1500 * 100)
 
-    def test_ytd_through_january(self, budget_df: pd.DataFrame, transactions_df: pd.DataFrame, no_filters: dict[str, Any]) -> None:
+    def test_ytd_through_january(self, budget_df: pd.DataFrame, transactions_df: pd.DataFrame, no_filters: BudgetFilters) -> None:
         """Single month YTD should equal the monthly view."""
         fn = self._get_fn()
         result = fn(budget_df, transactions_df, "2024-01", no_filters)
@@ -444,7 +479,7 @@ class TestGetYtdBudgetVsActual:
         assert groceries["Budget"] == pytest.approx(500)
         assert groceries["Spent"] == pytest.approx(400)
 
-    def test_ytd_sums_restaurant_spending(self, budget_df: pd.DataFrame, transactions_df: pd.DataFrame, no_filters: dict[str, Any]) -> None:
+    def test_ytd_sums_restaurant_spending(self, budget_df: pd.DataFrame, transactions_df: pd.DataFrame, no_filters: BudgetFilters) -> None:
         fn = self._get_fn()
         result = fn(budget_df, transactions_df, "2024-03", no_filters)
 
@@ -454,20 +489,20 @@ class TestGetYtdBudgetVsActual:
         # YTD spent: 150 + 180 + 250 = 580
         assert rest["Spent"] == pytest.approx(580)
 
-    def test_ytd_exclude_groups(self, budget_df: pd.DataFrame, transactions_df: pd.DataFrame, no_filters: dict[str, Any]) -> None:
+    def test_ytd_exclude_groups(self, budget_df: pd.DataFrame, transactions_df: pd.DataFrame, no_filters: BudgetFilters) -> None:
         fn = self._get_fn()
         no_filters["exclude_groups"] = ["Food"]
         result = fn(budget_df, transactions_df, "2024-03", no_filters)
         assert result.empty
 
-    def test_ytd_exclude_categories(self, budget_df: pd.DataFrame, transactions_df: pd.DataFrame, no_filters: dict[str, Any]) -> None:
+    def test_ytd_exclude_categories(self, budget_df: pd.DataFrame, transactions_df: pd.DataFrame, no_filters: BudgetFilters) -> None:
         fn = self._get_fn()
         no_filters["exclude_categories"] = ["Groceries"]
         result = fn(budget_df, transactions_df, "2024-03", no_filters)
         assert "Groceries" not in result["Category"].values
         assert "Restaurants" in result["Category"].values
 
-    def test_ytd_no_spending(self, budget_df: pd.DataFrame, no_filters: dict[str, Any]) -> None:
+    def test_ytd_no_spending(self, budget_df: pd.DataFrame, no_filters: BudgetFilters) -> None:
         fn = self._get_fn()
         empty_txns = _transactions_df([
             {"Date": "2024-01-01", "Category": "Salary", "Amount": 5000, "Account": "Checking",
@@ -478,7 +513,7 @@ class TestGetYtdBudgetVsActual:
         assert groceries["Budget"] == pytest.approx(1500)
         assert groceries["Spent"] == pytest.approx(0)
 
-    def test_ytd_empty_transactions(self, budget_df: pd.DataFrame, no_filters: dict[str, Any]) -> None:
+    def test_ytd_empty_transactions(self, budget_df: pd.DataFrame, no_filters: BudgetFilters) -> None:
         fn = self._get_fn()
         empty_txns = pd.DataFrame(columns=[
             "Date", "Category", "Amount", "Account", "Month",
@@ -490,7 +525,7 @@ class TestGetYtdBudgetVsActual:
         assert (result["Budget"] == 1500).any()  # Groceries: 500 * 3
         assert (result["Budget"] == 600).any()   # Restaurants: 200 * 3
 
-    def test_ytd_only_counts_same_year(self, budget_df: pd.DataFrame, no_filters: dict[str, Any]) -> None:
+    def test_ytd_only_counts_same_year(self, budget_df: pd.DataFrame, no_filters: BudgetFilters) -> None:
         """Transactions from a different year should not be included."""
         fn = self._get_fn()
         txns = _transactions_df([
@@ -510,7 +545,7 @@ class TestGetYtdBudgetVsActual:
 
 class TestBuildUnifiedBudgetTable:
 
-    def _get_fn(self) -> Callable[..., pd.DataFrame]:
+    def _get_fn(self) -> BudgetTableFunction:
         return _mod.build_unified_budget_table
 
     def test_merges_monthly_and_ytd(self) -> None:
@@ -586,12 +621,138 @@ class TestBuildUnifiedBudgetTable:
 
 
 # ---------------------------------------------------------------------------
+# Group budget dashboard helpers
+# ---------------------------------------------------------------------------
+
+class TestGroupBudgetDashboard:
+
+    @pytest.fixture
+    def filters(self) -> BudgetFilters:
+        return {
+            "exclude_groups": [],
+            "exclude_categories": [],
+            "filter_large_expenses": False,
+            "expense_threshold": 3000,
+            "show_zero_budget": True,
+        }
+
+    @pytest.fixture
+    def target_budgets(self) -> pd.DataFrame:
+        targets = [
+            ("Misc Shopping", "Shopping", 2500),
+            ("Groceries", "Food", 2000),
+            ("Restaurants / Bars", "Food", 1000),
+            ("Misc Travel", "Travel", 1000),
+            ("Misc Entertainment", "Entertainment", 300),
+            ("Misc Subscription", "Entertainment", 300),
+            ("Video Games", "Entertainment", 150),
+            ("Streaming Subscription", "Entertainment", 50),
+        ]
+        return pd.DataFrame([
+            {
+                "Category": category,
+                "Group": group,
+                "Type": "Expense",
+                "Month": "2026-08",
+                "Budget": budget,
+            }
+            for category, group, budget in targets
+        ])
+
+    def test_target_budgets_roll_up_to_7300(self, target_budgets: pd.DataFrame) -> None:
+        totals = target_budgets.groupby("Group")["Budget"].sum().to_dict()
+        assert totals == {
+            "Entertainment": 800,
+            "Food": 3000,
+            "Shopping": 2500,
+            "Travel": 1000,
+        }
+        assert target_budgets["Budget"].sum() == 7300
+
+    def test_group_actuals_include_unbudgeted_categories(
+        self,
+        target_budgets: pd.DataFrame,
+        filters: BudgetFilters,
+    ) -> None:
+        transactions = _transactions_df([
+            {"Date": "2026-08-05", "Category": "Groceries", "Amount": -500,
+             "Month": "2026-08", "Group": "Food", "Type": "Expense"},
+            {"Date": "2026-08-06", "Category": "Coffee", "Amount": -100,
+             "Month": "2026-08", "Group": "Food", "Type": "Expense"},
+        ])
+        result = _mod.get_group_budget_vs_actual(
+            target_budgets, transactions, "2026-08", filters, ["Food"]
+        )
+        food = result.iloc[0]
+        assert food["Budget"] == pytest.approx(3000)
+        assert food["Spent"] == pytest.approx(600)
+
+    def test_large_transactions_are_included_unless_filter_is_enabled(
+        self,
+        target_budgets: pd.DataFrame,
+        filters: BudgetFilters,
+    ) -> None:
+        transactions = _transactions_df([
+            {"Date": "2026-08-05", "Category": "Misc Shopping", "Amount": -4000,
+             "Month": "2026-08", "Group": "Shopping", "Type": "Expense"},
+            {"Date": "2026-08-06", "Category": "Misc Shopping", "Amount": -200,
+             "Month": "2026-08", "Group": "Shopping", "Type": "Expense"},
+        ])
+        gross = _mod.get_group_budget_vs_actual(
+            target_budgets, transactions, "2026-08", filters, ["Shopping"]
+        )
+        filters["filter_large_expenses"] = True
+        adjusted = _mod.get_group_budget_vs_actual(
+            target_budgets, transactions, "2026-08", filters, ["Shopping"]
+        )
+        assert gross.iloc[0]["Spent"] == pytest.approx(4200)
+        assert adjusted.iloc[0]["Spent"] == pytest.approx(200)
+
+    def test_ytd_uses_only_budget_rows_from_selected_year(self, filters: BudgetFilters) -> None:
+        budgets = pd.DataFrame([
+            {"Category": "Groceries", "Group": "Food", "Type": "Expense", "Month": "2025-08", "Budget": 999},
+            {"Category": "Groceries", "Group": "Food", "Type": "Expense", "Month": "2026-01", "Budget": 100},
+            {"Category": "Groceries", "Group": "Food", "Type": "Expense", "Month": "2026-02", "Budget": 100},
+        ])
+        empty_transactions = pd.DataFrame(columns=[
+            "Date", "Category", "Amount", "Account", "Month", "Full Description",
+            "Group", "Type", "Institution", "Account #",
+        ])
+        result = _mod.get_ytd_group_budget_vs_actual(
+            budgets, empty_transactions, "2026-02", filters, ["Food"]
+        )
+        assert result.iloc[0]["Budget"] == pytest.approx(200)
+
+    def test_trailing_guidance_uses_prior_complete_months(self, filters: BudgetFilters) -> None:
+        budgets = pd.DataFrame([
+            {"Category": "Groceries", "Group": "Food", "Type": "Expense", "Month": "2026-08", "Budget": 3000},
+        ])
+        transactions = _transactions_df([
+            {"Date": f"2025-{month:02d}-10", "Category": "Groceries", "Amount": -100,
+             "Month": f"2025-{month:02d}", "Group": "Food", "Type": "Expense"}
+            for month in range(8, 13)
+        ] + [
+            {"Date": f"2026-{month:02d}-10", "Category": "Groceries", "Amount": -100,
+             "Month": f"2026-{month:02d}", "Group": "Food", "Type": "Expense"}
+            for month in range(1, 8)
+        ] + [
+            {"Date": "2026-08-01", "Category": "Groceries", "Amount": -9999,
+             "Month": "2026-08", "Group": "Food", "Type": "Expense"}
+        ])
+        result = _mod.get_trailing_group_guidance(
+            budgets, transactions, "2026-08", filters, ["Food"]
+        )
+        assert result.iloc[0]["Monthly_Average"] == pytest.approx(100)
+        assert result.iloc[0]["Annualized_Reduction"] == pytest.approx((100 - 3000) * 12)
+
+
+# ---------------------------------------------------------------------------
 # Projected spend calculation
 # ---------------------------------------------------------------------------
 
 class TestProjectedSpend:
 
-    def _get_fn(self) -> Callable[..., float]:
+    def _get_fn(self) -> ProjectedSpendFunction:
         return _mod.calculate_projected_spend
 
     def test_basic_projection(self) -> None:

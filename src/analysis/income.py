@@ -1,20 +1,15 @@
 """Pure calculations for the income and savings page."""
 
-from __future__ import annotations
-
-from collections.abc import Mapping
-from typing import Any
-
 import pandas as pd
 
-from src.custom_types import FilteredTransactionSummary, SavingsSummary
+from src.custom_types import FilteredTransactionSummary, IncomeExpenseFilters, SavingsSummary
 from src.filters import apply_transaction_filters
 from src.spreadsheet import TransactionsSpreadsheet
 
 
 def process_income_expense_data(
     transactions_spreadsheet: TransactionsSpreadsheet,
-    filters: Mapping[str, Any],
+    filters: IncomeExpenseFilters,
 ) -> pd.DataFrame:
     """Apply filters and return one income, expense, and savings row per month."""
     transactions = apply_transaction_filters(

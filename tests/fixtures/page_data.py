@@ -1,10 +1,10 @@
 """Page-helper and analytics test data fixtures."""
-from typing import Any
-
 import pandas as pd
 import pytest
 
+from src.custom_types import IncomeExpenseFilters, SpendingFilters, TransactionFilterOptions
 from tests._helpers import _balance_df, _transactions_df
+from tests.custom_types import DataFrameRow
 
 
 # Fixtures moved from test_top_transactions.py
@@ -75,7 +75,7 @@ def income_expense_sample_df() -> pd.DataFrame:
 
 
 @pytest.fixture
-def basic_filters() -> dict[str, Any]:
+def basic_filters() -> IncomeExpenseFilters:
     """Minimal filters that pass everything through."""
     return {
         'exclude_groups': [],
@@ -113,7 +113,7 @@ def spending_transactions_df() -> pd.DataFrame:
 
 
 @pytest.fixture
-def basic_spending_filters() -> dict[str, Any]:
+def basic_spending_filters() -> SpendingFilters:
     """Minimal filters that pass everything through."""
     return {
         'include_groups': [],
@@ -178,7 +178,7 @@ def fi_transactions_df() -> pd.DataFrame:
     Each month has one $1000 expense plus one $3000 income row. Excluded group
     "Travel" has a $400/mo row so filter reuse can be verified by dropping it.
     """
-    rows: list[dict[str, Any]] = []
+    rows: list[DataFrameRow] = []
     for m in range(1, 13):
         month_str = f"2024-{m:02d}"
         rows.append({
@@ -200,7 +200,7 @@ def fi_transactions_df() -> pd.DataFrame:
 
 
 @pytest.fixture
-def fi_passthrough_filters() -> dict[str, Any]:
+def fi_passthrough_filters() -> TransactionFilterOptions:
     """Spending-side filter dict that passes every transaction through."""
     return {
         "exclude_groups": [],

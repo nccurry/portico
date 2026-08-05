@@ -11,6 +11,12 @@ DEFAULT_DUPLICATE_DAYS_THRESHOLD: Final[int] = 1
 
 # Savings and budget targets
 DEFAULT_SAVINGS_RATE_TARGET: Final[int] = 20
+DEFAULT_BUDGET_GROUPS: Final[list[str]] = [
+    "Shopping",
+    "Food",
+    "Travel",
+    "Entertainment",
+]
 MIN_SAVINGS_RATE: Final[int] = 0
 MAX_SAVINGS_RATE: Final[int] = 100
 SAVINGS_RATE_STEP: Final[int] = 5

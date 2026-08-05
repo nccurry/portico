@@ -1,20 +1,15 @@
 """Pure calculations and chart data for spending analysis."""
 
-from __future__ import annotations
-
-from collections.abc import Mapping
-from typing import Any
-
 import pandas as pd
 
-from src.custom_types import DistributionStats, SpendingSummary
+from src.custom_types import DistributionStats, SpendingFilters, SpendingSummary
 from src.filters import apply_transaction_filters
 from src.spreadsheet import TransactionsSpreadsheet
 
 
 def process_spending_data(
     transactions_spreadsheet: TransactionsSpreadsheet,
-    filters: Mapping[str, Any],
+    filters: SpendingFilters,
     start_date: pd.Timestamp,
     end_date: pd.Timestamp,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:

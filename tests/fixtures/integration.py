@@ -1,18 +1,19 @@
 """Integration-test fixture data and full pipeline factories."""
-from collections.abc import Callable
 from pathlib import Path
-from typing import Any
 from unittest.mock import patch
 
 import pandas as pd
 import pytest
+
+from src.custom_types import IncomeExpenseFilters
+from tests.custom_types import FullDatasetFactory, SpreadsheetBundle
 
 
 # Fixtures moved from test_aggregation_integrity.py
 # ---------------------------------------------------------------------------
 
 @pytest.fixture
-def passthrough_filters() -> dict[str, Any]:
+def passthrough_filters() -> IncomeExpenseFilters:
     """Passthrough filters for aggregation integrity tests."""
     return {
         'exclude_groups': [],
@@ -99,7 +100,7 @@ def make_full_dataset(
     real_balance_csv_df: pd.DataFrame,
     real_categories_csv_df: pd.DataFrame,
     real_accounts_csv_df: pd.DataFrame,
-) -> Callable[..., tuple[Any, Any, Any, Any]]:
+) -> FullDatasetFactory:
     """Factory returning (transactions, balance, categories, accounts) Spreadsheets.
 
     Each goes through the real scrub() pipeline with all four cross-sheet
@@ -126,12 +127,7 @@ def make_full_dataset(
         "accounts": real_accounts_csv_df,
     }
 
-    def _factory() -> tuple[
-        TransactionsSpreadsheet,
-        BalanceHistorySpreadsheet,
-        CategoriesSpreadsheet,
-        AccountsSpreadsheet,
-    ]:
+    def _factory() -> SpreadsheetBundle:
         """Build all four spreadsheets through the real scrub pipeline."""
         def _load(self: Spreadsheet) -> None:
             self.raw_df = raw_by_name[self.name].copy()

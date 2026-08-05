@@ -1,7 +1,5 @@
 """Independent examples for page-level financial summaries and chart data."""
 
-from __future__ import annotations
-
 import pandas as pd
 import pytest
 

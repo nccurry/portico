@@ -4,12 +4,11 @@ These exercise ``src.spreadsheet.calculate_net_worth_summary`` directly, which
 is the function ``Home.configure_page`` delegates to. That keeps the page
 file a thin orchestrator and gives the tests a stable, importable target.
 """
-from collections.abc import Callable
-
 import pandas as pd
 import pytest
 
-from src.spreadsheet import BalanceHistorySpreadsheet, calculate_net_worth_summary
+from src.spreadsheet import calculate_net_worth_summary
+from tests.custom_types import BalanceSpreadsheetFactory
 from tests._helpers import _ts
 from tests.fixtures.dataframes import BALANCE_HISTORY_SCRUBBED_COLUMNS
 
@@ -17,26 +16,26 @@ from tests.fixtures.dataframes import BALANCE_HISTORY_SCRUBBED_COLUMNS
 class TestNetWorthCalculation:
     """Test ``calculate_net_worth_summary`` against various balance shapes."""
 
-    def test_net_worth_assets_minus_liabilities(self, make_balance_spreadsheet: Callable[..., BalanceHistorySpreadsheet]) -> None:
+    def test_net_worth_assets_minus_liabilities(self, make_balance_spreadsheet: BalanceSpreadsheetFactory) -> None:
         """Net worth = sum(assets) - sum(liabilities)."""
         bs = make_balance_spreadsheet()
         summary = calculate_net_worth_summary(bs)
         assert summary["total_net_worth"] == pytest.approx(5500.0 - 1600.0)
 
-    def test_liability_group_classified_correctly(self, make_balance_spreadsheet: Callable[..., BalanceHistorySpreadsheet]) -> None:
+    def test_liability_group_classified_correctly(self, make_balance_spreadsheet: BalanceSpreadsheetFactory) -> None:
         bs = make_balance_spreadsheet()
         summary = calculate_net_worth_summary(bs)
         assert summary["group_classes"]["Credit Card"] == "Liability"
         assert summary["group_classes"]["Checking"] == "Asset"
 
-    def test_group_balances_are_positive(self, make_balance_spreadsheet: Callable[..., BalanceHistorySpreadsheet]) -> None:
+    def test_group_balances_are_positive(self, make_balance_spreadsheet: BalanceSpreadsheetFactory) -> None:
         """Group balances stored as positive regardless of asset/liability class."""
         bs = make_balance_spreadsheet()
         summary = calculate_net_worth_summary(bs)
         for balance in summary["group_balances"].values():
             assert balance >= 0
 
-    def test_group_accounts_returned_per_group(self, make_balance_spreadsheet: Callable[..., BalanceHistorySpreadsheet]) -> None:
+    def test_group_accounts_returned_per_group(self, make_balance_spreadsheet: BalanceSpreadsheetFactory) -> None:
         """``group_accounts`` provides the per-account latest-balance frame."""
         bs = make_balance_spreadsheet()
         summary = calculate_net_worth_summary(bs)
@@ -45,21 +44,21 @@ class TestNetWorthCalculation:
         for df in accounts.values():
             assert set(df.columns) == {"Account", "Balance"}
 
-    def test_single_asset_group(self, make_balance_spreadsheet: Callable[..., BalanceHistorySpreadsheet], scrubbed_balance_df: pd.DataFrame) -> None:
+    def test_single_asset_group(self, make_balance_spreadsheet: BalanceSpreadsheetFactory, scrubbed_balance_df: pd.DataFrame) -> None:
         """Only asset accounts - net worth equals total balance."""
         df = scrubbed_balance_df[scrubbed_balance_df["Class"] == "Asset"].copy()
         bs = make_balance_spreadsheet(df)
         summary = calculate_net_worth_summary(bs)
         assert summary["total_net_worth"] == pytest.approx(5500.0)
 
-    def test_single_liability_group(self, make_balance_spreadsheet: Callable[..., BalanceHistorySpreadsheet], scrubbed_balance_df: pd.DataFrame) -> None:
+    def test_single_liability_group(self, make_balance_spreadsheet: BalanceSpreadsheetFactory, scrubbed_balance_df: pd.DataFrame) -> None:
         """Only liability accounts - net worth is negative."""
         df = scrubbed_balance_df[scrubbed_balance_df["Class"] == "Liability"].copy()
         bs = make_balance_spreadsheet(df)
         summary = calculate_net_worth_summary(bs)
         assert summary["total_net_worth"] == pytest.approx(-1600.0)
 
-    def test_empty_balance_history(self, make_balance_spreadsheet: Callable[..., BalanceHistorySpreadsheet]) -> None:
+    def test_empty_balance_history(self, make_balance_spreadsheet: BalanceSpreadsheetFactory) -> None:
         """Empty balance data produces zero net worth."""
         empty_df = pd.DataFrame(columns=BALANCE_HISTORY_SCRUBBED_COLUMNS)
         bs = make_balance_spreadsheet(empty_df)
@@ -68,7 +67,7 @@ class TestNetWorthCalculation:
         assert summary["group_balances"] == {}
         assert summary["group_accounts"] == {}
 
-    def test_multiple_asset_groups(self, make_balance_spreadsheet: Callable[..., BalanceHistorySpreadsheet], scrubbed_balance_df: pd.DataFrame) -> None:
+    def test_multiple_asset_groups(self, make_balance_spreadsheet: BalanceSpreadsheetFactory, scrubbed_balance_df: pd.DataFrame) -> None:
         """Multiple asset groups sum correctly."""
         new_rows = [
             (_ts("2024-04-01"), _ts("2024-04-01 10:00:00"), "Savings", "9999", "acct-003", "bal-009",
@@ -82,7 +81,7 @@ class TestNetWorthCalculation:
         summary = calculate_net_worth_summary(bs)
         assert summary["total_net_worth"] == pytest.approx(13900.0)
 
-    def test_skips_blank_and_nan_groups(self, make_balance_spreadsheet: Callable[..., BalanceHistorySpreadsheet], scrubbed_balance_df: pd.DataFrame) -> None:
+    def test_skips_blank_and_nan_groups(self, make_balance_spreadsheet: BalanceSpreadsheetFactory, scrubbed_balance_df: pd.DataFrame) -> None:
         """Groups that are blank or NaN are excluded (mirrors Home.py filtering)."""
         df = scrubbed_balance_df.copy()
         blank_row = df.iloc[[0]].copy()
@@ -96,7 +95,7 @@ class TestNetWorthCalculation:
         assert "" not in summary["group_balances"]
         assert all(g for g in summary["group_balances"])
 
-    def test_zero_total_group(self, make_balance_spreadsheet: Callable[..., BalanceHistorySpreadsheet]) -> None:
+    def test_zero_total_group(self, make_balance_spreadsheet: BalanceSpreadsheetFactory) -> None:
         """A group whose balances sum to zero still appears in the summary."""
         df = pd.DataFrame(
             [
@@ -115,7 +114,7 @@ class TestNetWorthCalculation:
         assert summary["group_balances"]["ZeroGroup"] == pytest.approx(0.0)
         assert summary["total_net_worth"] == pytest.approx(0.0)
 
-    def test_multi_account_group_accounts_shape(self, make_balance_spreadsheet: Callable[..., BalanceHistorySpreadsheet]) -> None:
+    def test_multi_account_group_accounts_shape(self, make_balance_spreadsheet: BalanceSpreadsheetFactory) -> None:
         """group_accounts has one row per account within a group."""
         df = pd.DataFrame(
             [
@@ -135,7 +134,7 @@ class TestNetWorthCalculation:
         assert set(accts["Account"]) == {"Checking-1", "Checking-2"}
         assert summary["group_balances"]["Banking"] == pytest.approx(3000.0)
 
-    def test_mixed_asset_liability_group(self, make_balance_spreadsheet: Callable[..., BalanceHistorySpreadsheet]) -> None:
+    def test_mixed_asset_liability_group(self, make_balance_spreadsheet: BalanceSpreadsheetFactory) -> None:
         """A group with both asset and liability accounts signs each individually."""
         df = pd.DataFrame(
             [
@@ -155,7 +154,7 @@ class TestNetWorthCalculation:
         # Dominant class is Asset (1 asset vs 1 liability, tie goes to Asset)
         assert summary["group_classes"]["Investing"] == "Asset"
 
-    def test_hand_computed_net_worth_from_fixture(self, make_balance_spreadsheet: Callable[..., BalanceHistorySpreadsheet]) -> None:
+    def test_hand_computed_net_worth_from_fixture(self, make_balance_spreadsheet: BalanceSpreadsheetFactory) -> None:
         """Hand-computed expected net worth from the fixture's latest balances.
 
         Fixture state (scrubbed_balance_df):
@@ -168,7 +167,7 @@ class TestNetWorthCalculation:
         summary = calculate_net_worth_summary(bs)
         assert summary["total_net_worth"] == pytest.approx(3900.0)
 
-    def test_majority_liability_group(self, make_balance_spreadsheet: Callable[..., BalanceHistorySpreadsheet]) -> None:
+    def test_majority_liability_group(self, make_balance_spreadsheet: BalanceSpreadsheetFactory) -> None:
         """When liabilities outnumber assets, dominant class is Liability."""
         df = pd.DataFrame(
             [

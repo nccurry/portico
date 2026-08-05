@@ -140,37 +140,30 @@ class CategoriesSpreadsheet(Spreadsheet):
         meta = meta.dropna(subset=["Category"])
         self.scrubbed_df = meta
 
-        # Budget columns (columns 5+) have date headers from Google Sheets
-        budget_cols = df.iloc[:, 4:]
-        month_map = {}
-        for col in budget_cols.columns:
+        # Budget columns (columns 5+) have date headers from Google Sheets.
+        # Keep the full year-month so January budgets from different years do
+        # not overwrite each other.
+        budget_frames: list[pd.DataFrame] = []
+        for col in df.columns[4:]:
             try:
                 dt = pd.to_datetime(col)
-                month_map[col] = dt.month
             except (ValueError, TypeError):
                 continue
+            cleaned = df[col].astype(str).str.replace(r'[$,]', '', regex=True)
+            budget_frames.append(pd.DataFrame({
+                "Category": df["Category"],
+                "Month": dt.strftime("%Y-%m"),
+                "Budget": pd.to_numeric(cleaned, errors="coerce").fillna(0),
+            }))
 
-        if not month_map:
+        if not budget_frames:
             self.budget_df = pd.DataFrame(
-                columns=["Category", "Month_Num", "Budget", "Group", "Type"]
+                columns=["Category", "Month", "Budget", "Group", "Type"]
             )
             return
 
-        # Build wide DataFrame: Category + one column per month number
-        budget_wide = df[["Category"]].copy()
-        for orig_col, month_num in month_map.items():
-            cleaned = df[orig_col].astype(str).str.replace(r'[$,]', '', regex=True)
-            budget_wide[month_num] = pd.to_numeric(cleaned, errors="coerce").fillna(0)
-        budget_wide = budget_wide.dropna(subset=["Category"])
-
-        # Melt to long format
-        month_nums = sorted(month_map.values())
-        budget_long = budget_wide.melt(
-            id_vars=["Category"],
-            value_vars=month_nums,
-            var_name="Month_Num",
-            value_name="Budget",
-        )
+        budget_long = pd.concat(budget_frames, ignore_index=True)
+        budget_long = budget_long.dropna(subset=["Category"])
 
         # Join with metadata for Group/Type
         budget_long = budget_long.merge(

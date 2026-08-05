@@ -1,9 +1,14 @@
 """Spreadsheet object factory fixtures."""
-from collections.abc import Callable
 from unittest.mock import patch
 
 import pandas as pd
 import pytest
+
+from tests.custom_types import (
+    BalanceSpreadsheetFactory,
+    CategoriesSpreadsheetFactory,
+    TransactionsSpreadsheetFactory,
+)
 
 
 # 9. make_transactions_spreadsheet  (factory fixture)
@@ -12,7 +17,7 @@ import pytest
 @pytest.fixture
 def make_transactions_spreadsheet(
     scrubbed_transactions_df: pd.DataFrame,
-) -> Callable[[pd.DataFrame | None], "TransactionsSpreadsheet"]:  # type: ignore[name-defined]  # noqa: UP037, F821
+) -> TransactionsSpreadsheetFactory:
     """Factory that returns a TransactionsSpreadsheet with load() patched out.
 
     Usage::
@@ -43,7 +48,7 @@ def make_transactions_spreadsheet(
 @pytest.fixture
 def make_balance_spreadsheet(
     scrubbed_balance_df: pd.DataFrame,
-) -> Callable[[pd.DataFrame | None], "BalanceHistorySpreadsheet"]:  # type: ignore[name-defined]  # noqa: UP037, F821
+) -> BalanceSpreadsheetFactory:
     """Factory that returns a BalanceHistorySpreadsheet with load() patched out.
 
     Usage::
@@ -75,7 +80,7 @@ def make_balance_spreadsheet(
 @pytest.fixture
 def make_categories_spreadsheet(
     scrubbed_categories_df: pd.DataFrame,
-) -> Callable[..., "CategoriesSpreadsheet"]:  # type: ignore[name-defined]  # noqa: UP037, F821
+) -> CategoriesSpreadsheetFactory:
     """Factory that returns a CategoriesSpreadsheet with load() patched out."""
     from src.spreadsheet import CategoriesSpreadsheet, Spreadsheet
 
@@ -94,7 +99,7 @@ def make_categories_spreadsheet(
                 self.budget_df = budget_df
             else:
                 self.budget_df = pd.DataFrame(
-                    columns=["Category", "Month_Num", "Budget", "Group", "Type"]
+                    columns=["Category", "Month", "Budget", "Group", "Type"]
                 )
 
         with patch.object(Spreadsheet, "load", lambda self: None):

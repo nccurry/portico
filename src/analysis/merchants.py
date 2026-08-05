@@ -18,9 +18,19 @@ _TRAILING_ID_RE = re.compile(r"[#*]?\s*\d{3,}\b")
 _LONG_CODE_RE = re.compile(r"\b(?=[A-Z0-9]*\d)[A-Z0-9]{8,}\b")
 
 
+def _is_missing_description(value: object) -> bool:
+    """Return whether a scalar transaction description is missing."""
+    return (
+        value is None
+        or value is pd.NA
+        or value is pd.NaT
+        or (isinstance(value, float) and pd.isna(value))
+    )
+
+
 def extract_merchant_name(description: object, method: str = "first_word") -> str:
     """Extract a merchant token from a transaction description."""
-    if pd.isna(description):  # type: ignore[call-overload]
+    if _is_missing_description(description):
         return "Unknown"
 
     words = str(description).split()
@@ -49,7 +59,7 @@ def normalize_merchant_name(
     The cleanup is intentionally deterministic: uppercase, strip common payment
     processor words, remove obvious numeric identifiers, and collapse spaces.
     """
-    if pd.isna(description):  # type: ignore[call-overload]
+    if _is_missing_description(description):
         return "Unknown"
 
     text = str(description).upper()
