@@ -197,7 +197,7 @@ class TestCompositeKey:
 def fixture_files() -> dict[str, pd.DataFrame]:
     """Load the four committed CSV fixtures."""
     if not (_FIXTURES_DIR / "transactions.csv").exists():
-        pytest.skip("Fixtures not generated yet -- run scripts/generate_test_fixtures.py")
+        pytest.skip("Committed synthetic fixtures are missing")
     return {
         name: pd.read_csv(_FIXTURES_DIR / f"{name}.csv")
         for name in ("transactions", "balance_history", "categories", "accounts")

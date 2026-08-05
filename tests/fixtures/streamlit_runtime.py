@@ -50,7 +50,7 @@ def frozen_time(
     request: pytest.FixtureRequest,
     reference_date: pd.Timestamp,
 ) -> Generator[None]:
-    """Freeze time to REFERENCE_DATE for tests marked uses_real_dates.
+    """Freeze time to the synthetic fixture date for marked tests.
 
     Patches both ``datetime.datetime.now`` (via freezegun) and
     ``pandas.Timestamp.now`` directly. freezegun alone cannot freeze

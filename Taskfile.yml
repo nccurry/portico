@@ -4,9 +4,12 @@ version: '3'
 vars:
   VENV: .venv
   PYTHON: '{{if eq OS "windows"}}{{.VENV}}/Scripts/python.exe{{else}}{{.VENV}}/bin/python{{end}}'
+  STREAMLIT: '{{if eq OS "windows"}}{{.VENV}}/Scripts/streamlit.exe{{else}}{{.VENV}}/bin/streamlit{{end}}'
   UV: '{{if eq OS "windows"}}.tools/bin/uv.exe{{else}}.tools/bin/uv{{end}}'
   TASK: '{{if eq OS "windows"}}.tools/bin/task.exe{{else}}.tools/bin/task{{end}}'
   LINT_PATHS: src/ Pages/ tests/ scripts/ Home.py
+  ADDRESS: '{{default "0.0.0.0" .ADDRESS}}'
+  PORT: '{{default "8501" .PORT}}'
 
 tasks:
   # ========================================
@@ -18,14 +21,26 @@ tasks:
     cmds:
       - task: deps:install
 
+  deps:
+    desc: "Report project dependency status"
+    cmds:
+      - task: deps:check
+
   deps:install:
-    desc: "Install pinned tools, Python, and dependencies"
+    desc: "Install pinned tools, Python, and development dependencies"
     cmds:
       - task: deps:task:install
       - task: deps:python:install
       - task: deps:sync
       - task: setup:verify
       - echo "[OK] Setup complete. Run 'task test' to run tests."
+
+  deps:install:runtime:
+    desc: "Install pinned Python and runtime dependencies"
+    cmds:
+      - task: deps:python:install
+      - task: deps:sync:runtime
+      - task: setup:verify:runtime
 
   deps:task:install:
     desc: "Install the pinned Task runner locally"
@@ -44,10 +59,16 @@ tasks:
         platforms: [linux, darwin]
 
   deps:sync:
-    desc: "Install Python dependencies"
+    desc: "Install locked development dependencies"
     cmds:
       - echo "[SETUP] Installing dependencies..."
-      - '{{.UV}} sync --dev'
+      - '{{.UV}} sync --locked --dev'
+
+  deps:sync:runtime:
+    desc: "Install locked runtime dependencies"
+    cmds:
+      - echo "[SETUP] Installing runtime dependencies..."
+      - '{{.UV}} sync --locked --no-dev'
 
   setup:check:
     desc: "Check development environment status"
@@ -55,7 +76,7 @@ tasks:
       - echo "=== Development Environment Check ==="
       - '{{.TASK}} --version'
       - '{{.UV}} --version'
-      - '{{.UV}} run --dev python --version'
+      - '{{.UV}} run --locked --dev python --version'
       - echo "=== Check complete ==="
 
   setup:verify:
@@ -63,21 +84,29 @@ tasks:
     cmds:
       - echo "=== Verifying setup ==="
       - task: setup:check
-      - '{{.UV}} run --dev python -c "import streamlit; import pandas; import altair; print(\"[OK] All imports successful\")"'
-      - '{{.UV}} run --dev pytest --version'
+      - '{{.UV}} run --locked --dev python -c "import streamlit; import pandas; import altair; print(\"[OK] All imports successful\")"'
+      - '{{.UV}} run --locked --dev pytest --version'
       - echo "[OK] All verification checks passed."
+
+  setup:verify:runtime:
+    desc: "Verify runtime dependencies"
+    cmds:
+      - '{{.PYTHON}} -c "import streamlit; import pandas; import altair; import streamlit_gsheets; print(\"[OK] Runtime imports successful\")"'
 
   # ========================================
   # Package Management
   # ========================================
 
-  pkg:check:
-    desc: "Check for outdated Python packages"
+  deps:check:
+    desc: "Check dependency metadata and package updates"
+    aliases: [pkg:check]
     cmds:
+      - '{{.UV}} lock --check'
       - '{{.UV}} pip list --outdated --python {{.PYTHON}}'
 
-  pkg:update:
+  deps:update:
     desc: "Update direct dependencies to latest exact pins"
+    aliases: [pkg:update]
     cmds:
       - '{{.UV}} remove --no-sync altair pandas st-gsheets-connection streamlit'
       - '{{.UV}} add --no-sync --bounds exact altair pandas st-gsheets-connection streamlit'
@@ -92,9 +121,9 @@ tasks:
   # ========================================
 
   fixtures:generate:
-    desc: "Generate anonymized integration-test CSV fixtures"
+    desc: "Generate local anonymized fixtures (never committed)"
     cmds:
-      - '{{.UV}} run --dev python scripts/generate_test_fixtures.py'
+      - '{{.UV}} run --locked --dev python scripts/generate_test_fixtures.py'
 
   # ========================================
   # Testing
@@ -103,42 +132,42 @@ tasks:
   test:
     desc: "Run all tests"
     cmds:
-      - '{{.UV}} run --dev pytest'
+      - '{{.UV}} run --locked --dev pytest'
 
   test:unit:
     desc: "Run unit tests"
     cmds:
-      - '{{.UV}} run --dev pytest tests/unit'
+      - '{{.UV}} run --locked --dev pytest tests/unit'
 
   test:integration:
     desc: "Run integration tests"
     cmds:
-      - '{{.UV}} run --dev pytest tests/integration'
+      - '{{.UV}} run --locked --dev pytest tests/integration'
 
   test:verbose:
     desc: "Run all tests with verbose output"
     cmds:
-      - '{{.UV}} run --dev pytest -v'
+      - '{{.UV}} run --locked --dev pytest -v'
 
   test:file:
     desc: "Run tests for a specific file (usage: task test:file -- test_spreadsheet.py)"
     cmds:
-      - '{{.UV}} run --dev pytest tests/{{.CLI_ARGS}} -v'
+      - '{{.UV}} run --locked --dev pytest tests/{{.CLI_ARGS}} -v'
 
   test:match:
     desc: "Run tests matching a pattern (usage: task test:match -- test_filter)"
     cmds:
-      - '{{.UV}} run --dev pytest -k "{{.CLI_ARGS}}" -v'
+      - '{{.UV}} run --locked --dev pytest -k "{{.CLI_ARGS}}" -v'
 
   test:coverage:
     desc: "Run tests with coverage report"
     cmds:
-      - '{{.UV}} run --dev pytest --cov=src --cov=Pages --cov-branch --cov-report=term-missing --cov-fail-under=80'
+      - '{{.UV}} run --locked --dev pytest --cov=src --cov=Pages --cov-branch --cov-report=term-missing --cov-fail-under=80'
 
   test:coverage:src:
     desc: "Run tests with src/ coverage gate (>=90%)"
     cmds:
-      - '{{.UV}} run --dev pytest --cov=src --cov-branch --cov-report=term-missing --cov-fail-under=90'
+      - '{{.UV}} run --locked --dev pytest --cov=src --cov-branch --cov-report=term-missing --cov-fail-under=90'
 
   # ========================================
   # Linting
@@ -147,14 +176,22 @@ tasks:
   lint:
     desc: "Run ruff and mypy"
     cmds:
-      - '{{.UV}} run --dev ruff check {{.LINT_PATHS}}'
-      - '{{.UV}} run --dev mypy'
+      - task: lint:shell
+      - '{{.UV}} run --locked --dev ruff check {{.LINT_PATHS}}'
+      - '{{.UV}} run --locked --dev mypy'
 
-  lint:fix:
-    desc: "Auto-fix ruff issues, then run mypy"
+  lint:shell:
+    internal: true
+    platforms: [linux, darwin]
     cmds:
-      - '{{.UV}} run --dev ruff check --fix {{.LINT_PATHS}}'
-      - '{{.UV}} run --dev mypy'
+      - sh -n scripts/bootstrap.sh scripts/install-python-toolchain.sh scripts/systemd-service.sh
+
+  format:
+    desc: "Apply safe lint fixes, then run mypy"
+    aliases: [lint:fix]
+    cmds:
+      - '{{.UV}} run --locked --dev ruff check --fix {{.LINT_PATHS}}'
+      - '{{.UV}} run --locked --dev mypy'
 
   # ========================================
   # All Checks
@@ -163,8 +200,14 @@ tasks:
   check:
     desc: "Run lint and tests"
     cmds:
+      - task: privacy:check
       - task: lint
       - task: test
+
+  privacy:check:
+    desc: "Check repository files for private data"
+    cmds:
+      - '{{.UV}} run --locked --dev python scripts/check_repository_privacy.py'
 
   # ========================================
   # Run
@@ -173,4 +216,88 @@ tasks:
   run:
     desc: "Run the Streamlit app"
     cmds:
-      - '{{.UV}} run --dev streamlit run Home.py'
+      - '{{.UV}} run --locked --dev streamlit run Home.py'
+
+  run:production:
+    desc: "Run Streamlit with the systemd production settings"
+    cmds:
+      - '{{.STREAMLIT}} run Home.py --server.address={{.ADDRESS | quote}} --server.port={{.PORT | quote}} --server.headless=true --server.runOnSave=false --client.showErrorDetails=false'
+
+  # ========================================
+  # Linux Installation
+  # ========================================
+
+  install:
+    desc: "Install runtime dependencies and the systemd service"
+    platforms: [linux]
+    preconditions:
+      - sh: test "$(id -u)" -ne 0
+        msg: "Run installation as a non-root user with sudo access."
+    cmds:
+      - task: deps:install:runtime
+      - task: service:install
+        vars:
+          ADDRESS: '{{.ADDRESS}}'
+          PORT: '{{.PORT}}'
+
+  uninstall:
+    desc: "Uninstall the systemd service"
+    platforms: [linux]
+    cmds:
+      - task: service:uninstall
+
+  service:install:
+    desc: "Install, enable, and start the systemd service"
+    platforms: [linux]
+    env:
+      ADDRESS: '{{.ADDRESS}}'
+      PORT: '{{.PORT}}'
+    preconditions:
+      - sh: test "$(id -u)" -ne 0
+        msg: "Run installation as a non-root user with sudo access."
+      - sh: command -v systemctl >/dev/null 2>&1
+        msg: "systemctl is required to install the service."
+      - sh: command -v sudo >/dev/null 2>&1
+        msg: "sudo is required; run this task as a non-root user with sudo access."
+      - sh: test -f .streamlit/secrets.toml
+        msg: "Missing .streamlit/secrets.toml. Configure Streamlit secrets before installing."
+      - sh: test -x .venv/bin/streamlit
+        msg: "Runtime dependencies are missing. Run 'task deps:install:runtime'."
+    cmds:
+      - sh scripts/systemd-service.sh install
+
+  service:uninstall:
+    desc: "Stop, disable, and remove the systemd service"
+    platforms: [linux]
+    cmds:
+      - sh scripts/systemd-service.sh uninstall
+
+  service:start:
+    desc: "Start the systemd service"
+    platforms: [linux]
+    cmds:
+      - sh scripts/systemd-service.sh start
+
+  service:stop:
+    desc: "Stop the systemd service"
+    platforms: [linux]
+    cmds:
+      - sh scripts/systemd-service.sh stop
+
+  service:restart:
+    desc: "Restart the systemd service"
+    platforms: [linux]
+    cmds:
+      - sh scripts/systemd-service.sh restart
+
+  service:status:
+    desc: "Show systemd service status"
+    platforms: [linux]
+    cmds:
+      - sh scripts/systemd-service.sh status
+
+  service:logs:
+    desc: "Follow systemd service logs"
+    platforms: [linux]
+    cmds:
+      - sh scripts/systemd-service.sh logs
