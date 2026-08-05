@@ -21,7 +21,7 @@ from tests.custom_types import FullDatasetFactory
 # Shared factory
 # ---------------------------------------------------------------------------
 
-_PAGE_DIR = "Pages"
+_PAGE_DIR = "pages"
 
 
 def _metric_values(at: AppTest) -> list[tuple[str, str, str]]:
