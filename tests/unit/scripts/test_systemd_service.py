@@ -41,7 +41,7 @@ def test_render_uses_checkout_runtime_and_security_settings() -> None:
     unit = render_unit()
 
     assert "User=tiller" in unit
-    assert f'WorkingDirectory="{REPO_ROOT}"' in unit
+    assert f"WorkingDirectory={REPO_ROOT}" in unit
     assert f'ExecStart="{REPO_ROOT}/.venv/bin/streamlit" run "{REPO_ROOT}/Home.py"' in unit
     assert "uv run" not in unit
     assert '--server.address="0.0.0.0"' in unit
@@ -66,5 +66,5 @@ def test_render_accepts_address_and_port_overrides() -> None:
 def test_render_escapes_systemd_path_specifiers() -> None:
     unit = render_unit(REPO_ROOT="/srv/Tiller App%prod")
 
-    assert 'WorkingDirectory="/srv/Tiller App%%prod"' in unit
+    assert r"WorkingDirectory=/srv/Tiller\x20App%%prod" in unit
     assert 'ExecStart="/srv/Tiller App%%prod/.venv/bin/streamlit"' in unit

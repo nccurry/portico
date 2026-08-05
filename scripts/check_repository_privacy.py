@@ -46,12 +46,12 @@ def populated_notebook(path: Path, text: str) -> bool:
     return any(cell.get("outputs") for cell in notebook.get("cells", []))
 
 
-def main() -> int:
-    """Scan repository candidates and report actionable violations."""
+def sensitive_text_patterns() -> dict[str, re.Pattern[str]]:
+    """Return patterns for private text that must not be committed."""
     unix_home = "/" + "home" + "/"
     mac_home = "/" + "Users" + "/"
     placeholder_user = r"(?!(?:example|pi|tester|tiller|user)(?:[/\s\"']|$))"
-    patterns = {
+    return {
         "absolute user path": re.compile(
             r"(?i)(?:[A-Z]:[\\/]Users[\\/][^\\/\s]+|"
             + re.escape(unix_home)
@@ -71,6 +71,9 @@ def main() -> int:
             r"|sk-" + r"[A-Za-z0-9_-]{20,}|xox[baprs]-[A-Za-z0-9-]{10,}"
             r"|AKIA[0-9A-Z]{16})\b"
         ),
+        "Discord webhook token": re.compile(
+            r"(?i)discord(?:app)?\.com/api/webhooks/[0-9]{5,}/[A-Za-z0-9._-]{20,}"
+        ),
         "Google Sheet document ID": re.compile(
             "docs.google.com/"
             + r"spreadsheets/d/[A-Za-z0-9_-]{20,}"
@@ -81,6 +84,9 @@ def main() -> int:
         ),
     }
 
+
+def main() -> int:
+    """Scan repository candidates and report actionable violations."""
     violations: list[str] = []
     for path in repository_files():
         if reason := sensitive_path_reason(path):
@@ -92,7 +98,7 @@ def main() -> int:
             continue
         if populated_notebook(path, text):
             violations.append(f"{path}: notebook contains saved outputs")
-        for label, pattern in patterns.items():
+        for label, pattern in sensitive_text_patterns().items():
             if pattern.search(text):
                 violations.append(f"{path}: {label}")
 

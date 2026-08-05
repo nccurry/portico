@@ -52,6 +52,10 @@ escape_unit_value() {
     printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/%/%%/g'
 }
 
+escape_unit_path() {
+    printf '%s' "$1" | sed -e 's/\\/\\x5c/g' -e 's/ /\\x20/g' -e 's/"/\\x22/g' -e 's/%/%%/g'
+}
+
 resolve_service_context() {
     script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
     default_repo_root=$(CDPATH= cd -- "$script_dir/.." && pwd)
@@ -93,7 +97,7 @@ resolve_service_context() {
 render_unit() {
     resolve_service_context
 
-    escaped_repo_root=$(escape_unit_value "$repo_root")
+    escaped_repo_root=$(escape_unit_path "$repo_root")
     escaped_streamlit_path=$(escape_unit_value "$streamlit_path")
     escaped_app_path=$(escape_unit_value "$app_path")
     escaped_service_user=$(escape_unit_value "$service_user")
@@ -109,7 +113,7 @@ After=network-online.target
 [Service]
 Type=simple
 User=$escaped_service_user
-WorkingDirectory="$escaped_repo_root"
+WorkingDirectory=$escaped_repo_root
 ExecStart="$escaped_streamlit_path" run "$escaped_app_path" --server.address="$escaped_address" --server.port="$port" --server.headless=true --server.runOnSave=false --client.showErrorDetails=false
 Environment="HOME=$escaped_service_home"
 Environment="PYTHONUNBUFFERED=1"
