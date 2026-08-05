@@ -41,26 +41,16 @@ select = [
     "B006",            # mutable default arguments
 ]
 ignore = [
-    "ANN401",          # allow Any (we genuinely need it for st.column_config)
     "E501",            # line length handled by line-length
 ]
 
 [tool.mypy]
 python_version = "3.14"
-files = ["src", "Pages", "tests", "Home.py"]
-check_untyped_defs = true
-warn_return_any = true
-warn_unused_ignores = true
-warn_redundant_casts = true
-disallow_untyped_defs = true
+files = ["src", "Pages", "tests", "scripts", "Home.py"]
+strict = true
+explicit_package_bases = true
+enable_error_code = ["explicit-override", "ignore-without-code"]
 
 [[tool.mypy.overrides]]
 module = ["streamlit.*", "streamlit_gsheets.*", "freezegun.*"]
 ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-# scripts/ are one-off developer tools (fixture generator, inspectors). They
-# are not part of the runtime application and are intentionally excluded from
-# strict type checking; tests/unit/src/test_generator.py exercises them.
-module = ["scripts.*"]
-ignore_errors = true

@@ -7,8 +7,6 @@ Covers:
     - The module-level ``calculate_group_sparkline`` and
       ``calculate_net_worth_sparkline`` helpers.
 """
-from __future__ import annotations
-
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 

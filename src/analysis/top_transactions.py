@@ -1,7 +1,5 @@
 """Pure calculations for the largest-expenses page."""
 
-from __future__ import annotations
-
 import pandas as pd
 
 from src.analysis.merchants import normalize_merchant_name

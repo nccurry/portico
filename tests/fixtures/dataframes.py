@@ -1,10 +1,15 @@
 """Core spreadsheet and scrubber DataFrame fixtures."""
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 import pandas as pd
 import pytest
 
 from tests._helpers import _balance_df, _transactions_df, _ts
+
+if TYPE_CHECKING:
+    from src.spreadsheet import AccountsSpreadsheet, CategoriesSpreadsheet
 
 
 # Column definitions (single source of truth for every fixture)
@@ -312,7 +317,7 @@ def scrub_input_balance_df() -> pd.DataFrame:
 
 
 @pytest.fixture
-def categories_for_scrub() -> "CategoriesSpreadsheet":  # type: ignore[name-defined]  # noqa: UP037, F821
+def categories_for_scrub() -> CategoriesSpreadsheet:
     """Categories lookup for scrub tests."""
     from src.spreadsheet import CategoriesSpreadsheet
     cat = CategoriesSpreadsheet.__new__(CategoriesSpreadsheet)
@@ -326,7 +331,7 @@ def categories_for_scrub() -> "CategoriesSpreadsheet":  # type: ignore[name-defi
 
 
 @pytest.fixture
-def accounts_for_scrub() -> "AccountsSpreadsheet":  # type: ignore[name-defined]  # noqa: UP037, F821
+def accounts_for_scrub() -> AccountsSpreadsheet:
     """Accounts lookup for scrub tests. Keys match the composite key format."""
     from src.spreadsheet import AccountsSpreadsheet
     acct = AccountsSpreadsheet.__new__(AccountsSpreadsheet)

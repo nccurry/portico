@@ -2,6 +2,7 @@
 import pandas as pd
 from datetime import timedelta
 
+from src.custom_types import TransactionFilterOptions
 from src.filters import apply_transaction_filters, calculate_date_range, default_fi_accounts
 from tests._helpers import _df_from_rows, _make_row
 
@@ -90,7 +91,7 @@ class TestApplyTransactionFilters:
 
     def test_include_groups_applied(self, scrubbed_transactions_df: pd.DataFrame) -> None:
         """Only rows matching include_groups remain."""
-        filters = {"include_groups": ["Food"]}
+        filters: TransactionFilterOptions = {"include_groups": ["Food"]}
         result = apply_transaction_filters(scrubbed_transactions_df, filters)
         assert set(result["Group"].unique()) == {"Food"}
         # Groceries + Restaurants
@@ -99,7 +100,7 @@ class TestApplyTransactionFilters:
     def test_include_groups_and_categories_union(self, scrubbed_transactions_df: pd.DataFrame) -> None:
         """When both include_groups and include_categories are set, rows matching
         either filter are included (union/OR)."""
-        filters = {
+        filters: TransactionFilterOptions = {
             "include_groups": ["Food"],
             "include_categories": ["Electric"],
         }
@@ -116,7 +117,7 @@ class TestApplyTransactionFilters:
 
     def test_exclude_groups_applied(self, scrubbed_transactions_df: pd.DataFrame) -> None:
         """Rows with excluded groups are removed."""
-        filters = {"exclude_groups": ["Food", "Income"]}
+        filters: TransactionFilterOptions = {"exclude_groups": ["Food", "Income"]}
         result = apply_transaction_filters(scrubbed_transactions_df, filters)
         assert "Food" not in result["Group"].values
         assert "Income" not in result["Group"].values
@@ -125,7 +126,7 @@ class TestApplyTransactionFilters:
 
     def test_exclude_categories_applied(self, scrubbed_transactions_df: pd.DataFrame) -> None:
         """Rows with excluded categories are removed."""
-        filters = {"exclude_categories": ["Electric", "Internet"]}
+        filters: TransactionFilterOptions = {"exclude_categories": ["Electric", "Internet"]}
         result = apply_transaction_filters(scrubbed_transactions_df, filters)
         assert "Electric" not in result["Category"].values
         assert "Internet" not in result["Category"].values
@@ -139,7 +140,7 @@ class TestApplyTransactionFilters:
             _make_row("2024-01-02", "Big",   -5000.0, "Shopping", "Expense"),
             _make_row("2024-01-03", "Pay",    4000.0, "Income",   "Income"),
         )
-        filters = {"filter_large_expenses": True, "expense_threshold": 1000}
+        filters: TransactionFilterOptions = {"filter_large_expenses": True, "expense_threshold": 1000}
         result = apply_transaction_filters(df, filters)
         expenses = result[result["Type"] == "Expense"]
         assert (expenses["Amount"].abs() <= 1000).all()
@@ -153,7 +154,7 @@ class TestApplyTransactionFilters:
             _make_row("2024-01-02", "Bonus",  25000.0, "Income", "Income"),
             _make_row("2024-01-03", "Lunch",  -15.0,   "Food",   "Expense"),
         )
-        filters = {"filter_large_income": True, "income_threshold": 10000}
+        filters: TransactionFilterOptions = {"filter_large_income": True, "income_threshold": 10000}
         result = apply_transaction_filters(df, filters)
         income = result[result["Type"] == "Income"]
         assert (income["Amount"].abs() <= 10000).all()
@@ -167,14 +168,14 @@ class TestApplyTransactionFilters:
 
     def test_include_categories_only(self, scrubbed_transactions_df: pd.DataFrame) -> None:
         """When only include_categories is set (no include_groups), matching rows are kept."""
-        filters = {"include_categories": ["Electric", "Internet"]}
+        filters: TransactionFilterOptions = {"include_categories": ["Electric", "Internet"]}
         result = apply_transaction_filters(scrubbed_transactions_df, filters)
         assert set(result["Category"].unique()) == {"Electric", "Internet"}
         assert len(result) == 2
 
     def test_empty_include_lists_fall_through_to_excludes(self, scrubbed_transactions_df: pd.DataFrame) -> None:
         """Empty include lists are falsy and should fall through to exclude logic."""
-        filters = {
+        filters: TransactionFilterOptions = {
             "include_groups": [],
             "include_categories": [],
             "exclude_groups": ["Food"],
@@ -207,7 +208,7 @@ class TestApplyTransactionFilters:
             _make_row("2024-01-02", "BigMystery", -99999.0, "Food", None),
         )
         df.loc[1, "Type"] = float('nan')
-        filters = {"filter_large_expenses": True, "expense_threshold": 1000}
+        filters: TransactionFilterOptions = {"filter_large_expenses": True, "expense_threshold": 1000}
         result = apply_transaction_filters(df, filters)
         # NaN Type != "Expense" is True, so the OR short-circuits and the row is kept
         assert "BigMystery" in result["Category"].values
@@ -219,7 +220,7 @@ class TestApplyTransactionFilters:
             _make_row("2024-01-01", "Normal", -50.0, "Food", "Expense"),
             _make_row("2024-01-02", "NanAmount", float('nan'), "Food", "Expense"),
         )
-        filters = {"filter_large_expenses": True, "expense_threshold": 1000}
+        filters: TransactionFilterOptions = {"filter_large_expenses": True, "expense_threshold": 1000}
         result = apply_transaction_filters(df, filters)
         # NaN amount: (Type != "Expense") is False, abs(NaN) <= 1000 is False => row dropped
         assert "NanAmount" not in result["Category"].values
@@ -232,7 +233,7 @@ class TestApplyTransactionFilters:
             _make_row("2024-01-02", None, -25.0, "Food", "Expense"),
         )
         df.loc[1, "Category"] = float('nan')
-        filters = {"include_categories": ["Groceries"]}
+        filters: TransactionFilterOptions = {"include_categories": ["Groceries"]}
         result = apply_transaction_filters(df, filters)
         assert len(result) == 1
 
@@ -244,7 +245,7 @@ class TestApplyTransactionFilters:
             _make_row("2024-01-03", "Groceries", -100.0, "Food", "Expense"),
             _make_row("2024-01-04", "Car", -8000.0, "Transport", "Expense"),
         )
-        filters = {
+        filters: TransactionFilterOptions = {
             "filter_large_income": True,
             "income_threshold": 10000,
             "filter_large_expenses": True,
@@ -263,14 +264,14 @@ class TestApplyTransactionFilters:
             _make_row("2024-01-01", "Groceries", -50.0, "Food", "Expense"),
             _make_row("2024-01-02", "Bank Xfer", -500.0, "Transfer", "Transfer"),
         )
-        filters = {"include_groups": ["Food", "Transfer"]}
+        filters: TransactionFilterOptions = {"include_groups": ["Food", "Transfer"]}
         result = apply_transaction_filters(df, filters)
         assert "Transfer" not in result["Group"].values
         assert len(result) == 1
 
     def test_include_groups_with_exclude_categories(self, scrubbed_transactions_df: pd.DataFrame) -> None:
         """Include groups takes precedence — exclude_categories is ignored when includes are set."""
-        filters = {
+        filters: TransactionFilterOptions = {
             "include_groups": ["Food"],
             "exclude_categories": ["Groceries"],
         }
@@ -283,7 +284,7 @@ class TestApplyTransactionFilters:
         df = _df_from_rows(
             _make_row("2024-01-01", "Rent", -1000.0, "Bills", "Expense"),
         )
-        filters = {"filter_large_expenses": True, "expense_threshold": 1000}
+        filters: TransactionFilterOptions = {"filter_large_expenses": True, "expense_threshold": 1000}
         result = apply_transaction_filters(df, filters)
         assert "Rent" in result["Category"].values
 
@@ -292,7 +293,7 @@ class TestApplyTransactionFilters:
         df = _df_from_rows(
             _make_row("2024-01-01", "Rent", -1000.01, "Bills", "Expense"),
         )
-        filters = {"filter_large_expenses": True, "expense_threshold": 1000}
+        filters: TransactionFilterOptions = {"filter_large_expenses": True, "expense_threshold": 1000}
         result = apply_transaction_filters(df, filters)
         assert result.empty
 
@@ -301,7 +302,7 @@ class TestApplyTransactionFilters:
         df = _df_from_rows(
             _make_row("2024-01-01", "Normal", -50.0, "Food", "Expense"),
         )
-        filters = {"filter_large_expenses": True}
+        filters: TransactionFilterOptions = {"filter_large_expenses": True}
         # Should not raise, should use DEFAULT_EXPENSE_THRESHOLD
         result = apply_transaction_filters(df, filters)
         assert "Normal" in result["Category"].values
@@ -311,7 +312,7 @@ class TestApplyTransactionFilters:
         df = _df_from_rows(
             _make_row("2024-01-01", "Big", -99999.0, "Food", "Expense"),
         )
-        filters = {"filter_large_expenses": False, "expense_threshold": 100}
+        filters: TransactionFilterOptions = {"filter_large_expenses": False, "expense_threshold": 100}
         result = apply_transaction_filters(df, filters)
         assert "Big" in result["Category"].values
 
@@ -321,7 +322,7 @@ class TestApplyTransactionFilters:
             _make_row("2024-01-01", "A", -50.0, "Food", "Expense"),
             _make_row("2024-01-02", "B", -100.0, "Bills", "Expense"),
         )
-        filters = {
+        filters: TransactionFilterOptions = {
             "include_groups": [],
             "include_categories": [],
             "exclude_groups": ["Food"],
@@ -338,7 +339,7 @@ class TestApplyTransactionFilters:
             _make_row("2024-01-01", "Pay", 3000.0, "Income", "Income"),
             _make_row("2024-01-02", "NanPay", float('nan'), "Income", "Income"),
         )
-        filters = {"filter_large_income": True, "income_threshold": 10000}
+        filters: TransactionFilterOptions = {"filter_large_income": True, "income_threshold": 10000}
         result = apply_transaction_filters(df, filters)
         assert "NanPay" not in result["Category"].values
 

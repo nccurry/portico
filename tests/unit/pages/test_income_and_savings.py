@@ -1,12 +1,13 @@
 """Tests for income, expense, and savings calculations."""
-from collections.abc import Callable
-from typing import Any
-
 import pytest
 import pandas as pd
 
-from src.spreadsheet import TransactionsSpreadsheet
+from src.custom_types import IncomeExpenseFilters
 from src.analysis.income import calculate_savings_summary, process_income_expense_data
+from tests.custom_types import TransactionsSpreadsheetFactory
+
+
+type SavingsRow = dict[str, float]
 
 
 class TestProcessIncomeExpenseData:
@@ -14,8 +15,8 @@ class TestProcessIncomeExpenseData:
     def test_separates_income_expense(
         self,
         income_expense_sample_df: pd.DataFrame,
-        basic_filters: dict[str, Any],
-        make_transactions_spreadsheet: Callable[..., TransactionsSpreadsheet],
+        basic_filters: IncomeExpenseFilters,
+        make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
     ) -> None:
         ts = make_transactions_spreadsheet(income_expense_sample_df)
         result = process_income_expense_data(ts, basic_filters)
@@ -30,8 +31,8 @@ class TestProcessIncomeExpenseData:
     def test_savings_hand_computed_from_fixture(
         self,
         income_expense_sample_df: pd.DataFrame,
-        basic_filters: dict[str, Any],
-        make_transactions_spreadsheet: Callable[..., TransactionsSpreadsheet],
+        basic_filters: IncomeExpenseFilters,
+        make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
     ) -> None:
         """The fixture has: Jan [+3000, -1000], Feb [+4000, -2000], Mar [+5000, -1500].
 
@@ -50,8 +51,8 @@ class TestProcessIncomeExpenseData:
     def test_savings_rate_hand_computed_from_fixture(
         self,
         income_expense_sample_df: pd.DataFrame,
-        basic_filters: dict[str, Any],
-        make_transactions_spreadsheet: Callable[..., TransactionsSpreadsheet],
+        basic_filters: IncomeExpenseFilters,
+        make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
     ) -> None:
         """Hand-computed savings rates for the fixture:
             Jan: 2000 / 3000 * 100 = 66.67%
@@ -65,7 +66,7 @@ class TestProcessIncomeExpenseData:
         assert rate_by_month['2024-02'] == pytest.approx(50.0)
         assert rate_by_month['2024-03'] == pytest.approx(70.0)
 
-    def test_savings_rate_zero_income(self, basic_filters: dict[str, Any], make_transactions_spreadsheet: Callable[..., TransactionsSpreadsheet]) -> None:
+    def test_savings_rate_zero_income(self, basic_filters: IncomeExpenseFilters, make_transactions_spreadsheet: TransactionsSpreadsheetFactory) -> None:
         """When income is 0, savings rate should be 0 (no division by zero)."""
         df = pd.DataFrame({
             'Date': pd.to_datetime(['2024-01-15'], utc=True),
@@ -88,8 +89,8 @@ class TestProcessIncomeExpenseData:
     def test_output_sorted_by_month(
         self,
         income_expense_sample_df: pd.DataFrame,
-        basic_filters: dict[str, Any],
-        make_transactions_spreadsheet: Callable[..., TransactionsSpreadsheet],
+        basic_filters: IncomeExpenseFilters,
+        make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
     ) -> None:
         ts = make_transactions_spreadsheet(income_expense_sample_df)
         result = process_income_expense_data(ts, basic_filters)
@@ -99,8 +100,8 @@ class TestProcessIncomeExpenseData:
 
     def test_only_income_month_gives_100_percent_rate(
         self,
-        basic_filters: dict[str, Any],
-        make_transactions_spreadsheet: Callable[..., TransactionsSpreadsheet],
+        basic_filters: IncomeExpenseFilters,
+        make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
     ) -> None:
         """Month with income but no expenses should have 100% savings rate."""
         df = pd.DataFrame({
@@ -124,8 +125,8 @@ class TestProcessIncomeExpenseData:
 
     def test_only_expense_month_gives_zero_rate(
         self,
-        basic_filters: dict[str, Any],
-        make_transactions_spreadsheet: Callable[..., TransactionsSpreadsheet],
+        basic_filters: IncomeExpenseFilters,
+        make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
     ) -> None:
         """Month with only expenses should have 0% savings rate (no income to divide by)."""
         df = pd.DataFrame({
@@ -148,8 +149,8 @@ class TestProcessIncomeExpenseData:
 
     def test_multiple_months_varying_ratios(
         self,
-        basic_filters: dict[str, Any],
-        make_transactions_spreadsheet: Callable[..., TransactionsSpreadsheet],
+        basic_filters: IncomeExpenseFilters,
+        make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
     ) -> None:
         """Each month gets its own savings rate, varying by income/expense mix."""
         df = pd.DataFrame({
@@ -180,8 +181,8 @@ class TestProcessIncomeExpenseData:
 
     def test_empty_dataframe(
         self,
-        basic_filters: dict[str, Any],
-        make_transactions_spreadsheet: Callable[..., TransactionsSpreadsheet],
+        basic_filters: IncomeExpenseFilters,
+        make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
         empty_transactions_df: pd.DataFrame,
     ) -> None:
         """Empty transactions produce empty result without errors."""
@@ -193,8 +194,8 @@ class TestProcessIncomeExpenseData:
     def test_income_display_is_absolute(
         self,
         income_expense_sample_df: pd.DataFrame,
-        basic_filters: dict[str, Any],
-        make_transactions_spreadsheet: Callable[..., TransactionsSpreadsheet],
+        basic_filters: IncomeExpenseFilters,
+        make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
     ) -> None:
         """Income_Display and Expense_Display are absolute values."""
         ts = make_transactions_spreadsheet(income_expense_sample_df)
@@ -206,8 +207,8 @@ class TestProcessIncomeExpenseData:
     def test_net_column_matches_hand_computed_monthly_net(
         self,
         income_expense_sample_df: pd.DataFrame,
-        basic_filters: dict[str, Any],
-        make_transactions_spreadsheet: Callable[..., TransactionsSpreadsheet],
+        basic_filters: IncomeExpenseFilters,
+        make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
     ) -> None:
         """Net should equal Income + Expense per month, independently computed.
 
@@ -224,8 +225,8 @@ class TestProcessIncomeExpenseData:
 
     def test_same_month_multiple_incomes_accumulate(
         self,
-        basic_filters: dict[str, Any],
-        make_transactions_spreadsheet: Callable[..., TransactionsSpreadsheet],
+        basic_filters: IncomeExpenseFilters,
+        make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
     ) -> None:
         """Multiple income rows in a month sum together."""
         df = pd.DataFrame({
@@ -246,8 +247,8 @@ class TestProcessIncomeExpenseData:
 
     def test_same_month_multiple_expenses_accumulate(
         self,
-        basic_filters: dict[str, Any],
-        make_transactions_spreadsheet: Callable[..., TransactionsSpreadsheet],
+        basic_filters: IncomeExpenseFilters,
+        make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
     ) -> None:
         """Multiple expense rows in a month sum together (stay negative)."""
         df = pd.DataFrame({
@@ -268,8 +269,8 @@ class TestProcessIncomeExpenseData:
 
     def test_refund_classified_as_income_contributes_positively(
         self,
-        basic_filters: dict[str, Any],
-        make_transactions_spreadsheet: Callable[..., TransactionsSpreadsheet],
+        basic_filters: IncomeExpenseFilters,
+        make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
     ) -> None:
         """A positive-amount expense-category refund is classified based on
         Type column, not sign. If Type=Income, it contributes to income."""
@@ -292,8 +293,8 @@ class TestProcessIncomeExpenseData:
 
     def test_month_with_income_only_fills_expense_with_zero(
         self,
-        basic_filters: dict[str, Any],
-        make_transactions_spreadsheet: Callable[..., TransactionsSpreadsheet],
+        basic_filters: IncomeExpenseFilters,
+        make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
     ) -> None:
         """A month with only income should have Expense=0, not NaN."""
         df = pd.DataFrame({
@@ -316,8 +317,8 @@ class TestProcessIncomeExpenseData:
 
     def test_month_with_expense_only_fills_income_with_zero(
         self,
-        basic_filters: dict[str, Any],
-        make_transactions_spreadsheet: Callable[..., TransactionsSpreadsheet],
+        basic_filters: IncomeExpenseFilters,
+        make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
     ) -> None:
         """A month with only expenses should have Income=0, not NaN."""
         df = pd.DataFrame({
@@ -340,8 +341,8 @@ class TestProcessIncomeExpenseData:
 
     def test_transfer_type_excluded_if_not_income_or_expense(
         self,
-        basic_filters: dict[str, Any],
-        make_transactions_spreadsheet: Callable[..., TransactionsSpreadsheet],
+        basic_filters: IncomeExpenseFilters,
+        make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
     ) -> None:
         """Rows with Type not in {Income, Expense} are excluded from monthly
         income/expense aggregates. Transfers should not double-count."""
@@ -366,8 +367,8 @@ class TestProcessIncomeExpenseData:
 
     def test_months_across_year_boundary_sort_correctly(
         self,
-        basic_filters: dict[str, Any],
-        make_transactions_spreadsheet: Callable[..., TransactionsSpreadsheet],
+        basic_filters: IncomeExpenseFilters,
+        make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
     ) -> None:
         """Month strings YYYY-MM sort lexically = chronologically across years."""
         df = pd.DataFrame({
@@ -391,8 +392,8 @@ class TestProcessIncomeExpenseData:
 
     def test_savings_rate_near_zero_income_uses_threshold(
         self,
-        basic_filters: dict[str, Any],
-        make_transactions_spreadsheet: Callable[..., TransactionsSpreadsheet],
+        basic_filters: IncomeExpenseFilters,
+        make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
     ) -> None:
         """Income_Display > 0.01 is the guard; penny-level income still divides."""
         df = pd.DataFrame({
@@ -412,10 +413,10 @@ class TestProcessIncomeExpenseData:
         # 0.50 income > 0.01 threshold → rate computed: (0.50 - 100)/0.50 * 100 = -19900%
         assert result.iloc[0]['Savings_Rate'] == pytest.approx((0.50 - 100) / 0.50 * 100)
 
-    def test_exclude_groups_filter(self, make_transactions_spreadsheet: Callable[..., TransactionsSpreadsheet]) -> None:
+    def test_exclude_groups_filter(self, make_transactions_spreadsheet: TransactionsSpreadsheetFactory) -> None:
         """Excluding a group removes its transactions from the calculation."""
         # Use the conftest scrubbed_transactions_df which has Bills, Food, Shopping, Income
-        filters = {
+        filters: IncomeExpenseFilters = {
             'exclude_groups': ['Food'],
             'exclude_categories': [],
             'filter_large_income': False,
@@ -437,7 +438,7 @@ class TestProcessIncomeExpenseData:
 class TestCalculateSavingsSummary:
     """Test ``calculate_savings_summary`` — pure metrics derived from pivot data."""
 
-    def _pivot(self, rows: list[dict]) -> pd.DataFrame:
+    def _pivot(self, rows: list[SavingsRow]) -> pd.DataFrame:
         """Build a minimal df_pivot from row dicts."""
         return pd.DataFrame(rows)
 

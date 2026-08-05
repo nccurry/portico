@@ -17,8 +17,6 @@ Run from the repo root with::
 The generator fails fast with a clear message if the source xlsx is missing
 or if cross-sheet joins break post-anonymization.
 """
-from __future__ import annotations
-
 import hashlib
 import random
 import re
@@ -26,8 +24,9 @@ import string
 import sys
 from collections import Counter
 from dataclasses import dataclass, field
+from datetime import date, datetime, time
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeIs, TypedDict, cast
 
 import pandas as pd
 
@@ -71,6 +70,75 @@ SUBSCRIPTION_EXCLUDED_REGEX = re.compile(
 )
 
 MIN_DUPLICATE_AMOUNT = 10.0  # Mirrors src/constants.py.
+
+
+class AccountSourceInfo(TypedDict):
+    """Source account fields used to build anonymization metadata."""
+
+    Account: object
+    Class: object
+    Institution: object
+
+
+class SourceAccountConfig(TypedDict):
+    """Group and visibility values from the source Accounts sheet."""
+
+    Group: object
+    Hide: object
+
+
+class AccountMetadata(TypedDict):
+    """Source composite key and class for one account ID."""
+
+    src_composite: str
+    Class: object
+
+
+TransactionRawRow = TypedDict(
+    "TransactionRawRow",
+    {
+        "Unnamed: 0": None,
+        "Date": str,
+        "Category": str,
+        "Amount": str,
+        "Account": str,
+        "Month": str,
+        "Full Description": str,
+        "Institution": str,
+        "Account #": str,
+        "Week": str,
+        "Date Added": str,
+        "Categorized Date": str,
+    },
+)
+
+BalanceHistoryRawRow = TypedDict(
+    "BalanceHistoryRawRow",
+    {
+        "Unnamed: 0": None,
+        "Date": str,
+        "Time": str,
+        "Account": str,
+        "Account #": str,
+        "Account ID": str,
+        "Balance ID": str,
+        "Institution": str,
+        "Balance": str,
+        "Month": str,
+        "Week": str,
+        "Type": str,
+        "Class": str,
+        "Account Status": str,
+        "Date Added": str,
+    },
+)
+
+
+class InjectionRecord[RowT](TypedDict):
+    """Manifest entry for a generated fixture row."""
+
+    pattern: str
+    row: RowT
 
 # ---------------------------------------------------------------------------
 # Word pools (deterministic, embedded so the generator has no external deps)
@@ -200,7 +268,7 @@ def build_token_mapping(source_tokens: list[str]) -> dict[str, str]:
 
 
 def anonymize_description(
-    desc: Any, token_mapping: dict[str, str]
+    desc: object, token_mapping: dict[str, str]
 ) -> str:
     """Replace each whitespace-delimited token via ``token_mapping``.
 
@@ -230,7 +298,7 @@ class AccountAnonymization:
     composite_key: str  # "checking-a - xxxx1111 (ab01)"  (lower)
 
 
-def _classify_account_type(name: Any, klass: Any) -> str:
+def _classify_account_type(name: object, klass: object) -> str:
     """Pick a stable type label from messy source Account names."""
     text = "" if name is None else str(name).lower()
     if "credit" in text or "card" in text:
@@ -266,7 +334,7 @@ def build_account_mapping(
 
     # Sort by Account ID so letter assignments are deterministic regardless
     # of source row order.
-    seen: dict[str, dict[str, Any]] = {}
+    seen: dict[str, AccountSourceInfo] = {}
     for _, row in balance_history.iterrows():
         aid = str(row.get("Account ID", "")).strip()
         if not aid or aid in seen:
@@ -453,13 +521,10 @@ def anonymize_transactions(
         for info in accounts.values()
     }
 
-    def lookup(row: pd.Series) -> AccountAnonymization | None:
-        aid = row.get("Account ID")
-        if aid in accounts:
-            return accounts[aid]
-        return None
+    def lookup(row: pd.Series[Any]) -> AccountAnonymization | None:
+        return accounts.get(str(row.get("Account ID", "")))
 
-    def map_account(row: pd.Series) -> str:
+    def map_account(row: pd.Series[Any]) -> str:
         info = lookup(row)
         if info:
             return info.account
@@ -471,13 +536,17 @@ def anonymize_transactions(
             return "Checking-A"
         return keys[digest % len(keys)]
 
+    def map_account_num(row: pd.Series[Any]) -> str:
+        info = lookup(row)
+        return info.account_num if info is not None else "xxxx0000"
+
+    def map_institution(row: pd.Series[Any]) -> str:
+        info = lookup(row)
+        return info.institution if info is not None else "Aurora Bank"
+
     df["Account"] = df.apply(map_account, axis=1)
-    df["Account #"] = df.apply(
-        lambda r: lookup(r).account_num if lookup(r) else "xxxx0000", axis=1
-    )
-    df["Institution"] = df.apply(
-        lambda r: lookup(r).institution if lookup(r) else "Aurora Bank", axis=1
-    )
+    df["Account #"] = df.apply(map_account_num, axis=1)
+    df["Institution"] = df.apply(map_institution, axis=1)
     df["Full Description"] = df["Full Description"].apply(
         lambda d: anonymize_description(d, token_mapping)
     )
@@ -520,7 +589,7 @@ def build_accounts_sheet(
     (joined on the source composite key), defaulting to a Class-derived group
     so the BalanceHistory join always lands.
     """
-    src_lookup: dict[str, dict[str, Any]] = {}
+    src_lookup: dict[str, SourceAccountConfig] = {}
     if "Account" in source_accounts.columns:
         for _, row in source_accounts.iterrows():
             key = str(row.get("Account", "")).strip().lower()
@@ -531,7 +600,7 @@ def build_accounts_sheet(
                 }
 
     # Build per-Account-ID source composite + Class for fallback grouping.
-    aid_meta: dict[str, dict[str, Any]] = {}
+    aid_meta: dict[str, AccountMetadata] = {}
     for _, row in source_balance.iterrows():
         aid = str(row.get("Account ID", "")).strip()
         if aid in accounts and aid not in aid_meta:
@@ -545,16 +614,16 @@ def build_accounts_sheet(
                 "Class": row.get("Class"),
             }
 
-    rows: list[dict[str, Any]] = []
+    rows: list[dict[str, object]] = []
     for aid in sorted(accounts.keys()):
         info = accounts[aid]
-        meta = aid_meta.get(aid, {})
-        src = src_lookup.get(meta.get("src_composite", ""), {})
-        group = src.get("Group")
+        meta = aid_meta.get(aid)
+        src = src_lookup.get(meta["src_composite"]) if meta is not None else None
+        group = src["Group"] if src is not None else None
         if group is None or (isinstance(group, float) and pd.isna(group)):
-            klass = str(meta.get("Class", "")).strip()
+            klass = str(meta["Class"] if meta is not None else "").strip()
             group = "Liabilities" if klass.lower() == "liability" else "Assets"
-        hide = src.get("Hide")
+        hide = src["Hide"] if src is not None else None
         hide_val = "" if hide is None or (isinstance(hide, float) and pd.isna(hide)) else str(hide)
         rows.append({
             "Account": _composite_key_display(info),
@@ -603,34 +672,41 @@ BALANCE_HISTORY_RAW_COLUMNS = [
 ]
 
 
-def _format_money(val: Any) -> str:
+def _format_money(val: object) -> str:
     """``1234.56`` -> ``$1,234.56``. Negatives -> ``-$5.00``."""
     try:
-        f = float(val)
+        f = float(str(val))
     except (TypeError, ValueError):
         return ""
     sign = "-" if f < 0 else ""
     return f"{sign}${abs(f):,.2f}"
 
 
-def _format_date_slash(val: Any) -> str:
+def _format_date_slash(val: object) -> str:
     """Format as ``MM/DD/YYYY``."""
     if val is None or (isinstance(val, float) and pd.isna(val)):
         return ""
-    ts = pd.to_datetime(val, errors="coerce")
+    ts = pd.to_datetime(cast(str | float | date | datetime, val), errors="coerce")
     if pd.isna(ts):
         return ""
-    return ts.strftime("%m/%d/%Y")
+    return str(ts.strftime("%m/%d/%Y"))
 
 
-def _format_datetime_slash(val: Any) -> str:
+def _format_datetime_slash(val: object) -> str:
     """Format as ``MM/DD/YYYY HH:MM:SS``."""
     if val is None or (isinstance(val, float) and pd.isna(val)):
         return ""
-    ts = pd.to_datetime(val, errors="coerce")
+    ts = pd.to_datetime(cast(str | float | date | datetime, val), errors="coerce")
     if pd.isna(ts):
         return ""
-    return ts.strftime("%m/%d/%Y %H:%M:%S")
+    return str(ts.strftime("%m/%d/%Y %H:%M:%S"))
+
+
+def _filled_column(df: pd.DataFrame, column: str, default: str) -> pd.Series[Any]:
+    """Return a present column with missing cells replaced by ``default``."""
+    if column not in df.columns:
+        return pd.Series(default, index=df.index, dtype="object")
+    return df[column].fillna(default)
 
 
 def _shape_transactions_raw(df: pd.DataFrame) -> pd.DataFrame:
@@ -638,7 +714,7 @@ def _shape_transactions_raw(df: pd.DataFrame) -> pd.DataFrame:
     out = pd.DataFrame()
     out["Unnamed: 0"] = [None] * len(df)
     out["Date"] = df["Date"].apply(_format_date_slash)
-    out["Category"] = df.get("Category", "").fillna("")
+    out["Category"] = _filled_column(df, "Category", "")
     out["Amount"] = df["Amount"].apply(_format_money)
     out["Account"] = df["Account"]
     out["Month"] = df["Date"].apply(
@@ -654,21 +730,35 @@ def _shape_transactions_raw(df: pd.DataFrame) -> pd.DataFrame:
     return out[TRANSACTIONS_RAW_COLUMNS]
 
 
-def _combine_date_time(date_val: Any, time_val: Any) -> str:
+type TimeParts = datetime | time | pd.Timestamp
+
+
+def _has_time_parts(value: object) -> TypeIs[TimeParts]:
+    """Return whether a value exposes concrete hour, minute, and second fields."""
+    return isinstance(value, (datetime, time, pd.Timestamp))
+
+
+def _combine_date_time(date_val: object, time_val: object) -> str:
     """Combine a Date and a Time value into ``MM/DD/YYYY HH:MM:SS``.
 
     The Date supplies the calendar date; the Time supplies the time-of-day.
     Falls back to midnight when Time is missing or unparseable.
     """
-    d = pd.to_datetime(date_val, errors="coerce")
+    d = pd.to_datetime(
+        cast(str | float | date | datetime, date_val),
+        errors="coerce",
+    )
     if pd.isna(d):
         return ""
     # time_val may be datetime.time, Timestamp, or string
     try:
-        if hasattr(time_val, "hour"):
+        if _has_time_parts(time_val):
             h, m, s = time_val.hour, time_val.minute, time_val.second
         else:
-            t = pd.to_datetime(time_val, errors="coerce")
+            t = pd.to_datetime(
+                cast(str | float | date | datetime, time_val),
+                errors="coerce",
+            )
             if pd.isna(t):
                 h, m, s = 0, 0, 0
             else:
@@ -676,7 +766,7 @@ def _combine_date_time(date_val: Any, time_val: Any) -> str:
     except Exception:
         h, m, s = 0, 0, 0
     combined = d.replace(hour=h, minute=m, second=s)
-    return combined.strftime("%m/%d/%Y %H:%M:%S")
+    return str(combined.strftime("%m/%d/%Y %H:%M:%S"))
 
 
 def _shape_balance_history_raw(df: pd.DataFrame) -> pd.DataFrame:
@@ -701,9 +791,9 @@ def _shape_balance_history_raw(df: pd.DataFrame) -> pd.DataFrame:
         if pd.notna(d) else ""
     )
     out["Week"] = df["Date"].apply(_format_date_slash)
-    out["Type"] = df.get("Type", "").fillna("")
-    out["Class"] = df.get("Class", "").fillna("")
-    out["Account Status"] = df.get("Account Status", "").fillna("Open")
+    out["Type"] = _filled_column(df, "Type", "")
+    out["Class"] = _filled_column(df, "Class", "")
+    out["Account Status"] = _filled_column(df, "Account Status", "Open")
     out["Date Added"] = df["Date"].apply(_format_datetime_slash)
     return out[BALANCE_HISTORY_RAW_COLUMNS]
 
@@ -717,8 +807,8 @@ def _shape_balance_history_raw(df: pd.DataFrame) -> pd.DataFrame:
 class InjectionLog:
     """Tracks every synthetic row written to the fixtures."""
 
-    transactions: list[dict[str, Any]] = field(default_factory=list)
-    balance_history: list[dict[str, Any]] = field(default_factory=list)
+    transactions: list[InjectionRecord[TransactionRawRow]] = field(default_factory=list)
+    balance_history: list[InjectionRecord[BalanceHistoryRawRow]] = field(default_factory=list)
 
 
 def _pick_account(accounts: dict[str, AccountAnonymization], pattern: str) -> AccountAnonymization:
@@ -743,7 +833,7 @@ def _make_txn_row(
     amount: float,
     account: AccountAnonymization,
     description: str,
-) -> dict[str, Any]:
+) -> TransactionRawRow:
     """Build a synthetic transactions row (raw shape)."""
     ts = pd.Timestamp(date)
     return {
@@ -769,7 +859,7 @@ def _make_bh_row(
     balance: float,
     klass: str,
     type_: str = "Account",
-) -> dict[str, Any]:
+) -> BalanceHistoryRawRow:
     """Build a synthetic balance history row (raw shape)."""
     ts = pd.Timestamp(date)
     return {
@@ -805,8 +895,8 @@ def inject_patterns(
 
     The generator's caller asserts the resulting counts post-injection.
     """
-    new_txns: list[dict[str, Any]] = []
-    new_bh: list[dict[str, Any]] = []
+    new_txns: list[TransactionRawRow] = []
+    new_bh: list[BalanceHistoryRawRow] = []
 
     valid_categories = set(categories["Category"].dropna().astype(str))
 
@@ -961,7 +1051,7 @@ def _inject_balance_patterns(
     accounts: dict[str, AccountAnonymization],
     reference_date: pd.Timestamp,
     log: InjectionLog,
-) -> list[dict[str, Any]]:
+) -> list[BalanceHistoryRawRow]:
     """Append synthetic BalanceHistory rows for required group shapes.
 
     Most pattern guarantees are satisfied by the natural shape of the source
@@ -971,7 +1061,7 @@ def _inject_balance_patterns(
     no realistic account holds exactly zero -- so we inject a fully synthetic
     account into its own group whose only balance row is zero.
     """
-    out: list[dict[str, Any]] = []
+    out: list[BalanceHistoryRawRow] = []
 
     # Zero-total group: fully synthetic account with Balance 0 in a uniquely
     # named group so other accounts cannot mask the zero total.
@@ -1001,7 +1091,11 @@ def inject_budget_patterns(
     month_col = pd.Timestamp(year=reference_date.year, month=reference_date.month, day=1)
 
     # Find a budget column for the reference month.
-    budget_cols = [c for c in cat.columns if isinstance(c, pd.Timestamp)]
+    budget_cols: list[pd.Timestamp] = [
+        cast(pd.Timestamp, column)
+        for column in cat.columns
+        if isinstance(column, pd.Timestamp)
+    ]
     if not budget_cols:
         return cat, txns
 
@@ -1088,12 +1182,14 @@ def write_injection_manifest(log: InjectionLog) -> None:
         "## transactions.csv",
         "",
     ]
-    by_pattern: dict[str, list[dict[str, Any]]] = {}
-    for entry in log.transactions:
-        by_pattern.setdefault(entry["pattern"], []).append(entry["row"])
-    for pattern, rows in by_pattern.items():
+    by_pattern: dict[str, list[TransactionRawRow]] = {}
+    for transaction_entry in log.transactions:
+        by_pattern.setdefault(transaction_entry["pattern"], []).append(
+            transaction_entry["row"]
+        )
+    for pattern, transaction_rows in by_pattern.items():
         lines.append(f"### {pattern}")
-        for row in rows:
+        for row in transaction_rows:
             lines.append(
                 f"- {row['Date']} | {row['Amount']} | "
                 f"{row['Full Description']} | {row['Account']}"
@@ -1102,14 +1198,15 @@ def write_injection_manifest(log: InjectionLog) -> None:
 
     lines.append("## balance_history.csv")
     lines.append("")
-    by_bh: dict[str, list[dict[str, Any]]] = {}
-    for entry in log.balance_history:
-        by_bh.setdefault(entry["pattern"], []).append(entry["row"])
-    for pattern, rows in by_bh.items():
+    by_bh: dict[str, list[BalanceHistoryRawRow]] = {}
+    for balance_entry in log.balance_history:
+        by_bh.setdefault(balance_entry["pattern"], []).append(balance_entry["row"])
+    for pattern, balance_rows in by_bh.items():
         lines.append(f"### {pattern}")
-        for row in rows:
+        for balance_row in balance_rows:
             lines.append(
-                f"- {row['Date']} | {row['Balance']} | {row['Account']} | {row['Class']}"
+                f"- {balance_row['Date']} | {balance_row['Balance']} | "
+                f"{balance_row['Account']} | {balance_row['Class']}"
             )
         lines.append("")
 
@@ -1161,7 +1258,7 @@ def validate_pattern_minimums(
 
     # recurring_merchants: mirrors detect_recurring_transactions() with Page 5
     # defaults — first-three-word merchant, grouped by Merchant+rounded-amount,
-    # count ≥ 3, unique months ≥ 3, cadence 20–40 days between charges.
+    # count ≥ 3, unique months ≥ 3, cadence 20-40 days between charges.
     non_excluded = ~transactions["Category"].isin(SUBSCRIPTION_EXCLUDED_CATEGORIES)
     rec_df = pd.DataFrame({
         "date": txn_dates[non_excluded],
@@ -1215,7 +1312,11 @@ def validate_pattern_minimums(
         errors.append(f"cross_year_categories: {n_cross} < {PATTERN_MIN['cross_year_categories']}")
 
     # over/under_budget_categories: compare budget vs actual in latest month
-    budget_cols = [c for c in categories.columns if isinstance(c, pd.Timestamp)]
+    budget_cols: list[pd.Timestamp] = [
+        cast(pd.Timestamp, column)
+        for column in categories.columns
+        if isinstance(column, pd.Timestamp)
+    ]
     if budget_cols:
         latest_budget_col = max(budget_cols)
         budget_by_cat = categories.set_index("Category")[latest_budget_col].dropna()

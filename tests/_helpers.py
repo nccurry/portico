@@ -2,9 +2,12 @@
 
 Consolidated from individual test modules to enforce typing via ruff ANN rules.
 """
-from typing import Any
+from datetime import date, datetime
+from typing import cast
 
 import pandas as pd
+
+from tests.custom_types import DataFrameRow
 
 
 def _ts(date_str: str) -> pd.Timestamp:
@@ -17,13 +20,13 @@ def _utc(year: int, month: int, day: int) -> pd.Timestamp:
     return pd.Timestamp(year, month, day, tz="UTC")
 
 
-def _transactions_df(rows: list[dict[str, Any]]) -> pd.DataFrame:
+def _transactions_df(rows: list[DataFrameRow]) -> pd.DataFrame:
     """Build a minimal scrubbed transactions DataFrame from a list of dicts.
 
     Each dict should contain Date, Category, Amount, Account, Month, Group,
     Type (and optionally Full Description, Institution, Account #).
     """
-    defaults: dict[str, Any] = {
+    defaults: DataFrameRow = {
         "Full Description": "",
         "Institution": "",
         "Account #": "",
@@ -35,7 +38,7 @@ def _transactions_df(rows: list[dict[str, Any]]) -> pd.DataFrame:
     return df
 
 
-def _balance_df(rows: list[dict[str, Any]]) -> pd.DataFrame:
+def _balance_df(rows: list[DataFrameRow]) -> pd.DataFrame:
     """Build a minimal scrubbed balance-history DataFrame from a list of dicts."""
     df = pd.DataFrame(rows)
     df["Date"] = pd.to_datetime(df["Date"], utc=True)
@@ -45,9 +48,9 @@ def _balance_df(rows: list[dict[str, Any]]) -> pd.DataFrame:
     return df
 
 
-def _make_df(rows: list[dict[str, Any]]) -> pd.DataFrame:
+def _make_df(rows: list[DataFrameRow]) -> pd.DataFrame:
     """Build a transaction DataFrame from a list of dicts with sensible defaults."""
-    defaults: dict[str, Any] = {
+    defaults: DataFrameRow = {
         'Type': 'Expense',
         'Category': 'Groceries',
         'Group': 'Food',
@@ -60,7 +63,10 @@ def _make_df(rows: list[dict[str, Any]]) -> pd.DataFrame:
     for row in rows:
         for k, v in defaults.items():
             row.setdefault(k, v)
-        row['Date'] = pd.Timestamp(row['Date'], tz='UTC')
+        row['Date'] = pd.Timestamp(
+            cast(str | float | date | datetime, row['Date']),
+            tz='UTC',
+        )
     return pd.DataFrame(rows)
 
 
@@ -127,7 +133,7 @@ def _make_row(
     desc: str = "test",
     institution: str = "Test Bank",
     acct_num: str = "0000",
-) -> dict[str, Any]:
+) -> DataFrameRow:
     """Build a single transaction row matching TRANSACTIONS_SCRUBBED_COLUMNS."""
     return {
         "Date": pd.Timestamp(date, tz="UTC"),
@@ -143,9 +149,7 @@ def _make_row(
     }
 
 
-def _df_from_rows(*rows: dict[str, Any]) -> pd.DataFrame:
+def _df_from_rows(*rows: DataFrameRow) -> pd.DataFrame:
     """Build a DataFrame from individual row dicts."""
     return pd.DataFrame(list(rows))
-
-
 

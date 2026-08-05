@@ -45,7 +45,7 @@ class TestPrepareYearComparisonData:
 
         result = prepare_year_comparison_data(df)
 
-        assert list(result.columns) == [2024]
+        assert result.columns.equals(pd.Index([2024]))
         assert 3 in result.index
         assert 7 in result.index
         assert result.loc[3, 2024] == 500

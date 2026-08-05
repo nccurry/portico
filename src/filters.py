@@ -1,7 +1,4 @@
 """Common filter UI components used across multiple pages."""
-from collections.abc import Mapping
-from typing import Any
-
 import streamlit as st
 
 import pandas as pd
@@ -13,7 +10,6 @@ from src.constants import (
     DEFAULT_EXCLUDE_GROUPS_FI,
     DEFAULT_EXCLUDE_GROUPS_INCOME_SAVINGS,
     DEFAULT_EXCLUDE_GROUPS_SPENDING,
-    DEFAULT_EXCLUDE_GROUPS_BUDGET,
     DEFAULT_EXPENSE_THRESHOLD,
     DEFAULT_EXPECTED_RETURN_RATE,
     DEFAULT_FI_INCLUDED_ACCOUNTS,
@@ -31,6 +27,7 @@ from src.custom_types import (
     FIFilters,
     IncomeExpenseFilters,
     SpendingFilters,
+    TransactionFilterOptions,
 )
 
 
@@ -203,22 +200,22 @@ def render_budget_filters(
             exclude_groups = st.multiselect(
                 "Exclude Groups",
                 options=all_groups,
-                default=[g for g in DEFAULT_EXCLUDE_GROUPS_BUDGET if g in all_groups],
-                help="Exclude entire transaction groups from budget comparison"
+                default=[],
+                help="Create an adjusted view without selected spending groups"
             )
 
             exclude_categories = st.multiselect(
                 "Exclude Categories",
                 options=all_categories,
-                default=[c for c in DEFAULT_EXCLUDE_CATEGORIES if c in all_categories],
-                help="Exclude specific categories from budget comparison"
+                default=[],
+                help="Create an adjusted view without selected one-off categories"
             )
 
         with col_filter2:
-            filter_large_expenses = st.checkbox(
-                "Filter Large Expenses",
-                value=True,
-                help="Exclude individual large expense transactions above a threshold"
+            filter_large_expenses = st.toggle(
+                "Exclude large transactions",
+                value=False,
+                help="Create an adjusted view that excludes individual expenses above a threshold"
             )
 
             expense_threshold = DEFAULT_EXPENSE_THRESHOLD
@@ -232,10 +229,10 @@ def render_budget_filters(
                     help="Exclude individual expense transactions larger than this amount"
                 )
 
-            show_zero_budget = st.checkbox(
-                "Show categories without budget",
-                value=False,
-                help="Include categories that have no budget set"
+            show_zero_budget = st.toggle(
+                "Show unbudgeted categories in drill-downs",
+                value=True,
+                help="Include spending categories that have no individual Tiller budget"
             )
 
     return {
@@ -463,7 +460,7 @@ def calculate_date_range(
 
 def apply_transaction_filters(
     df: pd.DataFrame,
-    filters: Mapping[str, Any],
+    filters: TransactionFilterOptions,
 ) -> pd.DataFrame:
     """Apply standard filters to a transaction dataframe.
 

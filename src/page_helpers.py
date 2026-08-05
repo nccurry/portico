@@ -1,11 +1,10 @@
-from typing import Any
-
 import streamlit as st
 import pandas as pd
 import altair as alt
 from src.spreadsheet import TransactionsSpreadsheet
 from src.constants import COLOR_PLACEHOLDER
 from src.analysis.merchants import extract_merchant_name
+from src.custom_types import ColumnConfig
 
 __all__ = [
     "create_sparkline_chart",
@@ -204,10 +203,11 @@ def create_sparkline_chart(
     """
     if not df.empty and len(df) > 1:
         # Have historical data - show trend line
-        scale_params = {'zero': False}
-        if use_min_scale:
-            min_value = df[value_column].min() * 0.95
-            scale_params['domainMin'] = min_value
+        scale = (
+            alt.Scale(zero=False, domainMin=float(df[value_column].min() * 0.95))
+            if use_min_scale
+            else alt.Scale(zero=False)
+        )
 
         chart = alt.Chart(df).mark_line(
             color=color,
@@ -215,7 +215,7 @@ def create_sparkline_chart(
             interpolate='monotone'
         ).encode(
             x=alt.X(f'{date_column}:T', axis=None),
-            y=alt.Y(f'{value_column}:Q', axis=None, scale=alt.Scale(**scale_params))  # type: ignore[arg-type]
+            y=alt.Y(f'{value_column}:Q', axis=None, scale=scale)
         ).properties(
             height=height
         ).configure_view(
@@ -248,7 +248,7 @@ def create_sparkline_chart(
     return chart  # type: ignore[no-any-return]
 
 
-def get_transaction_column_config() -> dict[str, Any]:
+def get_transaction_column_config() -> ColumnConfig:
     """Standard column configuration for transaction dataframes.
 
     Returns:

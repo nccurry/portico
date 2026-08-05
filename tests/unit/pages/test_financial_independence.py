@@ -3,14 +3,11 @@
 Math assertions reference closed-form expected values (inlined in comments next
 to each assertion), so each test doubles as executable specification.
 """
-from __future__ import annotations
-
 import math
-from typing import Any
-
 import pandas as pd
 import pytest
 
+from src.custom_types import TransactionFilterOptions
 from src.filters import apply_transaction_filters
 from src.analysis.financial_independence import (
     calculate_avg_monthly_spending,
@@ -295,11 +292,14 @@ class TestCalculateAvgMonthlySpending:
     def test_respects_pre_applied_filters(
         self,
         fi_transactions_df: pd.DataFrame,
-        fi_passthrough_filters: dict[str, Any],
+        fi_passthrough_filters: TransactionFilterOptions,
     ) -> None:
         # Excluding the Travel group via apply_transaction_filters drops the
         # $400/mo rows; remaining is $1000/mo from Food.
-        filters = {**fi_passthrough_filters, "exclude_groups": ["Travel"]}
+        filters: TransactionFilterOptions = {
+            **fi_passthrough_filters,
+            "exclude_groups": ["Travel"],
+        }
         filtered = apply_transaction_filters(fi_transactions_df, filters)
         avg, totals = calculate_avg_monthly_spending(filtered, "2024-01", "2024-12")
         assert avg == pytest.approx(1000.0)

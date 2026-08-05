@@ -3,23 +3,17 @@
 Feed larger datasets through the filter + aggregate pipeline and verify
 that the numbers at each stage are arithmetically consistent.
 """
-from __future__ import annotations
-
-from collections.abc import Callable
-from typing import TYPE_CHECKING, Any
-
 import pandas as pd
 import pytest
 
 from src.constants import DEFAULT_EXCLUDE_GROUPS_INCOME_SAVINGS
+from src.custom_types import IncomeExpenseFilters, SpendingFilters, TransactionFilterOptions
 from src.analysis.financial_independence import calculate_avg_monthly_spending
 from src.analysis.income import process_income_expense_data
 from src.analysis.spending import process_spending_data
 from src.filters import apply_transaction_filters
 from src.spreadsheet import get_all_accounts, get_portfolio_value
-
-if TYPE_CHECKING:
-    from src.spreadsheet import TransactionsSpreadsheet
+from tests.custom_types import FullDatasetFactory, TransactionsSpreadsheetFactory
 
 # ---------------------------------------------------------------------------
 # Filter pipeline integrity
@@ -70,7 +64,10 @@ class TestFilterPipelineIntegrity:
         expenses_over = df[(df['Type'] == 'Expense') & (df['Amount'].abs() > threshold)]
         expected_removed_amount = expenses_over['Amount'].sum()
 
-        filters = {'filter_large_expenses': True, 'expense_threshold': threshold}
+        filters: TransactionFilterOptions = {
+            'filter_large_expenses': True,
+            'expense_threshold': threshold,
+        }
         filtered = apply_transaction_filters(df, filters)
 
         assert filtered['Amount'].sum() == pytest.approx(
@@ -88,8 +85,8 @@ class TestIncomeExpenseAggregation:
     def test_monthly_totals_sum_to_overall(
         self,
         extended_transactions_df: pd.DataFrame,
-        passthrough_filters: dict[str, Any],
-        make_transactions_spreadsheet: Callable[[pd.DataFrame | None], TransactionsSpreadsheet],
+        passthrough_filters: IncomeExpenseFilters,
+        make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
     ) -> None:
         """Sum of monthly Income and Expense columns equals the raw totals."""
         ts = make_transactions_spreadsheet(extended_transactions_df)
@@ -106,8 +103,8 @@ class TestIncomeExpenseAggregation:
     def test_savings_is_income_plus_expense_every_month(
         self,
         extended_transactions_df: pd.DataFrame,
-        passthrough_filters: dict[str, Any],
-        make_transactions_spreadsheet: Callable[[pd.DataFrame | None], TransactionsSpreadsheet],
+        passthrough_filters: IncomeExpenseFilters,
+        make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
     ) -> None:
         """Savings = Income + Expense for every single month."""
         ts = make_transactions_spreadsheet(extended_transactions_df)
@@ -119,8 +116,8 @@ class TestIncomeExpenseAggregation:
     def test_all_months_accounted_for(
         self,
         extended_transactions_df: pd.DataFrame,
-        passthrough_filters: dict[str, Any],
-        make_transactions_spreadsheet: Callable[[pd.DataFrame | None], TransactionsSpreadsheet],
+        passthrough_filters: IncomeExpenseFilters,
+        make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
     ) -> None:
         """Every month with transactions appears in the result."""
         ts = make_transactions_spreadsheet(extended_transactions_df)
@@ -144,10 +141,10 @@ class TestSpendingAggregation:
         self,
         extended_transactions_df: pd.DataFrame,
         full_date_range: tuple[pd.Timestamp, pd.Timestamp],
-        make_transactions_spreadsheet: Callable[[pd.DataFrame | None], TransactionsSpreadsheet],
+        make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
     ) -> None:
         ts = make_transactions_spreadsheet(extended_transactions_df)
-        filters = {
+        filters: SpendingFilters = {
             'include_groups': [],
             'include_categories': [],
             'exclude_groups': [],
@@ -167,10 +164,10 @@ class TestSpendingAggregation:
         self,
         extended_transactions_df: pd.DataFrame,
         full_date_range: tuple[pd.Timestamp, pd.Timestamp],
-        make_transactions_spreadsheet: Callable[[pd.DataFrame | None], TransactionsSpreadsheet],
+        make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
     ) -> None:
         ts = make_transactions_spreadsheet(extended_transactions_df)
-        filters = {
+        filters: SpendingFilters = {
             'include_groups': [],
             'include_categories': [],
             'exclude_groups': [],
@@ -188,11 +185,11 @@ class TestSpendingAggregation:
         self,
         extended_transactions_df: pd.DataFrame,
         full_date_range: tuple[pd.Timestamp, pd.Timestamp],
-        make_transactions_spreadsheet: Callable[[pd.DataFrame | None], TransactionsSpreadsheet],
+        make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
     ) -> None:
         """Spending data should never include income transactions."""
         ts = make_transactions_spreadsheet(extended_transactions_df)
-        filters = {
+        filters: SpendingFilters = {
             'include_groups': [],
             'include_categories': [],
             'exclude_groups': [],
@@ -216,7 +213,7 @@ class TestMonthlyAmountsAggregation:
     def test_monthly_category_sums_match_raw(
         self,
         extended_transactions_df: pd.DataFrame,
-        make_transactions_spreadsheet: Callable[[pd.DataFrame | None], TransactionsSpreadsheet],
+        make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
     ) -> None:
         """Monthly amounts by category should sum to the raw category total."""
         ts = make_transactions_spreadsheet(extended_transactions_df)
@@ -232,7 +229,7 @@ class TestMonthlyAmountsAggregation:
     def test_monthly_group_sums_match_raw(
         self,
         extended_transactions_df: pd.DataFrame,
-        make_transactions_spreadsheet: Callable[[pd.DataFrame | None], TransactionsSpreadsheet],
+        make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
     ) -> None:
         """Monthly amounts by group should sum to the raw group total."""
         ts = make_transactions_spreadsheet(extended_transactions_df)
@@ -248,7 +245,7 @@ class TestMonthlyAmountsAggregation:
     def test_inverted_amounts_negate(
         self,
         extended_transactions_df: pd.DataFrame,
-        make_transactions_spreadsheet: Callable[[pd.DataFrame | None], TransactionsSpreadsheet],
+        make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
     ) -> None:
         """Inverted amounts should be the negative of non-inverted."""
         ts = make_transactions_spreadsheet(extended_transactions_df)
@@ -271,7 +268,7 @@ class TestFinancialIndependenceIntegrity:
     committed anonymized CSV fixtures."""
 
     def test_portfolio_value_matches_manual_latest_signed_sum(
-        self, make_full_dataset: Callable[..., tuple[Any, Any, Any, Any]],
+        self, make_full_dataset: FullDatasetFactory,
     ) -> None:
         """get_portfolio_value agrees with a manual latest-observation aggregation."""
         _txns, bal, _cats, _accts = make_full_dataset()
@@ -294,12 +291,12 @@ class TestFinancialIndependenceIntegrity:
         assert total == pytest.approx(expected)
 
     def test_avg_monthly_spending_matches_direct_groupby(
-        self, make_full_dataset: Callable[..., tuple[Any, Any, Any, Any]],
+        self, make_full_dataset: FullDatasetFactory,
     ) -> None:
         """calculate_avg_monthly_spending agrees with a direct groupby on the
         same post-filter frame."""
         txns, _bal, _cats, _accts = make_full_dataset()
-        filters = {
+        filters: TransactionFilterOptions = {
             "exclude_groups": DEFAULT_EXCLUDE_GROUPS_INCOME_SAVINGS,
             "exclude_categories": [],
             "filter_large_expenses": False,
@@ -326,7 +323,7 @@ class TestFinancialIndependenceIntegrity:
         assert totals["Spending"].sum() == pytest.approx(float(expected_monthly.sum()))
 
     def test_portfolio_value_empty_selection_is_zero(
-        self, make_full_dataset: Callable[..., tuple[Any, Any, Any, Any]],
+        self, make_full_dataset: FullDatasetFactory,
     ) -> None:
         _txns, bal, _cats, _accts = make_full_dataset()
         _, total = get_portfolio_value(bal.scrubbed_df, [])
