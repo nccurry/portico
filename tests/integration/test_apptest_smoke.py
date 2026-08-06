@@ -41,6 +41,10 @@ def _set_five_percent_return(at: AppTest) -> None:
     at.number_input[1].set_value(5.0)
 
 
+def _exclude_utility_subscription(at: AppTest) -> None:
+    at.multiselect[3].set_value(["UTILITY POWER BILL"])
+
+
 def _make_app(
     page_file: str,
     make_full_dataset: FullDatasetFactory,
@@ -232,11 +236,35 @@ class TestSubscriptionsSmoke:
             ],
         )
         assert not at.exception
+        assert [widget.label for widget in at.multiselect] == [
+            "Cadences",
+            "Exclude Groups",
+            "Exclude Categories",
+            "Exclude Transactions",
+        ]
+        assert at.multiselect[1].value == ["Food", "Shopping"]
         assert _metric_values(at) == [
-            ("Detected Subscriptions", "5", ""),
-            ("Total Monthly Cost", "$695.98", ""),
-            ("Projected Annual Cost", "$8,351.76", ""),
-            ("Average Subscription", "$139.20/mo", ""),
+            ("Detected Subscriptions", "3", ""),
+            ("Total Monthly Cost", "$145.98", ""),
+            ("Projected Annual Cost", "$1,751.76", ""),
+            ("Average Subscription", "$48.66/mo", ""),
+        ]
+
+    def test_transaction_exclusion_updates_metrics(
+        self, make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        at = _make_app(
+            "5_Subscriptions.py",
+            make_full_dataset,
+            ["src.spreadsheet.load_transactions_data"],
+            _exclude_utility_subscription,
+        )
+        assert not at.exception
+        assert _metric_values(at) == [
+            ("Detected Subscriptions", "2", ""),
+            ("Total Monthly Cost", "$25.98", ""),
+            ("Projected Annual Cost", "$311.76", ""),
+            ("Average Subscription", "$12.99/mo", ""),
         ]
 
 
