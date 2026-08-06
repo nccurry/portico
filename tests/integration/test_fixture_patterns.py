@@ -26,7 +26,7 @@ def full_dataset(
 
 
 # ---------------------------------------------------------------------------
-# Page 4 — Duplicate detection (injected pairs must surface)
+# Data Health — Duplicate detection (injected pairs must surface)
 # ---------------------------------------------------------------------------
 
 @pytest.mark.uses_real_dates
@@ -36,7 +36,7 @@ class TestDuplicatePatternsIntegration:
         self, full_dataset: SpreadsheetBundle,
     ) -> None:
         """The ≥3 injected duplicate pairs surface through find_duplicates_efficient
-        with Page 4's default settings (same account, same description, within 1 day,
+        with Data Health's default settings (same account, same description, within 1 day,
         amount >= $10)."""
         txns, _bal, _cats, _accts = full_dataset
         df = apply_transaction_filters(txns.scrubbed_df, {})

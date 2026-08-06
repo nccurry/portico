@@ -923,7 +923,7 @@ def inject_patterns(
             )
             new_txns.append(row)
             log.transactions.append({
-                "pattern": f"Page 4 duplicate-pair seed #{i + 1}",
+                "pattern": f"Data Health duplicate-pair seed #{i + 1}",
                 "row": row,
             })
 
@@ -1237,7 +1237,7 @@ def validate_pattern_minimums(
         lambda v: float(str(v).replace("$", "").replace(",", "")) if pd.notna(v) else 0.0
     )
 
-    # duplicate_pairs: mirrors find_duplicates_efficient() with Page 4 defaults —
+    # duplicate_pairs: mirrors find_duplicates_efficient() with Data Health defaults —
     # same Account, same normalized description, amount >= $10, within 1 day.
     # Uses the actual self-join approach rather than exact-day keying.
     txn_accounts = transactions["Account"].astype(str)

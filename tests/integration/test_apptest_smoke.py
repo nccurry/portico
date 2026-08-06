@@ -201,28 +201,6 @@ class TestYearOverYearSmoke:
 
 
 @pytest.mark.uses_real_dates
-class TestDuplicateDetectionSmoke:
-
-    def test_runs_without_exception(
-        self, make_full_dataset: FullDatasetFactory,
-    ) -> None:
-        at = _make_app(
-            "4_Duplicate_Detection.py",
-            make_full_dataset,
-            [
-                "src.spreadsheet.load_transactions_data",
-            ],
-        )
-        assert not at.exception
-        assert _metric_values(at) == [
-            ("Potential Duplicates", "3", ""),
-            ("Total Amount", "$249.49", ""),
-            ("Affected Months", "3", ""),
-        ]
-        assert at.dataframe[1].value["Total_Amount"].sum() == pytest.approx(249.49)
-
-
-@pytest.mark.uses_real_dates
 class TestSubscriptionsSmoke:
 
     def test_runs_without_exception(
@@ -422,7 +400,14 @@ class TestDataHealthSmoke:
         assert _metric_values(at) == [
             ("Uncategorized", "0", ""),
             ("Sign Issues", "0", ""),
+            ("Potential Duplicates", "3", ""),
             ("Unmapped Accounts", "0", ""),
             ("Stale Accounts", "0", ""),
             ("Unbudgeted Categories", "0", ""),
         ]
+        assert "Flagged amount: $249.49 | Affected months: 3" in [
+            caption.value for caption in at.caption
+        ]
+        assert len(at.dataframe[0].value) == 3
+        assert len(at.dataframe[1].value) == 3
+        assert at.dataframe[1].value["Total_Amount"].sum() == pytest.approx(249.49)
