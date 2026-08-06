@@ -22,7 +22,6 @@ def _load(name: str) -> ModuleType:
 income_and_savings: ModuleType = _load("1_Income_and_Savings")
 spending_by_category: ModuleType = _load("2_Spending_by_Category")
 year_over_year: ModuleType = _load("3_Year_over_Year")
-duplicate_detection: ModuleType = _load("4_Duplicate_Detection")
 subscriptions: ModuleType = _load("5_Subscriptions")
 merchant_analysis: ModuleType = _load("6_Merchant_Analysis")
 budget: ModuleType = _load("7_Budget")

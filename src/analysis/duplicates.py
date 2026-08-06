@@ -4,6 +4,19 @@ import pandas as pd
 
 from src.custom_types import DuplicateSummary
 
+_DUPLICATE_COLUMNS = (
+    "Date1",
+    "Date2",
+    "Days_Apart",
+    "Amount",
+    "Category",
+    "Account1",
+    "Account2",
+    "Description1",
+    "Description2",
+    "Month",
+)
+
 
 def normalize_description(description: object) -> str:
     """Normalize a transaction description for comparison."""
@@ -21,7 +34,7 @@ def find_duplicates_efficient(
     """Return unique pairs of transactions that satisfy duplicate rules."""
     candidates = df[df["Amount"].abs() >= min_amount].copy()
     if candidates.empty:
-        return pd.DataFrame()
+        return pd.DataFrame(columns=_DUPLICATE_COLUMNS)
 
     candidates = candidates.sort_values(["Amount", "Date"]).reset_index(drop=True)
     candidates["_row_id"] = range(len(candidates))

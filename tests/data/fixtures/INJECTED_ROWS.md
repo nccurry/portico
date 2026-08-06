@@ -5,15 +5,15 @@ Identifying tuple = (Date | Amount | Description | Account).
 
 ## transactions.csv
 
-### Page 4 duplicate-pair seed #1
+### Data Health duplicate-pair seed #1
 - 02/07/2026 | -$45.99 | duplicate pair seed 1 | Checking-B
 - 02/07/2026 | -$45.99 | duplicate pair seed 1 | Checking-B
 
-### Page 4 duplicate-pair seed #2
+### Data Health duplicate-pair seed #2
 - 12/12/2025 | -$125.50 | duplicate pair seed 2 | Checking-B
 - 12/12/2025 | -$125.50 | duplicate pair seed 2 | Checking-B
 
-### Page 4 duplicate-pair seed #3
+### Data Health duplicate-pair seed #3
 - 10/05/2025 | -$78.00 | duplicate pair seed 3 | Checking-B
 - 10/05/2025 | -$78.00 | duplicate pair seed 3 | Checking-B
 

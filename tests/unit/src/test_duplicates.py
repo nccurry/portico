@@ -1,8 +1,8 @@
 """Tests for duplicate-transaction detection."""
 import pandas as pd
 
-from tests._helpers import _make_df
 from src.analysis.duplicates import find_duplicates_efficient, normalize_description
+from tests._helpers import _make_df
 
 
 class TestNormalizeDescription:
@@ -360,3 +360,15 @@ class TestFindDuplicatesEfficient:
         result = find_duplicates_efficient(df, days_threshold=3, min_amount=10,
                                            check_same_account=False, check_same_category=False, require_same_description=True)
         assert result.empty
+        assert list(result.columns) == [
+            "Date1",
+            "Date2",
+            "Days_Apart",
+            "Amount",
+            "Category",
+            "Account1",
+            "Account2",
+            "Description1",
+            "Description2",
+            "Month",
+        ]
