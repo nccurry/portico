@@ -120,6 +120,30 @@ class TestDetectRecurringTransactions:
         result = detect_recurring_transactions(df, min_occurrences=3, min_months=3)
         assert len(result) == 0
 
+    def test_excludes_user_selected_merchants(self) -> None:
+        df = _make_recurring_df(months=6)
+        result = detect_recurring_transactions(
+            df,
+            excluded_merchants=["NETFLIX MONTHLY"],
+        )
+        assert result.empty
+
+    def test_excludes_user_selected_categories(self) -> None:
+        df = _make_recurring_df(months=6)
+        result = detect_recurring_transactions(
+            df,
+            excluded_categories=["Entertainment"],
+        )
+        assert result.empty
+
+    def test_excludes_user_selected_groups(self) -> None:
+        df = _make_recurring_df(months=6)
+        result = detect_recurring_transactions(
+            df,
+            excluded_groups=["Entertainment"],
+        )
+        assert result.empty
+
     def test_cadence_boundary_exactly_20_days_included(self) -> None:
         """Cadence filter is 20 <= days <= 40, so exactly 20 days passes."""
         dates = pd.date_range(start='2024-01-01', periods=6, freq='20D', tz='UTC')

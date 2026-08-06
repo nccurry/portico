@@ -48,6 +48,9 @@ def detect_recurring_transactions(
     min_months: int = 3,
     *,
     allowed_cadences: list[str] | None = None,
+    excluded_merchants: list[str] | None = None,
+    excluded_categories: list[str] | None = None,
+    excluded_groups: list[str] | None = None,
     amount_tolerance_pct: float = 0.10,
     amount_tolerance_abs: float = 0.50,
 ) -> pd.DataFrame:
@@ -56,18 +59,16 @@ def detect_recurring_transactions(
         return pd.DataFrame(columns=SUBSCRIPTION_COLUMNS)
 
     allowed = set(["Monthly"] if allowed_cadences is None else allowed_cadences)
-    df_expenses = df[
-        (df["Type"] == "Expense") &
-        (~df["Category"].isin(SUBSCRIPTION_EXCLUDED_CATEGORIES)) &
-        (~df["Category"].str.contains(SUBSCRIPTION_EXCLUDED_CATEGORY_PATTERN, case=False, na=False, regex=True))
-    ].copy()
+    df_expenses = filter_subscription_transactions(
+        df,
+        excluded_merchants=excluded_merchants,
+        excluded_categories=excluded_categories,
+        excluded_groups=excluded_groups,
+    )
 
     if df_expenses.empty:
         return pd.DataFrame(columns=SUBSCRIPTION_COLUMNS)
 
-    df_expenses["Merchant"] = df_expenses["Full Description"].apply(
-        lambda x: normalize_merchant_name(x, method="first_three")
-    )
     df_expenses["Amount_Abs"] = df_expenses["Amount"].abs()
     df_expenses["Amount_Cluster"] = _assign_amount_clusters(
         df_expenses,
@@ -114,6 +115,38 @@ def detect_recurring_transactions(
 
     grouped = grouped.sort_values(["Monthly_Cost", "Confidence"], ascending=[False, False])
     return grouped[SUBSCRIPTION_COLUMNS].reset_index(drop=True)
+
+
+def filter_subscription_transactions(
+    df: pd.DataFrame,
+    *,
+    excluded_merchants: list[str] | None = None,
+    excluded_categories: list[str] | None = None,
+    excluded_groups: list[str] | None = None,
+) -> pd.DataFrame:
+    """Return expense transactions eligible for subscription detection."""
+    df_expenses = df[df["Type"] == "Expense"].copy()
+    df_expenses["Merchant"] = df_expenses["Full Description"].apply(
+        lambda value: normalize_merchant_name(value, method="first_three")
+    )
+
+    excluded_merchant_keys = {
+        normalize_merchant_name(merchant, method="first_three")
+        for merchant in excluded_merchants or []
+    }
+    df_expenses = df_expenses[
+        (~df_expenses["Category"].isin(SUBSCRIPTION_EXCLUDED_CATEGORIES)) &
+        (~df_expenses["Category"].str.contains(
+            SUBSCRIPTION_EXCLUDED_CATEGORY_PATTERN,
+            case=False,
+            na=False,
+            regex=True,
+        )) &
+        (~df_expenses["Category"].isin(excluded_categories or [])) &
+        (~df_expenses["Group"].isin(["Transfer", *(excluded_groups or [])])) &
+        (~df_expenses["Merchant"].isin(excluded_merchant_keys))
+    ].copy()
+    return df_expenses
 
 
 def summarize_subscriptions(subscriptions: pd.DataFrame) -> SubscriptionSummary:

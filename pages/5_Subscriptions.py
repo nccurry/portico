@@ -8,12 +8,16 @@ from src.page_helpers import get_transaction_column_config, render_data_refresh_
 from src.analysis.subscriptions import (
     _subscription_match_mask,
     detect_recurring_transactions,
+    filter_subscription_transactions,
     prepare_subscription_timeline,
     summarize_subscriptions,
 )
+from src.analysis.merchants import normalize_merchant_name
 from src.constants import (
     CHART_HEIGHT_STANDARD,
     COLOR_EXPENSE,
+    DEFAULT_EXCLUDE_CATEGORIES_SUBSCRIPTIONS,
+    DEFAULT_EXCLUDE_GROUPS_SUBSCRIPTIONS,
 )
 
 
@@ -113,6 +117,14 @@ def configure_page(
     st.header("Subscription Tracker")
     st.caption("Automatically detect recurring charges and subscriptions")
 
+    df = transactions_spreadsheet.scrubbed_df.copy()
+    all_categories = transactions_spreadsheet.get_all_categories()
+    all_groups = transactions_spreadsheet.get_all_groups()
+    all_merchants = sorted({
+        normalize_merchant_name(description, method="first_three")
+        for description in df.loc[df["Type"] == "Expense", "Full Description"].dropna()
+    })
+
     # Detection settings
     with st.expander("Detection Settings", expanded=False):
         col1, col2 = st.columns(2)
@@ -142,22 +154,55 @@ def configure_page(
                 help="Recurring charge cadences to include",
             )
 
-            st.info(
-                "Subscriptions are detected by finding recurring charges with:\n"
-                "- Stable normalized merchant name\n"
-                "- Similar transaction amount\n"
-                "- Matching recurrence cadence\n"
-                "- Minimum number of occurrences and months\n\n"
-                "**Excluded:** Mortgage, loans, rent, investments (401k, HSA, stock purchases)"
+            excluded_groups = st.multiselect(
+                "Exclude Groups",
+                options=all_groups,
+                default=[
+                    group
+                    for group in DEFAULT_EXCLUDE_GROUPS_SUBSCRIPTIONS
+                    if group in all_groups
+                ],
+                help="Skip every transaction in the selected groups",
             )
 
-    # Get all transactions
-    df = transactions_spreadsheet.scrubbed_df.copy()
+            excluded_categories = st.multiselect(
+                "Exclude Categories",
+                options=all_categories,
+                default=[
+                    category
+                    for category in DEFAULT_EXCLUDE_CATEGORIES_SUBSCRIPTIONS
+                    if category in all_categories
+                ],
+                help="Skip every transaction in the selected categories",
+            )
+
+            excluded_merchants = st.multiselect(
+                "Exclude Transactions",
+                options=all_merchants,
+                default=[],
+                help="Skip transactions matching the selected normalized merchant names",
+            )
+
+        st.info(
+            "Subscriptions are detected by finding recurring charges with:\n"
+            "- Stable normalized merchant name\n"
+            "- Similar transaction amount\n"
+            "- Matching recurrence cadence\n"
+            "- Minimum number of occurrences and months\n\n"
+            "**Always excluded:** Transfers, mortgage, loans, rent, and investments "
+            "(401k, HSA, stock purchases)"
+        )
 
     # Detect subscriptions
     with st.spinner("Detecting subscriptions..."):
-        subscriptions = detect_recurring_transactions(
+        eligible_df = filter_subscription_transactions(
             df,
+            excluded_merchants=excluded_merchants,
+            excluded_categories=excluded_categories,
+            excluded_groups=excluded_groups,
+        )
+        subscriptions = detect_recurring_transactions(
+            eligible_df,
             min_occurrences=min_occurrences,
             min_months=min_months,
             allowed_cadences=cadence_options,
@@ -200,7 +245,7 @@ def configure_page(
 
         with viz_col1:
             st.subheader("Subscription Timeline")
-            timeline_chart = create_subscription_timeline(df, subscriptions)
+            timeline_chart = create_subscription_timeline(eligible_df, subscriptions)
             st.altair_chart(timeline_chart, width='stretch')
 
         with viz_col2:
@@ -252,8 +297,8 @@ def configure_page(
             if selected_merchant:
                 selected_subscription = subscriptions[subscriptions['Merchant'] == selected_merchant].iloc[0]
                 sub_amount = selected_subscription['Amount_Rounded']
-                matching_transactions = df[
-                    _subscription_match_mask(df, selected_merchant, sub_amount)
+                matching_transactions = eligible_df[
+                    _subscription_match_mask(eligible_df, selected_merchant, sub_amount)
                 ].copy()
 
                 matching_transactions = matching_transactions.sort_values('Date', ascending=False)

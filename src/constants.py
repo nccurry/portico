@@ -103,6 +103,21 @@ DEFAULT_EXCLUDE_GROUPS_SPENDING: Final[list[str]] = [
     'Travel',
 ]
 
+DEFAULT_EXCLUDE_CATEGORIES_SUBSCRIPTIONS: Final[list[str]] = [
+    'Automobile Fuel',
+    'Fee',
+    'Medical Bill',
+    'Video Games',
+]
+
+DEFAULT_EXCLUDE_GROUPS_SUBSCRIPTIONS: Final[list[str]] = [
+    'Donations',
+    'Food',
+    'Maintenance',
+    'Shopping',
+    'Travel',
+]
+
 # Subscription detection — categories excluded from recurring-charge detection
 SUBSCRIPTION_EXCLUDED_CATEGORIES: Final[list[str]] = [
     'Mortgage Payment',
