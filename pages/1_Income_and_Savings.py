@@ -124,19 +124,23 @@ def create_income_expense_chart(
     x_axis = alt.X('Month:O', axis=alt.Axis(labelAngle=-45, title='Month'), sort=None)
 
     # Prepare bar chart data
-    df_bars = df_pivot[['Month', 'Income_Display', 'Expense_Display']].copy()
+    df_bars = df_pivot[['Month', 'Income', 'Expense']].copy()
     df_long_bars = df_bars.melt(
         id_vars=['Month'],
-        value_vars=['Income_Display', 'Expense_Display'],
+        value_vars=['Income', 'Expense'],
         var_name='Category',
         value_name='Amount'
     )
-    df_long_bars['Category'] = df_long_bars['Category'].str.replace('_Display', '')
+    df_long_bars['Display_Amount'] = df_long_bars['Amount'].abs()
 
     # Bar chart
     bars = alt.Chart(df_long_bars).mark_bar().encode(
         x=x_axis,
-        y=alt.Y('Amount:Q', axis=alt.Axis(title='Amount ($)', labelLimit=100, labelPadding=5)),
+        y=alt.Y(
+            'Amount:Q',
+            stack='zero',
+            axis=alt.Axis(title='Amount ($)', labelLimit=100, labelPadding=5),
+        ),
         color=alt.Color('Category:N',
                        scale=alt.Scale(
                            domain=['Income', 'Expense'],
@@ -146,7 +150,7 @@ def create_income_expense_chart(
         tooltip=[
             alt.Tooltip('Month:O', title='Month'),
             alt.Tooltip('Category:N', title='Type'),
-            alt.Tooltip('Amount:Q', title='Amount', format='$,.2f')
+            alt.Tooltip('Display_Amount:Q', title='Amount', format='$,.2f')
         ]
     )
 
