@@ -41,8 +41,16 @@ def _set_five_percent_return(at: AppTest) -> None:
     at.number_input[1].set_value(5.0)
 
 
-def _exclude_utility_subscription(at: AppTest) -> None:
-    at.multiselect[3].set_value(["UTILITY POWER BILL"])
+def _clear_subscription_categories(at: AppTest) -> None:
+    at.multiselect[0].set_value([])
+
+
+def _show_all_subscription_lifecycles(at: AppTest) -> None:
+    at.segmented_control[0].set_value("All merchants")
+
+
+def _select_three_month_subscription_lookback(at: AppTest) -> None:
+    at.selectbox[0].set_value("Last 3 months")
 
 
 def _make_app(
@@ -214,36 +222,130 @@ class TestSubscriptionsSmoke:
             ],
         )
         assert not at.exception
+        assert "Subscription categories come from Tiller." in at.caption[0].value
+        assert "Activity stays Active until the full cadence-based inactivity window passes" in at.caption[0].value
         assert [widget.label for widget in at.multiselect] == [
-            "Cadences",
-            "Exclude Groups",
-            "Exclude Categories",
-            "Exclude Transactions",
+            "Tiller subscription categories",
+            "Additional discovery exclusions",
         ]
-        assert at.multiselect[1].value == ["Food", "Shopping"]
+        assert at.multiselect[0].value == [
+            "Cloud Subscription",
+            "Streaming Subscription",
+        ]
+        assert [widget.label for widget in at.selectbox] == ["Lookback"]
+        assert at.selectbox[0].value == "Last 12 months"
+        assert at.selectbox[0].key == "subscription_history_lookback"
+        assert at.selectbox[0].options == [
+            "Last 3 months",
+            "Last 6 months",
+            "Last 12 months",
+            "Last 24 months",
+            "All history",
+        ]
+        assert [widget.label for widget in at.segmented_control] == ["Timeline scope"]
+        assert at.segmented_control[0].value == "Active and recent"
+        assert at.segmented_control[0].key == "subscription_timeline_scope"
+        assert at.segmented_control[0].options == ["Active and recent", "All merchants"]
+        history_caption = next(
+            caption.value for caption in at.caption if caption.value.startswith("Lookback affects")
+        )
+        assert (
+            "Lookback affects these charts only; status, cadence, forecasts, and discovery use all available "
+            "transactions."
+            in history_caption
+        )
+        assert "Active and recent includes active merchants" in history_caption
+        assert [heading.value for heading in at.subheader] == [
+            "Active subscriptions",
+            "Subscription history",
+            "Potential subscriptions",
+            "Inactive subscriptions",
+        ]
+        assert [label.value for label in at.markdown] == [
+            "**Subscription lifecycles**",
+            "**Actual spend and 3-month average**",
+            "**Active subscription merchants**",
+        ]
+        charts = at.get("vega_lite_chart")
+        assert len(charts) == 3
+        assert "Episode_Start" in charts[0].proto.spec
+        assert "Needs review" not in charts[0].proto.spec
+        assert "Actual_Spend" in charts[1].proto.spec
+        assert "Active_Merchants" in charts[2].proto.spec
+        assert at.dataframe[0].key == "active_subscriptions"
+        assert at.dataframe[0].value["Merchant"].tolist() == [
+            "NIMBUS CLOUDUS",
+            "VERUM STREAMUS",
+        ]
+        assert at.dataframe[1].key == "subscription_candidates"
+        assert "Evidence" in at.dataframe[1].value
         assert _metric_values(at) == [
-            ("Detected Subscriptions", "3", ""),
-            ("Total Monthly Cost", "$145.98", ""),
-            ("Projected Annual Cost", "$1,751.76", ""),
-            ("Average Subscription", "$48.66/mo", ""),
+            ("Active subscriptions", "2", ""),
+            ("Estimated monthly run rate", "$25.98", ""),
+            ("Spent in the last 12 months", "$145.89", ""),
+            ("12-month change", "Not available", ""),
         ]
 
-    def test_transaction_exclusion_updates_metrics(
+    def test_all_merchants_timeline_scope_keeps_lifecycle_chart(
         self, make_full_dataset: FullDatasetFactory,
     ) -> None:
         at = _make_app(
             "5_Subscriptions.py",
             make_full_dataset,
             ["src.spreadsheet.load_transactions_data"],
-            _exclude_utility_subscription,
+            _show_all_subscription_lifecycles,
+        )
+        assert not at.exception
+        assert at.selectbox[0].value == "Last 12 months"
+        assert at.segmented_control[0].value == "All merchants"
+        charts = at.get("vega_lite_chart")
+        assert len(charts) == 3
+        assert "Episode_Start" in charts[0].proto.spec
+
+    def test_lookback_does_not_change_full_history_metrics(
+        self, make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        at = _make_app(
+            "5_Subscriptions.py",
+            make_full_dataset,
+            ["src.spreadsheet.load_transactions_data"],
+            _select_three_month_subscription_lookback,
+        )
+        assert not at.exception
+        assert at.selectbox[0].value == "Last 3 months"
+        assert _metric_values(at) == [
+            ("Active subscriptions", "2", ""),
+            ("Estimated monthly run rate", "$25.98", ""),
+            ("Spent in the last 12 months", "$145.89", ""),
+            ("12-month change", "Not available", ""),
+        ]
+        charts = at.get("vega_lite_chart")
+        assert len(charts) == 3
+
+    def test_clearing_subscription_categories_updates_metrics(
+        self, make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        at = _make_app(
+            "5_Subscriptions.py",
+            make_full_dataset,
+            ["src.spreadsheet.load_transactions_data"],
+            _clear_subscription_categories,
         )
         assert not at.exception
         assert _metric_values(at) == [
-            ("Detected Subscriptions", "2", ""),
-            ("Total Monthly Cost", "$25.98", ""),
-            ("Projected Annual Cost", "$311.76", ""),
-            ("Average Subscription", "$12.99/mo", ""),
+            ("Active subscriptions", "0", ""),
+            ("Estimated monthly run rate", "$0.00", ""),
+            ("Spent in the last 12 months", "$0.00", ""),
+            ("12-month change", "Not available", ""),
         ]
+        assert [message.value for message in at.info] == [
+            "No active subscriptions are present in the selected Tiller categories.",
+            "Select at least one Tiller subscription category to see spending history.",
+        ]
+        assert not at.selectbox
+        assert not at.segmented_control
+        assert not at.get("vega_lite_chart")
+        assert at.dataframe[0].key == "subscription_candidates"
 
 
 @pytest.mark.uses_real_dates

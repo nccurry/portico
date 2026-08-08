@@ -39,6 +39,8 @@ import pandas as pd
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SOURCE_XLSX = REPO_ROOT / "example_data" / "tillder_data_v2.0.xlsx"
 FIXTURES_DIR = REPO_ROOT / ".local" / "test-fixtures"
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 # Sampling caps -- keeps local output small while preserving patterns.
 SAMPLE_MONTHS = 24
@@ -60,7 +62,7 @@ PATTERN_MIN = {
     "all_liability_groups": 1,
 }
 
-# Categories that ``detect_recurring_transactions`` filters out. Recurring
+# Categories that recurring-charge discovery filters out. Recurring
 # merchant injections MUST avoid these or they never surface in tests.
 SUBSCRIPTION_EXCLUDED_CATEGORIES = frozenset({
     "Mortgage Payment", "Auto Loan Payment", "Student Loan Payment",
@@ -72,6 +74,7 @@ SUBSCRIPTION_EXCLUDED_REGEX = re.compile(
 )
 
 MIN_DUPLICATE_AMOUNT = 10.0  # Mirrors src/constants.py.
+SYNTHETIC_SUBSCRIPTION_CATEGORY = "Misc Subscription"
 
 
 class AccountSourceInfo(TypedDict):
@@ -650,11 +653,43 @@ def _composite_key_display(info: AccountAnonymization) -> str:
 
 
 def anonymize_categories(df: pd.DataFrame) -> pd.DataFrame:
-    """Categories sheet doesn't carry PII. Just preserve the raw shape."""
+    """Preserve non-blank Tiller categories."""
     df = df.copy()
-    # Drop blank category rows.
-    df = df.dropna(subset=["Category"])
-    return df
+    return df.dropna(subset=["Category"])
+
+
+def _subscription_category_names(categories: pd.DataFrame) -> list[str]:
+    """Return deterministic expense categories that can seed known subscriptions."""
+    category_rows = categories.dropna(subset=["Category"])
+    if "Type" in category_rows:
+        category_rows = category_rows[category_rows["Type"].astype(str).str.casefold() == "expense"]
+    return sorted(
+        {
+            category
+            for category in category_rows["Category"].astype(str)
+            if "subscription" in category.lower()
+            and category not in SUBSCRIPTION_EXCLUDED_CATEGORIES
+            and not SUBSCRIPTION_EXCLUDED_REGEX.search(category)
+        }
+    )
+
+
+def _ensure_subscription_category(categories: pd.DataFrame) -> pd.DataFrame:
+    """Add one deterministic subscription category when the source has none."""
+    result = categories.copy()
+    if _subscription_category_names(result):
+        return result
+
+    row: dict[object, object] = {column: 0.0 for column in result.columns}
+    row.update(
+        {
+            "Category": SYNTHETIC_SUBSCRIPTION_CATEGORY,
+            "Group": "Subscriptions",
+            "Type": "Expense",
+            "Hide From Reports": "",
+        }
+    )
+    return pd.concat([result, pd.DataFrame([row], columns=result.columns)], ignore_index=True)
 
 
 # ---------------------------------------------------------------------------
@@ -892,11 +927,12 @@ def inject_patterns(
     accounts: dict[str, AccountAnonymization],
     reference_date: pd.Timestamp,
     log: InjectionLog,
-) -> tuple[pd.DataFrame, pd.DataFrame]:
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Append synthetic rows so phase0-pattern-preservation guarantees hold.
 
     The generator's caller asserts the resulting counts post-injection.
     """
+    categories = _ensure_subscription_category(categories)
     new_txns: list[TransactionRawRow] = []
     new_bh: list[BalanceHistoryRawRow] = []
 
@@ -929,13 +965,8 @@ def inject_patterns(
 
     # ---- Pattern 2: recurring-merchant seeds ---------------------------
     rec_account = _pick_account(accounts, "Credit")
-    safe_recurring_cat = _safe_category(
-        valid_categories,
-        "Subscriptions",
-        avoid=SUBSCRIPTION_EXCLUDED_CATEGORIES,
-    )
-    if SUBSCRIPTION_EXCLUDED_REGEX.search(safe_recurring_cat):
-        safe_recurring_cat = "Subscriptions"
+    known_subscription_categories = _subscription_category_names(categories)
+    safe_recurring_cat = known_subscription_categories[0]
     recurring_seeds = [
         ("verum streamus", -15.99, 6),
         ("nimbus cloudus", -9.99, 5),
@@ -1014,7 +1045,7 @@ def inject_patterns(
             [balance_history, pd.DataFrame(new_bh, columns=BALANCE_HISTORY_RAW_COLUMNS)],
             ignore_index=True,
         )
-    return transactions, balance_history
+    return transactions, balance_history, categories
 
 
 def _safe_category(
@@ -1258,36 +1289,17 @@ def validate_pattern_minimums(
     if n_dup_pairs < PATTERN_MIN["duplicate_pairs"]:
         errors.append(f"duplicate_pairs: {n_dup_pairs} < {PATTERN_MIN['duplicate_pairs']}")
 
-    # recurring_merchants: mirrors detect_recurring_transactions() with Page 5
-    # defaults — first-three-word merchant, grouped by Merchant+rounded-amount,
-    # count ≥ 3, unique months ≥ 3, cadence 20-40 days between charges.
-    non_excluded = ~transactions["Category"].isin(SUBSCRIPTION_EXCLUDED_CATEGORIES)
-    rec_df = pd.DataFrame({
-        "date": txn_dates[non_excluded],
-        "amount": txn_amounts[non_excluded],
-        "desc": txn_descs[non_excluded],
-    }).reset_index(drop=True)
-    rec_df = rec_df[rec_df["amount"] < 0]
-    rec_df["merchant"] = rec_df["desc"].str.split().str[:3].str.join(" ").str.lower()
-    rec_df["amount_rounded"] = rec_df["amount"].abs().round(2)
-    rec_df["month"] = rec_df["date"].dt.to_period("M")
-    grouped = rec_df.groupby(["merchant", "amount_rounded"]).agg(
-        count=("date", "count"),
-        first_date=("date", "min"),
-        last_date=("date", "max"),
-        unique_months=("month", "nunique"),
+    # recurring_merchants: known Page 5 inventory is category-authoritative.
+    # Merchants must have at least three authoritative categorized charges.
+    from src.analysis.merchants import normalize_merchant_name
+
+    subscription_categories = _subscription_category_names(categories)
+    rec_df = transactions[transactions["Category"].isin(subscription_categories)].copy()
+    rec_df["merchant"] = rec_df["Full Description"].map(
+        lambda description: normalize_merchant_name(description, method="first_three")
     )
-    grouped["days_between"] = (
-        (grouped["last_date"] - grouped["first_date"]).dt.days
-        / (grouped["count"] - 1).replace(0, 1)
-    )
-    subs = grouped[
-        (grouped["count"] >= 3)
-        & (grouped["unique_months"] >= 3)
-        & (grouped["days_between"] >= 20)
-        & (grouped["days_between"] <= 40)
-    ]
-    n_recurring = len(subs)
+    recurring_charge_counts = rec_df.groupby("merchant").size()
+    n_recurring = int((recurring_charge_counts >= 3).sum())
     if n_recurring < PATTERN_MIN["recurring_merchants"]:
         errors.append(f"recurring_merchants: {n_recurring} < {PATTERN_MIN['recurring_merchants']}")
 
@@ -1459,7 +1471,7 @@ def main() -> None:  # pragma: no cover - thin orchestrator
 
     log = InjectionLog()
     print("[fixture-gen] injecting required patterns")
-    transactions, balance_history = inject_patterns(
+    transactions, balance_history, categories = inject_patterns(
         transactions, balance_history, categories, accounts, reference_date, log,
     )
     categories, transactions = inject_budget_patterns(

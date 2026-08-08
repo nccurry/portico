@@ -77,17 +77,17 @@ Unnamed: 0,Date,Category,Amount,Account,Month,Week,Full Description,Institution,
 75,12/12/2025,Restaurants,-$125.50,Checking-B,12/01/2025,12/08/2025,duplicate pair seed 2,Aurora Bank,xxxx1001,12/12/2025,12/12/2025
 76,10/05/2025,Restaurants,-$78.00,Checking-B,10/01/2025,09/29/2025,duplicate pair seed 3,Aurora Bank,xxxx1001,10/05/2025,10/05/2025
 77,10/05/2025,Restaurants,-$78.00,Checking-B,10/01/2025,09/29/2025,duplicate pair seed 3,Aurora Bank,xxxx1001,10/05/2025,10/05/2025
-78,11/17/2025,Streaming,-$15.99,Credit-H,11/01/2025,11/17/2025,verum streamus 00001,Harbor Card,xxxx2002,11/17/2025,11/17/2025
-79,12/17/2025,Streaming,-$15.99,Credit-H,12/01/2025,12/15/2025,verum streamus 00002,Harbor Card,xxxx2002,12/17/2025,12/17/2025
-80,01/17/2026,Streaming,-$15.99,Credit-H,01/01/2026,01/12/2026,verum streamus 00003,Harbor Card,xxxx2002,01/17/2026,01/17/2026
-81,02/17/2026,Streaming,-$15.99,Credit-H,02/01/2026,02/16/2026,verum streamus 00004,Harbor Card,xxxx2002,02/17/2026,02/17/2026
-82,03/17/2026,Streaming,-$15.99,Credit-H,03/01/2026,03/16/2026,verum streamus 00005,Harbor Card,xxxx2002,03/17/2026,03/17/2026
-83,04/17/2026,Streaming,-$15.99,Credit-H,04/01/2026,04/13/2026,verum streamus 00006,Harbor Card,xxxx2002,04/17/2026,04/17/2026
-84,12/17/2025,Cloud,-$9.99,Credit-H,12/01/2025,12/15/2025,nimbus cloudus 00001,Harbor Card,xxxx2002,12/17/2025,12/17/2025
-85,01/17/2026,Cloud,-$9.99,Credit-H,01/01/2026,01/12/2026,nimbus cloudus 00002,Harbor Card,xxxx2002,01/17/2026,01/17/2026
-86,02/17/2026,Cloud,-$9.99,Credit-H,02/01/2026,02/16/2026,nimbus cloudus 00003,Harbor Card,xxxx2002,02/17/2026,02/17/2026
-87,03/17/2026,Cloud,-$9.99,Credit-H,03/01/2026,03/16/2026,nimbus cloudus 00004,Harbor Card,xxxx2002,03/17/2026,03/17/2026
-88,04/17/2026,Cloud,-$9.99,Credit-H,04/01/2026,04/13/2026,nimbus cloudus 00005,Harbor Card,xxxx2002,04/17/2026,04/17/2026
+78,11/17/2025,Streaming Subscription,-$15.99,Credit-H,11/01/2025,11/17/2025,verum streamus 00001,Harbor Card,xxxx2002,11/17/2025,11/17/2025
+79,12/17/2025,Streaming Subscription,-$15.99,Credit-H,12/01/2025,12/15/2025,verum streamus 00002,Harbor Card,xxxx2002,12/17/2025,12/17/2025
+80,01/17/2026,Streaming Subscription,-$15.99,Credit-H,01/01/2026,01/12/2026,verum streamus 00003,Harbor Card,xxxx2002,01/17/2026,01/17/2026
+81,02/17/2026,Streaming Subscription,-$15.99,Credit-H,02/01/2026,02/16/2026,verum streamus 00004,Harbor Card,xxxx2002,02/17/2026,02/17/2026
+82,03/17/2026,Streaming Subscription,-$15.99,Credit-H,03/01/2026,03/16/2026,verum streamus 00005,Harbor Card,xxxx2002,03/17/2026,03/17/2026
+83,04/17/2026,Streaming Subscription,-$15.99,Credit-H,04/01/2026,04/13/2026,verum streamus 00006,Harbor Card,xxxx2002,04/17/2026,04/17/2026
+84,12/17/2025,Cloud Subscription,-$9.99,Credit-H,12/01/2025,12/15/2025,nimbus cloudus 00001,Harbor Card,xxxx2002,12/17/2025,12/17/2025
+85,01/17/2026,Cloud Subscription,-$9.99,Credit-H,01/01/2026,01/12/2026,nimbus cloudus 00002,Harbor Card,xxxx2002,01/17/2026,01/17/2026
+86,02/17/2026,Cloud Subscription,-$9.99,Credit-H,02/01/2026,02/16/2026,nimbus cloudus 00003,Harbor Card,xxxx2002,02/17/2026,02/17/2026
+87,03/17/2026,Cloud Subscription,-$9.99,Credit-H,03/01/2026,03/16/2026,nimbus cloudus 00004,Harbor Card,xxxx2002,03/17/2026,03/17/2026
+88,04/17/2026,Cloud Subscription,-$9.99,Credit-H,04/01/2026,04/13/2026,nimbus cloudus 00005,Harbor Card,xxxx2002,04/17/2026,04/17/2026
 89,03/16/2026,Shopping,"-$2,500.00",Credit-H,03/01/2026,03/16/2026,magnum boxus 99000,Harbor Card,xxxx2002,03/16/2026,03/16/2026
 90,03/09/2026,Shopping,"-$2,500.00",Credit-H,03/01/2026,03/09/2026,magnum boxus 99001,Harbor Card,xxxx2002,03/09/2026,03/09/2026
 91,03/17/2025,Groceries,-$87.65,Checking-B,03/01/2025,03/17/2025,cross year staple,Aurora Bank,xxxx1001,03/17/2025,03/17/2025

@@ -11,7 +11,7 @@ from src.custom_types import BudgetFilters
 from src.constants import MIN_DUPLICATE_AMOUNT, DEFAULT_DUPLICATE_DAYS_THRESHOLD
 from src.analysis.budget import get_budget_vs_actual
 from src.analysis.duplicates import find_duplicates_efficient
-from src.analysis.subscriptions import detect_recurring_transactions
+from src.analysis.subscriptions import build_subscription_inventory, get_subscription_transactions
 from src.analysis.top_transactions import get_top_transactions
 from src.filters import apply_transaction_filters
 from src.spreadsheet import calculate_net_worth_summary
@@ -64,10 +64,12 @@ class TestRecurringPatternsIntegration:
         self, full_dataset: SpreadsheetBundle,
     ) -> None:
         """The ≥2 injected recurring merchants surface through
-        detect_recurring_transactions."""
+        the category-authoritative subscription inventory."""
         txns, _bal, _cats, _accts = full_dataset
         df = apply_transaction_filters(txns.scrubbed_df, {})
-        recurring = detect_recurring_transactions(df)
+        recurring = build_subscription_inventory(
+            df, ["Streaming Subscription", "Cloud Subscription"]
+        )
         assert len(recurring) >= 2, (
             f"Expected ≥2 recurring merchants but found {len(recurring)}"
         )
@@ -78,10 +80,18 @@ class TestRecurringPatternsIntegration:
         """Detected recurring merchants span multiple months (≥3)."""
         txns, _bal, _cats, _accts = full_dataset
         df = apply_transaction_filters(txns.scrubbed_df, {})
-        recurring = detect_recurring_transactions(df)
+        recurring = build_subscription_inventory(
+            df, ["Streaming Subscription", "Cloud Subscription"]
+        )
         if recurring.empty:
             pytest.fail("No recurring transactions detected")
-        assert (recurring["Unique_Months"] >= 3).all()
+        for merchant in recurring["Merchant"]:
+            charges = get_subscription_transactions(
+                df,
+                str(merchant),
+                categories=["Streaming Subscription", "Cloud Subscription"],
+            )
+            assert charges["Date"].dt.strftime("%Y-%m").nunique() >= 3
 
 
 # ---------------------------------------------------------------------------

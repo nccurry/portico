@@ -22,12 +22,6 @@ from src.analysis.spending import (
     prepare_category_boxplot,
     prepare_spending_trend,
 )
-from src.analysis.subscriptions import (
-    _monthly_cost,
-    _next_expected_date,
-    prepare_subscription_timeline,
-    summarize_subscriptions,
-)
 
 
 def test_filtered_transaction_summary_reports_gross_excluded_amount() -> None:
@@ -149,98 +143,6 @@ def test_empty_duplicate_summaries_have_stable_shapes() -> None:
         "Count",
         "Total_Amount",
     ]
-
-
-def test_subscription_summary_uses_normalized_monthly_costs() -> None:
-    subscriptions = pd.DataFrame(
-        {
-            "Monthly_Cost": [10.0, 30.0],
-            "Annual_Cost": [999.0, 999.0],
-        }
-    )
-
-    summary = summarize_subscriptions(subscriptions)
-
-    assert summary == {
-        "count": 2,
-        "monthly_cost": 40.0,
-        "annual_cost": 480.0,
-        "average_monthly_cost": 20.0,
-    }
-    assert summary["annual_cost"] == pytest.approx(summary["monthly_cost"] * 12)
-
-
-def test_subscription_timeline_uses_matching_charge_dates() -> None:
-    transactions = pd.DataFrame(
-        {
-            "Full Description": [
-                "Stream Service Plan",
-                "Stream Service Plan",
-                "Stream Service Plan",
-            ],
-            "Type": ["Expense", "Expense", "Income"],
-            "Amount": [-12.0, -12.0, 12.0],
-            "Date": pd.to_datetime(
-                ["2024-01-01", "2024-03-01", "2024-04-01"], utc=True
-            ),
-        }
-    )
-    subscriptions = pd.DataFrame(
-        {
-            "Merchant": ["STREAM SERVICE PLAN"],
-            "Amount_Rounded": [12.0],
-            "Monthly_Cost": [12.0],
-        }
-    )
-
-    timeline = prepare_subscription_timeline(transactions, subscriptions)
-
-    assert timeline.loc[0, "First_Date"] == pd.Timestamp("2024-01-01", tz="UTC")
-    assert timeline.loc[0, "Last_Date"] == pd.Timestamp("2024-03-01", tz="UTC")
-    assert timeline.loc[0, "Amount"] == pytest.approx(12.0)
-
-
-def test_empty_subscription_summary_and_unmatched_timeline_are_zero() -> None:
-    subscriptions = pd.DataFrame(
-        columns=["Merchant", "Amount_Rounded", "Monthly_Cost", "Annual_Cost"]
-    )
-    transactions = pd.DataFrame(
-        columns=["Full Description", "Amount", "Date"]
-    )
-
-    assert summarize_subscriptions(subscriptions) == {
-        "count": 0,
-        "monthly_cost": 0.0,
-        "annual_cost": 0.0,
-        "average_monthly_cost": 0.0,
-    }
-    assert prepare_subscription_timeline(transactions, subscriptions).empty
-
-    unmatched = pd.DataFrame(
-        {
-            "Merchant": ["Missing Merchant"],
-            "Amount_Rounded": [10.0],
-            "Monthly_Cost": [10.0],
-            "Annual_Cost": [120.0],
-        }
-    )
-    other_transactions = pd.DataFrame(
-        {
-            "Full Description": ["Other Merchant"],
-            "Amount": [-10.0],
-            "Date": [pd.Timestamp("2024-01-01")],
-        }
-    )
-    assert prepare_subscription_timeline(other_transactions, unmatched).empty
-
-
-def test_subscription_cadence_normalization_and_default_next_date() -> None:
-    assert _monthly_cost(pd.Series({"Median_Amount": 120.0, "Cadence": "Quarterly"})) == 40.0
-    assert _monthly_cost(pd.Series({"Median_Amount": 120.0, "Cadence": "Annual"})) == 10.0
-    next_date = _next_expected_date(
-        pd.Series({"Last_Date": pd.Timestamp("2024-01-01"), "Cadence": "Irregular"})
-    )
-    assert next_date == pd.Timestamp("2024-01-31")
 
 
 def test_merchant_summary_and_timeline_match_manual_totals() -> None:

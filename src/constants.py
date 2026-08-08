@@ -110,14 +110,6 @@ DEFAULT_EXCLUDE_CATEGORIES_SUBSCRIPTIONS: Final[list[str]] = [
     'Video Games',
 ]
 
-DEFAULT_EXCLUDE_GROUPS_SUBSCRIPTIONS: Final[list[str]] = [
-    'Donations',
-    'Food',
-    'Maintenance',
-    'Shopping',
-    'Travel',
-]
-
 # Subscription detection — categories excluded from recurring-charge detection
 SUBSCRIPTION_EXCLUDED_CATEGORIES: Final[list[str]] = [
     'Mortgage Payment',
