@@ -12,10 +12,15 @@ import pandas as pd
 import pytest
 
 from scripts.generate_test_fixtures import (
+    BALANCE_HISTORY_RAW_COLUMNS,
+    TRANSACTIONS_RAW_COLUMNS,
     AccountAnonymization,
+    InjectionLog,
     PATTERN_MIN,
+    SYNTHETIC_SUBSCRIPTION_CATEGORY,
     SYNTHETIC_ZERO_ACCOUNT,
     _composite_key_display,
+    _ensure_subscription_category,
     _format_money,
     _has_time_parts,
     _index_to_letters,
@@ -26,6 +31,7 @@ from scripts.generate_test_fixtures import (
     build_account_mapping,
     build_token_mapping,
     collect_description_tokens,
+    inject_patterns,
     sample_balance_history,
     sample_transactions,
     validate_pattern_minimums,
@@ -84,6 +90,59 @@ class TestFormatMoney:
 
     def test_invalid(self) -> None:
         assert _format_money("not a number") == ""
+
+
+class TestSubscriptionCategoryInjection:
+    def test_adds_one_deterministic_subscription_category_idempotently(self) -> None:
+        categories = pd.DataFrame(
+            {
+                "Category": ["Groceries"],
+                "Group": ["Food"],
+                "Type": ["Expense"],
+                "Hide From Reports": [""],
+            }
+        )
+
+        first = _ensure_subscription_category(categories)
+        second = _ensure_subscription_category(first)
+
+        assert first["Category"].tolist() == ["Groceries", SYNTHETIC_SUBSCRIPTION_CATEGORY]
+        assert second["Category"].tolist() == first["Category"].tolist()
+        synthetic = first[first["Category"] == SYNTHETIC_SUBSCRIPTION_CATEGORY].iloc[0]
+        assert synthetic["Group"] == "Subscriptions"
+        assert synthetic["Type"] == "Expense"
+
+    def test_inject_patterns_returns_and_uses_added_subscription_category(self) -> None:
+        account = AccountAnonymization(
+            account="Checking-A",
+            account_num="xxxx1111",
+            account_id="account0000000000000001",
+            institution="Aurora Bank",
+            composite_key="checking-a - xxxx1111 (0001)",
+        )
+        categories = pd.DataFrame(
+            {
+                "Category": ["Groceries"],
+                "Group": ["Food"],
+                "Type": ["Expense"],
+                "Hide From Reports": [""],
+            }
+        )
+
+        transactions, _balance_history, updated_categories = inject_patterns(
+            pd.DataFrame(columns=TRANSACTIONS_RAW_COLUMNS),
+            pd.DataFrame(columns=BALANCE_HISTORY_RAW_COLUMNS),
+            categories,
+            {account.account_id: account},
+            pd.Timestamp("2026-08-01"),
+            InjectionLog(),
+        )
+
+        recurring = transactions[
+            transactions["Full Description"].str.startswith(("verum streamus", "nimbus cloudus"))
+        ]
+        assert SYNTHETIC_SUBSCRIPTION_CATEGORY in updated_categories["Category"].tolist()
+        assert recurring["Category"].unique().tolist() == [SYNTHETIC_SUBSCRIPTION_CATEGORY]
 
 
 class TestBuildTokenMapping:
@@ -213,12 +272,17 @@ class TestPatternCounts:
         assert (descs.str.contains("duplicate pair seed")).sum() >= 6  # 3 pairs * 2
 
     def test_recurring_seeds_present(self, fixture_files: dict[str, pd.DataFrame]) -> None:
-        descs = fixture_files["transactions"]["Full Description"].astype(str)
+        transactions = fixture_files["transactions"]
+        descs = transactions["Full Description"].astype(str)
         # Two distinct recurring merchants seeded.
         verum_count = descs.str.startswith("verum streamus").sum()
         nimbus_count = descs.str.startswith("nimbus cloudus").sum()
         assert verum_count >= 4
         assert nimbus_count >= 4
+        seeded = transactions[descs.str.startswith(("verum streamus", "nimbus cloudus"))]
+        category_names = set(fixture_files["categories"]["Category"].astype(str))
+        assert set(seeded["Category"]).issubset(category_names)
+        assert seeded["Category"].str.contains("subscription", case=False).all()
 
     def test_top_n_tie_seeds_present(self, fixture_files: dict[str, pd.DataFrame]) -> None:
         descs = fixture_files["transactions"]["Full Description"].astype(str)
@@ -462,6 +526,26 @@ class TestPatternMinValidation:
             fixture_files["accounts"],
         )
 
+    def test_recurring_validation_requires_authoritative_subscription_category(
+        self,
+        fixture_files: dict[str, pd.DataFrame],
+    ) -> None:
+        categories = fixture_files["categories"].copy()
+        subscription_mask = categories["Category"].astype(str).str.contains(
+            "subscription",
+            case=False,
+            regex=False,
+        )
+        categories.loc[subscription_mask, "Category"] = "Former recurring category"
+
+        with pytest.raises(SystemExit, match="recurring_merchants"):
+            validate_pattern_minimums(
+                fixture_files["transactions"],
+                fixture_files["balance_history"],
+                categories,
+                fixture_files["accounts"],
+            )
+
 
 # ---------------------------------------------------------------------------
 # Validator-vs-page-helper agreement
@@ -563,8 +647,8 @@ class TestValidatorAgreesWithPageHelpers:
 
     def test_recurring_validator_agrees_with_page5_cadence(self) -> None:
         """A merchant with monthly cadence is detected by both the validator
-        and detect_recurring_transactions."""
-        from src.analysis.subscriptions import detect_recurring_transactions
+        and recurring-charge discovery."""
+        from src.analysis.subscriptions import find_subscription_candidates
 
         dates = pd.date_range("2024-01-15", periods=6, freq="MS") + pd.Timedelta(days=14)
         rows = [
@@ -582,13 +666,13 @@ class TestValidatorAgreesWithPageHelpers:
         df_scrubbed["Type"] = "Expense"
         df_scrubbed["Group"] = "Entertainment"
 
-        page_result = detect_recurring_transactions(df_scrubbed)
+        page_result = find_subscription_candidates(df_scrubbed, [])
         assert len(page_result) >= 1, "Page helper should detect the subscription"
 
     def test_recurring_validator_rejects_non_monthly_cadence(self) -> None:
         """A merchant that appears frequently but with 5-day cadence (not 20-40)
-        should NOT be flagged as a subscription by detect_recurring_transactions."""
-        from src.analysis.subscriptions import detect_recurring_transactions
+        should not be flagged as a subscription candidate."""
+        from src.analysis.subscriptions import find_subscription_candidates
 
         dates = pd.date_range("2024-01-01", periods=10, freq="5D")
         rows = [
@@ -603,7 +687,7 @@ class TestValidatorAgreesWithPageHelpers:
         df_scrubbed["Type"] = "Expense"
         df_scrubbed["Group"] = "Food"
 
-        page_result = detect_recurring_transactions(df_scrubbed)
+        page_result = find_subscription_candidates(df_scrubbed, [])
         assert len(page_result) == 0, "Page helper should not flag 5-day cadence"
 
     def test_top_n_tie_validator_checks_boundary(self) -> None:

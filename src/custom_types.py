@@ -137,12 +137,14 @@ class DuplicateSummary(TypedDict):
 
 
 class SubscriptionSummary(TypedDict):
-    """Headline recurring-charge costs."""
+    """Headline subscription inventory metrics."""
 
-    count: int
-    monthly_cost: float
-    annual_cost: float
-    average_monthly_cost: float
+    active_count: int
+    monthly_run_rate: float
+    trailing_12_month_spend: float
+    prior_12_month_spend: float
+    annual_change_pct: float | None
+    pending_estimate_count: int
 
 
 class MerchantSummary(TypedDict):
