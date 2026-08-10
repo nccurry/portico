@@ -1,4 +1,5 @@
 .streamlit/*
+!.streamlit/config.toml
 !.streamlit/secrets.example.toml
 .venv
 .tools/
