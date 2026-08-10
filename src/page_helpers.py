@@ -307,8 +307,13 @@ def render_data_refresh_controls() -> None:
 
     with st.sidebar:
         loaded_at = pd.Timestamp(st.session_state["data_last_refreshed"])
-        st.caption(f"Data loaded: {loaded_at.strftime('%Y-%m-%d %H:%M UTC')}")
-        if st.button("Refresh data", key="refresh_data"):
+        st.caption(f"Loaded {loaded_at.strftime('%Y-%m-%d %H:%M UTC')}")
+        if st.button(
+            "Refresh data",
+            key="refresh_data",
+            icon=":material/refresh:",
+            width="stretch",
+        ):
             st.cache_data.clear()
             st.cache_resource.clear()
             st.session_state["data_last_refreshed"] = pd.Timestamp.now(tz="UTC")

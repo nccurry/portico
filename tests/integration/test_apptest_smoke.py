@@ -53,6 +53,14 @@ def _select_three_month_subscription_lookback(at: AppTest) -> None:
     at.selectbox[0].set_value("Last 3 months")
 
 
+def _select_three_month_home_lookback(at: AppTest) -> None:
+    at.segmented_control[0].set_value("3M")
+
+
+def _switch_home_to_subscriptions(at: AppTest) -> None:
+    at.switch_page("pages/5_Subscriptions.py")
+
+
 def _make_app(
     page_file: str,
     make_full_dataset: FullDatasetFactory,
@@ -87,6 +95,12 @@ def _make_app(
     return at
 
 
+def _make_home_app_from_balance(balances: object) -> AppTest:
+    """Run Home with an explicitly supplied balance spreadsheet."""
+    with patch("src.spreadsheet.load_balance_history_data", return_value=balances):
+        return AppTest.from_file(f"{_PAGE_DIR}/../Home.py", default_timeout=30).run()
+
+
 # ---------------------------------------------------------------------------
 # Smoke tests — every page boots without error
 # ---------------------------------------------------------------------------
@@ -100,20 +114,147 @@ class TestHomeSmoke:
         at = _make_app(
             "../Home.py",
             make_full_dataset,
-            [
-                "src.spreadsheet.load_balance_history_data",
-            ],
+            ["src.spreadsheet.load_balance_history_data"],
         )
         assert not at.exception
-        assert _metric_values(at) == [
-            ("Total Net Worth", "$182,500.00", ""),
-            ("Credit Cards", "$1,700.00", ""),
-            ("Retirement", "$230,000.00", ""),
-            ("Investments", "$146,000.00", ""),
-            ("Savings", "$6,200.00", ""),
-            ("Liabilities", "$198,000.00", ""),
-            ("_SyntheticZeroGroup", "$0.00", ""),
+        assert at.title[0].value == "Accounts and net worth"
+        assert set(caption.value for caption in at.caption) == {
+            "Latest balance update Apr 17, 2026",
+            "Loaded 2026-04-17 00:00 UTC",
+        }
+        assert at.segmented_control[0].key == "home_balance_lookback"
+        assert at.segmented_control[0].label == "Time frame"
+        assert at.segmented_control[0].value == "1Y"
+        assert at.segmented_control[0].options == ["3M", "6M", "1Y", "2Y", "5Y", "All"]
+        assert _metric_values(at)[:3] == [
+            ("Net worth", "$182,500", "+$22,300 since Feb 2026"),
+            ("Assets", "$382,200", "+$21,200 since Feb 2026"),
+            ("Liabilities", "$199,700", "-$1,100 since Feb 2026"),
         ]
+        assert all(not metric.proto.chart_data for metric in at.metric[:3])
+        assert [heading.value for heading in at.subheader] == [
+            "Net worth history",
+            "Account groups",
+        ]
+        charts = at.get("vega_lite_chart")
+        assert len(charts) == 1
+        assert all(field in charts[0].proto.spec for field in ["Assets", "Liabilities", "Net_Worth"])
+        assert '"point"' not in charts[0].proto.spec
+        metric_labels = [metric.label for metric in at.metric]
+        assert "Accounts" not in metric_labels
+        assert "Net-worth impact" not in metric_labels
+        group_names = {
+            "Retirement",
+            "Liabilities",
+            "Investments",
+            "Savings",
+            "Credit Cards",
+            "_SyntheticZeroGroup",
+        }
+        group_metrics = [metric for metric in at.metric[3:] if metric.label in group_names]
+        assert [metric.label for metric in group_metrics] == [
+            "Retirement",
+            "Liabilities",
+            "Investments",
+            "Savings",
+            "Credit Cards",
+            "_SyntheticZeroGroup",
+        ]
+        assert all(metric.proto.chart_data for metric in group_metrics)
+        assert len(at.metric) == 9
+        assert len(at.columns) == 6
+        assert all(column.weight == pytest.approx(0.5) for column in at.columns)
+        assert len(at.dataframe) == 6
+        assert all(table.key != "home_balance_groups" for table in at.dataframe)
+        assert all(
+            list(table.value.columns)
+            == ["Account", "Institution", "Balance", "Change", "Last_Updated"]
+            for table in at.dataframe
+        )
+        assert all(
+            forbidden not in table.value.columns
+            for table in at.dataframe
+            for forbidden in ["Type", "Class", "Net_Contribution"]
+        )
+
+    def test_group_cards_summarize_accounts(
+        self, make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        at = _make_app(
+            "../Home.py",
+            make_full_dataset,
+            ["src.spreadsheet.load_balance_history_data"],
+        )
+
+        assert not at.exception
+        metric_values = _metric_values(at)
+        assert ("Investments", "$146,000", "+$11,000") in metric_values
+        assert all(label not in {"HSA", "Individual Brokerage"} for label, _, _ in metric_values)
+        investment_details = at.dataframe[2].value
+        assert investment_details["Account"].tolist() == [
+            "Individual Brokerage",
+            "HSA",
+        ]
+        assert investment_details["Balance"].sum() == pytest.approx(146_000)
+        assert investment_details["Change"].sum() == pytest.approx(11_000)
+        investment_changes = investment_details.set_index("Account")["Change"]
+        assert investment_changes["Individual Brokerage"] == pytest.approx(10_000)
+        assert investment_changes["HSA"] == pytest.approx(1_000)
+        assert set(investment_details["Institution"]) == {"Fidelity", "Vanguard"}
+
+    def test_lookback_control_reruns_group_cards(
+        self, make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        at = _make_app(
+            "../Home.py",
+            make_full_dataset,
+            ["src.spreadsheet.load_balance_history_data"],
+            _select_three_month_home_lookback,
+        )
+
+        assert not at.exception
+        assert at.segmented_control[0].value == "3M"
+        assert at.metric[0].delta.endswith("since Feb 2026")
+        assert len(at.get("vega_lite_chart")) == 1
+        assert ("Investments", "$146,000", "+$11,000") in _metric_values(at)
+
+    def test_navigation_switches_to_registered_page(
+        self, make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        at = _make_app(
+            "../Home.py",
+            make_full_dataset,
+            [
+                "src.spreadsheet.load_balance_history_data",
+                "src.spreadsheet.load_transactions_data",
+                "src.spreadsheet.load_categories_data",
+            ],
+            _switch_home_to_subscriptions,
+        )
+
+        assert not at.exception
+        assert [heading.value for heading in at.subheader] == [
+            "Active subscriptions",
+            "Subscription history",
+            "Potential subscriptions",
+            "Inactive subscriptions",
+        ]
+
+    def test_empty_data_shows_getting_started_state(
+        self,
+        make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        _, balances, _, _ = make_full_dataset()
+        balances.scrubbed_df = balances.scrubbed_df.iloc[0:0].copy()
+        at = _make_home_app_from_balance(balances)
+
+        assert not at.exception
+        assert at.info[0].value.startswith("No balance history is available yet")
+        assert at.segmented_control[0].key == "home_balance_lookback"
+        assert at.segmented_control[0].value == "1Y"
+        assert not at.metric
+        assert not at.get("vega_lite_chart")
+        assert not at.dataframe
 
 
 @pytest.mark.uses_real_dates
