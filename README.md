@@ -232,22 +232,20 @@ after the Raspberry Pi returns from an outage.
 
 The report contains:
 
-- One total for each configured Category value
-- An Uncategorized reminder with the reporting week's transaction count and
-  net outflow, the prior week's values, and the total outstanding count
+- One total for each configured Category value, with its top three vendors for
+  the reporting week
+- Dollar changes from the average of the previous eight completed weeks
+- A plain-language count of transactions that still need a category
 - The combined configured-category total
-- Dollar changes from the preceding seven days
 - The total for all transactions whose joined `Type` is `Expense`
 
 Normal Tiller expenses have negative amounts. The report shows them as positive
 spending. Positive refund amounts reduce the total. Dashboard filters,
 `Hide From Reports`, and large-transaction thresholds do not apply.
 
-A transaction is Uncategorized when its Category, Group, or Type metadata is
-missing, or when its joined Group is `Uncategorized`. Its net outflow is shown
-for context, but it is not added to the selected total or all-expense total
-because its final Type is not known. The outstanding count covers the complete
-Transactions sheet, so older uncategorized items remain visible until they are
+A transaction needs categorization when its Category, Group, or Type metadata
+is missing, or when its joined Group is `Uncategorized`. The count covers the
+complete Transactions sheet, so older items remain visible until they are
 categorized.
 
 The notifier stores successful periods in `.local/discord-weekly-state.json`.
