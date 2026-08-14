@@ -100,18 +100,20 @@ class TestIncomeExpenseAggregation:
         assert result['Income'].sum() == pytest.approx(raw_income)
         assert result['Expense'].sum() == pytest.approx(raw_expense)
 
-    def test_savings_is_income_plus_expense_every_month(
+    def test_cash_flow_surplus_is_income_plus_expense_every_month(
         self,
         extended_transactions_df: pd.DataFrame,
         passthrough_filters: IncomeExpenseFilters,
         make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
     ) -> None:
-        """Savings = Income + Expense for every single month."""
+        """Cash-flow surplus equals income plus signed expenses every month."""
         ts = make_transactions_spreadsheet(extended_transactions_df)
         result = process_income_expense_data(ts, passthrough_filters)
 
         for _, row in result.iterrows():
-            assert row['Savings'] == pytest.approx(row['Income'] + row['Expense'])
+            assert row['Cash_Flow_Surplus'] == pytest.approx(
+                row['Income'] + row['Expense']
+            )
 
     def test_all_months_accounted_for(
         self,

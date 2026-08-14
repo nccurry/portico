@@ -21,6 +21,8 @@ class TransactionFilterOptions(TypedDict, total=False):
     include_categories: ReadOnly[Sequence[str]]
     exclude_groups: ReadOnly[Sequence[str]]
     exclude_categories: ReadOnly[Sequence[str]]
+    exclude_income_categories: ReadOnly[Sequence[str]]
+    exclude_expense_categories: ReadOnly[Sequence[str]]
     filter_large_income: ReadOnly[bool]
     income_threshold: ReadOnly[int]
     filter_large_expenses: ReadOnly[bool]
@@ -31,7 +33,8 @@ class IncomeExpenseFilters(TransactionFilterOptions):
     """Sidebar filter state for the Income & Savings page."""
 
     exclude_groups: list[str]
-    exclude_categories: list[str]
+    exclude_income_categories: list[str]
+    exclude_expense_categories: list[str]
     filter_large_income: bool
     income_threshold: int
     filter_large_expenses: bool
@@ -110,12 +113,14 @@ class DistributionStats(TypedDict):
 
 
 class SavingsSummary(TypedDict):
-    """Aggregated savings metrics for the Income & Savings page."""
+    """Period cash-flow metrics for the Income & Savings page."""
 
-    avg_monthly_rate: float
-    overall_rate: float
-    avg_monthly_amount: float
-    total_saved: float
+    total_income: float
+    total_net_expenses: float
+    total_cash_flow_surplus: float
+    weighted_savings_rate: float | None
+    average_monthly_surplus: float
+    positive_surplus_months: int
     num_months: int
 
 

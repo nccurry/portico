@@ -380,10 +380,18 @@ class TestDefaultFiAccounts:
 
 def _mock_filter_widgets(mock_st: MagicMock) -> None:
     """Make Streamlit widgets return their configured defaults."""
+    mock_st.session_state = {}
     mock_st.columns.return_value = [MagicMock(), MagicMock()]
-    mock_st.multiselect.side_effect = lambda *args, **kwargs: list(kwargs["default"])
+    mock_st.multiselect.side_effect = lambda *args, **kwargs: list(
+        mock_st.session_state.get(kwargs.get("key"), kwargs.get("default", []))
+    )
     mock_st.checkbox.side_effect = lambda *args, **kwargs: kwargs["value"]
-    mock_st.number_input.side_effect = lambda *args, **kwargs: kwargs["value"]
+    mock_st.toggle.side_effect = lambda *args, **kwargs: mock_st.session_state.get(
+        kwargs.get("key"), kwargs.get("value", False)
+    )
+    mock_st.number_input.side_effect = lambda *args, **kwargs: mock_st.session_state.get(
+        kwargs.get("key"), kwargs.get("value", 20)
+    )
     mock_st.selectbox.side_effect = (
         lambda *args, **kwargs: kwargs["options"][kwargs["index"]]
     )
@@ -391,7 +399,7 @@ def _mock_filter_widgets(mock_st: MagicMock) -> None:
 
 class TestPageFilterDefaults:
     def test_income_defaults_to_dependable_income_and_routine_expenses(self) -> None:
-        categories = [
+        income_categories = [
             "Paycheck",
             "401k",
             "HSA",
@@ -402,6 +410,8 @@ class TestPageFilterDefaults:
             "ESPP",
             "Bonus",
             "Received Gift",
+        ]
+        expense_categories = [
             "Tax Return Payment",
             "Christmas",
             "Home Repairs",
@@ -413,19 +423,115 @@ class TestPageFilterDefaults:
         with patch("src.filters.st") as mock_st:
             _mock_filter_widgets(mock_st)
             result = render_income_expense_filters(
-                categories,
+                income_categories,
+                expense_categories,
                 ["Bills", "Food", "Travel", "Donations"],
+                view="Regular",
             )
 
         assert result["exclude_groups"] == ["Travel", "Donations"]
-        assert set(result["exclude_categories"]) == set(categories) - {
+        assert set(result["exclude_income_categories"]) == set(
+            income_categories
+        ) - {
             "Paycheck",
             "401k",
             "HSA",
+        }
+        assert set(result["exclude_expense_categories"]) == set(
+            expense_categories
+        ) - {
             "Groceries",
         }
+        assert "exclude_categories" not in result
         assert result["filter_large_income"] is False
         assert result["filter_large_expenses"] is False
+        assert result["target_rate"] == 20
+        mock_st.popover.assert_called_once_with(
+            "Adjust calculation",
+            icon=":material/tune:",
+            width="stretch",
+        )
+        assert [call.args[0] for call in mock_st.multiselect.call_args_list] == [
+            "Exclude income categories",
+            "Exclude expense groups",
+            "Exclude expense categories",
+        ]
+        assert len(mock_st.toggle.call_args_list) == 2
+        mock_st.button.assert_called_once()
+        assert mock_st.button.call_args.args == ("Reset defaults",)
+        assert mock_st.button.call_args.kwargs["args"] == (
+            "income_regular",
+            result["exclude_income_categories"],
+            result["exclude_expense_categories"],
+            result["exclude_groups"],
+        )
+        mock_st.markdown.assert_not_called()
+        mock_st.write.assert_not_called()
+
+    def test_income_actual_view_clears_regular_exclusions(self) -> None:
+        with patch("src.filters.st") as mock_st:
+            _mock_filter_widgets(mock_st)
+            result = render_income_expense_filters(
+                ["Salary", "RSU"],
+                ["Groceries", "Home Repairs"],
+                ["Food", "Travel"],
+                view="Actual",
+            )
+
+        assert result["exclude_groups"] == []
+        assert result["exclude_income_categories"] == []
+        assert result["exclude_expense_categories"] == []
+        assert "exclude_categories" not in result
+        assert result["filter_large_income"] is False
+        assert result["filter_large_expenses"] is False
+        assert len(mock_st.multiselect.call_args_list) == 3
+        assert len(mock_st.toggle.call_args_list) == 2
+        assert mock_st.button.call_args.kwargs["args"] == (
+            "income_actual",
+            [],
+            [],
+            [],
+        )
+        mock_st.markdown.assert_not_called()
+        mock_st.write.assert_not_called()
+
+    def test_income_regular_view_uses_editable_widget_values(self) -> None:
+        with patch("src.filters.st") as mock_st:
+            _mock_filter_widgets(mock_st)
+            mock_st.session_state.update({
+                "income_regular_exclude_income_categories": ["RSU"],
+                "income_regular_exclude_expense_groups": [],
+                "income_regular_exclude_expense_categories": ["Home Repairs"],
+            })
+            result = render_income_expense_filters(
+                ["Salary", "RSU"],
+                ["Groceries", "Home Repairs"],
+                ["Food", "Travel"],
+                view="Regular",
+            )
+
+        assert result["exclude_groups"] == []
+        assert result["exclude_income_categories"] == ["RSU"]
+        assert result["exclude_expense_categories"] == ["Home Repairs"]
+        assert "exclude_categories" not in result
+        assert result["filter_large_income"] is False
+        assert result["filter_large_expenses"] is False
+        mock_st.popover.assert_called_once_with(
+            "Adjust calculation · modified",
+            icon=":material/tune:",
+            width="stretch",
+        )
+        mock_st.markdown.assert_not_called()
+        mock_st.write.assert_not_called()
+        assert all(
+            call.kwargs["persist_state"] == "page"
+            for call in mock_st.multiselect.call_args_list
+        )
+        assert all(
+            call.kwargs["persist_state"] == "page"
+            for call in mock_st.toggle.call_args_list
+        )
+        mock_st.button.assert_called_once()
 
     def test_spending_defaults_to_discretionary_groups(self) -> None:
         with patch("src.filters.st") as mock_st:

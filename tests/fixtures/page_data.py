@@ -79,7 +79,8 @@ def basic_filters() -> IncomeExpenseFilters:
     """Minimal filters that pass everything through."""
     return {
         'exclude_groups': [],
-        'exclude_categories': [],
+        'exclude_income_categories': [],
+        'exclude_expense_categories': [],
         'filter_large_income': False,
         'income_threshold': 50000,
         'filter_large_expenses': False,
