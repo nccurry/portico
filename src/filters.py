@@ -30,84 +30,165 @@ from src.custom_types import (
 )
 
 
+def _set_income_filter_state(
+    prefix: str,
+    income_categories: list[str],
+    expense_categories: list[str],
+    expense_groups: list[str],
+) -> None:
+    """Reset one editable Income & Savings preset."""
+    st.session_state[f"{prefix}_exclude_income_categories"] = income_categories
+    st.session_state[f"{prefix}_exclude_expense_categories"] = expense_categories
+    st.session_state[f"{prefix}_exclude_expense_groups"] = expense_groups
+    st.session_state[f"{prefix}_filter_large_income"] = False
+    st.session_state[f"{prefix}_income_threshold"] = DEFAULT_INCOME_THRESHOLD
+    st.session_state[f"{prefix}_filter_large_expenses"] = False
+    st.session_state[f"{prefix}_expense_threshold"] = DEFAULT_EXPENSE_THRESHOLD
+
+
 def render_income_expense_filters(
-    all_categories: list[str],
-    all_groups: list[str],
+    income_categories: list[str],
+    expense_categories: list[str],
+    expense_groups: list[str],
+    *,
+    view: str,
 ) -> IncomeExpenseFilters:
-    """Render filter controls for Income & Savings page.
+    """Render the Income & Savings calculation controls.
 
     Returns:
         dictionary containing all filter selections
     """
-    with st.expander("Filter Settings", expanded=False):
-        col_filter1, col_filter2 = st.columns(2)
+    regular_income_categories = [
+        category
+        for category in DEFAULT_EXCLUDE_CATEGORIES_INCOME_SAVINGS
+        if category in income_categories
+    ]
+    regular_expense_categories = [
+        category
+        for category in DEFAULT_EXCLUDE_CATEGORIES_INCOME_SAVINGS
+        if category in expense_categories
+    ]
+    regular_expense_groups = [
+        group
+        for group in DEFAULT_EXCLUDE_GROUPS_INCOME_SAVINGS
+        if group in expense_groups
+    ]
 
-        with col_filter1:
-            exclude_groups = st.multiselect(
-                "Exclude Groups",
-                options=all_groups,
-                default=[g for g in DEFAULT_EXCLUDE_GROUPS_INCOME_SAVINGS if g in all_groups],
-                help="Exclude entire transaction groups (Transfer always excluded)"
-            )
+    if view == "Regular":
+        default_income_categories = regular_income_categories
+        default_expense_categories = regular_expense_categories
+        default_expense_groups = regular_expense_groups
+    elif view == "Actual":
+        default_income_categories = []
+        default_expense_categories = []
+        default_expense_groups = []
+    else:
+        raise ValueError(f"Unknown income calculation view: {view}")
 
-            exclude_categories = st.multiselect(
-                "Exclude Categories",
-                options=all_categories,
-                default=[
-                    category
-                    for category in DEFAULT_EXCLUDE_CATEGORIES_INCOME_SAVINGS
-                    if category in all_categories
-                ],
-                help="Exclude specific one-time or non-recurring transaction categories"
-            )
+    prefix = f"income_{view.lower()}"
+    defaults = {
+        f"{prefix}_exclude_income_categories": default_income_categories,
+        f"{prefix}_exclude_expense_categories": default_expense_categories,
+        f"{prefix}_exclude_expense_groups": default_expense_groups,
+        f"{prefix}_filter_large_income": False,
+        f"{prefix}_income_threshold": DEFAULT_INCOME_THRESHOLD,
+        f"{prefix}_filter_large_expenses": False,
+        f"{prefix}_expense_threshold": DEFAULT_EXPENSE_THRESHOLD,
+    }
+    for key, value in defaults.items():
+        st.session_state.setdefault(key, value)
 
-        with col_filter2:
-            filter_large_income = st.checkbox(
-                "Filter Large Income",
-                value=False,
-                help="Exclude individual large income transactions above a threshold (bonuses, stock gains)"
-            )
+    is_modified = (
+        set(st.session_state[f"{prefix}_exclude_income_categories"])
+        != set(default_income_categories)
+        or set(st.session_state[f"{prefix}_exclude_expense_categories"])
+        != set(default_expense_categories)
+        or set(st.session_state[f"{prefix}_exclude_expense_groups"])
+        != set(default_expense_groups)
+        or bool(st.session_state[f"{prefix}_filter_large_income"])
+        or bool(st.session_state[f"{prefix}_filter_large_expenses"])
+    )
+    popover_label = "Adjust calculation · modified" if is_modified else "Adjust calculation"
+    with st.popover(
+        popover_label,
+        icon=":material/tune:",
+        width="stretch",
+    ):
+        st.button(
+            "Reset defaults",
+            icon=":material/restart_alt:",
+            on_click=_set_income_filter_state,
+            args=(
+                prefix,
+                default_income_categories,
+                default_expense_categories,
+                default_expense_groups,
+            ),
+        )
+        exclude_income_categories = st.multiselect(
+            "Exclude income categories",
+            options=income_categories,
+            key=f"{prefix}_exclude_income_categories",
+            persist_state="page",
+        )
+        exclude_groups = st.multiselect(
+            "Exclude expense groups",
+            options=expense_groups,
+            key=f"{prefix}_exclude_expense_groups",
+            persist_state="page",
+        )
+        exclude_expense_categories = st.multiselect(
+            "Exclude expense categories",
+            options=expense_categories,
+            key=f"{prefix}_exclude_expense_categories",
+            persist_state="page",
+        )
 
-            income_threshold = DEFAULT_INCOME_THRESHOLD
-            if filter_large_income:
-                income_threshold = st.number_input(
-                    "Income Threshold ($)",
-                    min_value=5000,
-                    max_value=100000,
-                    value=DEFAULT_INCOME_THRESHOLD,
-                    step=1000,
-                    help="Exclude individual income transactions larger than this amount"
-                )
+        filter_large_income = st.toggle(
+            "Exclude individual income over a limit",
+            key=f"{prefix}_filter_large_income",
+            persist_state="page",
+        )
+        income_threshold = int(st.session_state[f"{prefix}_income_threshold"])
+        if filter_large_income:
+            income_threshold = int(st.number_input(
+                "Income limit",
+                min_value=5000,
+                max_value=100000,
+                step=1000,
+                key=f"{prefix}_income_threshold",
+                persist_state="page",
+            ))
 
-            filter_large_expenses = st.checkbox(
-                "Filter Large Expenses",
-                value=False,
-                help="Exclude individual large expense transactions above a threshold"
-            )
+        filter_large_expenses = st.toggle(
+            "Exclude individual expenses over a limit",
+            key=f"{prefix}_filter_large_expenses",
+            persist_state="page",
+        )
+        expense_threshold = int(st.session_state[f"{prefix}_expense_threshold"])
+        if filter_large_expenses:
+            expense_threshold = int(st.number_input(
+                "Expense limit",
+                min_value=1000,
+                max_value=100000,
+                step=500,
+                key=f"{prefix}_expense_threshold",
+                persist_state="page",
+            ))
 
-            expense_threshold = DEFAULT_EXPENSE_THRESHOLD
-            if filter_large_expenses:
-                expense_threshold = st.number_input(
-                    "Expense Threshold ($)",
-                    min_value=1000,
-                    max_value=100000,
-                    value=DEFAULT_EXPENSE_THRESHOLD,
-                    step=500,
-                    help="Exclude individual expense transactions larger than this amount"
-                )
-
-            target_rate = st.number_input(
-                "Savings Rate Target (%)",
-                min_value=MIN_SAVINGS_RATE,
-                max_value=MAX_SAVINGS_RATE,
-                value=DEFAULT_SAVINGS_RATE_TARGET,
-                step=SAVINGS_RATE_STEP,
-                help="Your goal savings rate - shown as gold dashed line on chart"
-            )
+        target_rate = int(st.number_input(
+            "Savings rate target",
+            min_value=MIN_SAVINGS_RATE,
+            max_value=MAX_SAVINGS_RATE,
+            value=DEFAULT_SAVINGS_RATE_TARGET,
+            step=SAVINGS_RATE_STEP,
+            key="income_savings_target_rate",
+        ))
 
     return {
         'exclude_groups': exclude_groups,
-        'exclude_categories': exclude_categories,
+        'exclude_income_categories': exclude_income_categories,
+        'exclude_expense_categories': exclude_expense_categories,
         'filter_large_income': filter_large_income,
         'income_threshold': income_threshold,
         'filter_large_expenses': filter_large_expenses,

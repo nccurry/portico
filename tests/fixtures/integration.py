@@ -17,7 +17,8 @@ def passthrough_filters() -> IncomeExpenseFilters:
     """Passthrough filters for aggregation integrity tests."""
     return {
         'exclude_groups': [],
-        'exclude_categories': [],
+        'exclude_income_categories': [],
+        'exclude_expense_categories': [],
         'filter_large_income': False,
         'income_threshold': 999999,
         'filter_large_expenses': False,
