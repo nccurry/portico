@@ -89,6 +89,57 @@ def _switch_home_to_subscriptions(at: AppTest) -> None:
     at.switch_page("pages/5_Subscriptions.py")
 
 
+def _select_food_spending_group(at: AppTest) -> None:
+    at.segmented_control(key="spending_breakdown").set_value("Group")
+    at.run()
+    overview = next(
+        table for table in at.dataframe if str(table.key).startswith("spending_overview_")
+    )
+    row = overview.value.index[overview.value["Entity"].eq("Food")].tolist()[0]
+    at.session_state[str(overview.key)] = {
+        "selection": {"rows": [row], "columns": [], "cells": []},
+    }
+
+
+def _select_food_and_february_spending(at: AppTest) -> None:
+    _select_food_spending_group(at)
+    at.run()
+    at.session_state["spending_history_Group_Food_0"] = {
+        "selection": {"spending_month_pick": [{"Month": "2026-02"}]},
+    }
+
+
+def _select_food_then_three_months(at: AppTest) -> None:
+    _select_food_spending_group(at)
+    at.run()
+    at.segmented_control(key="spending_lookback").set_value("3M")
+
+
+def _select_spending_category_breakdown(at: AppTest) -> None:
+    at.segmented_control(key="spending_breakdown").set_value("Category")
+
+
+def _exclude_all_spending_groups(at: AppTest) -> None:
+    groups = at.multiselect(key="spending_discretionary_exclude_groups")
+    groups.set_value(groups.options)
+
+
+def _select_year_over_year_group(at: AppTest) -> None:
+    at.segmented_control(key="year_over_year_view").set_value("Single group")
+
+
+def _select_year_over_year_discretionary(at: AppTest) -> None:
+    at.segmented_control(key="year_over_year_view").set_value(
+        "Discretionary spending"
+    )
+
+
+def _add_groceries_to_year_over_year_utility(at: AppTest) -> None:
+    at.multiselect(key="year_over_year_utility_bills_categories").set_value(
+        ["Electric", "Groceries"]
+    )
+
+
 def _make_app(
     page_file: str,
     make_full_dataset: FullDatasetFactory,
@@ -634,7 +685,7 @@ class TestIncomeAndSavingsSmoke:
 @pytest.mark.uses_real_dates
 class TestSpendingByCategorySmoke:
 
-    def test_runs_without_exception(
+    def test_default_overview_and_detail(
         self, make_full_dataset: FullDatasetFactory,
     ) -> None:
         at = _make_app(
@@ -645,28 +696,167 @@ class TestSpendingByCategorySmoke:
             ],
         )
         assert not at.exception
-        assert _metric_values(at) == [
-            ("Total Spending", "$12,057.57", ""),
-            ("Top Category", "Shopping", "$5,000.00"),
-            ("Active Categories", "6", ""),
-            ("Median Transaction", "$150.00", ""),
-            ("Average Transaction", "$548.07", ""),
-            ("75th Percentile", "$400.00", ""),
-            ("90th Percentile", "$1600.00", ""),
-            ("Total Transactions", "22", ""),
-            ("# Transactions", "6", ""),
-            ("% of Total $", "0.6%", ""),
-            ("# Transactions", "7", ""),
-            ("% of Total $", "5.6%", ""),
-            ("# Transactions", "9", ""),
-            ("% of Total $", "93.7%", ""),
+        assert at.header[0].value == "Spending by category"
+        assert [
+            (control.label, control.value, control.options)
+            for control in at.segmented_control
+        ] == [
+            ("Time frame", "1Y", ["3M", "6M", "1Y", "2Y"]),
+            ("View", "Discretionary", ["All spending", "Discretionary"]),
+            (
+                "Compare with",
+                "Previous period",
+                ["Previous period", "Last year"],
+            ),
+            ("Breakdown", "Category", ["Group", "Category"]),
         ]
+        assert _metric_values(at) == [
+            ("Total spending", "$29,357", ""),
+            ("Average monthly", "$2,446", ""),
+            ("Change vs previous 12 months", "+$29,269", "+33392.9%"),
+            ("Spending", "$17,600", ""),
+            ("Average monthly", "$1,467", ""),
+            ("Share of view", "60.0%", ""),
+            ("Change vs previous 12 months", "+$17,600", "—"),
+        ]
+        charts = at.get("vega_lite_chart")
+        assert len(charts) == 3
+        trend_spec = json.loads(charts[0].proto.spec)
+        ranking_spec = json.loads(charts[1].proto.spec)
+        assert trend_spec["mark"]["type"] == "line"
+        assert trend_spec["encoding"]["color"]["field"] == "Entity"
+        assert ranking_spec["mark"]["type"] == "bar"
+        assert ranking_spec["encoding"]["color"]["field"] == "Entity"
+        assert [label.value for label in at.markdown if "top" in label.value.lower()] == [
+            "**Monthly trend · top 5**",
+            "**Top 6 categories by spending**",
+        ]
+        assert [tab.label for tab in at.tabs] == [
+            "Merchants",
+            "Transactions",
+        ]
+        overview = next(
+            table.value
+            for table in at.dataframe
+            if str(table.key).startswith("spending_overview_")
+        )
+        assert overview["Entity"].tolist() == [
+            "Rent",
+            "Shopping",
+            "Groceries",
+            "Restaurants",
+            "Streaming Subscription",
+            "Cloud Subscription",
+        ]
+        assert overview["Spending"].sum() == pytest.approx(29_356.54)
+
+    def test_group_selection_drives_composition_and_transactions(
+        self, make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        at = _make_app(
+            "2_Spending_by_Category.py",
+            make_full_dataset,
+            ["src.spreadsheet.load_transactions_data"],
+            _select_food_spending_group,
+        )
+
+        assert not at.exception
+        assert at.session_state["spending_selected_group"] == "Food"
+        assert "Food" in [subheader.value for subheader in at.subheader]
+        assert _metric_values(at)[3:] == [
+            ("Spending", "$6,637", ""),
+            ("Average monthly", "$553", ""),
+            ("Share of view", "22.6%", ""),
+            ("Change vs previous 12 months", "+$6,549", "+7471.7%"),
+        ]
+        categories = at.dataframe[1].value
+        assert categories["Entity"].tolist() == ["Groceries", "Restaurants"]
+        transactions = _table_with_columns(at, {"Description", "Spending", "Category"})
+        assert transactions["Spending"].abs().is_monotonic_decreasing
+
+    def test_chart_selection_scopes_all_detail_tabs_to_one_month(
+        self, make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        at = _make_app(
+            "2_Spending_by_Category.py",
+            make_full_dataset,
+            ["src.spreadsheet.load_transactions_data"],
+            _select_food_and_february_spending,
+        )
+
+        assert not at.exception
+        assert at.selectbox(key="spending_detail_month").value == "2026-02"
+        categories = at.dataframe[1].value
+        assert categories["Entity"].tolist() == ["Groceries", "Restaurants"]
+        transactions = _table_with_columns(at, {"Description", "Spending", "Category"})
+        assert len(transactions) == 4
+        assert pd.to_datetime(transactions["Date"]).dt.strftime("%Y-%m").eq("2026-02").all()
+
+    def test_selected_entity_persists_by_identity_when_timeframe_changes(
+        self, make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        at = _make_app(
+            "2_Spending_by_Category.py",
+            make_full_dataset,
+            ["src.spreadsheet.load_transactions_data"],
+            _select_food_then_three_months,
+        )
+
+        assert not at.exception
+        assert at.segmented_control(key="spending_lookback").value == "3M"
+        assert at.session_state["spending_selected_group"] == "Food"
+        assert "Food" in [subheader.value for subheader in at.subheader]
+
+    def test_category_breakdown_keeps_group_context(
+        self, make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        at = _make_app(
+            "2_Spending_by_Category.py",
+            make_full_dataset,
+            ["src.spreadsheet.load_transactions_data"],
+            _select_spending_category_breakdown,
+        )
+
+        assert not at.exception
+        assert at.segmented_control(key="spending_breakdown").value == "Category"
+        overview = next(
+            table.value
+            for table in at.dataframe
+            if str(table.key).startswith("spending_overview_")
+        )
+        assert {"Entity", "Group", "Spending", "Monthly_Trend"}.issubset(
+            overview.columns
+        )
+        assert {"Groceries", "Restaurants"}.issubset(set(overview["Entity"]))
+        assert set(overview.loc[
+            overview["Entity"].isin(["Groceries", "Restaurants"]), "Group"
+        ]) == {"Food"}
+        assert [tab.label for tab in at.tabs] == ["Merchants", "Transactions"]
+
+    def test_all_excluded_view_stays_auditable(
+        self, make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        at = _make_app(
+            "2_Spending_by_Category.py",
+            make_full_dataset,
+            ["src.spreadsheet.load_transactions_data"],
+            _exclude_all_spending_groups,
+        )
+
+        assert not at.exception
+        assert not at.get("vega_lite_chart")
+        assert "No spending is included in this view. Adjust the filters to continue." in {
+            message.value for message in at.info
+        }
+        excluded = _table_with_columns(at, {"Description", "Exclusion reason"})
+        assert len(excluded) > 0
+        assert excluded["Exclusion reason"].str.startswith("Excluded group:").all()
 
 
 @pytest.mark.uses_real_dates
 class TestYearOverYearSmoke:
 
-    def test_runs_without_exception(
+    def test_defaults_to_utility_bill_comparisons(
         self, make_full_dataset: FullDatasetFactory,
     ) -> None:
         at = _make_app(
@@ -677,11 +867,122 @@ class TestYearOverYearSmoke:
             ],
         )
         assert not at.exception
-        assert [tab.label for tab in at.tabs] == ["By Category", "By Group"]
-        assert len(at.dataframe) == 6
-        assert at.dataframe[0].value.to_numpy().sum() == pytest.approx(5_275.30)
-        assert at.dataframe[2].value.to_numpy().sum() == pytest.approx(5_000.0)
-        assert at.dataframe[4].value.to_numpy().sum() == pytest.approx(95.94)
+        assert at.header[0].value == "Year over year"
+        view = at.segmented_control(key="year_over_year_view")
+        assert view.value == "Utility bills"
+        assert view.options == [
+            "Utility bills",
+            "Discretionary spending",
+            "Single category",
+            "Single group",
+        ]
+        categories = at.multiselect(
+            key="year_over_year_utility_bills_categories"
+        )
+        assert categories.value == ["Electric"]
+        assert "Groceries" in categories.options
+        assert not at.selectbox
+        assert not at.tabs
+        assert _metric_values(at) == [
+            ("2026 through March", "$360", ""),
+            ("2025 through March", "$0", ""),
+            ("Change", "+$360", ""),
+        ]
+
+        charts = at.get("vega_lite_chart")
+        assert len(charts) == 1
+        spec = json.loads(charts[0].proto.spec)
+        assert len(spec["layer"]) == 3
+        line_encoding = spec["layer"][1]["encoding"]
+        assert line_encoding["color"]["field"] == "Year_Label"
+        assert line_encoding["color"]["scale"]["range"][0] == "#70A5EB"
+        assert line_encoding["strokeWidth"]["condition"]["test"] == (
+            "datum.Is_Current"
+        )
+        assert len(at.dataframe) == 2
+        totals = _table_with_columns(at, {"Year", "Spending_Through_Month"})
+        assert totals["Year"].is_monotonic_decreasing
+        transactions = _table_with_columns(
+            at,
+            {"Date", "Description", "Category", "Spending"},
+        )
+        assert set(transactions["Category"]) == {"Electric"}
+
+    def test_discretionary_view_stacks_relevant_categories(
+        self, make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        at = _make_app(
+            "3_Year_over_Year.py",
+            make_full_dataset,
+            ["src.spreadsheet.load_transactions_data"],
+            _select_year_over_year_discretionary,
+        )
+
+        assert not at.exception
+        selected = at.multiselect(
+            key="year_over_year_discretionary_spending_categories"
+        ).value
+        assert selected == ["Shopping", "Restaurants", "Streaming Subscription"]
+        assert [subheader.value for subheader in at.subheader] == selected
+        assert len(at.get("vega_lite_chart")) == len(selected)
+        assert len(at.metric) == len(selected) * 3
+
+    def test_preset_can_include_any_other_category(
+        self, make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        at = _make_app(
+            "3_Year_over_Year.py",
+            make_full_dataset,
+            ["src.spreadsheet.load_transactions_data"],
+            _add_groceries_to_year_over_year_utility,
+        )
+
+        assert not at.exception
+        assert [subheader.value for subheader in at.subheader] == [
+            "Electric",
+            "Groceries",
+        ]
+        assert len(at.get("vega_lite_chart")) == 2
+
+    def test_group_view_defaults_to_bills(
+        self, make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        at = _make_app(
+            "3_Year_over_Year.py",
+            make_full_dataset,
+            ["src.spreadsheet.load_transactions_data"],
+            _select_year_over_year_group,
+        )
+
+        assert not at.exception
+        assert at.segmented_control(key="year_over_year_view").value == "Single group"
+        assert at.selectbox(key="year_over_year_group").value == "Bills"
+        transactions = _table_with_columns(
+            at,
+            {"Date", "Description", "Group", "Spending"},
+        )
+        assert set(transactions["Group"]) == {"Bills"}
+
+    def test_empty_expense_data_has_clear_state(
+        self, make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        bundle = make_full_dataset()
+        transactions = bundle[0]
+        transactions.scrubbed_df = transactions.scrubbed_df[
+            ~transactions.scrubbed_df["Type"].eq("Expense")
+        ].copy()
+        at = _make_app(
+            "3_Year_over_Year.py",
+            lambda: bundle,
+            ["src.spreadsheet.load_transactions_data"],
+        )
+
+        assert not at.exception
+        assert [message.value for message in at.info] == [
+            "No expense transactions are available."
+        ]
+        assert not at.metric
+        assert not at.get("vega_lite_chart")
 
 
 @pytest.mark.uses_real_dates

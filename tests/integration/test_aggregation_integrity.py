@@ -10,7 +10,7 @@ from src.constants import DEFAULT_EXCLUDE_GROUPS_INCOME_SAVINGS
 from src.custom_types import IncomeExpenseFilters, SpendingFilters, TransactionFilterOptions
 from src.analysis.financial_independence import calculate_avg_monthly_spending
 from src.analysis.income import process_income_expense_data
-from src.analysis.spending import process_spending_data
+from src.analysis.spending import build_spending_ledger, build_spending_overview
 from src.filters import apply_transaction_filters
 from src.spreadsheet import get_all_accounts, get_portfolio_value
 from tests.custom_types import FullDatasetFactory, TransactionsSpreadsheetFactory
@@ -142,10 +142,7 @@ class TestSpendingAggregation:
     def test_category_totals_sum_to_overall(
         self,
         extended_transactions_df: pd.DataFrame,
-        full_date_range: tuple[pd.Timestamp, pd.Timestamp],
-        make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
     ) -> None:
-        ts = make_transactions_spreadsheet(extended_transactions_df)
         filters: SpendingFilters = {
             'include_groups': [],
             'include_categories': [],
@@ -154,21 +151,28 @@ class TestSpendingAggregation:
             'filter_large_expenses': False,
             'expense_threshold': 999999,
         }
-        start, end = full_date_range
-        df_period, df_by_category = process_spending_data(ts, filters, start, end)
+        ledger = build_spending_ledger(
+            extended_transactions_df,
+            filters,
+            start_month="2024-01",
+            end_month="2025-01",
+        )
+        overview = build_spending_overview(
+            ledger,
+            ledger.iloc[0:0],
+            dimension="Category",
+            months=[f"2024-{month:02d}" for month in range(1, 13)],
+        )
 
         # Sum of category amounts should equal total period spending
-        assert df_by_category['Amount'].sum() == pytest.approx(
-            df_period['Amount'].abs().sum()
+        assert overview["Spending"].sum() == pytest.approx(
+            ledger.loc[ledger["Included"], "Net_Spend"].sum()
         )
 
     def test_percentages_sum_to_100(
         self,
         extended_transactions_df: pd.DataFrame,
-        full_date_range: tuple[pd.Timestamp, pd.Timestamp],
-        make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
     ) -> None:
-        ts = make_transactions_spreadsheet(extended_transactions_df)
         filters: SpendingFilters = {
             'include_groups': [],
             'include_categories': [],
@@ -177,20 +181,26 @@ class TestSpendingAggregation:
             'filter_large_expenses': False,
             'expense_threshold': 999999,
         }
-        start, end = full_date_range
-        _, df_by_category = process_spending_data(ts, filters, start, end)
+        ledger = build_spending_ledger(
+            extended_transactions_df,
+            filters,
+            start_month="2024-01",
+            end_month="2025-01",
+        )
+        overview = build_spending_overview(
+            ledger,
+            ledger.iloc[0:0],
+            dimension="Category",
+            months=[f"2024-{month:02d}" for month in range(1, 13)],
+        )
 
-        total_pct = df_by_category['Percentage'].sum()
-        assert total_pct == pytest.approx(100.0, abs=0.5)
+        assert overview["Share"].sum() == pytest.approx(100.0)
 
     def test_no_income_in_spending(
         self,
         extended_transactions_df: pd.DataFrame,
-        full_date_range: tuple[pd.Timestamp, pd.Timestamp],
-        make_transactions_spreadsheet: TransactionsSpreadsheetFactory,
     ) -> None:
         """Spending data should never include income transactions."""
-        ts = make_transactions_spreadsheet(extended_transactions_df)
         filters: SpendingFilters = {
             'include_groups': [],
             'include_categories': [],
@@ -199,10 +209,14 @@ class TestSpendingAggregation:
             'filter_large_expenses': False,
             'expense_threshold': 999999,
         }
-        start, end = full_date_range
-        df_period, _ = process_spending_data(ts, filters, start, end)
+        ledger = build_spending_ledger(
+            extended_transactions_df,
+            filters,
+            start_month="2024-01",
+            end_month="2025-01",
+        )
 
-        assert (df_period['Type'] == 'Expense').all()
+        assert (ledger["Type"] == "Expense").all()
 
 
 # ---------------------------------------------------------------------------

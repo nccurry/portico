@@ -1,6 +1,5 @@
 """Tests for pages/3_Year_over_Year.py - category/group extraction logic."""
 import numpy as np
-import pandas as pd
 
 from tests.custom_types import TransactionsSpreadsheetFactory
 from tests._helpers import _transactions_df
@@ -107,63 +106,3 @@ class TestGetAllGroups:
         df["Group"] = np.nan
         ts = make_transactions_spreadsheet(df)
         assert ts.get_all_groups() == []
-
-
-class TestPrepareYearComparisonData:
-    """Test the year-over-year data pivot from page_helpers."""
-
-    def test_multi_year_pivot(self) -> None:
-        from src.page_helpers import prepare_year_comparison_data
-
-        # Monthly amounts indexed by YYYY-MM
-        df = pd.DataFrame({
-            'Amount': [100, 200, 150, 250],
-        }, index=['2023-03', '2023-06', '2024-03', '2024-06'])
-        df.index.name = 'Month'
-
-        result = prepare_year_comparison_data(df)
-
-        assert 2023 in result.columns
-        assert 2024 in result.columns
-        # Month 3 should have both years
-        assert result.loc[3, 2023] == 100
-        assert result.loc[3, 2024] == 150
-
-    def test_missing_months_filled_with_zero(self) -> None:
-        """Months without data in a year with data get filled with 0."""
-        from src.page_helpers import prepare_year_comparison_data
-
-        df = pd.DataFrame({
-            'Amount': [100, 200],
-        }, index=['2024-03', '2024-06'])
-        df.index.name = 'Month'
-
-        result = prepare_year_comparison_data(df)
-
-        assert result.loc[3, 2024] == 100
-        assert result.loc[6, 2024] == 200
-        # Only months present in data appear (pivot doesn't pad)
-        assert set(result.index) == {3, 6}
-
-    def test_single_month_single_year(self) -> None:
-        from src.page_helpers import prepare_year_comparison_data
-
-        df = pd.DataFrame({
-            'Amount': [500],
-        }, index=['2024-01'])
-        df.index.name = 'Month'
-
-        result = prepare_year_comparison_data(df)
-
-        assert len(result) == 1
-        assert result.loc[1, 2024] == 500
-        assert result.columns.equals(pd.Index([2024]))
-
-    def test_empty_input(self) -> None:
-        from src.page_helpers import prepare_year_comparison_data
-
-        df = pd.DataFrame({'Amount': []})
-        df.index.name = 'Month'
-
-        result = prepare_year_comparison_data(df)
-        assert result.empty

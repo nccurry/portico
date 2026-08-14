@@ -533,12 +533,31 @@ class TestPageFilterDefaults:
         )
         mock_st.button.assert_called_once()
 
-    def test_spending_defaults_to_discretionary_groups(self) -> None:
+    def test_spending_all_view_defaults_to_no_exclusions(self) -> None:
         with patch("src.filters.st") as mock_st:
             _mock_filter_widgets(mock_st)
             result = render_spending_filters(
                 ["Christmas", "Misc Shopping", "Groceries"],
                 ["Bills", "Income", "Donations", "Maintenance", "Travel", "Food", "Shopping"],
+                view="All spending",
+            )
+
+        assert result["exclude_groups"] == []
+        assert result["exclude_categories"] == []
+        assert result["filter_large_expenses"] is False
+        mock_st.popover.assert_called_once_with(
+            "Adjust view",
+            icon=":material/tune:",
+            width="stretch",
+        )
+
+    def test_spending_discretionary_view_uses_editable_defaults(self) -> None:
+        with patch("src.filters.st") as mock_st:
+            _mock_filter_widgets(mock_st)
+            result = render_spending_filters(
+                ["Christmas", "Misc Shopping", "Groceries"],
+                ["Bills", "Income", "Donations", "Maintenance", "Travel", "Food", "Shopping"],
+                view="Discretionary",
             )
 
         assert result["exclude_groups"] == [
@@ -550,6 +569,28 @@ class TestPageFilterDefaults:
         ]
         assert result["exclude_categories"] == ["Christmas"]
         assert result["filter_large_expenses"] is False
+        assert all(
+            call.kwargs["persist_state"] == "page"
+            for call in mock_st.multiselect.call_args_list
+        )
+        mock_st.button.assert_called_once()
+
+    def test_spending_modified_preset_is_visible(self) -> None:
+        with patch("src.filters.st") as mock_st:
+            _mock_filter_widgets(mock_st)
+            mock_st.session_state["spending_all_exclude_groups"] = ["Travel"]
+            result = render_spending_filters(
+                ["Groceries"],
+                ["Food", "Travel"],
+                view="All spending",
+            )
+
+        assert result["exclude_groups"] == ["Travel"]
+        mock_st.popover.assert_called_once_with(
+            "Adjust view · modified",
+            icon=":material/tune:",
+            width="stretch",
+        )
 
     def test_fi_defaults_to_unfiltered_actual_spending(self) -> None:
         with patch("src.filters.st") as mock_st:
