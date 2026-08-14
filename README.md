@@ -235,8 +235,10 @@ The report contains:
 - One total for each configured Category value, with its top three vendors for
   the reporting week
 - Dollar changes from the average of the previous eight completed weeks
+- Four-week cumulative totals for each configured category and their combined
+  total, compared with the preceding four weeks
 - A plain-language count of transactions that still need a category
-- The combined configured-category total
+- The reporting-week combined configured-category total
 - The total for all transactions whose joined `Type` is `Expense`
 
 Normal Tiller expenses have negative amounts. The report shows them as positive

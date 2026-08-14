@@ -45,15 +45,26 @@ def sample_report() -> WeeklyExpenseReport:
         ),
         categories=(
             CategoryTotal(
-                "Everyday Food",
-                120.0,
-                100.0,
-                (VendorTotal("KROGER", 80.0), VendorTotal("ALDI", 40.0)),
+                name="Everyday Food",
+                amount=120.0,
+                average_amount=100.0,
+                rolling_amount=440.0,
+                previous_rolling_amount=500.0,
+                top_vendors=(VendorTotal("KROGER", 80.0), VendorTotal("ALDI", 40.0)),
             ),
-            CategoryTotal("Local Dining", 40.0, 60.0, (VendorTotal("CAFE", 40.0),)),
+            CategoryTotal(
+                name="Local Dining",
+                amount=40.0,
+                average_amount=60.0,
+                rolling_amount=240.0,
+                previous_rolling_amount=200.0,
+                top_vendors=(VendorTotal("CAFE", 40.0),),
+            ),
         ),
         selected_total=160.0,
         average_selected_total=160.0,
+        rolling_selected_total=680.0,
+        previous_rolling_selected_total=700.0,
         all_expenses_total=900.0,
         uncategorized_count=4,
     )
@@ -167,11 +178,17 @@ def test_report_payload_has_expected_totals_and_disables_mentions() -> None:
     assert "Top vendors: KROGER $80.00 · ALDI $40.00" in embed["fields"][0]["value"]
     assert embed["fields"][1]["name"] == "Watched total"
     assert "$160.00" in embed["fields"][1]["value"]
-    assert "$900.00" in embed["fields"][2]["value"]
-    assert embed["fields"][3]["name"] == "Needs categorization"
-    assert "4 transactions" in embed["fields"][3]["value"]
-    assert "still need a category" in embed["fields"][3]["value"]
+    assert embed["fields"][2]["name"] == "4-week watched spending"
+    assert "Everyday Food** — **$440.00" in embed["fields"][2]["value"]
+    assert "$60.00 less than prior 4 weeks" in embed["fields"][2]["value"]
+    assert "$40.00 more than prior 4 weeks" in embed["fields"][2]["value"]
+    assert "Watched total** — **$680.00" in embed["fields"][2]["value"]
+    assert "$900.00" in embed["fields"][3]["value"]
+    assert embed["fields"][4]["name"] == "Needs categorization"
+    assert "4 transactions" in embed["fields"][4]["value"]
+    assert "still need a category" in embed["fields"][4]["value"]
     assert "8-week average" in embed["footer"]["text"]
+    assert "4-week view" in embed["footer"]["text"]
     rendered = json.dumps(embed)
     assert "net inflow" not in rendered
     assert "last week" not in rendered
@@ -184,7 +201,7 @@ def test_report_payload_reports_when_everything_is_categorized() -> None:
 
     embed = report_payload(report)["embeds"][0]
 
-    assert embed["fields"][3]["value"] == "All transactions are categorized."
+    assert embed["fields"][4]["value"] == "All transactions are categorized."
 
 
 def test_report_payload_uses_singular_categorization_wording() -> None:
@@ -192,7 +209,7 @@ def test_report_payload_uses_singular_categorization_wording() -> None:
 
     embed = report_payload(report)["embeds"][0]
 
-    assert embed["fields"][3]["value"] == "**1 transaction** still needs a category."
+    assert embed["fields"][4]["value"] == "**1 transaction** still needs a category."
 
 
 def test_test_payload_contains_no_financial_values() -> None:
@@ -257,6 +274,15 @@ def test_preview_json_is_machine_readable(capsys: pytest.CaptureFixture[str]) ->
         "name": "KROGER",
     }
     assert output["average_period"]["weeks"] == 8
+    assert output["rolling_period"] == {
+        "comparison_end": "2026-07-04",
+        "comparison_start": "2026-06-07",
+        "end": "2026-08-01",
+        "start": "2026-07-05",
+        "weeks": 4,
+    }
+    assert output["categories"][0]["rolling_amount"] == 440.0
+    assert output["rolling_selected_change"] == -20.0
     assert output["uncategorized_count"] == 4
 
 
@@ -267,8 +293,12 @@ def test_text_preview_matches_discord_title(capsys: pytest.CaptureFixture[str]) 
     ):
         exit_code = main(["preview", "--period-end", "2026-08-01"])
 
+    output = capsys.readouterr().out
     assert exit_code == 0
-    assert capsys.readouterr().out.startswith("Weekly spending\n")
+    assert output.startswith("Weekly spending\n")
+    assert "4-week watched spending\n" in output
+    assert "Everyday Food: $440.00 (▼ $60.00 less than prior 4 weeks)" in output
+    assert "4-week watched total: $680.00 (▼ $20.00 less than prior 4 weeks)" in output
 
 
 def test_text_preview_uses_utf8_on_a_legacy_windows_console() -> None:

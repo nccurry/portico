@@ -24,6 +24,7 @@ import pandas as pd
 from src.scrubbing import SpreadsheetSchemaError, scrub_categories, scrub_transactions
 from src.weekly_expenses import (
     AVERAGE_WEEKS,
+    ROLLING_WEEKS,
     ReportPeriod,
     WeeklyExpenseError,
     WeeklyExpenseReport,
@@ -196,6 +197,21 @@ def report_payload(report: WeeklyExpenseReport) -> dict[str, Any]:
     if len(category_value) > 1024:
         raise NotifierError("The configured category list is too long for one Discord message.")
 
+    rolling_lines = [
+        (
+            f"**{_escape_markdown(item.name)}** — **{_currency(item.rolling_amount)}** · "
+            f"{_rolling_change_text(item.rolling_change)}"
+        )
+        for item in report.categories
+    ]
+    rolling_lines.append(
+        f"**Watched total** — **{_currency(report.rolling_selected_total)}** · "
+        f"{_rolling_change_text(report.rolling_selected_change)}"
+    )
+    rolling_value = "\n".join(rolling_lines)
+    if len(rolling_value) > 1024:
+        raise NotifierError("The configured category list is too long for one Discord message.")
+
     period = report.period
     color = 0xE74C3C if report.selected_change > 0 else 0x2ECC71
     if report.selected_change == 0:
@@ -218,6 +234,11 @@ def report_payload(report: WeeklyExpenseReport) -> dict[str, Any]:
                         "inline": True,
                     },
                     {
+                        "name": "4-week watched spending",
+                        "value": rolling_value,
+                        "inline": False,
+                    },
+                    {
                         "name": "All expenses",
                         "value": f"**{_currency(report.all_expenses_total)}**",
                         "inline": True,
@@ -232,7 +253,10 @@ def report_payload(report: WeeklyExpenseReport) -> dict[str, Any]:
                     "text": (
                         f"Usual = {AVERAGE_WEEKS}-week average · "
                         f"{_date(period.comparison_start, include_year=True)} - "
-                        f"{_date(period.comparison_end, include_year=True)}"
+                        f"{_date(period.comparison_end, include_year=True)} · "
+                        f"4-week view = {_date(period.rolling_start)} - {_date(period.end)} vs "
+                        f"{_date(period.previous_rolling_start)} - "
+                        f"{_date(period.previous_rolling_end, include_year=True)}"
                     )
                 },
             }
@@ -251,12 +275,22 @@ def report_as_dict(report: WeeklyExpenseReport) -> dict[str, Any]:
             "end": report.period.comparison_end.isoformat(),
             "weeks": AVERAGE_WEEKS,
         },
+        "rolling_period": {
+            "start": report.period.rolling_start.isoformat(),
+            "end": report.period.end.isoformat(),
+            "comparison_start": report.period.previous_rolling_start.isoformat(),
+            "comparison_end": report.period.previous_rolling_end.isoformat(),
+            "weeks": ROLLING_WEEKS,
+        },
         "categories": [
             {
                 "name": item.name,
                 "amount": item.amount,
                 "average_amount": item.average_amount,
                 "change": item.change,
+                "rolling_amount": item.rolling_amount,
+                "previous_rolling_amount": item.previous_rolling_amount,
+                "rolling_change": item.rolling_change,
                 "top_vendors": [
                     {"name": vendor.name, "amount": vendor.amount}
                     for vendor in item.top_vendors
@@ -267,6 +301,9 @@ def report_as_dict(report: WeeklyExpenseReport) -> dict[str, Any]:
         "selected_total": report.selected_total,
         "average_selected_total": report.average_selected_total,
         "selected_change": report.selected_change,
+        "rolling_selected_total": report.rolling_selected_total,
+        "previous_rolling_selected_total": report.previous_rolling_selected_total,
+        "rolling_selected_change": report.rolling_selected_change,
         "all_expenses_total": report.all_expenses_total,
         "uncategorized_count": report.uncategorized_count,
     }
@@ -495,6 +532,14 @@ def _usual_change_text(change: float) -> str:
     return "— right at usual"
 
 
+def _rolling_change_text(change: float) -> str:
+    if change > 0:
+        return f"▲ {_currency(change)} more than prior 4 weeks"
+    if change < 0:
+        return f"▼ {_currency(abs(change))} less than prior 4 weeks"
+    return "— same as prior 4 weeks"
+
+
 def _date(value: dt.date, *, include_year: bool = False) -> str:
     rendered = value.strftime("%b %d, %Y" if include_year else "%b %d")
     return rendered.replace(" 0", " ")
@@ -520,8 +565,18 @@ def _preview_text(report: WeeklyExpenseReport) -> str:
                 for vendor in item.top_vendors
             )
             lines.append(f"  Top vendors: {vendors}")
+    lines.extend(["", "4-week watched spending"])
+    for item in report.categories:
+        lines.append(
+            f"{item.name}: {_currency(item.rolling_amount)} "
+            f"({_rolling_change_text(item.rolling_change)})"
+        )
     lines.extend(
         [
+            (
+                f"4-week watched total: {_currency(report.rolling_selected_total)} "
+                f"({_rolling_change_text(report.rolling_selected_change)})"
+            ),
             "",
             (
                 f"Watched total: {_currency(report.selected_total)} "
