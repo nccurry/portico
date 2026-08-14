@@ -46,6 +46,18 @@ def _set_income_filter_state(
     st.session_state[f"{prefix}_expense_threshold"] = DEFAULT_EXPENSE_THRESHOLD
 
 
+def _set_spending_filter_state(
+    prefix: str,
+    categories: list[str],
+    groups: list[str],
+) -> None:
+    """Reset one editable spending preset."""
+    st.session_state[f"{prefix}_exclude_categories"] = categories
+    st.session_state[f"{prefix}_exclude_groups"] = groups
+    st.session_state[f"{prefix}_filter_large_expenses"] = False
+    st.session_state[f"{prefix}_expense_threshold"] = DEFAULT_EXPENSE_THRESHOLD
+
+
 def render_income_expense_filters(
     income_categories: list[str],
     expense_categories: list[str],
@@ -200,78 +212,89 @@ def render_income_expense_filters(
 def render_spending_filters(
     all_categories: list[str],
     all_groups: list[str],
+    *,
+    view: str,
 ) -> SpendingFilters:
-    """Render filter controls for Spending by Category page.
+    """Render editable All spending and Discretionary presets."""
+    discretionary_categories = [
+        category
+        for category in DEFAULT_EXCLUDE_CATEGORIES_SPENDING
+        if category in all_categories
+    ]
+    discretionary_groups = [
+        group
+        for group in DEFAULT_EXCLUDE_GROUPS_SPENDING
+        if group in all_groups
+    ]
+    if view == "All spending":
+        default_categories: list[str] = []
+        default_groups: list[str] = []
+        prefix = "spending_all"
+    elif view == "Discretionary":
+        default_categories = discretionary_categories
+        default_groups = discretionary_groups
+        prefix = "spending_discretionary"
+    else:
+        raise ValueError(f"Unknown spending view: {view}")
 
-    Args:
-        all_categories: List of all available categories for inclusion filter
+    defaults = {
+        f"{prefix}_exclude_categories": default_categories,
+        f"{prefix}_exclude_groups": default_groups,
+        f"{prefix}_filter_large_expenses": False,
+        f"{prefix}_expense_threshold": DEFAULT_EXPENSE_THRESHOLD,
+    }
+    for key, value in defaults.items():
+        st.session_state.setdefault(key, value)
 
-    Returns:
-        dictionary containing all filter selections
-    """
-    with st.expander("Filter Settings", expanded=False):
-        col_filter1, col_filter2 = st.columns(2)
-
-        with col_filter1:
-            include_groups = st.multiselect(
-                "Include Only These Groups",
-                options=all_groups,
-                default=[],
-                help="If set, ONLY show these groups (ignores all exclude filters)"
-            )
-
-            include_categories = st.multiselect(
-                "Include Only These Categories",
-                options=all_categories,
-                default=[],
-                help="If set, ONLY show these categories (ignores all filters)"
-            )
-
-            st.divider()
-
-            exclude_groups = st.multiselect(
-                "Exclude Groups",
-                options=all_groups,
-                default=[g for g in DEFAULT_EXCLUDE_GROUPS_SPENDING if g in all_groups],
-                help="Exclude entire transaction groups (Transfer always excluded)"
-            )
-
-            exclude_categories = st.multiselect(
-                "Exclude Categories",
-                options=all_categories,
-                default=[
-                    category
-                    for category in DEFAULT_EXCLUDE_CATEGORIES_SPENDING
-                    if category in all_categories
-                ],
-                help="Exclude specific one-time or non-recurring transaction categories"
-            )
-
-        with col_filter2:
-            filter_large_expenses = st.checkbox(
-                "Filter Large Expenses",
-                value=False,
-                help="Exclude individual large expense transactions above a threshold"
-            )
-
-            expense_threshold = DEFAULT_EXPENSE_THRESHOLD
-            if filter_large_expenses:
-                expense_threshold = st.number_input(
-                    "Expense Threshold ($)",
-                    min_value=1000,
-                    max_value=100000,
-                    value=DEFAULT_EXPENSE_THRESHOLD,
-                    step=500,
-                    help="Exclude individual expense transactions larger than this amount"
-                )
+    is_modified = (
+        set(st.session_state[f"{prefix}_exclude_categories"])
+        != set(default_categories)
+        or set(st.session_state[f"{prefix}_exclude_groups"]) != set(default_groups)
+        or bool(st.session_state[f"{prefix}_filter_large_expenses"])
+    )
+    label = "Adjust view · modified" if is_modified else "Adjust view"
+    with st.popover(label, icon=":material/tune:", width="stretch"):
+        st.button(
+            "Reset defaults",
+            icon=":material/restart_alt:",
+            on_click=_set_spending_filter_state,
+            args=(prefix, default_categories, default_groups),
+        )
+        exclude_groups = st.multiselect(
+            "Exclude groups",
+            options=all_groups,
+            key=f"{prefix}_exclude_groups",
+            persist_state="page",
+        )
+        exclude_categories = st.multiselect(
+            "Exclude categories",
+            options=all_categories,
+            key=f"{prefix}_exclude_categories",
+            persist_state="page",
+        )
+        filter_large_expenses = st.toggle(
+            "Exclude individual expenses over a limit",
+            key=f"{prefix}_filter_large_expenses",
+            persist_state="page",
+        )
+        expense_threshold = int(st.session_state[f"{prefix}_expense_threshold"])
+        if filter_large_expenses:
+            expense_threshold = int(st.number_input(
+                "Expense limit",
+                min_value=1000,
+                max_value=100000,
+                step=500,
+                key=f"{prefix}_expense_threshold",
+                persist_state="page",
+            ))
 
     return {
-        'include_groups': include_groups,
-        'include_categories': include_categories,
-        'exclude_groups': exclude_groups,
-        'exclude_categories': exclude_categories,
-        'filter_large_expenses': filter_large_expenses,
-        'expense_threshold': expense_threshold
+        "include_groups": [],
+        "include_categories": [],
+        "exclude_groups": exclude_groups,
+        "exclude_categories": exclude_categories,
+        "filter_large_expenses": filter_large_expenses,
+        "expense_threshold": expense_threshold,
     }
 
 

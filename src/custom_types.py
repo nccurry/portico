@@ -91,27 +91,6 @@ class TopTransactionsStats(TypedDict):
     num_transactions: int
 
 
-class DistributionStats(TypedDict):
-    """Percentile and bucket breakdown of transaction amounts."""
-
-    median: float
-    mean: float
-    p25: float
-    p75: float
-    p80: float
-    p90: float
-    small_count: int
-    medium_count: int
-    large_count: int
-    small_pct: float
-    medium_pct: float
-    large_pct: float
-    small_count_pct: float
-    medium_count_pct: float
-    large_count_pct: float
-    pareto_pct: float
-
-
 class SavingsSummary(TypedDict):
     """Period cash-flow metrics for the Income & Savings page."""
 
@@ -172,12 +151,27 @@ class BudgetSummary(TypedDict):
 
 
 class SpendingSummary(TypedDict):
-    """Aggregated spending metrics for the Spending by Category page."""
+    """Matched-period metrics for spending exploration."""
 
     total_spending: float
-    top_category: str
-    top_category_amount: float
-    num_categories: int
+    average_monthly_spending: float
+    comparison_spending: float
+    change: float
+    change_pct: float | None
+    transaction_count: int
+    num_months: int
+
+
+class YearOverYearSummary(TypedDict):
+    """Matched calendar-year spending metrics for one group or category."""
+
+    current_year: int
+    current_total: float
+    previous_year: int | None
+    previous_total: float | None
+    change: float | None
+    change_pct: float | None
+    through_month: int
 
 
 class FISummary(TypedDict):

@@ -16,12 +16,6 @@ from src.analysis.merchants import (
     prepare_merchant_timeline,
     summarize_merchants,
 )
-from src.analysis.spending import (
-    calculate_distribution_stats,
-    prepare_amount_histogram,
-    prepare_category_boxplot,
-    prepare_spending_trend,
-)
 
 
 def test_filtered_transaction_summary_reports_gross_excluded_amount() -> None:
@@ -43,67 +37,6 @@ def test_filtered_transaction_summary_reports_gross_excluded_amount() -> None:
     assert summary["total_amount"] == (
         summary["income_amount"] + summary["expense_amount"]
     )
-
-
-def test_distribution_stats_partition_counts_and_dollars() -> None:
-    period = pd.DataFrame({"Amount": [-10.0, -25.0, -100.0, -250.0, -1_000.0]})
-
-    stats = calculate_distribution_stats(period)
-
-    assert (stats["small_count"], stats["medium_count"], stats["large_count"]) == (
-        1,
-        2,
-        2,
-    )
-    assert stats["small_count_pct"] == pytest.approx(20.0)
-    assert stats["medium_count_pct"] == pytest.approx(40.0)
-    assert stats["large_count_pct"] == pytest.approx(40.0)
-    assert stats["small_pct"] + stats["medium_pct"] + stats["large_pct"] == (
-        pytest.approx(100.0)
-    )
-    assert stats["pareto_pct"] == pytest.approx(40.0)
-
-
-def test_distribution_stats_empty_values_are_zero() -> None:
-    stats = calculate_distribution_stats(pd.DataFrame({"Amount": []}))
-
-    assert all(value == 0 for value in stats.values())
-
-
-def test_pareto_exact_boundary_uses_smallest_reaching_prefix() -> None:
-    stats = calculate_distribution_stats(pd.DataFrame({"Amount": [-80.0, -20.0]}))
-
-    assert stats["pareto_pct"] == pytest.approx(50.0)
-
-
-def test_spending_chart_data_preserves_manual_aggregates() -> None:
-    period = pd.DataFrame(
-        {
-            "Month": ["2024-01", "2024-01", "2024-02", "2024-02"],
-            "Category": ["Food", "Food", "Food", "Travel"],
-            "Amount": [-10.0, -15.0, -20.0, -100.0],
-        }
-    )
-
-    trend = prepare_spending_trend(period, ["Food"])
-    histogram = prepare_amount_histogram(period)
-    boxplot = prepare_category_boxplot(period, limit=1)
-
-    assert trend.set_index("Month")["Amount"].to_dict() == {
-        "2024-01": 25.0,
-        "2024-02": 20.0,
-    }
-    assert int(histogram["Count"].sum()) == len(period)
-    assert set(boxplot["Category"]) == {"Travel"}
-    assert boxplot["Amount_Abs"].sum() == pytest.approx(100.0)
-
-
-def test_histogram_top_bucket_has_no_upper_limit() -> None:
-    histogram = prepare_amount_histogram(pd.DataFrame({"Amount": [-250_000.0]}))
-
-    assert histogram.to_dict("records") == [
-        {"Amount_Range": "$5K+", "Count": 1}
-    ]
 
 
 def test_duplicate_summaries_use_pair_amounts_and_unique_months() -> None:
