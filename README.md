@@ -78,6 +78,21 @@ Use the URL from each Google Sheets tab. Each URL must include its numeric
 `gid`. The sheet must be readable through its link because the app does not use
 a Google service account.
 
+Merchant Analysis can optionally combine transaction-description variants under
+one vendor. Add canonical vendors and one or more case-insensitive description
+fragments to `.streamlit/secrets.toml`:
+
+```toml
+[merchant_aliases]
+AMAZON = ["AMZN MKTPLACE", "AMAZON MKTPLACE", "AMAZON.COM"]
+"AMAZON PRIME" = ["AMAZON PRIME"]
+ASCEND = ["ASCEND"]
+```
+
+The longest matching fragment wins, so a specific rule such as `AMAZON PRIME`
+takes precedence over a broader Amazon rule. Conflicting duplicate fragments
+are rejected instead of silently combining the wrong vendors.
+
 ## Install on a Raspberry Pi
 
 The systemd installation requires a 64-bit Raspberry Pi OS installation,

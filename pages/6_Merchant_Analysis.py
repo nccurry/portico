@@ -1,337 +1,647 @@
-"""Merchant Analysis - Track spending by merchant/vendor."""
-import streamlit as st
-import pandas as pd
+"""Explore merchant spending, trends, composition, and transactions."""
+
+from collections.abc import Mapping, Sequence
+from typing import cast
+from zlib import crc32
+
 import altair as alt
+import pandas as pd
+import streamlit as st
+from streamlit.elements.arrow import DataframeState
 
-from src.spreadsheet import load_transactions_data, TransactionsSpreadsheet
-from src.page_helpers import get_transaction_column_config, render_data_refresh_controls
-from src.filters import calculate_date_range
 from src.analysis.merchants import (
-    analyze_merchants,
+    build_merchant_description_breakdown,
+    build_merchant_dimension_breakdown,
+    build_merchant_aliases,
+    build_merchant_monthly_comparison,
+    build_merchant_overview,
     enrich_with_merchant,
-    prepare_merchant_timeline,
-    summarize_merchants,
+    summarize_merchant_period,
 )
-from src.constants import TIME_PERIODS, CHART_HEIGHT_STANDARD, COLOR_PALETTE
+from src.analysis.spending import build_spending_ledger
+from src.constants import COLOR_NET_WORTH, COLOR_PLACEHOLDER
+from src.custom_types import ColumnConfig
+from src.filters import render_spending_filters
+from src.page_helpers import render_data_refresh_controls
+from src.reporting_periods import completed_month_window, latest_data_timestamp
+from src.spreadsheet import TransactionsSpreadsheet, load_transactions_data
 
 
-def create_top_merchants_chart(
-    merchant_stats: pd.DataFrame,
-    top_n: int = 20,
-) -> alt.Chart:
-    """Create horizontal bar chart of top merchants by spending.
+LOOKBACK_MONTHS = {"3M": 3, "6M": 6, "1Y": 12, "2Y": 24}
+SPENDING_VIEWS = ["All spending", "Discretionary"]
+COMPARISON_VIEWS = ["Previous period", "Last year"]
+SELECTED_MERCHANT_KEY = "merchant_selected_name"
+DETAIL_MONTH_KEY = "merchant_detail_month"
 
-    Args:
-        merchant_stats: Merchant analysis dataframe
-        top_n: Number of top merchants to show
 
-    Returns:
-        Altair chart
-    """
-    if merchant_stats.empty:
-        return alt.Chart(pd.DataFrame()).mark_text().encode(  # type: ignore[no-any-return]
-            text=alt.value("No merchant data available")
+def _configured_merchant_aliases() -> dict[str, str]:
+    try:
+        configured = st.secrets.get("merchant_aliases", {})
+    except FileNotFoundError:
+        return {}
+    if not isinstance(configured, Mapping):
+        raise ValueError("The merchant_aliases configuration must be a TOML table")
+    return build_merchant_aliases(configured)
+
+
+def _format_currency(value: float) -> str:
+    sign = "-" if value < 0 else ""
+    return f"{sign}${abs(value):,.0f}"
+
+
+def _format_signed_currency(value: float) -> str:
+    sign = "+" if value > 0 else "-" if value < 0 else ""
+    return f"{sign}${abs(value):,.0f}"
+
+
+def _format_percent(value: float | None) -> str:
+    if value is None or pd.isna(value):
+        return "—"
+    sign = "+" if value > 0 else ""
+    return f"{sign}{value:.1f}%"
+
+
+def _month_label(month: str) -> str:
+    return pd.Period(month, freq="M").strftime("%B %Y")
+
+
+def _month_sequence(start_month: str, end_month: str) -> list[str]:
+    start = pd.Period(start_month, freq="M")
+    end = pd.Period(end_month, freq="M")
+    if end <= start:
+        return []
+    return [str(month) for month in pd.period_range(start, end - 1, freq="M")]
+
+
+def _analysis_periods(
+    transactions: pd.DataFrame,
+    *,
+    lookback_months: int,
+    comparison: str,
+) -> tuple[list[str], list[str], str, str, str, str]:
+    current_start, current_last = completed_month_window(
+        lookback_months,
+        transactions,
+        anchor_to_data=True,
+    )
+    current_end = str(pd.Period(current_last, freq="M") + 1)
+    current_months = _month_sequence(current_start, current_end)
+    if comparison == "Previous period":
+        comparison_end = current_start
+        comparison_start = str(
+            pd.Period(current_start, freq="M") - lookback_months
         )
-
-    top_merchants = merchant_stats.head(top_n).copy()
-
-    chart = alt.Chart(top_merchants).mark_bar().encode(
-        x=alt.X('Total_Spent:Q', title='Total Spent ($)'),
-        y=alt.Y('Merchant:N', sort='-x', title='Merchant', axis=alt.Axis(labelLimit=200)),
-        color=alt.Color('Primary_Category:N',
-                       scale=alt.Scale(range=COLOR_PALETTE),
-                       legend=alt.Legend(title='Category')),
-        tooltip=[
-            alt.Tooltip('Merchant:N', title='Merchant'),
-            alt.Tooltip('Total_Spent:Q', title='Total Spent', format='$,.2f'),
-            alt.Tooltip('Num_Transactions:Q', title='# Transactions'),
-            alt.Tooltip('Avg_Transaction:Q', title='Avg Transaction', format='$,.2f'),
-            alt.Tooltip('Primary_Category:N', title='Category')
-        ]
-    ).properties(
-        height=max(CHART_HEIGHT_STANDARD, top_n * 20),
-        title=f'Top {top_n} Merchants by Total Spending'
-    ).configure_axis(
-        labelLimit=200
+    else:
+        comparison_start = str(pd.Period(current_start, freq="M") - 12)
+        comparison_end = str(pd.Period(current_end, freq="M") - 12)
+    comparison_months = _month_sequence(comparison_start, comparison_end)
+    return (
+        current_months,
+        comparison_months,
+        current_start,
+        current_end,
+        comparison_start,
+        comparison_end,
     )
 
-    return chart  # type: ignore[no-any-return]
+
+def _comparison_label(comparison: str, lookback_months: int) -> str:
+    if comparison == "Previous period":
+        return f"previous {lookback_months} months"
+    return "same months last year"
 
 
-def create_frequency_vs_amount_chart(merchant_stats: pd.DataFrame) -> alt.Chart:
-    """Create scatter plot of transaction frequency vs average amount.
+def _overview_column_config(comparison_label: str) -> ColumnConfig:
+    return {
+        "Merchant": st.column_config.TextColumn("Merchant", pinned=True),
+        "Spending": st.column_config.NumberColumn("Spending", format="$%.0f"),
+        "Share": st.column_config.NumberColumn("Share", format="%.1f%%"),
+        "Average_Monthly": st.column_config.NumberColumn(
+            "Avg/month", format="$%.0f"
+        ),
+        "Change": st.column_config.NumberColumn(
+            f"Change vs {comparison_label}", format="$%+.0f"
+        ),
+        "Change_Pct": st.column_config.NumberColumn("Change %", format="%+.1f%%"),
+        "Transactions": st.column_config.NumberColumn("Transactions", format="%d"),
+        "Average_Transaction": st.column_config.NumberColumn(
+            "Avg purchase", format="$%.0f"
+        ),
+        "Primary_Category": st.column_config.TextColumn("Main category"),
+        "Monthly_Trend": st.column_config.LineChartColumn(
+            "Monthly trend",
+            color=COLOR_NET_WORTH,
+            y_min=0,
+        ),
+    }
 
-    Args:
-        merchant_stats: Merchant analysis dataframe
 
-    Returns:
-        Altair chart
-    """
-    if merchant_stats.empty:
-        return alt.Chart(pd.DataFrame()).mark_text().encode(  # type: ignore[no-any-return]
-            text=alt.value("No merchant data available")
+def _render_summary_metrics(overview: pd.DataFrame, *, num_months: int) -> None:
+    summary = summarize_merchant_period(overview, num_months=num_months)
+    with st.container(horizontal=True):
+        st.metric(
+            "Total spending",
+            _format_currency(summary["total_spending"]),
+            border=True,
+        )
+        st.metric(
+            "Average monthly",
+            _format_currency(summary["average_monthly_spending"]),
+            border=True,
+        )
+        st.metric("Merchants", f"{summary['merchant_count']:,}", border=True)
+        st.metric(
+            "At repeat merchants",
+            f"{summary['repeat_spending_share']:.1f}%",
+            border=True,
         )
 
-    # Take top 50 by total spending for readability
-    top_merchants = merchant_stats.head(50).copy()
 
-    chart = alt.Chart(top_merchants).mark_circle(size=100).encode(
-        x=alt.X('Num_Transactions:Q',
-               title='Number of Transactions',
-               scale=alt.Scale(type='log')),
-        y=alt.Y('Avg_Transaction:Q',
-               title='Average Transaction Amount ($)',
-               scale=alt.Scale(type='log')),
-        color=alt.Color('Primary_Category:N',
-                       scale=alt.Scale(range=COLOR_PALETTE),
-                       legend=alt.Legend(title='Category')),
-        size=alt.Size('Total_Spent:Q',
-                     scale=alt.Scale(range=[50, 500]),
-                     legend=alt.Legend(title='Total Spent ($)')),
-        tooltip=[
-            alt.Tooltip('Merchant:N', title='Merchant'),
-            alt.Tooltip('Total_Spent:Q', title='Total Spent', format='$,.2f'),
-            alt.Tooltip('Num_Transactions:Q', title='# Transactions'),
-            alt.Tooltip('Avg_Transaction:Q', title='Avg Transaction', format='$,.2f'),
-            alt.Tooltip('Primary_Category:N', title='Category')
-        ]
-    ).properties(
-        height=CHART_HEIGHT_STANDARD,
-        title='Transaction Frequency vs Average Amount (Top 50 Merchants)'
+def _render_overview_table(
+    overview: pd.DataFrame,
+    *,
+    comparison_label: str,
+    state_key: str,
+) -> str:
+    remembered = st.session_state.get(SELECTED_MERCHANT_KEY)
+    default_position = 0
+    if remembered in overview["Merchant"].values:
+        default_position = int(
+            overview.index[overview["Merchant"] == remembered].tolist()[0]
+        )
+    selection_default = cast(
+        DataframeState,
+        {"selection": {"rows": [default_position]}},
+    )
+    display_columns = [
+        "Merchant",
+        "Spending",
+        "Share",
+        "Average_Monthly",
+        "Change",
+        "Change_Pct",
+        "Transactions",
+        "Average_Transaction",
+        "Primary_Category",
+        "Monthly_Trend",
+    ]
+    event = st.dataframe(
+        overview[display_columns],
+        key=state_key,
+        width="stretch",
+        height=min(620, 38 * (len(overview) + 1) + 8),
+        hide_index=True,
+        on_select="rerun",
+        selection_mode="single-row-required",
+        selection_default=selection_default,
+        column_config=_overview_column_config(comparison_label),
+    )
+    rows = event["selection"]["rows"]
+    position = rows[0] if rows else 0
+    if position >= len(overview):
+        position = 0
+    selected = str(overview.iloc[position]["Merchant"])
+    st.session_state[SELECTED_MERCHANT_KEY] = selected
+    return selected
+
+
+def _ranking_chart(overview: pd.DataFrame, selected_merchant: str) -> alt.Chart:
+    ranked = overview.head(12).copy()
+    if selected_merchant not in ranked["Merchant"].values:
+        ranked = pd.concat(
+            [
+                ranked,
+                overview[overview["Merchant"] == selected_merchant],
+            ],
+            ignore_index=True,
+        )
+    ranked["Selected"] = ranked["Merchant"].eq(selected_merchant)
+    return cast(
+        alt.Chart,
+        alt.Chart(ranked)
+        .mark_bar(cornerRadiusEnd=4)
+        .encode(
+            x=alt.X(
+                "Spending:Q",
+                title="Spending ($)",
+                axis=alt.Axis(format="$~s"),
+            ),
+            y=alt.Y(
+                "Merchant:N",
+                title=None,
+                sort="-x",
+                axis=alt.Axis(labelLimit=190),
+            ),
+            color=alt.condition(
+                "datum.Selected",
+                alt.value(COLOR_NET_WORTH),
+                alt.value(COLOR_PLACEHOLDER),
+            ),
+            tooltip=[
+                alt.Tooltip("Merchant:N", title="Merchant"),
+                alt.Tooltip("Spending:Q", title="Spending", format="$,.2f"),
+                alt.Tooltip("Share:Q", title="Share", format=".1f"),
+                alt.Tooltip("Transactions:Q", title="Transactions"),
+                alt.Tooltip(
+                    "Average_Transaction:Q",
+                    title="Average purchase",
+                    format="$,.2f",
+                ),
+            ],
+        )
+        .properties(height=max(320, 29 * len(ranked))),
     )
 
-    return chart  # type: ignore[no-any-return]
 
-
-def create_merchant_timeline(
-    df: pd.DataFrame,
-    merchant_stats: pd.DataFrame,
-    top_n: int = 10,
-) -> alt.Chart:
-    """Create timeline showing spending at top merchants over time.
-
-    Args:
-        df: Full transaction dataframe with Merchant column
-        merchant_stats: Merchant analysis dataframe
-        top_n: Number of top merchants to show
-
-    Returns:
-        Altair chart
-    """
-    if merchant_stats.empty or df.empty:
-        return alt.Chart(pd.DataFrame()).mark_text().encode(  # type: ignore[no-any-return]
-            text=alt.value("No merchant data available")
+def _merchant_history_chart(
+    history: pd.DataFrame,
+    *,
+    comparison_label: str,
+) -> alt.LayerChart:
+    x = alt.X(
+        "Month_Label:N",
+        title=None,
+        sort=alt.SortField("Month_Index", order="ascending"),
+        axis=alt.Axis(labelAngle=-35),
+    )
+    current = (
+        alt.Chart(history)
+        .mark_bar(color=COLOR_NET_WORTH, cornerRadiusTopLeft=3, cornerRadiusTopRight=3)
+        .encode(
+            x=x,
+            y=alt.Y(
+                "Current_Spending:Q",
+                title="Monthly spending ($)",
+                axis=alt.Axis(format="$~s"),
+                scale=alt.Scale(zero=True),
+            ),
+            tooltip=[
+                alt.Tooltip("Current_Month:N", title="Month"),
+                alt.Tooltip(
+                    "Current_Spending:Q", title="Spending", format="$,.2f"
+                ),
+                alt.Tooltip(
+                    "Current_Transactions:Q", title="Transactions"
+                ),
+            ],
         )
-
-    timeline = prepare_merchant_timeline(df, merchant_stats, top_n)
-    if timeline.empty:
-        return alt.Chart(pd.DataFrame()).mark_text().encode(  # type: ignore[no-any-return]
-            text=alt.value("No timeline data available")
+    )
+    comparison = (
+        alt.Chart(history)
+        .mark_line(color=COLOR_PLACEHOLDER, point=True, strokeWidth=2)
+        .encode(
+            x=x,
+            y=alt.Y("Comparison_Spending:Q", title="Monthly spending ($)"),
+            tooltip=[
+                alt.Tooltip("Comparison_Month:N", title=comparison_label.title()),
+                alt.Tooltip(
+                    "Comparison_Spending:Q", title="Spending", format="$,.2f"
+                ),
+                alt.Tooltip(
+                    "Comparison_Transactions:Q", title="Transactions"
+                ),
+            ],
         )
-
-    # Create line chart
-    chart = alt.Chart(timeline).mark_line(point=True).encode(
-        x=alt.X('Month:O', axis=alt.Axis(labelAngle=-45), title='Month'),
-        y=alt.Y('Amount_Abs:Q', title='Amount Spent ($)'),
-        color=alt.Color('Merchant:N',
-                       scale=alt.Scale(range=COLOR_PALETTE),
-                       legend=alt.Legend(title='Merchant')),
-        tooltip=[
-            alt.Tooltip('Merchant:N', title='Merchant'),
-            alt.Tooltip('Month:O', title='Month'),
-            alt.Tooltip('Amount_Abs:Q', title='Amount', format='$,.2f')
-        ]
-    ).properties(
-        height=CHART_HEIGHT_STANDARD,
-        title=f'Spending Timeline - Top {top_n} Merchants'
+    )
+    return cast(
+        alt.LayerChart,
+        alt.layer(current, comparison)
+        .resolve_scale(y="shared")
+        .properties(height=380),
     )
 
-    return chart  # type: ignore[no-any-return]
+
+def _breakdown_column_config(label: str) -> ColumnConfig:
+    return {
+        "Entity": st.column_config.TextColumn(label, pinned=True),
+        "Spending": st.column_config.NumberColumn("Spending", format="$%.2f"),
+        "Share": st.column_config.NumberColumn("Share", format="%.1f%%"),
+        "Transactions": st.column_config.NumberColumn("Transactions", format="%d"),
+    }
 
 
-def configure_page(
-    transactions_spreadsheet: TransactionsSpreadsheet,
+def _render_merchant_detail(
+    current_ledger: pd.DataFrame,
+    comparison_ledger: pd.DataFrame,
+    overview: pd.DataFrame,
+    *,
+    merchant: str,
+    current_months: Sequence[str],
+    comparison_months: Sequence[str],
+    comparison_label: str,
 ) -> None:
-    """Render top-merchant charts, spending timelines, and per-merchant tables."""
-    st.header("Merchant Analysis")
-    st.caption("Track spending patterns by merchant/vendor")
-
-    # Settings
-    with st.expander("Analysis Settings", expanded=False):
-        col1, col2, col3 = st.columns(3)
-
-        with col1:
-            time_period = st.selectbox(
-                "Time Period",
-                TIME_PERIODS,
-                index=4  # Default to Last 12 Months
-            )
-
-        with col2:
-            extraction_method = st.selectbox(
-                "Merchant Name Extraction",
-                ['normalized', 'first_word', 'first_two', 'first_three'],
-                index=0,
-                help="How to extract merchant name from transaction description"
-            )
-
-        with col3:
-            min_transactions = st.number_input(
-                "Minimum Transactions",
-                min_value=1,
-                max_value=20,
-                value=2,
-                help="Only show merchants with at least this many transactions"
-            )
-
-    # Get transactions
-    df = transactions_spreadsheet.scrubbed_df.copy()
-
-    # Calculate date range
-    start_date, end_date = calculate_date_range(time_period, df, anchor_to_data=True)
-
-    # Filter to date range
-    df_period = df[(df['Date'] >= start_date) & (df['Date'] <= end_date)].copy()
-
-    # Analyze merchants
-    with st.spinner("Analyzing merchants..."):
-        df_period = enrich_with_merchant(df_period, extraction_method)
-
-        merchant_stats = analyze_merchants(
-            df_period,
-            min_transactions=min_transactions,
+    row = overview[overview["Merchant"] == merchant].iloc[0]
+    st.subheader(merchant)
+    with st.container(horizontal=True):
+        st.metric("Spending", _format_currency(float(row["Spending"])), border=True)
+        st.metric(
+            f"Change vs {comparison_label}",
+            _format_signed_currency(float(row["Change"])),
+            _format_percent(
+                None if pd.isna(row["Change_Pct"]) else float(row["Change_Pct"])
+            ),
+            delta_color="inverse",
+            border=True,
+        )
+        st.metric("Transactions", f"{int(row['Transactions']):,}", border=True)
+        st.metric(
+            "Average purchase",
+            _format_currency(float(row["Average_Transaction"])),
+            border=True,
         )
 
-    # Display summary metrics
-    if not merchant_stats.empty:
-        summary = summarize_merchants(merchant_stats)
-
-        col1, col2, col3, col4 = st.columns(4)
-
-        with col1:
-            st.metric(
-                label="Total Merchants",
-                value=summary["count"]
-            )
-
-        with col2:
-            st.metric(
-                label="Total Spent",
-                value=f"${summary['total_spent']:,.2f}"
-            )
-
-        with col3:
-            st.metric(
-                label="Top Merchant",
-                value=summary["top_merchant"][:20],
-                delta=f"${summary['top_merchant_spent']:,.2f}"
-            )
-
-        with col4:
-            st.metric(
-                label="Avg Spent/Merchant",
-                value=f"${summary['average_spent']:,.2f}"
-            )
-
-        st.divider()
-
-        # Display visualizations
-        tab1, tab2, tab3 = st.tabs(["Top Merchants", "Frequency Analysis", "Timeline"])
-
-        with tab1:
-            top_n = st.slider("Number of merchants to show", 10, 50, 20, key="top_merchants_slider")
-            chart = create_top_merchants_chart(merchant_stats, top_n)
-            st.altair_chart(chart, width='stretch')
-
-        with tab2:
-            freq_chart = create_frequency_vs_amount_chart(merchant_stats)
-            st.altair_chart(freq_chart, width='stretch')
-            st.caption(
-                "Bubble size represents total spending. "
-                "Top-right quadrant = frequent high-value purchases. "
-                "Bottom-right = frequent low-value purchases."
-            )
-
-        with tab3:
-            timeline_n = st.slider("Number of merchants to show", 5, 20, 10, key="timeline_slider")
-            timeline_chart = create_merchant_timeline(df_period, merchant_stats, timeline_n)
-            st.altair_chart(timeline_chart, width='stretch')
-
-        st.divider()
-
-        # Search and filter merchants
-        st.subheader("Merchant Details")
-
-        search_term = st.text_input(
-            "Search merchants",
-            placeholder="Type to filter merchants..."
+    history = build_merchant_monthly_comparison(
+        current_ledger,
+        comparison_ledger,
+        merchant=merchant,
+        current_months=current_months,
+        comparison_months=comparison_months,
+    )
+    with st.container(border=True):
+        st.markdown(f"**Monthly spending · gray is {comparison_label}**")
+        st.altair_chart(
+            _merchant_history_chart(history, comparison_label=comparison_label),
+            width="stretch",
         )
 
-        # Filter merchant stats based on search
-        if search_term:
-            filtered_stats = merchant_stats[
-                merchant_stats['Merchant'].str.contains(search_term, case=False, na=False)
-            ]
-        else:
-            filtered_stats = merchant_stats
+    month_options = ["All months", *reversed(current_months)]
+    if st.session_state.get(DETAIL_MONTH_KEY) not in month_options:
+        st.session_state[DETAIL_MONTH_KEY] = "All months"
+    selected_month = st.selectbox(
+        "Detail month",
+        month_options,
+        format_func=lambda value: (
+            value if value == "All months" else _month_label(str(value))
+        ),
+        key=DETAIL_MONTH_KEY,
+        persist_state="page",
+    )
+    scoped = current_ledger[
+        current_ledger["Included"]
+        & current_ledger["Merchant"].astype(str).eq(merchant)
+    ].copy()
+    if selected_month != "All months":
+        scoped = scoped[scoped["Month"].astype(str).eq(str(selected_month))]
 
-        st.caption(f"Showing {len(filtered_stats)} merchants")
-
-        # Display merchant stats table
+    breakdown_tab, descriptions_tab, transactions_tab = st.tabs(
+        ["Breakdown", "Descriptions", "Transactions"]
+    )
+    with breakdown_tab:
+        category_column, account_column = st.columns(2)
+        with category_column:
+            st.markdown("**Categories**")
+            categories = build_merchant_dimension_breakdown(
+                scoped,
+                merchant=merchant,
+                dimension="Category",
+            )
+            st.dataframe(
+                categories,
+                width="stretch",
+                hide_index=True,
+                column_config=_breakdown_column_config("Category"),
+            )
+        with account_column:
+            st.markdown("**Accounts**")
+            accounts = build_merchant_dimension_breakdown(
+                scoped,
+                merchant=merchant,
+                dimension="Account",
+            )
+            st.dataframe(
+                accounts,
+                width="stretch",
+                hide_index=True,
+                column_config=_breakdown_column_config("Account"),
+            )
+    with descriptions_tab:
+        descriptions = build_merchant_description_breakdown(
+            scoped,
+            merchant=merchant,
+        )
         st.dataframe(
-            filtered_stats,
-            width='stretch',
-            height=400,
+            descriptions,
+            width="stretch",
             hide_index=True,
             column_config={
-                'Merchant': st.column_config.TextColumn('Merchant'),
-                'Total_Spent': st.column_config.NumberColumn('Total Spent', format='$%.2f'),
-                'Num_Transactions': st.column_config.NumberColumn('# Transactions'),
-                'Avg_Transaction': st.column_config.NumberColumn('Avg Transaction', format='$%.2f'),
-                'Primary_Category': st.column_config.TextColumn('Category'),
-                'Primary_Account': st.column_config.TextColumn('Account'),
-                'First_Transaction': st.column_config.DateColumn('First Purchase', format='YYYY-MM-DD'),
-                'Last_Transaction': st.column_config.DateColumn('Last Purchase', format='YYYY-MM-DD'),
-                'Days_Active': st.column_config.NumberColumn('Days Active')
-            }
+                "Description": st.column_config.TextColumn(
+                    "Description", pinned=True, width="large"
+                ),
+                "Spending": st.column_config.NumberColumn(
+                    "Spending", format="$%.2f"
+                ),
+                "Transactions": st.column_config.NumberColumn(
+                    "Transactions", format="%d"
+                ),
+                "Last_Transaction": st.column_config.DateColumn(
+                    "Last transaction", format="MMM DD, YYYY"
+                ),
+            },
+        )
+    with transactions_tab:
+        columns = [
+            "Date",
+            "Full Description",
+            "Category",
+            "Group",
+            "Account",
+            "Net_Spend",
+        ]
+        transactions = (
+            scoped.sort_values(["Net_Spend", "Date"], ascending=[False, False])[
+                columns
+            ]
+            .rename(
+                columns={
+                    "Full Description": "Description",
+                    "Net_Spend": "Spending",
+                }
+            )
+        )
+        st.dataframe(
+            transactions,
+            width="stretch",
+            hide_index=True,
+            column_config={
+                "Date": st.column_config.DateColumn("Date", format="MMM DD, YYYY"),
+                "Description": st.column_config.TextColumn(
+                    "Description", pinned=True, width="large"
+                ),
+                "Spending": st.column_config.NumberColumn(
+                    "Spending", format="$%.2f"
+                ),
+            },
         )
 
-        # Show transactions for selected merchant
-        with st.expander("View Transactions by Merchant"):
-            selected_merchant = st.selectbox(
-                "Select Merchant",
-                options=filtered_stats['Merchant'].tolist()
+
+def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
+    """Render merchant ranking and selected-merchant drill-down."""
+    st.header("Merchant analysis")
+    try:
+        merchant_aliases = _configured_merchant_aliases()
+    except ValueError as error:
+        st.error(f"Merchant alias configuration is invalid: {error}")
+        return
+    transactions = transactions_spreadsheet.scrubbed_df.copy()
+    expenses = transactions[transactions["Type"] == "Expense"]
+    if expenses.empty:
+        st.info("No expense transactions are available.")
+        return
+
+    latest = latest_data_timestamp(expenses)
+    if latest is not None:
+        latest_label = latest.strftime("%B %d, %Y").replace(" 0", " ")
+        st.caption(f"Spending through {latest_label}")
+
+    expense_categories = sorted(expenses["Category"].dropna().astype(str).unique())
+    expense_groups = sorted(expenses["Group"].dropna().astype(str).unique())
+    controls = st.columns([1.0, 1.4, 1.35, 2.25], vertical_alignment="bottom")
+    with controls[0]:
+        lookback = st.segmented_control(
+            "Time frame",
+            list(LOOKBACK_MONTHS),
+            default="1Y",
+            key="merchant_lookback",
+            persist_state="page",
+        )
+    with controls[1]:
+        view = st.segmented_control(
+            "View",
+            SPENDING_VIEWS,
+            default="Discretionary",
+            key="merchant_view",
+            persist_state="page",
+        )
+    with controls[2]:
+        comparison = st.segmented_control(
+            "Compare with",
+            COMPARISON_VIEWS,
+            default="Previous period",
+            key="merchant_comparison",
+            persist_state="page",
+        )
+    with controls[3]:
+        filters = render_spending_filters(
+            expense_categories,
+            expense_groups,
+            view=str(view),
+        )
+
+    lookback_months = LOOKBACK_MONTHS[str(lookback)]
+    (
+        current_months,
+        comparison_months,
+        current_start,
+        current_end,
+        comparison_start,
+        comparison_end,
+    ) = _analysis_periods(
+        transactions,
+        lookback_months=lookback_months,
+        comparison=str(comparison),
+    )
+    current_ledger = enrich_with_merchant(
+        build_spending_ledger(
+            transactions,
+            filters,
+            start_month=current_start,
+            end_month=current_end,
+        ),
+        "normalized",
+        aliases=merchant_aliases,
+    )
+    comparison_ledger = enrich_with_merchant(
+        build_spending_ledger(
+            transactions,
+            filters,
+            start_month=comparison_start,
+            end_month=comparison_end,
+        ),
+        "normalized",
+        aliases=merchant_aliases,
+    )
+    overview = build_merchant_overview(
+        current_ledger,
+        comparison_ledger,
+        months=current_months,
+    )
+    if overview.empty or not bool(current_ledger["Included"].any()):
+        st.info("No spending is included in this view. Adjust the filters to continue.")
+        return
+
+    _render_summary_metrics(overview, num_months=lookback_months)
+    excluded = current_ledger[~current_ledger["Included"]]
+    if not excluded.empty:
+        st.badge(
+            f"{len(excluded):,} excluded · "
+            f"{_format_currency(float(excluded['Net_Spend'].sum()))} net spending",
+            color="gray",
+        )
+    if merchant_aliases:
+        st.badge(
+            f"{len(set(merchant_aliases.values()))} aliased vendors · "
+            f"{len(merchant_aliases)} rules",
+            color="gray",
+        )
+
+    comparison_text = _comparison_label(str(comparison), lookback_months)
+    with st.container(border=True):
+        st.subheader("Where the money went")
+        search = st.text_input(
+            "Find a merchant",
+            placeholder="Search normalized merchant names",
+            key="merchant_search",
+            persist_state="page",
+        )
+        filtered = overview[
+            overview["Merchant"].str.contains(
+                str(search),
+                case=False,
+                na=False,
+                regex=False,
+            )
+        ].reset_index(drop=True)
+        if filtered.empty:
+            st.info("No merchants match that search.")
+            return
+
+        ranking_column, table_column = st.columns(
+            [1, 1.7],
+            gap="large",
+            vertical_alignment="top",
+        )
+        with table_column:
+            selected_merchant = _render_overview_table(
+                filtered,
+                comparison_label=comparison_text,
+                state_key=(
+                    f"merchant_overview_{lookback}_{view}_{comparison}_"
+                    f"{crc32(repr(filters).encode()):08x}"
+                ),
+            )
+        with ranking_column:
+            st.markdown("**Top merchants by spending**")
+            st.altair_chart(
+                _ranking_chart(overview, selected_merchant),
+                width="stretch",
             )
 
-            if selected_merchant:
-                merchant_transactions = df_period[
-                    df_period['Merchant'] == selected_merchant
-                ].sort_values('Date', ascending=False)
-
-                st.caption(f"Showing {len(merchant_transactions)} transactions for {selected_merchant}")
-
-                st.dataframe(
-                    merchant_transactions,
-                    width='stretch',
-                    height=400,
-                    hide_index=True,
-                    column_config=get_transaction_column_config()
-                )
-    else:
-        st.info(
-            "No merchant data found for the selected time period and filters. "
-            "Try adjusting the settings or selecting a different time period."
-        )
+    _render_merchant_detail(
+        current_ledger,
+        comparison_ledger,
+        overview,
+        merchant=selected_merchant,
+        current_months=current_months,
+        comparison_months=comparison_months,
+        comparison_label=comparison_text,
+    )
 
 
 def main() -> None:
     """Streamlit entry point for the Merchant Analysis page."""
     st.set_page_config(layout="wide")
     render_data_refresh_controls()
-
-    transactions_spreadsheet = load_transactions_data()
-
-    configure_page(transactions_spreadsheet)
+    configure_page(load_transactions_data())
 
 
 if __name__ == "__main__":

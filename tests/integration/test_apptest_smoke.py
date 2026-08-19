@@ -140,6 +140,40 @@ def _add_groceries_to_year_over_year_utility(at: AppTest) -> None:
     )
 
 
+def _select_market_basket_merchant(at: AppTest) -> None:
+    overview = next(
+        table
+        for table in at.dataframe
+        if str(table.key).startswith("merchant_overview_")
+    )
+    row = overview.value.index[
+        overview.value["Merchant"].eq("MARKET BASKET STAPLES")
+    ].tolist()[0]
+    at.session_state[str(overview.key)] = {
+        "selection": {"rows": [row], "columns": [], "cells": []},
+    }
+
+
+def _select_market_basket_in_february(at: AppTest) -> None:
+    _select_market_basket_merchant(at)
+    at.run()
+    at.selectbox(key="merchant_detail_month").set_value("2026-02")
+
+
+def _set_discretionary_three_month_merchant_view(at: AppTest) -> None:
+    at.segmented_control(key="merchant_lookback").set_value("3M")
+    at.segmented_control(key="merchant_view").set_value("Discretionary")
+    at.segmented_control(key="merchant_comparison").set_value("Last year")
+
+
+def _set_all_merchant_view(at: AppTest) -> None:
+    at.segmented_control(key="merchant_view").set_value("All spending")
+
+
+def _include_all_groups_in_discretionary_merchant_view(at: AppTest) -> None:
+    at.multiselect(key="spending_discretionary_exclude_groups").set_value([])
+
+
 def _make_app(
     page_file: str,
     make_full_dataset: FullDatasetFactory,
@@ -1128,7 +1162,7 @@ class TestSubscriptionsSmoke:
 @pytest.mark.uses_real_dates
 class TestMerchantAnalysisSmoke:
 
-    def test_runs_without_exception(
+    def test_default_overview_and_detail(
         self, make_full_dataset: FullDatasetFactory,
     ) -> None:
         at = _make_app(
@@ -1140,11 +1174,168 @@ class TestMerchantAnalysisSmoke:
         )
         assert not at.exception
         assert _metric_values(at) == [
-            ("Total Merchants", "8", ""),
-            ("Total Spent", "$32,884.87", ""),
-            ("Top Merchant", "APARTMENT RENT", "$19,200.00"),
-            ("Avg Spent/Merchant", "$4,110.61", ""),
+            ("Total spending", "$29,357", ""),
+            ("Average monthly", "$2,446", ""),
+            ("Merchants", "8", ""),
+            ("At repeat merchants", "99.7%", ""),
+            ("Spending", "$17,600", ""),
+            ("Change vs previous 12 months", "+$17,600", "—"),
+            ("Transactions", "11", ""),
+            ("Average purchase", "$1,600", ""),
         ]
+        assert at.segmented_control(key="merchant_lookback").value == "1Y"
+        assert at.segmented_control(key="merchant_view").value == "Discretionary"
+        assert (
+            at.segmented_control(key="merchant_comparison").value
+            == "Previous period"
+        )
+        overview = next(
+            table.value
+            for table in at.dataframe
+            if str(table.key).startswith("merchant_overview_")
+        )
+        assert overview.iloc[0]["Merchant"] == "APARTMENT RENT"
+        assert {
+            "Merchant",
+            "Spending",
+            "Share",
+            "Change",
+            "Transactions",
+            "Monthly_Trend",
+        }.issubset(overview.columns)
+        assert [tab.label for tab in at.tabs] == [
+            "Breakdown",
+            "Descriptions",
+            "Transactions",
+        ]
+        assert at.selectbox(key="merchant_detail_month").value == "All months"
+
+        charts = at.get("vega_lite_chart")
+        assert len(charts) == 2
+        ranking_spec = json.loads(charts[0].proto.spec)
+        history_spec = json.loads(charts[1].proto.spec)
+        assert ranking_spec["mark"]["type"] == "bar"
+        assert ranking_spec["encoding"]["y"]["field"] == "Merchant"
+        assert "params" not in ranking_spec
+        assert len(history_spec["layer"]) == 2
+        assert {layer["mark"]["type"] for layer in history_spec["layer"]} == {
+            "bar",
+            "line",
+        }
+        assert "params" not in history_spec
+
+    def test_selecting_merchant_updates_detail_and_transactions(
+        self, make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        at = _make_app(
+            "6_Merchant_Analysis.py",
+            make_full_dataset,
+            ["src.spreadsheet.load_transactions_data"],
+            _select_market_basket_merchant,
+        )
+
+        assert not at.exception
+        assert at.session_state["merchant_selected_name"] == "MARKET BASKET STAPLES"
+        assert any(
+            subheader.value == "MARKET BASKET STAPLES" for subheader in at.subheader
+        )
+        transactions = next(
+            table.value
+            for table in at.dataframe
+            if {"Date", "Description", "Category", "Group", "Account", "Spending"}
+            <= set(table.value.columns)
+        )
+        assert not transactions.empty
+        assert transactions["Description"].str.contains(
+            "MARKET BASKET", case=False
+        ).all()
+
+    def test_detail_month_scopes_transactions(
+        self, make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        at = _make_app(
+            "6_Merchant_Analysis.py",
+            make_full_dataset,
+            ["src.spreadsheet.load_transactions_data"],
+            _select_market_basket_in_february,
+        )
+
+        assert not at.exception
+        assert at.selectbox(key="merchant_detail_month").value == "2026-02"
+        transactions = next(
+            table.value
+            for table in at.dataframe
+            if {"Date", "Description", "Category", "Group", "Account", "Spending"}
+            <= set(table.value.columns)
+        )
+        assert not transactions.empty
+        assert set(pd.to_datetime(transactions["Date"]).dt.strftime("%Y-%m")) == {
+            "2026-02"
+        }
+
+    def test_discretionary_and_comparison_controls_rebuild_inventory(
+        self, make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        at = _make_app(
+            "6_Merchant_Analysis.py",
+            make_full_dataset,
+            ["src.spreadsheet.load_transactions_data"],
+            _set_discretionary_three_month_merchant_view,
+        )
+
+        assert not at.exception
+        assert at.segmented_control(key="merchant_lookback").value == "3M"
+        assert at.segmented_control(key="merchant_view").value == "Discretionary"
+        assert at.segmented_control(key="merchant_comparison").value == "Last year"
+        assert "Bills" in at.multiselect(
+            key="spending_discretionary_exclude_groups"
+        ).value
+        overview = next(
+            table.value
+            for table in at.dataframe
+            if str(table.key).startswith("merchant_overview_")
+        )
+        assert len(overview) == 8
+        assert "MARKET BASKET STAPLES" in overview["Merchant"].values
+
+    def test_all_spending_view_restores_excluded_merchants(
+        self, make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        at = _make_app(
+            "6_Merchant_Analysis.py",
+            make_full_dataset,
+            ["src.spreadsheet.load_transactions_data"],
+            _set_all_merchant_view,
+        )
+
+        assert not at.exception
+        assert at.segmented_control(key="merchant_view").value == "All spending"
+        assert _metric_values(at)[:4] == [
+            ("Total spending", "$30,677", ""),
+            ("Average monthly", "$2,556", ""),
+            ("Merchants", "9", ""),
+            ("At repeat merchants", "99.7%", ""),
+        ]
+
+    def test_discretionary_filters_are_editable_in_place(
+        self, make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        at = _make_app(
+            "6_Merchant_Analysis.py",
+            make_full_dataset,
+            ["src.spreadsheet.load_transactions_data"],
+            _include_all_groups_in_discretionary_merchant_view,
+        )
+
+        assert not at.exception
+        assert at.segmented_control(key="merchant_view").value == "Discretionary"
+        assert at.multiselect(key="spending_discretionary_exclude_groups").value == []
+        overview = next(
+            table.value
+            for table in at.dataframe
+            if str(table.key).startswith("merchant_overview_")
+        )
+        assert "UTILITY POWER BILL" in overview["Merchant"].values
 
 
 @pytest.mark.uses_real_dates
