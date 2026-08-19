@@ -331,6 +331,27 @@ class TestSpendingDetailAnalysis:
         assert kroger["Spending"] == pytest.approx(150.0)
         assert kroger["Transactions"] == 2
 
+    def test_merchant_breakdown_applies_configured_aliases(self) -> None:
+        ledger = pd.DataFrame(
+            {
+                "Included": [True, True],
+                "Net_Spend": [100.0, 50.0],
+                "Full Description": [
+                    "AMZN MKTPLACE order 123",
+                    "AMAZON.COM order 456",
+                ],
+                "Date": pd.to_datetime(["2024-01-01", "2024-01-02"], utc=True),
+            }
+        )
+
+        merchants = build_merchant_breakdown(
+            ledger,
+            aliases={"AMZN MKTPLACE": "AMAZON", "AMAZON COM": "AMAZON"},
+        )
+
+        assert merchants["Merchant"].tolist() == ["AMAZON"]
+        assert merchants["Spending"].tolist() == pytest.approx([150.0])
+
     def test_empty_merchant_breakdown_has_exact_schema(self) -> None:
         result = build_merchant_breakdown(
             pd.DataFrame(columns=["Included", "Net_Spend", "Date"])

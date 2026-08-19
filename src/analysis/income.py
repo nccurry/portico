@@ -2,12 +2,7 @@
 
 import pandas as pd
 
-from src.custom_types import (
-    FilteredTransactionSummary,
-    IncomeExpenseFilters,
-    SavingsSummary,
-    TransactionFilterOptions,
-)
+from src.custom_types import IncomeExpenseFilters, SavingsSummary, TransactionFilterOptions
 from src.constants import DEFAULT_EXPENSE_THRESHOLD, DEFAULT_INCOME_THRESHOLD
 from src.spreadsheet import TransactionsSpreadsheet
 
@@ -245,20 +240,4 @@ def calculate_savings_summary(monthly: pd.DataFrame) -> SavingsSummary:
         average_monthly_surplus=float(surplus.mean()),
         positive_surplus_months=int(surplus.gt(0).sum()),
         num_months=len(monthly),
-    )
-
-
-def summarize_filtered_transactions(
-    transactions: pd.DataFrame,
-) -> FilteredTransactionSummary:
-    """Summarize transactions removed by the large-amount filters."""
-    income = transactions.loc[transactions["Type"] == "Income", "Amount"].sum()
-    expenses = transactions.loc[transactions["Type"] == "Expense", "Amount"].sum()
-    income_amount = float(abs(income))
-    expense_amount = float(abs(expenses))
-    return FilteredTransactionSummary(
-        count=len(transactions),
-        total_amount=income_amount + expense_amount,
-        income_amount=income_amount,
-        expense_amount=expense_amount,
     )

@@ -19,7 +19,7 @@ from src.analysis.spending import (
 from src.constants import COLOR_EXPENSE, COLOR_PLACEHOLDER
 from src.custom_types import ColumnConfig, SpendingSummary
 from src.filters import render_spending_filters
-from src.page_helpers import render_data_refresh_controls
+from src.page_helpers import configured_merchant_aliases, render_data_refresh_controls
 from src.reporting_periods import completed_month_window, latest_data_timestamp
 from src.spreadsheet import TransactionsSpreadsheet, load_transactions_data
 
@@ -444,7 +444,12 @@ def _render_breakdown_table(
 
 
 def _render_merchant_table(ledger: pd.DataFrame) -> None:
-    merchants = build_merchant_breakdown(ledger)
+    try:
+        aliases = configured_merchant_aliases()
+    except ValueError as error:
+        st.error(str(error), icon=":material/error:")
+        return
+    merchants = build_merchant_breakdown(ledger, aliases=aliases)
     if merchants.empty:
         st.info("No merchant spending in this selection.")
         return

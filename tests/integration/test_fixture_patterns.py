@@ -12,7 +12,10 @@ from src.constants import MIN_DUPLICATE_AMOUNT, DEFAULT_DUPLICATE_DAYS_THRESHOLD
 from src.analysis.budget import get_budget_vs_actual
 from src.analysis.duplicates import find_duplicates_efficient
 from src.analysis.subscriptions import build_subscription_inventory, get_subscription_transactions
-from src.analysis.top_transactions import get_top_transactions
+from src.analysis.top_transactions import (
+    build_transaction_inventory,
+    filter_transaction_focus,
+)
 from src.filters import apply_transaction_filters
 from src.spreadsheet import calculate_net_worth_summary
 from tests.custom_types import FullDatasetFactory, SpreadsheetBundle
@@ -143,11 +146,12 @@ class TestTopNTiePatternsIntegration:
         start = reference_date - pd.DateOffset(months=3)
         end = reference_date
 
-        top_df, _stats = get_top_transactions(df, 50, start, end)
+        inventory = build_transaction_inventory(df, start, end)
+        top_df = filter_transaction_focus(inventory, "Largest", largest_count=50)
         if top_df.empty:
             pytest.skip("No expenses in date range")
 
-        amounts = top_df["Abs_Amount"]
+        amounts = top_df["Magnitude"]
         tie_amounts = amounts[amounts.duplicated(keep=False)]
         assert len(tie_amounts) >= 2, (
             "Expected ≥2 rows with tied amounts in top-N results"

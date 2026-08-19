@@ -1,6 +1,6 @@
 """Pure calculations for interactive spending exploration."""
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 
 import pandas as pd
 
@@ -288,7 +288,11 @@ def build_entity_monthly_comparison(
     return pd.DataFrame(rows, columns=MONTHLY_COMPARISON_COLUMNS)
 
 
-def build_merchant_breakdown(ledger: pd.DataFrame) -> pd.DataFrame:
+def build_merchant_breakdown(
+    ledger: pd.DataFrame,
+    *,
+    aliases: Mapping[str, str] | None = None,
+) -> pd.DataFrame:
     """Return merchant-level spending for included rows."""
     included = _included(ledger)
     if included.empty:
@@ -298,7 +302,11 @@ def build_merchant_breakdown(ledger: pd.DataFrame) -> pd.DataFrame:
         pd.Series("Unknown", index=included.index, dtype="string"),
     )
     included["Merchant"] = descriptions.map(
-        lambda description: normalize_merchant_name(description, method="first_two")
+        lambda description: normalize_merchant_name(
+            description,
+            method="first_two",
+            aliases=aliases,
+        )
     )
     grouped = (
         included.groupby("Merchant", dropna=False)

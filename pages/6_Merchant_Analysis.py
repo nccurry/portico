@@ -1,6 +1,6 @@
 """Explore merchant spending, trends, composition, and transactions."""
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from typing import cast
 from zlib import crc32
 
@@ -12,7 +12,6 @@ from streamlit.elements.arrow import DataframeState
 from src.analysis.merchants import (
     build_merchant_description_breakdown,
     build_merchant_dimension_breakdown,
-    build_merchant_aliases,
     build_merchant_monthly_comparison,
     build_merchant_overview,
     enrich_with_merchant,
@@ -22,7 +21,7 @@ from src.analysis.spending import build_spending_ledger
 from src.constants import COLOR_NET_WORTH, COLOR_PLACEHOLDER
 from src.custom_types import ColumnConfig
 from src.filters import render_spending_filters
-from src.page_helpers import render_data_refresh_controls
+from src.page_helpers import configured_merchant_aliases, render_data_refresh_controls
 from src.reporting_periods import completed_month_window, latest_data_timestamp
 from src.spreadsheet import TransactionsSpreadsheet, load_transactions_data
 
@@ -32,16 +31,6 @@ SPENDING_VIEWS = ["All spending", "Discretionary"]
 COMPARISON_VIEWS = ["Previous period", "Last year"]
 SELECTED_MERCHANT_KEY = "merchant_selected_name"
 DETAIL_MONTH_KEY = "merchant_detail_month"
-
-
-def _configured_merchant_aliases() -> dict[str, str]:
-    try:
-        configured = st.secrets.get("merchant_aliases", {})
-    except FileNotFoundError:
-        return {}
-    if not isinstance(configured, Mapping):
-        raise ValueError("The merchant_aliases configuration must be a TOML table")
-    return build_merchant_aliases(configured)
 
 
 def _format_currency(value: float) -> str:
@@ -478,7 +467,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
     """Render merchant ranking and selected-merchant drill-down."""
     st.header("Spending by Merchant")
     try:
-        merchant_aliases = _configured_merchant_aliases()
+        merchant_aliases = configured_merchant_aliases()
     except ValueError as error:
         st.error(f"Merchant alias configuration is invalid: {error}")
         return
