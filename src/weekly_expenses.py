@@ -8,6 +8,12 @@ import datetime as dt
 import pandas as pd
 
 from src.analysis.data_health import find_uncategorized_transactions
+from src.analysis.merchants import normalize_merchant_name
+
+
+AVERAGE_WEEKS = 8
+ROLLING_WEEKS = 4
+TOP_VENDOR_COUNT = 3
 
 
 class WeeklyExpenseError(ValueError):
@@ -16,47 +22,57 @@ class WeeklyExpenseError(ValueError):
 
 @dataclass(frozen=True)
 class ReportPeriod:
-    """Current and comparison Sunday-through-Saturday periods."""
+    """Current week and its comparison windows."""
 
     start: dt.date
     end: dt.date
     comparison_start: dt.date
     comparison_end: dt.date
 
+    @property
+    def rolling_start(self) -> dt.date:
+        """Return the start of the four weeks ending with this report."""
+        return self.end - dt.timedelta(days=(ROLLING_WEEKS * 7) - 1)
+
+    @property
+    def previous_rolling_start(self) -> dt.date:
+        """Return the start of the preceding four-week comparison."""
+        return self.rolling_start - dt.timedelta(days=ROLLING_WEEKS * 7)
+
+    @property
+    def previous_rolling_end(self) -> dt.date:
+        """Return the end of the preceding four-week comparison."""
+        return self.rolling_start - dt.timedelta(days=1)
+
 
 @dataclass(frozen=True)
-class CategoryTotal:
-    """Current and comparison spending for one category."""
+class VendorTotal:
+    """Current-week spending for one vendor."""
 
     name: str
     amount: float
-    previous_amount: float
-
-    @property
-    def change(self) -> float:
-        """Return the dollar change from the comparison period."""
-        return _money(self.amount - self.previous_amount)
 
 
 @dataclass(frozen=True)
-class UncategorizedTotal:
-    """Current, comparison, and outstanding uncategorized transactions."""
+class CategoryTotal:
+    """Weekly and rolling spending for one category."""
 
+    name: str
     amount: float
-    previous_amount: float
-    count: int
-    previous_count: int
-    outstanding_count: int
+    average_amount: float
+    rolling_amount: float
+    previous_rolling_amount: float
+    top_vendors: tuple[VendorTotal, ...] = ()
 
     @property
     def change(self) -> float:
-        """Return the net-outflow change from the comparison period."""
-        return _money(self.amount - self.previous_amount)
+        """Return the dollar change from the usual weekly amount."""
+        return _money(self.amount - self.average_amount)
 
     @property
-    def count_change(self) -> int:
-        """Return the transaction-count change from the comparison period."""
-        return self.count - self.previous_count
+    def rolling_change(self) -> float:
+        """Return the dollar change from the preceding four weeks."""
+        return _money(self.rolling_amount - self.previous_rolling_amount)
 
 
 @dataclass(frozen=True)
@@ -66,18 +82,25 @@ class WeeklyExpenseReport:
     period: ReportPeriod
     categories: tuple[CategoryTotal, ...]
     selected_total: float
-    previous_selected_total: float
+    average_selected_total: float
+    rolling_selected_total: float
+    previous_rolling_selected_total: float
     all_expenses_total: float
-    uncategorized: UncategorizedTotal
+    uncategorized_count: int
 
     @property
     def selected_change(self) -> float:
-        """Return the selected-category change from the comparison period."""
-        return _money(self.selected_total - self.previous_selected_total)
+        """Return the selected-category change from the usual weekly amount."""
+        return _money(self.selected_total - self.average_selected_total)
+
+    @property
+    def rolling_selected_change(self) -> float:
+        """Return the watched-total change from the preceding four weeks."""
+        return _money(self.rolling_selected_total - self.previous_rolling_selected_total)
 
 
 def completed_week(today: dt.date, period_end: dt.date | None = None) -> ReportPeriod:
-    """Return a completed Sunday-through-Saturday period and its predecessor."""
+    """Return a completed week and its trailing average window."""
     if period_end is None:
         days_since_saturday = (today.weekday() - 5) % 7 or 7
         end = today - dt.timedelta(days=days_since_saturday)
@@ -90,7 +113,7 @@ def completed_week(today: dt.date, period_end: dt.date | None = None) -> ReportP
 
     start = end - dt.timedelta(days=6)
     comparison_end = start - dt.timedelta(days=1)
-    comparison_start = comparison_end - dt.timedelta(days=6)
+    comparison_start = comparison_end - dt.timedelta(days=(AVERAGE_WEEKS * 7) - 1)
     return ReportPeriod(start, end, comparison_start, comparison_end)
 
 
@@ -128,55 +151,84 @@ def calculate_weekly_report(
     categories: tuple[str, ...],
     period: ReportPeriod,
 ) -> WeeklyExpenseReport:
-    """Calculate configured and all-expense totals for two adjacent weeks."""
+    """Calculate weekly spending, averages, and four-week comparisons."""
     validate_selected_categories(categories, metadata)
 
     expense_rows = transactions[transactions["Type"] == "Expense"].copy()
     transaction_dates = expense_rows["Date"].dt.date
     current = expense_rows[transaction_dates.between(period.start, period.end)]
-    previous = expense_rows[
+    comparison = expense_rows[
         transaction_dates.between(period.comparison_start, period.comparison_end)
     ]
-
-    uncategorized_rows = find_uncategorized_transactions(transactions)
-    uncategorized_dates = uncategorized_rows["Date"].dt.date
-    current_uncategorized = uncategorized_rows[
-        uncategorized_dates.between(period.start, period.end)
-    ]
-    previous_uncategorized = uncategorized_rows[
-        uncategorized_dates.between(period.comparison_start, period.comparison_end)
+    rolling = expense_rows[transaction_dates.between(period.rolling_start, period.end)]
+    previous_rolling = expense_rows[
+        transaction_dates.between(period.previous_rolling_start, period.previous_rolling_end)
     ]
 
-    category_totals = tuple(
-        CategoryTotal(
-            name=category,
-            amount=_spending(current[current["Category"] == category]),
-            previous_amount=_spending(previous[previous["Category"] == category]),
+    category_totals = []
+    for category in categories:
+        current_rows = current[current["Category"] == category]
+        comparison_rows = comparison[comparison["Category"] == category]
+        rolling_rows = rolling[rolling["Category"] == category]
+        previous_rolling_rows = previous_rolling[previous_rolling["Category"] == category]
+        category_totals.append(
+            CategoryTotal(
+                name=category,
+                amount=_spending(current_rows),
+                average_amount=_average_weekly_spending(comparison_rows),
+                rolling_amount=_spending(rolling_rows),
+                previous_rolling_amount=_spending(previous_rolling_rows),
+                top_vendors=_top_vendors(current_rows),
+            )
         )
-        for category in categories
+    category_totals_tuple = tuple(category_totals)
+    selected_total = _money(sum(item.amount for item in category_totals_tuple))
+    selected_comparison = comparison[comparison["Category"].isin(categories)]
+    average_selected_total = _average_weekly_spending(selected_comparison)
+    rolling_selected_total = _spending(rolling[rolling["Category"].isin(categories)])
+    previous_rolling_selected_total = _spending(
+        previous_rolling[previous_rolling["Category"].isin(categories)]
     )
-    selected_total = _money(sum(item.amount for item in category_totals))
-    previous_selected_total = _money(sum(item.previous_amount for item in category_totals))
 
     return WeeklyExpenseReport(
         period=period,
-        categories=category_totals,
+        categories=category_totals_tuple,
         selected_total=selected_total,
-        previous_selected_total=previous_selected_total,
+        average_selected_total=average_selected_total,
+        rolling_selected_total=rolling_selected_total,
+        previous_rolling_selected_total=previous_rolling_selected_total,
         all_expenses_total=_spending(current),
-        uncategorized=UncategorizedTotal(
-            amount=_spending(current_uncategorized),
-            previous_amount=_spending(previous_uncategorized),
-            count=len(current_uncategorized),
-            previous_count=len(previous_uncategorized),
-            outstanding_count=len(uncategorized_rows),
-        ),
+        uncategorized_count=len(find_uncategorized_transactions(transactions)),
     )
 
 
 def _spending(rows: pd.DataFrame) -> float:
     """Convert Tiller's signed expense amounts into net positive spending."""
     return _money(-float(rows["Amount"].sum()))
+
+
+def _average_weekly_spending(rows: pd.DataFrame) -> float:
+    """Return average spending across the fixed trailing week window."""
+    return _money(_spending(rows) / AVERAGE_WEEKS)
+
+
+def _top_vendors(rows: pd.DataFrame) -> tuple[VendorTotal, ...]:
+    """Return the largest positive net vendor totals for the current week."""
+    if rows.empty:
+        return ()
+
+    vendors = rows.assign(
+        Vendor=rows["Full Description"].map(normalize_merchant_name)
+    )
+    totals = vendors.groupby("Vendor", as_index=False)["Amount"].sum()
+    totals["Amount"] = -totals["Amount"]
+    totals = totals[totals["Amount"] > 0].sort_values(
+        ["Amount", "Vendor"], ascending=[False, True]
+    )
+    return tuple(
+        VendorTotal(name=str(row.Vendor), amount=_money(float(row.Amount)))
+        for row in totals.head(TOP_VENDOR_COUNT).itertuples(index=False)
+    )
 
 
 def _money(value: float) -> float:

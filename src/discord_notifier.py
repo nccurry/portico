@@ -6,6 +6,7 @@ import argparse
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 import datetime as dt
+from io import TextIOWrapper
 import json
 import os
 from pathlib import Path
@@ -22,6 +23,8 @@ import pandas as pd
 
 from src.scrubbing import SpreadsheetSchemaError, scrub_categories, scrub_transactions
 from src.weekly_expenses import (
+    AVERAGE_WEEKS,
+    ROLLING_WEEKS,
     ReportPeriod,
     WeeklyExpenseError,
     WeeklyExpenseReport,
@@ -177,12 +180,36 @@ def test_payload() -> dict[str, Any]:
 
 def report_payload(report: WeeklyExpenseReport) -> dict[str, Any]:
     """Return the Discord embed for a weekly expense report."""
-    category_lines = [
-        f"**{_escape_markdown(item.name)}** — **{_currency(item.amount)}** · {_change_text(item.change)}"
-        for item in report.categories
-    ]
+    category_lines = []
+    for item in report.categories:
+        summary = (
+            f"**{_escape_markdown(item.name)}** — **{_currency(item.amount)}** · "
+            f"{_usual_change_text(item.change)}"
+        )
+        if item.top_vendors:
+            vendors = " · ".join(
+                f"{_escape_markdown(vendor.name)} {_currency(vendor.amount)}"
+                for vendor in item.top_vendors
+            )
+            summary = f"{summary}\nTop vendors: {vendors}"
+        category_lines.append(summary)
     category_value = "\n".join(category_lines)
     if len(category_value) > 1024:
+        raise NotifierError("The configured category list is too long for one Discord message.")
+
+    rolling_lines = [
+        (
+            f"**{_escape_markdown(item.name)}** — **{_currency(item.rolling_amount)}** · "
+            f"{_rolling_change_text(item.rolling_change)}"
+        )
+        for item in report.categories
+    ]
+    rolling_lines.append(
+        f"**Watched total** — **{_currency(report.rolling_selected_total)}** · "
+        f"{_rolling_change_text(report.rolling_selected_change)}"
+    )
+    rolling_value = "\n".join(rolling_lines)
+    if len(rolling_value) > 1024:
         raise NotifierError("The configured category list is too long for one Discord message.")
 
     period = report.period
@@ -193,40 +220,43 @@ def report_payload(report: WeeklyExpenseReport) -> dict[str, Any]:
     return {
         "embeds": [
             {
-                "title": "Weekly expense summary",
+                "title": "Weekly spending",
                 "description": f"{_date(period.start)} - {_date(period.end, include_year=True)}",
                 "color": color,
                 "fields": [
-                    {"name": "Selected categories", "value": category_value, "inline": False},
+                    {"name": "Watched categories", "value": category_value, "inline": False},
                     {
-                        "name": "Uncategorized",
-                        "value": (
-                            f"**{_net_flow(report.uncategorized.amount)}** · "
-                            f"{_change_text(report.uncategorized.change)}\n"
-                            f"**{_transactions(report.uncategorized.count)} this week** · "
-                            f"{_transactions(report.uncategorized.previous_count)} last week · "
-                            f"**{_transactions(report.uncategorized.outstanding_count)} outstanding**"
-                        ),
-                        "inline": False,
-                    },
-                    {
-                        "name": "Selected total",
+                        "name": "Watched total",
                         "value": (
                             f"**{_currency(report.selected_total)}** · "
-                            f"{_change_text(report.selected_change)}"
+                            f"{_usual_change_text(report.selected_change)}"
                         ),
                         "inline": True,
+                    },
+                    {
+                        "name": "4-week watched spending",
+                        "value": rolling_value,
+                        "inline": False,
                     },
                     {
                         "name": "All expenses",
                         "value": f"**{_currency(report.all_expenses_total)}**",
                         "inline": True,
                     },
+                    {
+                        "name": "Needs categorization",
+                        "value": _uncategorized_text(report.uncategorized_count),
+                        "inline": False,
+                    },
                 ],
                 "footer": {
                     "text": (
-                        f"Compared with {_date(period.comparison_start)} - "
-                        f"{_date(period.comparison_end, include_year=True)}"
+                        f"Usual = {AVERAGE_WEEKS}-week average · "
+                        f"{_date(period.comparison_start, include_year=True)} - "
+                        f"{_date(period.comparison_end, include_year=True)} · "
+                        f"4-week view = {_date(period.rolling_start)} - {_date(period.end)} vs "
+                        f"{_date(period.previous_rolling_start)} - "
+                        f"{_date(period.previous_rolling_end, include_year=True)}"
                     )
                 },
             }
@@ -240,32 +270,42 @@ def report_as_dict(report: WeeklyExpenseReport) -> dict[str, Any]:
     return {
         "status": "ok",
         "period": {"start": report.period.start.isoformat(), "end": report.period.end.isoformat()},
-        "comparison_period": {
+        "average_period": {
             "start": report.period.comparison_start.isoformat(),
             "end": report.period.comparison_end.isoformat(),
+            "weeks": AVERAGE_WEEKS,
+        },
+        "rolling_period": {
+            "start": report.period.rolling_start.isoformat(),
+            "end": report.period.end.isoformat(),
+            "comparison_start": report.period.previous_rolling_start.isoformat(),
+            "comparison_end": report.period.previous_rolling_end.isoformat(),
+            "weeks": ROLLING_WEEKS,
         },
         "categories": [
             {
                 "name": item.name,
                 "amount": item.amount,
-                "previous_amount": item.previous_amount,
+                "average_amount": item.average_amount,
                 "change": item.change,
+                "rolling_amount": item.rolling_amount,
+                "previous_rolling_amount": item.previous_rolling_amount,
+                "rolling_change": item.rolling_change,
+                "top_vendors": [
+                    {"name": vendor.name, "amount": vendor.amount}
+                    for vendor in item.top_vendors
+                ],
             }
             for item in report.categories
         ],
         "selected_total": report.selected_total,
-        "previous_selected_total": report.previous_selected_total,
+        "average_selected_total": report.average_selected_total,
         "selected_change": report.selected_change,
+        "rolling_selected_total": report.rolling_selected_total,
+        "previous_rolling_selected_total": report.previous_rolling_selected_total,
+        "rolling_selected_change": report.rolling_selected_change,
         "all_expenses_total": report.all_expenses_total,
-        "uncategorized": {
-            "amount": report.uncategorized.amount,
-            "previous_amount": report.uncategorized.previous_amount,
-            "change": report.uncategorized.change,
-            "count": report.uncategorized.count,
-            "previous_count": report.uncategorized.previous_count,
-            "count_change": report.uncategorized.count_change,
-            "outstanding_count": report.uncategorized.outstanding_count,
-        },
+        "uncategorized_count": report.uncategorized_count,
     }
 
 
@@ -359,6 +399,8 @@ def create_parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> int:
     """Run one notifier command and return a stable process exit code."""
+    if isinstance(sys.stdout, TextIOWrapper):
+        sys.stdout.reconfigure(encoding="utf-8")
     os.umask(0o077)
     parser = create_parser()
     args = parser.parse_args(argv)
@@ -474,22 +516,28 @@ def _currency(value: float) -> str:
     return f"-{absolute}" if value < 0 else absolute
 
 
-def _net_flow(value: float) -> str:
-    direction = "net inflow" if value < 0 else "net outflow"
-    return f"{_currency(abs(value))} {direction}"
+def _uncategorized_text(count: int) -> str:
+    if count == 0:
+        return "All transactions are categorized."
+    if count == 1:
+        return "**1 transaction** still needs a category."
+    return f"**{count} transactions** still need a category."
 
 
-def _transactions(count: int) -> str:
-    noun = "transaction" if count == 1 else "transactions"
-    return f"{count} {noun}"
-
-
-def _change_text(change: float) -> str:
+def _usual_change_text(change: float) -> str:
     if change > 0:
-        return f"▲ {_currency(change)} more"
+        return f"▲ {_currency(change)} above usual"
     if change < 0:
-        return f"▼ {_currency(abs(change))} less"
-    return "— no change"
+        return f"▼ {_currency(abs(change))} below usual"
+    return "— right at usual"
+
+
+def _rolling_change_text(change: float) -> str:
+    if change > 0:
+        return f"▲ {_currency(change)} more than prior 4 weeks"
+    if change < 0:
+        return f"▼ {_currency(abs(change))} less than prior 4 weeks"
+    return "— same as prior 4 weeks"
 
 
 def _date(value: dt.date, *, include_year: bool = False) -> str:
@@ -503,29 +551,42 @@ def _escape_markdown(value: str) -> str:
 
 def _preview_text(report: WeeklyExpenseReport) -> str:
     lines = [
-        "Weekly expense summary",
+        "Weekly spending",
         f"{_date(report.period.start)} - {_date(report.period.end, include_year=True)}",
         "",
     ]
-    lines.extend(
-        f"{item.name}: {_currency(item.amount)} ({_change_text(item.change)})"
-        for item in report.categories
-    )
+    for item in report.categories:
+        lines.append(
+            f"{item.name}: {_currency(item.amount)} ({_usual_change_text(item.change)})"
+        )
+        if item.top_vendors:
+            vendors = ", ".join(
+                f"{vendor.name} {_currency(vendor.amount)}"
+                for vendor in item.top_vendors
+            )
+            lines.append(f"  Top vendors: {vendors}")
+    lines.extend(["", "4-week watched spending"])
+    for item in report.categories:
+        lines.append(
+            f"{item.name}: {_currency(item.rolling_amount)} "
+            f"({_rolling_change_text(item.rolling_change)})"
+        )
     lines.extend(
         [
-            "",
             (
-                f"Uncategorized: {_net_flow(report.uncategorized.amount)} "
-                f"({_change_text(report.uncategorized.change)}); "
-                f"{_transactions(report.uncategorized.count)} this week, "
-                f"{_transactions(report.uncategorized.previous_count)} last week, "
-                f"{_transactions(report.uncategorized.outstanding_count)} outstanding"
+                f"4-week watched total: {_currency(report.rolling_selected_total)} "
+                f"({_rolling_change_text(report.rolling_selected_change)})"
             ),
             "",
-            f"Selected total: {_currency(report.selected_total)} ({_change_text(report.selected_change)})",
-            f"All expenses: {_currency(report.all_expenses_total)}",
             (
-                f"Compared with {_date(report.period.comparison_start)} - "
+                f"Watched total: {_currency(report.selected_total)} "
+                f"({_usual_change_text(report.selected_change)})"
+            ),
+            f"All expenses: {_currency(report.all_expenses_total)}",
+            f"Needs categorization: {_uncategorized_text(report.uncategorized_count)}",
+            (
+                f"Usual = {AVERAGE_WEEKS}-week average, "
+                f"{_date(report.period.comparison_start, include_year=True)} - "
                 f"{_date(report.period.comparison_end, include_year=True)}"
             ),
         ]
