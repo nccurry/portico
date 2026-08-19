@@ -1,14 +1,13 @@
-import altair as alt
+from collections.abc import Mapping
+
 import pandas as pd
 import streamlit as st
 
-from src.constants import COLOR_PLACEHOLDER
-from src.analysis.merchants import extract_merchant_name
+from src.analysis.merchants import build_merchant_aliases, extract_merchant_name
 from src.custom_types import ColumnConfig
 
 __all__ = [
-    "create_sparkline_chart",
-    "display_transaction_table",
+    "configured_merchant_aliases",
     "display_transactions_expander",
     "extract_merchant_name",
     "get_transaction_column_config",
@@ -16,100 +15,15 @@ __all__ = [
 ]
 
 
-def display_transaction_table(transactions_df: pd.DataFrame, label: str) -> None:
-    """Display an interactive dataframe table in an expander"""
-    with st.expander(f"View {label} Transactions ({len(transactions_df)} rows)"):
-        if transactions_df.empty:
-            st.info("No transactions found")
-            return
-
-        # Display interactive dataframe with sorting, filtering, search
-        st.dataframe(
-            transactions_df,
-            width='stretch',
-            height=400,
-            hide_index=True,
-            column_config={
-                "Amount": st.column_config.NumberColumn(
-                    "Amount",
-                    format="$%.2f"
-                ),
-                "Date": st.column_config.DateColumn(
-                    "Date",
-                    format="YYYY-MM-DD"
-                )
-            }
-        )
-
-
-def create_sparkline_chart(
-    df: pd.DataFrame,
-    value_column: str,
-    date_column: str,
-    color: str,
-    height: int = 50,
-    current_value: float | None = None,
-    use_min_scale: bool = False
-) -> alt.Chart:
-    """Create a sparkline chart or flat line if insufficient data.
-
-    Args:
-        df: DataFrame containing the data
-        value_column: Name of the column containing values
-        date_column: Name of the column containing dates
-        color: Color for the line
-        height: Height of the chart in pixels
-        current_value: Current value to use for flat line fallback
-        use_min_scale: If True, set domain minimum to 95% of min value
-
-    Returns:
-        Altair chart object
-    """
-    if not df.empty and len(df) > 1:
-        # Have historical data - show trend line
-        scale = (
-            alt.Scale(zero=False, domainMin=float(df[value_column].min() * 0.95))
-            if use_min_scale
-            else alt.Scale(zero=False)
-        )
-
-        chart = alt.Chart(df).mark_line(
-            color=color,
-            strokeWidth=2 if height <= 50 else 3,
-            interpolate='monotone'
-        ).encode(
-            x=alt.X(f'{date_column}:T', axis=None),
-            y=alt.Y(f'{value_column}:Q', axis=None, scale=scale)
-        ).properties(
-            height=height
-        ).configure_view(
-            strokeWidth=0
-        )
-    else:
-        # Not enough history - show flat line at current value
-        if current_value is None and not df.empty:
-            current_value = df[value_column].iloc[0]
-        elif current_value is None:
-            current_value = 0
-
-        flat_line_data = pd.DataFrame([
-            {'x': 0, 'y': current_value},
-            {'x': 1, 'y': current_value}
-        ])
-        chart = alt.Chart(flat_line_data).mark_line(
-            color=COLOR_PLACEHOLDER,
-            strokeWidth=2 if height <= 50 else 3,
-            strokeDash=[5, 5]
-        ).encode(
-            x=alt.X('x:Q', axis=None),
-            y=alt.Y('y:Q', axis=None, scale=alt.Scale(zero=False))
-        ).properties(
-            height=height
-        ).configure_view(
-            strokeWidth=0
-        )
-
-    return chart  # type: ignore[no-any-return]
+def configured_merchant_aliases() -> dict[str, str]:
+    """Return validated merchant aliases from Streamlit secrets."""
+    try:
+        configured = st.secrets.get("merchant_aliases", {})
+    except FileNotFoundError:
+        return {}
+    if not isinstance(configured, Mapping):
+        raise ValueError("The merchant_aliases configuration must be a TOML table")
+    return build_merchant_aliases(configured)
 
 
 def get_transaction_column_config() -> ColumnConfig:

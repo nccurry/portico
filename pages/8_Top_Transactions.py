@@ -1,13 +1,11 @@
 """Filter, summarize, and inspect individual transactions."""
 
-from collections.abc import Mapping
 from typing import cast
 
 import altair as alt
 import pandas as pd
 import streamlit as st
 
-from src.analysis.merchants import build_merchant_aliases
 from src.analysis.top_transactions import (
     BREAKDOWN_DIMENSIONS,
     FOCUS_OPTIONS,
@@ -23,7 +21,7 @@ from src.constants import (
     COLOR_PLACEHOLDER,
     TRANSACTION_TABLE_HEIGHT,
 )
-from src.page_helpers import render_data_refresh_controls
+from src.page_helpers import configured_merchant_aliases, render_data_refresh_controls
 from src.reporting_periods import latest_data_timestamp, reporting_anchor
 from src.spreadsheet import TransactionsSpreadsheet, load_transactions_data
 
@@ -35,16 +33,6 @@ TYPE_VIEWS = {
     "Income": ("Income",),
     "Transfers": ("Transfer",),
 }
-
-
-def _configured_merchant_aliases() -> dict[str, str]:
-    try:
-        configured = st.secrets.get("merchant_aliases", {})
-    except FileNotFoundError:
-        return {}
-    if not isinstance(configured, Mapping):
-        raise ValueError("The merchant_aliases configuration must be a TOML table")
-    return build_merchant_aliases(configured)
 
 
 def _format_currency(value: float, *, signed: bool = False) -> str:
@@ -324,7 +312,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
         else end_date - pd.Timedelta(days=lookback_days)
     )
     try:
-        aliases = _configured_merchant_aliases()
+        aliases = configured_merchant_aliases()
     except ValueError as error:
         st.error(str(error), icon=":material/error:")
         return

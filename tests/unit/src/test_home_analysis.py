@@ -1,5 +1,7 @@
 """Tests for the Home page's pure analysis helpers."""
 
+from typing import cast
+
 import pandas as pd
 import pytest
 
@@ -131,6 +133,47 @@ def test_group_inventory_uses_first_observation_as_pre_history_baseline() -> Non
     assert inventory.loc["Cash", "Net_Contribution"] == pytest.approx(145)
     assert inventory.loc["Cash", "Period_Change"] == pytest.approx(45)
     assert inventory.loc["Cash", "Period_Change_Pct"] == pytest.approx(45)
+
+
+def test_group_inventory_uses_current_group_for_opening_balance_and_trend() -> None:
+    balances = _balance_df([
+        {
+            "Date": "2024-01-01",
+            "Account": "Brokerage",
+            "Account ID": "brokerage",
+            "Balance": 100,
+            "Class": "Asset",
+            "Group": "Cash",
+        },
+        {
+            "Date": "2024-01-20",
+            "Account": "Brokerage",
+            "Account ID": "brokerage",
+            "Balance": 120,
+            "Class": "Asset",
+            "Group": "Investments",
+        },
+    ])
+
+    groups = build_balance_group_inventory(
+        balances,
+        pd.Timestamp("2024-01-01", tz="UTC"),
+        pd.Timestamp("2024-01-31", tz="UTC"),
+    ).set_index("Group")
+    accounts = build_account_inventory(
+        balances,
+        pd.Timestamp("2024-01-01", tz="UTC"),
+        pd.Timestamp("2024-01-31", tz="UTC"),
+    )
+
+    assert list(groups.index) == ["Investments"]
+    assert groups.loc["Investments", "Period_Change"] == pytest.approx(20)
+    trend = cast(list[float], groups.loc["Investments", "Trend"])
+    assert trend[0] == pytest.approx(100)
+    assert trend[-1] == pytest.approx(120)
+    assert accounts["Period_Change"].sum() == pytest.approx(
+        groups.loc["Investments", "Period_Change"]
+    )
 
 
 def test_balance_analysis_preserves_credit_and_overdraft_signs() -> None:

@@ -1,11 +1,6 @@
-"""Tests for merchant extraction and reusable page charts."""
-import pandas as pd
-import altair as alt
+"""Tests for merchant extraction helpers."""
 
-from src.page_helpers import (
-    extract_merchant_name,
-    create_sparkline_chart,
-)
+from src.page_helpers import extract_merchant_name
 
 
 class TestExtractMerchantName:
@@ -47,47 +42,3 @@ class TestExtractMerchantName:
     def test_special_characters(self) -> None:
         """Special characters are preserved."""
         assert extract_merchant_name("7-ELEVEN #12345") == "7-ELEVEN"
-
-
-class TestCreateSparklineChart:
-
-    def test_normal_data_returns_line_chart(self) -> None:
-        """DataFrame with multiple rows returns a line chart."""
-        df = pd.DataFrame({
-            'Date': pd.date_range('2024-01-01', periods=5, freq='W'),
-            'Balance': [1000, 1100, 1050, 1200, 1150]
-        })
-        result = create_sparkline_chart(df, 'Balance', 'Date', '#57cc57')
-        assert isinstance(result, alt.Chart)
-
-    def test_single_row_falls_to_flat_line(self) -> None:
-        """Single-row DataFrame uses the flat-line fallback."""
-        df = pd.DataFrame({
-            'Date': [pd.Timestamp('2024-01-01')],
-            'Balance': [5000.0]
-        })
-        result = create_sparkline_chart(df, 'Balance', 'Date', '#57cc57')
-        assert isinstance(result, alt.Chart)
-
-    def test_empty_df_with_current_value(self) -> None:
-        """Empty DataFrame with explicit current_value uses flat line at that value."""
-        df = pd.DataFrame({'Date': [], 'Balance': []})
-        result = create_sparkline_chart(df, 'Balance', 'Date', '#57cc57', current_value=5000)
-        assert isinstance(result, alt.Chart)
-
-    def test_empty_df_no_current_value(self) -> None:
-        """Empty DataFrame with no current_value defaults to 0."""
-        df = pd.DataFrame({'Date': [], 'Balance': []})
-        result = create_sparkline_chart(df, 'Balance', 'Date', '#57cc57')
-        assert isinstance(result, alt.Chart)
-
-    def test_use_min_scale(self) -> None:
-        """use_min_scale=True should not crash."""
-        df = pd.DataFrame({
-            'Date': pd.date_range('2024-01-01', periods=5, freq='W'),
-            'Balance': [1000, 1100, 1050, 1200, 1150]
-        })
-        result = create_sparkline_chart(
-            df, 'Balance', 'Date', '#57cc57', use_min_scale=True
-        )
-        assert isinstance(result, alt.Chart)

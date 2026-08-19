@@ -82,15 +82,6 @@ class FIFilters(TransactionFilterOptions):
     portfolio_value_override: float
 
 
-class TopTransactionsStats(TypedDict):
-    """Summary statistics returned alongside the top-N transactions table."""
-
-    total_top_n: float
-    total_spending: float
-    pct_of_total: float
-    num_transactions: int
-
-
 class TransactionExplorerSummary(TypedDict):
     """Headline values for a filtered set of transactions."""
 
@@ -113,15 +104,6 @@ class SavingsSummary(TypedDict):
     num_months: int
 
 
-class FilteredTransactionSummary(TypedDict):
-    """Totals for transactions excluded by amount filters."""
-
-    count: int
-    total_amount: float
-    income_amount: float
-    expense_amount: float
-
-
 class DuplicateSummary(TypedDict):
     """Headline values for potential duplicate pairs."""
 
@@ -139,16 +121,6 @@ class SubscriptionSummary(TypedDict):
     prior_12_month_spend: float
     annual_change_pct: float | None
     pending_estimate_count: int
-
-
-class MerchantSummary(TypedDict):
-    """Headline merchant spending metrics."""
-
-    count: int
-    total_spent: float
-    top_merchant: str
-    top_merchant_spent: float
-    average_spent: float
 
 
 class MerchantPeriodSummary(TypedDict):

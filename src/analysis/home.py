@@ -93,16 +93,16 @@ def build_balance_group_inventory(
     if current.empty:
         return _empty_balance_group_inventory()
 
-    opening = _latest_accounts_as_of(balances, start)
-    opening_contributions = opening.groupby("Group")["_Contribution"].sum()
-    weekly_by_group = {
-        group: build_net_worth_history(
-            balances[balances["Group"] == group],
+    opening = _latest_accounts_as_of(balances, start).set_index("_Account_Key")
+    opening_contributions = opening["_Contribution"]
+    weekly_by_group = {}
+    for group, group_rows in current.groupby("Group", sort=True):
+        account_keys = set(group_rows["_Account_Key"])
+        weekly_by_group[str(group)] = build_net_worth_history(
+            balances[balances["_Account_Key"].isin(account_keys)],
             start,
             end,
         )["Net_Worth"].tolist()
-        for group in current["Group"].sort_values().unique()
-    }
 
     records: list[dict[str, object]] = []
     for group, group_rows in current.groupby("Group", sort=True):
@@ -110,7 +110,9 @@ def build_balance_group_inventory(
         classes = set(group_rows["_Class"])
         group_type = classes.pop() if len(classes) == 1 else "Mixed"
         net_contribution = float(group_rows["_Contribution"].sum())
-        opening_contribution = float(opening_contributions.get(group_name, 0.0))
+        opening_contribution = float(
+            group_rows["_Account_Key"].map(opening_contributions).fillna(0.0).sum()
+        )
         period_change = net_contribution - opening_contribution
         period_change_pct = (
             period_change / abs(opening_contribution) * 100

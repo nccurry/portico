@@ -9,34 +9,7 @@ from src.analysis.duplicates import (
     summarize_duplicates_by_month,
 )
 from src.analysis.financial_independence import calculate_fi_metrics, get_savings_accounts
-from src.analysis.income import summarize_filtered_transactions
-from src.analysis.merchants import (
-    _mode_or_first,
-    normalize_merchant_name,
-    prepare_merchant_timeline,
-    summarize_merchants,
-)
-
-
-def test_filtered_transaction_summary_reports_gross_excluded_amount() -> None:
-    transactions = pd.DataFrame(
-        {
-            "Type": ["Income", "Expense", "Expense"],
-            "Amount": [1_000.0, -400.0, -200.0],
-        }
-    )
-
-    summary = summarize_filtered_transactions(transactions)
-
-    assert summary == {
-        "count": 3,
-        "total_amount": 1_600.0,
-        "income_amount": 1_000.0,
-        "expense_amount": 600.0,
-    }
-    assert summary["total_amount"] == (
-        summary["income_amount"] + summary["expense_amount"]
-    )
+from src.analysis.merchants import _mode_or_first, normalize_merchant_name
 
 
 def test_duplicate_summaries_use_pair_amounts_and_unique_months() -> None:
@@ -76,50 +49,6 @@ def test_empty_duplicate_summaries_have_stable_shapes() -> None:
         "Count",
         "Total_Amount",
     ]
-
-
-def test_merchant_summary_and_timeline_match_manual_totals() -> None:
-    merchant_stats = pd.DataFrame(
-        {
-            "Merchant": ["A", "B"],
-            "Total_Spent": [300.0, 100.0],
-        }
-    )
-    transactions = pd.DataFrame(
-        {
-            "Merchant": ["A", "A", "B", "A"],
-            "Month": ["2024-01", "2024-01", "2024-01", "2024-02"],
-            "Type": ["Expense", "Expense", "Expense", "Income"],
-            "Amount": [-100.0, -200.0, -100.0, 50.0],
-        }
-    )
-
-    summary = summarize_merchants(merchant_stats)
-    timeline = prepare_merchant_timeline(transactions, merchant_stats, top_n=1)
-
-    assert summary == {
-        "count": 2,
-        "total_spent": 400.0,
-        "top_merchant": "A",
-        "top_merchant_spent": 300.0,
-        "average_spent": 200.0,
-    }
-    assert timeline.to_dict("records") == [
-        {"Merchant": "A", "Month": "2024-01", "Amount_Abs": 300.0}
-    ]
-
-
-def test_empty_merchant_summary_and_timeline_are_zero() -> None:
-    assert summarize_merchants(pd.DataFrame()) == {
-        "count": 0,
-        "total_spent": 0.0,
-        "top_merchant": "",
-        "top_merchant_spent": 0.0,
-        "average_spent": 0.0,
-    }
-    transactions = pd.DataFrame(columns=["Merchant", "Month", "Type", "Amount"])
-    merchant_stats = pd.DataFrame(columns=["Merchant", "Total_Spent"])
-    assert prepare_merchant_timeline(transactions, merchant_stats).empty
 
 
 def test_merchant_normalization_and_mode_fallbacks() -> None:
