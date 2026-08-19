@@ -690,7 +690,7 @@ def _render_entity_detail(
 
 def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
     """Render the spending overview and selected-entity drill-down."""
-    st.header("Spending by category")
+    st.header("Spending by Category")
     transactions = transactions_spreadsheet.scrubbed_df.copy()
     expenses = transactions[transactions["Type"] == "Expense"]
     if expenses.empty:

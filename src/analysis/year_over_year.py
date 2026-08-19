@@ -5,6 +5,7 @@ from typing import cast
 
 import pandas as pd
 
+from src.constants import DEFAULT_EXCLUDE_CATEGORIES_SPENDING
 from src.custom_types import YearOverYearSummary
 
 
@@ -82,6 +83,11 @@ def spending_preset_categories(
                 )
             )
         )
+        excluded_categories = {
+            category.casefold()
+            for category in DEFAULT_EXCLUDE_CATEGORIES_SPENDING
+        }
+        mask &= ~category_lower.isin(excluded_categories)
     else:
         raise ValueError(f"Unsupported year-over-year preset: {preset}")
 

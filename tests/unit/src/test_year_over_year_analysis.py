@@ -63,6 +63,12 @@ def test_discretionary_preset_includes_lifestyle_groups_and_dining() -> None:
         {"Category": "Restaurants / Bars", "Group": "Food", "Amount": -150.0},
         {"Category": "Groceries", "Group": "Food", "Amount": -500.0},
         {"Category": "Flights", "Group": "Travel", "Amount": -1_000.0},
+        {"Category": "Given Gift", "Group": "Shopping", "Amount": -2_000.0},
+        {
+            "Category": "Tax Return Payment",
+            "Group": "Shopping",
+            "Amount": -3_000.0,
+        },
     ])
 
     assert spending_preset_categories(

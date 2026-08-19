@@ -93,7 +93,11 @@ DEFAULT_EXCLUDE_GROUPS_INCOME_SAVINGS: Final[list[str]] = [
 ]
 
 # Categories hidden from the discretionary spending view by default.
-DEFAULT_EXCLUDE_CATEGORIES_SPENDING: Final[list[str]] = ['Christmas']
+DEFAULT_EXCLUDE_CATEGORIES_SPENDING: Final[list[str]] = [
+    'Christmas',
+    'Given Gift',
+    'Tax Return Payment',
+]
 
 DEFAULT_EXCLUDE_GROUPS_SPENDING: Final[list[str]] = [
     'Bills',

@@ -31,6 +31,24 @@ from src.spreadsheet import (
 )
 
 
+ANALYZE_PAGE_SPECS = (
+    ("pages/1_Income_and_Savings.py", "Income and savings", ":material/savings:"),
+    (
+        "pages/6_Merchant_Analysis.py",
+        "Spending by Merchant",
+        ":material/storefront:",
+    ),
+    (
+        "pages/2_Spending_by_Category.py",
+        "Spending by Category",
+        ":material/category:",
+    ),
+    ("pages/3_Year_over_Year.py", "Year over year", ":material/compare_arrows:"),
+    ("pages/5_Subscriptions.py", "Subscriptions", ":material/subscriptions:"),
+    ("pages/8_Top_Transactions.py", "Top transactions", ":material/receipt_long:"),
+)
+
+
 def create_financial_position_chart(history: pd.DataFrame) -> alt.LayerChart:
     """Show signed assets and liabilities with net worth overlaid."""
     date_axis = alt.Axis(title=None, format="%b %Y", labelAngle=-35)
@@ -356,36 +374,8 @@ def main() -> None:
                 st.Page(home_page, title="Home", icon=":material/home:", default=True),
             ],
             "Analyze": [
-                st.Page(
-                    "pages/1_Income_and_Savings.py",
-                    title="Income and savings",
-                    icon=":material/savings:",
-                ),
-                st.Page(
-                    "pages/2_Spending_by_Category.py",
-                    title="Spending by category",
-                    icon=":material/category:",
-                ),
-                st.Page(
-                    "pages/3_Year_over_Year.py",
-                    title="Year over year",
-                    icon=":material/compare_arrows:",
-                ),
-                st.Page(
-                    "pages/5_Subscriptions.py",
-                    title="Subscriptions",
-                    icon=":material/subscriptions:",
-                ),
-                st.Page(
-                    "pages/6_Merchant_Analysis.py",
-                    title="Merchant analysis",
-                    icon=":material/storefront:",
-                ),
-                st.Page(
-                    "pages/8_Top_Transactions.py",
-                    title="Top transactions",
-                    icon=":material/receipt_long:",
-                ),
+                st.Page(path, title=title, icon=icon)
+                for path, title, icon in ANALYZE_PAGE_SPECS
             ],
             "Plan": [
                 st.Page(
