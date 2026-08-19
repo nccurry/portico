@@ -476,7 +476,7 @@ def _render_merchant_detail(
 
 def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
     """Render merchant ranking and selected-merchant drill-down."""
-    st.header("Merchant analysis")
+    st.header("Spending by Merchant")
     try:
         merchant_aliases = _configured_merchant_aliases()
     except ValueError as error:
@@ -638,7 +638,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
 
 
 def main() -> None:
-    """Streamlit entry point for the Merchant Analysis page."""
+    """Streamlit entry point for the Spending by Merchant page."""
     st.set_page_config(layout="wide")
     render_data_refresh_controls()
     configure_page(load_transactions_data())

@@ -119,6 +119,10 @@ def _select_spending_category_breakdown(at: AppTest) -> None:
     at.segmented_control(key="spending_breakdown").set_value("Category")
 
 
+def _select_all_spending(at: AppTest) -> None:
+    at.segmented_control(key="spending_view").set_value("All spending")
+
+
 def _exclude_all_spending_groups(at: AppTest) -> None:
     groups = at.multiselect(key="spending_discretionary_exclude_groups")
     groups.set_value(groups.options)
@@ -229,6 +233,25 @@ def _dataset_with_one_off_travel(
     travel["Full Description"] = "one-off travel"
     transactions.scrubbed_df = pd.concat(
         [transactions.scrubbed_df, travel],
+        ignore_index=True,
+    )
+    return bundle
+
+
+def _dataset_with_non_discretionary_expenses(
+    make_full_dataset: FullDatasetFactory,
+) -> SpreadsheetBundle:
+    """Add large gift and tax expenses inside an otherwise discretionary group."""
+    bundle = make_full_dataset()
+    transactions = bundle[0]
+    rows = transactions.scrubbed_df.loc[
+        transactions.scrubbed_df["Category"].eq("Shopping")
+    ].iloc[[0, 1]].copy()
+    rows["Category"] = ["Given Gift", "Tax Return Payment"]
+    rows["Amount"] = [-8_000.0, -7_000.0]
+    rows["Full Description"] = ["gift test merchant", "tax test merchant"]
+    transactions.scrubbed_df = pd.concat(
+        [transactions.scrubbed_df, rows],
         ignore_index=True,
     )
     return bundle
@@ -730,7 +753,7 @@ class TestSpendingByCategorySmoke:
             ],
         )
         assert not at.exception
-        assert at.header[0].value == "Spending by category"
+        assert at.header[0].value == "Spending by Category"
         assert [
             (control.label, control.value, control.options)
             for control in at.segmented_control
@@ -886,6 +909,50 @@ class TestSpendingByCategorySmoke:
         assert len(excluded) > 0
         assert excluded["Exclusion reason"].str.startswith("Excluded group:").all()
 
+    def test_discretionary_view_excludes_gifts_and_tax_payments(
+        self, make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        bundle = _dataset_with_non_discretionary_expenses(make_full_dataset)
+        default_at = _make_app(
+            "2_Spending_by_Category.py",
+            lambda: bundle,
+            ["src.spreadsheet.load_transactions_data"],
+        )
+
+        assert not default_at.exception
+        assert _metric_values(default_at)[0] == ("Total spending", "$29,357", "")
+        overview = next(
+            table.value
+            for table in default_at.dataframe
+            if str(table.key).startswith("spending_overview_")
+        )
+        assert not {"Given Gift", "Tax Return Payment"} & set(overview["Entity"])
+        excluded = _table_with_columns(
+            default_at,
+            {"Description", "Exclusion reason"},
+        ).set_index("Description")
+        assert excluded.loc["gift test merchant", "Exclusion reason"] == (
+            "Excluded category: Given Gift"
+        )
+        assert excluded.loc["tax test merchant", "Exclusion reason"] == (
+            "Excluded category: Tax Return Payment"
+        )
+
+        all_at = _make_app(
+            "2_Spending_by_Category.py",
+            lambda: bundle,
+            ["src.spreadsheet.load_transactions_data"],
+            _select_all_spending,
+        )
+        assert not all_at.exception
+        all_overview = next(
+            table.value
+            for table in all_at.dataframe
+            if str(table.key).startswith("spending_overview_")
+        )
+        assert {"Given Gift", "Tax Return Payment"} <= set(all_overview["Entity"])
+        assert _metric_values(all_at)[0] == ("Total spending", "$45,677", "")
+
 
 @pytest.mark.uses_real_dates
 class TestYearOverYearSmoke:
@@ -960,6 +1027,24 @@ class TestYearOverYearSmoke:
         assert [subheader.value for subheader in at.subheader] == selected
         assert len(at.get("vega_lite_chart")) == len(selected)
         assert len(at.metric) == len(selected) * 3
+
+    def test_discretionary_defaults_omit_gifts_and_tax_payments(
+        self, make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        bundle = _dataset_with_non_discretionary_expenses(make_full_dataset)
+        at = _make_app(
+            "3_Year_over_Year.py",
+            lambda: bundle,
+            ["src.spreadsheet.load_transactions_data"],
+            _select_year_over_year_discretionary,
+        )
+
+        assert not at.exception
+        categories = at.multiselect(
+            key="year_over_year_discretionary_spending_categories"
+        )
+        assert {"Given Gift", "Tax Return Payment"} <= set(categories.options)
+        assert not {"Given Gift", "Tax Return Payment"} & set(categories.value)
 
     def test_preset_can_include_any_other_category(
         self, make_full_dataset: FullDatasetFactory,
@@ -1173,6 +1258,7 @@ class TestMerchantAnalysisSmoke:
             ],
         )
         assert not at.exception
+        assert at.header[0].value == "Spending by Merchant"
         assert _metric_values(at) == [
             ("Total spending", "$29,357", ""),
             ("Average monthly", "$2,446", ""),
@@ -1336,6 +1422,44 @@ class TestMerchantAnalysisSmoke:
             if str(table.key).startswith("merchant_overview_")
         )
         assert "UTILITY POWER BILL" in overview["Merchant"].values
+
+    def test_discretionary_view_excludes_gift_and_tax_merchants(
+        self, make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        bundle = _dataset_with_non_discretionary_expenses(make_full_dataset)
+        default_at = _make_app(
+            "6_Merchant_Analysis.py",
+            lambda: bundle,
+            ["src.spreadsheet.load_transactions_data"],
+        )
+
+        assert not default_at.exception
+        assert _metric_values(default_at)[0] == ("Total spending", "$29,357", "")
+        overview = next(
+            table.value
+            for table in default_at.dataframe
+            if str(table.key).startswith("merchant_overview_")
+        )
+        assert not {"GIFT TEST MERCHANT", "TAX TEST MERCHANT"} & set(
+            overview["Merchant"]
+        )
+
+        all_at = _make_app(
+            "6_Merchant_Analysis.py",
+            lambda: bundle,
+            ["src.spreadsheet.load_transactions_data"],
+            _set_all_merchant_view,
+        )
+        assert not all_at.exception
+        all_overview = next(
+            table.value
+            for table in all_at.dataframe
+            if str(table.key).startswith("merchant_overview_")
+        )
+        assert {"GIFT TEST MERCHANT", "TAX TEST MERCHANT"} <= set(
+            all_overview["Merchant"]
+        )
+        assert _metric_values(all_at)[0] == ("Total spending", "$45,677", "")
 
 
 @pytest.mark.uses_real_dates

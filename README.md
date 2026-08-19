@@ -78,9 +78,9 @@ Use the URL from each Google Sheets tab. Each URL must include its numeric
 `gid`. The sheet must be readable through its link because the app does not use
 a Google service account.
 
-Merchant Analysis can optionally combine transaction-description variants under
-one vendor. Add canonical vendors and one or more case-insensitive description
-fragments to `.streamlit/secrets.toml`:
+Spending by Merchant can optionally combine transaction-description variants
+under one vendor. Add canonical vendors and one or more case-insensitive
+description fragments to `.streamlit/secrets.toml`:
 
 ```toml
 [merchant_aliases]

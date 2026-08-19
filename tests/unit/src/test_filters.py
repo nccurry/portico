@@ -555,7 +555,13 @@ class TestPageFilterDefaults:
         with patch("src.filters.st") as mock_st:
             _mock_filter_widgets(mock_st)
             result = render_spending_filters(
-                ["Christmas", "Misc Shopping", "Groceries"],
+                [
+                    "Christmas",
+                    "Given Gift",
+                    "Tax Return Payment",
+                    "Misc Shopping",
+                    "Groceries",
+                ],
                 ["Bills", "Income", "Donations", "Maintenance", "Travel", "Food", "Shopping"],
                 view="Discretionary",
             )
@@ -567,7 +573,11 @@ class TestPageFilterDefaults:
             "Maintenance",
             "Travel",
         ]
-        assert result["exclude_categories"] == ["Christmas"]
+        assert result["exclude_categories"] == [
+            "Christmas",
+            "Given Gift",
+            "Tax Return Payment",
+        ]
         assert result["filter_large_expenses"] is False
         assert all(
             call.kwargs["persist_state"] == "page"
