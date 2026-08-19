@@ -11,5 +11,5 @@ def test_analyze_pages_keep_spending_views_together() -> None:
         "Spending by Category",
         "Year over year",
         "Subscriptions",
-        "Top transactions",
+        "Transactions",
     ]

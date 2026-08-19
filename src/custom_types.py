@@ -91,6 +91,16 @@ class TopTransactionsStats(TypedDict):
     num_transactions: int
 
 
+class TransactionExplorerSummary(TypedDict):
+    """Headline values for a filtered set of transactions."""
+
+    transaction_count: int
+    inflow: float
+    outflow: float
+    net_amount: float
+    median_magnitude: float
+
+
 class SavingsSummary(TypedDict):
     """Period cash-flow metrics for the Income & Savings page."""
 
