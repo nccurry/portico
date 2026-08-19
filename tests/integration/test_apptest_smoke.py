@@ -62,7 +62,30 @@ def _select_empty_income_month_from_rate_chart(at: AppTest) -> None:
 
 
 def _select_top_ten(at: AppTest) -> None:
-    at.slider[0].set_value(10)
+    at.segmented_control(key="top_transactions_focus").set_value("Largest")
+    at.number_input(key="top_transactions_largest_count").set_value(10)
+
+
+def _select_one_off_transactions(at: AppTest) -> None:
+    at.segmented_control(key="top_transactions_focus").set_value(
+        "One-off merchants"
+    )
+
+
+def _select_transfer_transactions(at: AppTest) -> None:
+    at.segmented_control(key="top_transactions_type").set_value("Transfers")
+
+
+def _search_market_basket_transactions(at: AppTest) -> None:
+    at.text_input(key="top_transactions_search").set_value("market basket")
+
+
+def _search_for_missing_transactions(at: AppTest) -> None:
+    at.text_input(key="top_transactions_search").set_value("not-a-real-transaction")
+
+
+def _limit_transaction_maximum(at: AppTest) -> None:
+    at.number_input(key="top_transactions_maximum").set_value(1_000.0)
 
 
 def _set_five_percent_return(at: AppTest) -> None:
@@ -1503,12 +1526,61 @@ class TestTopTransactionsSmoke:
             ],
         )
         assert not at.exception
-        assert _metric_values(at) == [
-            ("Total (Top N)", "$28,600.00", ""),
-            ("Total Spending", "$33,322.52", ""),
-            ("% of Total", "85.8%", ""),
-            ("All Expenses", "70", ""),
+        assert at.header[0].value == "Transactions"
+        assert [
+            (control.label, control.value, control.options)
+            for control in at.segmented_control
+        ] == [
+            ("Time frame", "1Y", ["3M", "6M", "1Y", "2Y", "All"]),
+            ("Type", "All", ["All", "Expenses", "Income", "Transfers"]),
+            (
+                "Focus",
+                "All transactions",
+                [
+                    "All transactions",
+                    "Largest",
+                    "One-off merchants",
+                    "Unusual amounts",
+                    "Refunds / reversals",
+                ],
+            ),
+            (
+                "Summarize by",
+                "Group",
+                ["Group", "Category", "Merchant", "Account", "Type"],
+            ),
         ]
+        assert _metric_values(at) == [
+            ("Transactions", "94", ""),
+            ("Money out", "$39,323", ""),
+            ("Money in", "$60,000", ""),
+            ("Net amount", "+$20,677", ""),
+        ]
+        assert len(at.get("popover")) == 1
+        assert [widget.value for widget in at.multiselect] == [[], [], []]
+        assert at.number_input(key="top_transactions_minimum").value == 0.0
+        assert at.number_input(key="top_transactions_maximum").value is None
+        assert at.number_input(key="top_transactions_largest_count").value == 25
+        assert len(at.get("download_button")) == 1
+
+        charts = at.get("vega_lite_chart")
+        assert len(charts) == 2
+        timeline_spec = json.loads(charts[0].proto.spec)
+        breakdown_spec = json.loads(charts[1].proto.spec)
+        assert {layer["mark"]["type"] for layer in timeline_spec["layer"]} == {
+            "rule",
+            "circle",
+        }
+        assert "params" not in timeline_spec
+        assert breakdown_spec["mark"]["type"] == "bar"
+        assert breakdown_spec["encoding"]["y"]["field"] == "Entity"
+
+        transactions = _table_with_columns(
+            at,
+            {"Date", "Description", "Amount", "Merchant", "Flags"},
+        )
+        assert len(transactions) == 94
+        assert transactions["Amount"].abs().is_monotonic_decreasing
 
     def test_top_ten_selection_updates_metrics(
         self, make_full_dataset: FullDatasetFactory,
@@ -1520,12 +1592,111 @@ class TestTopTransactionsSmoke:
             _select_top_ten,
         )
         assert not at.exception
+        assert at.segmented_control(key="top_transactions_focus").value == "Largest"
         assert _metric_values(at) == [
-            ("Total (Top N)", "$17,800.00", ""),
-            ("Total Spending", "$33,322.52", ""),
-            ("% of Total", "53.4%", ""),
-            ("All Expenses", "70", ""),
+            ("Transactions", "10", ""),
+            ("Money out", "$0", ""),
+            ("Money in", "$50,000", ""),
+            ("Net amount", "+$50,000", ""),
         ]
+
+    def test_one_off_focus_returns_only_single_occurrence_merchants(
+        self, make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        at = _make_app(
+            "8_Top_Transactions.py",
+            make_full_dataset,
+            ["src.spreadsheet.load_transactions_data"],
+            _select_one_off_transactions,
+        )
+
+        assert not at.exception
+        transactions = _table_with_columns(at, {"Occurrences", "Flags"})
+        assert not transactions.empty
+        assert transactions["Occurrences"].eq(1).all()
+        assert transactions["Flags"].str.contains("One-off").all()
+
+    def test_type_and_search_filters_scope_every_result(
+        self, make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        transfers = _make_app(
+            "8_Top_Transactions.py",
+            make_full_dataset,
+            ["src.spreadsheet.load_transactions_data"],
+            _select_transfer_transactions,
+        )
+        assert not transfers.exception
+        transfer_rows = _table_with_columns(transfers, {"Type", "Amount"})
+        assert set(transfer_rows["Type"]) == {"Transfer"}
+
+        searched = _make_app(
+            "8_Top_Transactions.py",
+            make_full_dataset,
+            ["src.spreadsheet.load_transactions_data"],
+            _search_market_basket_transactions,
+        )
+        assert not searched.exception
+        searched_rows = _table_with_columns(
+            searched,
+            {"Description", "Merchant", "Amount"},
+        )
+        assert searched_rows["Description"].str.contains(
+            "market basket",
+            case=False,
+        ).all()
+
+    def test_empty_search_has_clear_state(
+        self, make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        at = _make_app(
+            "8_Top_Transactions.py",
+            make_full_dataset,
+            ["src.spreadsheet.load_transactions_data"],
+            _search_for_missing_transactions,
+        )
+
+        assert not at.exception
+        assert [message.value for message in at.info] == [
+            "No transactions match this view."
+        ]
+        assert not at.metric
+        assert not at.get("vega_lite_chart")
+        assert not at.dataframe
+
+    def test_maximum_amount_limits_every_result(
+        self, make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        at = _make_app(
+            "8_Top_Transactions.py",
+            make_full_dataset,
+            ["src.spreadsheet.load_transactions_data"],
+            _limit_transaction_maximum,
+        )
+
+        assert not at.exception
+        transactions = _table_with_columns(at, {"Amount"})
+        assert transactions["Amount"].abs().max() <= 1_000.0
+        timeline_spec = json.loads(at.get("vega_lite_chart")[0].proto.spec)
+        assert timeline_spec["layer"][1]["encoding"]["y"]["field"] == "Amount"
+
+    def test_empty_transaction_data_has_clear_state(
+        self, make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        bundle = make_full_dataset()
+        bundle[0].scrubbed_df = bundle[0].scrubbed_df.iloc[0:0].copy()
+        at = _make_app(
+            "8_Top_Transactions.py",
+            lambda: bundle,
+            ["src.spreadsheet.load_transactions_data"],
+        )
+
+        assert not at.exception
+        assert [message.value for message in at.info] == [
+            "No transactions are available."
+        ]
+        assert not at.segmented_control
+        assert not at.metric
+        assert not at.dataframe
 
 
 @pytest.mark.uses_real_dates

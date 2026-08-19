@@ -45,7 +45,7 @@ ANALYZE_PAGE_SPECS = (
     ),
     ("pages/3_Year_over_Year.py", "Year over year", ":material/compare_arrows:"),
     ("pages/5_Subscriptions.py", "Subscriptions", ":material/subscriptions:"),
-    ("pages/8_Top_Transactions.py", "Top transactions", ":material/receipt_long:"),
+    ("pages/8_Top_Transactions.py", "Transactions", ":material/receipt_long:"),
 )
 
 
