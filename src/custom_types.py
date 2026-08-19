@@ -141,6 +141,15 @@ class MerchantSummary(TypedDict):
     average_spent: float
 
 
+class MerchantPeriodSummary(TypedDict):
+    """Matched-period metrics for merchant spending exploration."""
+
+    total_spending: float
+    average_monthly_spending: float
+    merchant_count: int
+    repeat_spending_share: float
+
+
 class BudgetSummary(TypedDict):
     """Aggregate budget-versus-actual values for a period."""
 
