@@ -17,8 +17,9 @@ SAVINGS_RATE_STEP: Final[int] = 5
 
 # Financial Independence page
 DEFAULT_EXPECTED_RETURN_RATE: Final[float] = 7.0
+DEFAULT_WITHDRAWAL_RATE: Final[float] = 4.0
 DEFAULT_FI_SPENDING_LOOKBACK_MONTHS: Final[int] = 12
-DEFAULT_FI_PROJECTION_YEARS: Final[int] = 30
+DEFAULT_FI_PROJECTION_YEARS: Final[int] = 50
 FI_SPENDING_LOOKBACK_OPTIONS: Final[list[int]] = [6, 12, 24, 36]
 
 # Default portfolio accounts pre-selected in the FI filter panel.

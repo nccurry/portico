@@ -88,8 +88,15 @@ def _limit_transaction_maximum(at: AppTest) -> None:
     at.number_input(key="top_transactions_maximum").set_value(1_000.0)
 
 
-def _set_five_percent_return(at: AppTest) -> None:
-    at.number_input[1].set_value(5.0)
+def _set_fi_scenario(at: AppTest) -> None:
+    at.number_input(key="fi_scenario_spending").set_value(50_000.0)
+    at.number_input(key="fi_scenario_income").set_value(20_000.0)
+    at.number_input(key="fi_scenario_return_rate").set_value(5.0)
+
+
+def _set_fi_spending_and_adjust_source(at: AppTest) -> None:
+    at.number_input(key="fi_scenario_spending").set_value(50_000.0)
+    at.multiselect(key="fi_exclude_groups").set_value(["Food"])
 
 
 def _clear_subscription_categories(at: AppTest) -> None:
@@ -199,6 +206,33 @@ def _set_all_merchant_view(at: AppTest) -> None:
 
 def _include_all_groups_in_discretionary_merchant_view(at: AppTest) -> None:
     at.multiselect(key="spending_discretionary_exclude_groups").set_value([])
+
+
+def _select_food_budget_group(at: AppTest) -> None:
+    overview = next(
+        table
+        for table in at.dataframe
+        if str(table.key).startswith("budget_group_performance_")
+    )
+    row = overview.value.index[overview.value["Entity"].eq("Food")].tolist()[0]
+    at.session_state[str(overview.key)] = {
+        "selection": {"rows": [row], "columns": [], "cells": []},
+    }
+
+
+def _select_food_then_previous_budget_month(at: AppTest) -> None:
+    _select_food_budget_group(at)
+    at.run()
+    month = at.selectbox(key="budget_month")
+    month.set_value(month.options[1])
+
+
+def _exclude_groceries_from_budget(at: AppTest) -> None:
+    at.multiselect(key="budget_exclude_categories").set_value(["Groceries"])
+
+
+def _select_passed_data_health_check(at: AppTest) -> None:
+    at.selectbox(key="data_health_check").set_value("uncategorized")
 
 
 def _make_app(
@@ -1501,15 +1535,129 @@ class TestBudgetSmoke:
         )
         assert not at.exception
         assert _metric_values(at) == [
-            ("Monthly budget", "$5,940.00", ""),
-            ("Monthly spent", "$2,645.98", ""),
-            ("Monthly remaining", "$3,294.02", ""),
-            ("Monthly used", "44.5%", ""),
-            ("YTD budget", "$22,710.00", ""),
-            ("YTD spent", "$14,713.55", ""),
-            ("YTD remaining", "$7,996.45", ""),
+            ("Spending", "$2,646", "+$368 vs typical"),
+            ("Remaining", "$3,294", "$5,940 budget"),
+            ("Budget used", "44.5%", "-22.1 pts vs month elapsed"),
+            ("Outside the plan", "$0", "0 unbudgeted categories"),
+            ("Spent", "$1,600", ""),
+            ("Budget", "$1,600", ""),
+            ("Typical month", "$1,600", ""),
+            ("Outside the plan", "$0", ""),
+            ("YTD spending", "$14,714", ""),
+            ("YTD budget", "$22,710", ""),
+            ("YTD remaining", "$7,996", ""),
             ("YTD used", "64.8%", ""),
         ]
+        assert at.header[0].value == "Budget"
+        assert at.selectbox(key="budget_month").value == "2026-04"
+        assert len(at.get("popover")) == 1
+        assert at.multiselect(key="budget_exclude_groups").value == []
+        assert at.multiselect(key="budget_exclude_categories").value == []
+        assert len(at.get("vega_lite_chart")) == 3
+
+        overview = next(
+            table
+            for table in at.dataframe
+            if str(table.key).startswith("budget_group_performance_")
+        )
+        assert list(overview.value.columns) == [
+            "Entity",
+            "Status",
+            "Budget",
+            "Spent",
+            "Remaining",
+            "Pct_Used",
+            "Vs_Typical",
+            "Outside_Plan",
+            "Success_Rate",
+            "Trend",
+        ]
+        assert set(overview.value["Entity"]) == {
+            "Bills",
+            "Entertainment",
+            "Food",
+            "Housing",
+            "Shopping",
+            "Software",
+        }
+
+        pulse_spec = json.loads(at.get("vega_lite_chart")[0].proto.spec)
+        assert [layer["mark"]["type"] for layer in pulse_spec["layer"]] == [
+            "bar",
+            "tick",
+            "point",
+        ]
+        assert pulse_spec["layer"][2]["encoding"]["x"]["field"] == "Typical_Spend"
+
+    def test_adjustments_change_the_budget_scope(
+        self,
+        make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        at = _make_app(
+            "7_Budget.py",
+            make_full_dataset,
+            [
+                "src.spreadsheet.load_transactions_data",
+                "src.spreadsheet.load_categories_data",
+            ],
+            _exclude_groceries_from_budget,
+        )
+
+        assert not at.exception
+        assert at.multiselect(key="budget_exclude_categories").value == ["Groceries"]
+        assert at.metric[0].value != "$2,646"
+
+    def test_group_selection_survives_month_change(
+        self,
+        make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        at = _make_app(
+            "7_Budget.py",
+            make_full_dataset,
+            [
+                "src.spreadsheet.load_transactions_data",
+                "src.spreadsheet.load_categories_data",
+            ],
+            _select_food_then_previous_budget_month,
+        )
+
+        assert not at.exception
+        assert at.session_state["budget_selected_group"] == "Food"
+        assert any(subheader.value == "Food" for subheader in at.subheader)
+        assert [metric.label for metric in at.metric[4:8]] == [
+            "Spent",
+            "Budget",
+            "Typical month",
+            "Outside the plan",
+        ]
+        transactions = _table_with_columns(
+            at,
+            {"Date", "Category", "Description", "Account", "Net spend"},
+        )
+        assert set(transactions["Category"]) <= {
+            "Groceries",
+            "Restaurants",
+        }
+
+    def test_empty_transaction_data_has_clear_state(
+        self, make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        bundle = make_full_dataset()
+        bundle[0].scrubbed_df = bundle[0].scrubbed_df.iloc[0:0].copy()
+        at = _make_app(
+            "7_Budget.py",
+            lambda: bundle,
+            [
+                "src.spreadsheet.load_transactions_data",
+                "src.spreadsheet.load_categories_data",
+            ],
+        )
+
+        assert not at.exception
+        assert [message.value for message in at.info] == [
+            "No transaction data is available."
+        ]
+        assert not at.metric
 
 
 @pytest.mark.uses_real_dates
@@ -1715,15 +1863,43 @@ class TestFinancialIndependenceSmoke:
         )
         assert not at.exception
         assert _metric_values(at) == [
-            ("Portfolio Value", "$382,200", ""),
-            ("Annual Spending", "$33,465", ""),
-            ("Supplemental Income", "$0", ""),
-            ("Additional Spending", "$0", ""),
-            ("Expected Annual Return", "$26,754", ""),
-            ("Coverage", "79.9%", "Not yet"),
-            ("Runway", "23.7 yrs", ""),
-            ("Total Spending", "$33,465", "$-6,711 vs inflow"),
+            ("Runway", "30.4 years", "Until portfolio reaches $0"),
+            ("Annual gap", "-$3,923", "Annual shortfall"),
+            (
+                "Net portfolio spending",
+                "$30,677",
+                "$15,288 supported at withdrawal rate",
+            ),
+            ("FI target", "$766,925", "$384,725 still needed"),
         ]
+        assert at.header[0].value == "Financial independence"
+        assert len(at.get("popover")) == 1
+        assert at.multiselect(key="fi_include_accounts").value
+        assert at.selectbox(key="fi_spending_lookback").value == 12
+        assert [
+            (widget.label, widget.value)
+            for widget in at.number_input
+            if str(widget.key).startswith("fi_scenario_")
+        ] == [
+            ("Investable assets", 382_200.0),
+            ("Annual spending", 30_677.0),
+            ("Annual earned income", 0.0),
+            ("Expected real return (%)", 7.0),
+            ("Withdrawal rate (%)", 4.0),
+            ("Projection horizon", 50),
+        ]
+        charts = at.get("vega_lite_chart")
+        assert len(charts) == 4
+        projection = json.loads(charts[0].proto.spec)
+        sensitivity = json.loads(charts[2].proto.spec)
+        assert {layer["mark"]["type"] for layer in projection["layer"]} == {
+            "area",
+            "line",
+            "point",
+            "rule",
+        }
+        assert sensitivity["layer"][0]["mark"]["type"] == "rect"
+        assert sensitivity["layer"][1]["mark"]["type"] == "text"
 
     def test_return_rate_scenario_updates_fi_metrics(
         self, make_full_dataset: FullDatasetFactory,
@@ -1735,15 +1911,57 @@ class TestFinancialIndependenceSmoke:
                 "src.spreadsheet.load_transactions_data",
                 "src.spreadsheet.load_balance_history_data",
             ],
-            _set_five_percent_return,
+            _set_fi_scenario,
         )
         assert not at.exception
-        assert _metric_values(at)[4:] == [
-            ("Expected Annual Return", "$26,754", ""),
-            ("Coverage", "79.9%", "Not yet"),
-            ("Runway", "23.7 yrs", ""),
-            ("Total Spending", "$33,465", "$-6,711 vs inflow"),
+        assert _metric_values(at) == [
+            ("Runway", "20.8 years", "Until portfolio reaches $0"),
+            ("Annual gap", "-$10,890", "Annual shortfall"),
+            (
+                "Net portfolio spending",
+                "$30,000",
+                "$15,288 supported at withdrawal rate",
+            ),
+            ("FI target", "$750,000", "$367,800 still needed"),
         ]
+
+    def test_custom_scenario_survives_source_filter_changes(
+        self,
+        make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        at = _make_app(
+            "9_Financial_Independence.py",
+            make_full_dataset,
+            [
+                "src.spreadsheet.load_transactions_data",
+                "src.spreadsheet.load_balance_history_data",
+            ],
+            _set_fi_spending_and_adjust_source,
+        )
+
+        assert not at.exception
+        assert at.multiselect(key="fi_exclude_groups").value == ["Food"]
+        assert at.number_input(key="fi_scenario_spending").value == 50_000.0
+
+    def test_empty_source_data_has_clear_state(
+        self, make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        bundle = make_full_dataset()
+        bundle[0].scrubbed_df = bundle[0].scrubbed_df.iloc[0:0].copy()
+        at = _make_app(
+            "9_Financial_Independence.py",
+            lambda: bundle,
+            [
+                "src.spreadsheet.load_transactions_data",
+                "src.spreadsheet.load_balance_history_data",
+            ],
+        )
+
+        assert not at.exception
+        assert [message.value for message in at.info] == [
+            "Transaction and balance history are required for this analysis."
+        ]
+        assert not at.metric
 
 
 @pytest.mark.uses_real_dates
@@ -1758,21 +1976,60 @@ class TestDataHealthSmoke:
             [
                 "src.spreadsheet.load_transactions_data",
                 "src.spreadsheet.load_balance_history_data",
-                "src.spreadsheet.load_categories_data",
             ],
         )
         assert not at.exception
         assert _metric_values(at) == [
-            ("Uncategorized", "0", ""),
-            ("Sign Issues", "0", ""),
-            ("Potential Duplicates", "3", ""),
-            ("Unmapped Accounts", "0", ""),
-            ("Stale Accounts", "0", ""),
-            ("Unbudgeted Categories", "0", ""),
+            ("Needs attention", "0", ""),
+            ("Review items", "3", ""),
+            ("Transactions through", "Apr 20, 2026", "95 rows · Updated today"),
+            ("Balances through", "Apr 17, 2026", "7 accounts · Updated today"),
         ]
-        assert "Flagged amount: $249.49 | Affected months: 3" in [
-            caption.value for caption in at.caption
+        assert at.selectbox(key="data_health_check").value == "duplicates"
+        queue = at.dataframe[0].value
+        assert queue[["Check", "Status", "Findings"]].to_dict("records") == [
+            {"Check": "Missing classifications", "Status": "Passed", "Findings": 0},
+            {"Check": "Missing transaction details", "Status": "Passed", "Findings": 0},
+            {"Check": "Account mapping gaps", "Status": "Passed", "Findings": 0},
+            {"Check": "Stale balance accounts", "Status": "Passed", "Findings": 0},
+            {"Check": "Potential duplicate transactions", "Status": "Review", "Findings": 3},
+            {"Check": "Refunds and income reversals", "Status": "Passed", "Findings": 0},
         ]
-        assert len(at.dataframe[0].value) == 3
         assert len(at.dataframe[1].value) == 3
-        assert at.dataframe[1].value["Total_Amount"].sum() == pytest.approx(249.49)
+        assert at.dataframe[2].value["Total_Amount"].sum() == pytest.approx(249.49)
+        assert at.slider(key="data_health_stale_days").value == 7
+        assert at.number_input(key="data_health_duplicate_days").value == 1
+        assert at.number_input(key="data_health_duplicate_minimum").value == 10.0
+
+        passed = _make_app(
+            "10_Data_Health.py",
+            make_full_dataset,
+            [
+                "src.spreadsheet.load_transactions_data",
+                "src.spreadsheet.load_balance_history_data",
+            ],
+            _select_passed_data_health_check,
+        )
+        assert not passed.exception
+        assert any("No findings for this check" in success.value for success in passed.success)
+
+    def test_empty_source_data_has_clear_state(
+        self, make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        bundle = make_full_dataset()
+        bundle[0].scrubbed_df = bundle[0].scrubbed_df.iloc[0:0].copy()
+        bundle[1].scrubbed_df = bundle[1].scrubbed_df.iloc[0:0].copy()
+        at = _make_app(
+            "10_Data_Health.py",
+            lambda: bundle,
+            [
+                "src.spreadsheet.load_transactions_data",
+                "src.spreadsheet.load_balance_history_data",
+            ],
+        )
+
+        assert not at.exception
+        assert [message.value for message in at.info] == [
+            "No transaction or balance data is available."
+        ]
+        assert not at.metric

@@ -1,7 +1,7 @@
 """Common filter UI components used across multiple pages."""
+import pandas as pd
 import streamlit as st
 
-import pandas as pd
 from src.reporting_periods import calculate_date_range as _calculate_date_range
 
 from src.constants import (
@@ -10,9 +10,7 @@ from src.constants import (
     DEFAULT_EXCLUDE_GROUPS_INCOME_SAVINGS,
     DEFAULT_EXCLUDE_GROUPS_SPENDING,
     DEFAULT_EXPENSE_THRESHOLD,
-    DEFAULT_EXPECTED_RETURN_RATE,
     DEFAULT_FI_INCLUDED_ACCOUNTS,
-    DEFAULT_FI_PROJECTION_YEARS,
     DEFAULT_FI_SPENDING_LOOKBACK_MONTHS,
     DEFAULT_INCOME_THRESHOLD,
     DEFAULT_SAVINGS_RATE_TARGET,
@@ -302,59 +300,52 @@ def render_budget_filters(
     all_categories: list[str],
     all_groups: list[str],
 ) -> BudgetFilters:
-    """Render filter controls for Budget page.
-
-    Returns:
-        dictionary containing all filter selections
-    """
-    with st.expander("Filter Settings", expanded=False):
-        col_filter1, col_filter2 = st.columns(2)
-
-        with col_filter1:
+    """Render compact controls for an optional adjusted budget view."""
+    with st.popover(
+        "Adjust view",
+        icon=":material/tune:",
+        width="stretch",
+    ):
+        columns = st.columns(2)
+        with columns[0]:
             exclude_groups = st.multiselect(
-                "Exclude Groups",
+                "Exclude groups",
                 options=all_groups,
                 default=[],
-                help="Create an adjusted view without selected spending groups"
+                key="budget_exclude_groups",
+                persist_state="page",
             )
-
             exclude_categories = st.multiselect(
-                "Exclude Categories",
+                "Exclude categories",
                 options=all_categories,
                 default=[],
-                help="Create an adjusted view without selected one-off categories"
+                key="budget_exclude_categories",
+                persist_state="page",
             )
-
-        with col_filter2:
+        with columns[1]:
             filter_large_expenses = st.toggle(
                 "Exclude large transactions",
                 value=False,
-                help="Create an adjusted view that excludes individual expenses above a threshold"
+                key="budget_filter_large_expenses",
+                persist_state="page",
             )
-
             expense_threshold = DEFAULT_EXPENSE_THRESHOLD
             if filter_large_expenses:
                 expense_threshold = st.number_input(
-                    "Expense Threshold ($)",
+                    "Maximum individual expense",
                     min_value=1000,
                     max_value=100000,
                     value=DEFAULT_EXPENSE_THRESHOLD,
                     step=500,
-                    help="Exclude individual expense transactions larger than this amount"
+                    key="budget_expense_threshold",
+                    persist_state="page",
                 )
 
-            show_zero_budget = st.toggle(
-                "Show unbudgeted categories in drill-downs",
-                value=True,
-                help="Include spending categories that have no individual Tiller budget"
-            )
-
     return {
-        'exclude_groups': exclude_groups,
-        'exclude_categories': exclude_categories,
-        'filter_large_expenses': filter_large_expenses,
-        'expense_threshold': expense_threshold,
-        'show_zero_budget': show_zero_budget,
+        "exclude_groups": exclude_groups,
+        "exclude_categories": exclude_categories,
+        "filter_large_expenses": filter_large_expenses,
+        "expense_threshold": expense_threshold,
     }
 
 
@@ -381,157 +372,66 @@ def render_fi_filters(
     all_groups: list[str],
     all_savings_accounts: list[str],
 ) -> FIFilters:
-    """Render filter controls for the Financial Independence page.
-
-    Mirrors ``render_income_expense_filters`` in layout and defaults. The
-    ``include_accounts`` multiselect drives portfolio selection; the exclude /
-    threshold controls drive the spending side (passed straight to
-    ``apply_transaction_filters``).
-    """
+    """Render compact controls for the data behind the FI scenario."""
     default_accounts = default_fi_accounts(all_accounts, all_savings_accounts)
-
-    with st.expander("Filter Settings", expanded=False):
-        col_filters, col_controls = st.columns(2)
-
-        # ---- LEFT COLUMN: Filters (what data goes in) ----
-        with col_filters:
-            st.markdown("##### Portfolio")
+    with st.popover(
+        "Adjust source data",
+        icon=":material/tune:",
+        width="stretch",
+    ):
+        columns = st.columns(2)
+        with columns[0]:
+            st.markdown("**Portfolio**")
             include_accounts = st.multiselect(
-                "Include Accounts",
+                "Included accounts",
                 options=all_accounts,
                 default=default_accounts,
-                help="Accounts counted as part of the invested/savings portfolio",
+                key="fi_include_accounts",
+                persist_state="page",
             )
-
-            st.markdown("---")
-            st.markdown("##### Spending")
+            spending_lookback_months = st.selectbox(
+                "Spending history",
+                options=FI_SPENDING_LOOKBACK_OPTIONS,
+                index=FI_SPENDING_LOOKBACK_OPTIONS.index(
+                    DEFAULT_FI_SPENDING_LOOKBACK_MONTHS
+                ),
+                format_func=lambda n: f"Last {n} months",
+                key="fi_spending_lookback",
+                persist_state="page",
+            )
+        with columns[1]:
+            st.markdown("**Spending baseline**")
             exclude_groups = st.multiselect(
-                "Exclude Groups",
+                "Exclude groups",
                 options=all_groups,
                 default=[],
-                help="Exclude entire transaction groups from the spending average",
+                key="fi_exclude_groups",
+                persist_state="page",
             )
-
             exclude_categories = st.multiselect(
-                "Exclude Categories",
+                "Exclude categories",
                 options=all_categories,
                 default=[],
-                help="Exclude non-recurring categories from the spending average",
+                key="fi_exclude_categories",
+                persist_state="page",
             )
-
-            filter_large_expenses = st.checkbox(
-                "Filter Large Expenses",
+            filter_large_expenses = st.toggle(
+                "Exclude large transactions",
                 value=False,
-                help="Exclude individual large expense transactions above a threshold",
+                key="fi_filter_large_expenses",
+                persist_state="page",
             )
-
             expense_threshold = DEFAULT_EXPENSE_THRESHOLD
             if filter_large_expenses:
                 expense_threshold = st.number_input(
-                    "Expense Threshold ($)",
+                    "Maximum individual expense",
                     min_value=1000,
                     max_value=100000,
                     value=DEFAULT_EXPENSE_THRESHOLD,
                     step=500,
+                    key="fi_expense_threshold",
+                    persist_state="page",
                 )
-
-        # ---- RIGHT COLUMN: Controls (knobs, scenarios, overrides) ----
-        with col_controls:
-            st.markdown("##### Returns & Horizon")
-            expected_return_rate = st.number_input(
-                "Expected Annual Return (%)",
-                min_value=0.0,
-                max_value=30.0,
-                value=float(DEFAULT_EXPECTED_RETURN_RATE),
-                step=0.5,
-                help="Assumed nominal annual return on the portfolio",
-            )
-
-            spending_lookback_months = st.selectbox(
-                "Spending Lookback",
-                options=FI_SPENDING_LOOKBACK_OPTIONS,
-                index=FI_SPENDING_LOOKBACK_OPTIONS.index(DEFAULT_FI_SPENDING_LOOKBACK_MONTHS),
-                format_func=lambda n: f"Last {n} Months",
-                help="How many months of spending to average",
-            )
-
-            projection_years = st.number_input(
-                "Projection Horizon (Years)",
-                min_value=1,
-                max_value=80,
-                value=DEFAULT_FI_PROJECTION_YEARS,
-                step=5,
-                help="How far out to project portfolio balance",
-            )
-
-            st.markdown("---")
-            st.markdown("##### Scenario Adjustments")
-            supplemental_annual_income = st.number_input(
-                "Supplemental Annual Income ($)",
-                min_value=0,
-                max_value=1_000_000,
-                value=0,
-                step=1000,
-                help=(
-                    "Non-portfolio income (e.g. part-time work, rental, "
-                    "Social Security). Reduces the net annual withdrawal."
-                ),
-            )
-
-            supplemental_annual_spending = st.number_input(
-                "Additional Annual Spending ($)",
-                min_value=0,
-                max_value=1_000_000,
-                value=0,
-                step=1000,
-                help=(
-                    "Extra spending on top of the data-derived baseline "
-                    "(e.g. planned mortgage, healthcare, kids college). "
-                    "Increases the net annual withdrawal."
-                ),
-            )
-
-            st.markdown("---")
-            st.markdown("##### Overrides")
-            override_portfolio_value = st.checkbox(
-                "Override Portfolio Value",
-                value=False,
-                help=(
-                    "Replace the data-derived portfolio total with a fixed "
-                    "value. Useful for spot-testing scenarios."
-                ),
-            )
-
-            portfolio_value_override = 0.0
-            if override_portfolio_value:
-                portfolio_value_override = float(st.number_input(
-                    "Portfolio Value Override ($)",
-                    min_value=0,
-                    max_value=100_000_000,
-                    value=1_000_000,
-                    step=10_000,
-                    help="Used as the portfolio value instead of summing selected accounts",
-                ))
-
-            override_annual_spending = st.checkbox(
-                "Override Annual Spending",
-                value=False,
-                help=(
-                    "Replace the data-derived annual spending with a fixed "
-                    "value. Additional Annual Spending still adds on top."
-                ),
-            )
-
-            annual_spending_override = 0.0
-            if override_annual_spending:
-                annual_spending_override = float(st.number_input(
-                    "Annual Spending Override ($)",
-                    min_value=0,
-                    max_value=10_000_000,
-                    value=50_000,
-                    step=1000,
-                    help="Used as the baseline annual spending instead of the calculated average",
-                ))
 
     return {
         "include_accounts": include_accounts,
@@ -539,15 +439,7 @@ def render_fi_filters(
         "exclude_categories": exclude_categories,
         "filter_large_expenses": filter_large_expenses,
         "expense_threshold": expense_threshold,
-        "expected_return_rate": expected_return_rate,
         "spending_lookback_months": int(spending_lookback_months),
-        "projection_years": int(projection_years),
-        "supplemental_annual_income": float(supplemental_annual_income),
-        "supplemental_annual_spending": float(supplemental_annual_spending),
-        "override_annual_spending": override_annual_spending,
-        "annual_spending_override": annual_spending_override,
-        "override_portfolio_value": override_portfolio_value,
-        "portfolio_value_override": portfolio_value_override,
     }
 
 

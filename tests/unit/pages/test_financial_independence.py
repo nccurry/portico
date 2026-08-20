@@ -10,11 +10,10 @@ import pytest
 from src.custom_types import TransactionFilterOptions
 from src.filters import apply_transaction_filters
 from src.analysis.financial_independence import (
+    build_runway_sensitivity,
     calculate_avg_monthly_spending,
     calculate_fi_metrics,
     project_portfolio,
-    resolve_annual_spending,
-    resolve_portfolio_value,
 )
 
 
@@ -26,13 +25,13 @@ class TestCalculateFiMetrics:
         # annual_return = 70_000, coverage = 1.4, runway = None (returns exceed spending)
         result = calculate_fi_metrics(1_000_000, 50_000, 7.0)
         assert result["annual_return"] == pytest.approx(70_000)
-        assert result["coverage_ratio"] == pytest.approx(1.4)
+        assert result["annual_surplus"] == pytest.approx(20_000)
         assert result["runway_years"] is None
 
     def test_exact_breakeven(self) -> None:
         # P=1_000_000, r=5%, S=50_000 → P*r == S exactly
         result = calculate_fi_metrics(1_000_000, 50_000, 5.0)
-        assert result["coverage_ratio"] == pytest.approx(1.0)
+        assert result["annual_surplus"] == pytest.approx(0.0)
         assert result["runway_years"] is None
 
     def test_depleting_closed_form(self) -> None:
@@ -42,28 +41,28 @@ class TestCalculateFiMetrics:
         #        = log(50000 / 25000) / log(1.05) ≈ 14.2067
         result = calculate_fi_metrics(500_000, 50_000, 5.0)
         assert result["annual_return"] == pytest.approx(25_000)
-        assert result["coverage_ratio"] == pytest.approx(0.5)
+        assert result["annual_surplus"] == pytest.approx(-25_000)
         expected = math.log(50_000 / 25_000) / math.log(1.05)
         assert result["runway_years"] is not None
         assert result["runway_years"] == pytest.approx(expected, rel=1e-9)
         assert result["runway_years"] == pytest.approx(14.2067, rel=1e-3)
 
-    def test_zero_spending_returns_infinite_coverage(self) -> None:
+    def test_zero_spending_is_sustainable(self) -> None:
         result = calculate_fi_metrics(100_000, 0, 7.0)
-        assert math.isinf(result["coverage_ratio"])
+        assert result["annual_surplus"] == pytest.approx(7_000)
         assert result["runway_years"] is None
 
     def test_zero_spending_zero_portfolio(self) -> None:
         # No spending, no portfolio → coverage 0, runway None
         result = calculate_fi_metrics(0, 0, 7.0)
-        assert result["coverage_ratio"] == 0.0
+        assert result["annual_surplus"] == 0.0
         assert result["runway_years"] is None
 
     def test_zero_portfolio_with_spending(self) -> None:
         # Zero portfolio cannot generate return; coverage 0, runway 0
         result = calculate_fi_metrics(0, 50_000, 7.0)
         assert result["annual_return"] == 0.0
-        assert result["coverage_ratio"] == 0.0
+        assert result["annual_surplus"] == -50_000.0
         assert result["runway_years"] == 0.0
 
     def test_zero_rate_runway_equals_portfolio_over_spending(self) -> None:
@@ -72,12 +71,51 @@ class TestCalculateFiMetrics:
         assert result["annual_return"] == 0.0
         assert result["runway_years"] == pytest.approx(5.0)
 
-    def test_summary_fields_roundtrip_inputs(self) -> None:
+    def test_summary_contains_displayed_metrics(self) -> None:
         result = calculate_fi_metrics(250_000, 30_000, 6.0)
-        assert result["portfolio_value"] == 250_000
-        assert result["annual_spending"] == 30_000
-        assert result["supplemental_income"] == 0.0
-        assert result["supplemental_spending"] == 0.0
+        assert result["annual_income"] == 0.0
+        assert result["total_spending"] == 30_000
+        assert result["annual_surplus"] == -15_000
+        assert result["net_annual_spending"] == 30_000.0
+        assert result["sustainable_spending"] == 10_000.0
+        assert result["fi_target"] == 750_000.0
+        assert result["fi_gap"] == -500_000.0
+
+    def test_income_reduces_the_fi_target(self) -> None:
+        result = calculate_fi_metrics(
+            500_000,
+            60_000,
+            5.0,
+            annual_income=20_000,
+            withdrawal_rate_pct=4.0,
+        )
+
+        assert result["net_annual_spending"] == 40_000.0
+        assert result["fi_target"] == 1_000_000.0
+        assert result["fi_gap"] == -500_000.0
+
+    def test_withdrawal_rate_changes_the_fi_target(self) -> None:
+        result = calculate_fi_metrics(
+            500_000,
+            40_000,
+            5.0,
+            withdrawal_rate_pct=5.0,
+        )
+
+        assert result["sustainable_spending"] == 25_000.0
+        assert result["fi_target"] == 800_000.0
+
+    def test_income_covering_spending_has_no_fi_target(self) -> None:
+        result = calculate_fi_metrics(
+            100_000,
+            50_000,
+            0.0,
+            annual_income=60_000,
+        )
+
+        assert result["net_annual_spending"] == 0.0
+        assert result["fi_target"] == 0.0
+        assert result["fi_gap"] == 100_000.0
 
 
 class TestCalculateFiMetricsWithSupplementalIncome:
@@ -100,20 +138,20 @@ class TestCalculateFiMetricsWithSupplementalIncome:
     def test_income_pushes_coverage_up(self) -> None:
         # Coverage = (return + income) / spending = (25_000 + 25_000) / 50_000 = 1.0
         result = calculate_fi_metrics(500_000, 50_000, 5.0, annual_income=25_000)
-        assert result["coverage_ratio"] == pytest.approx(1.0)
-        assert result["supplemental_income"] == 25_000
+        assert result["annual_surplus"] == pytest.approx(0.0)
+        assert result["annual_income"] == 25_000
 
     def test_income_alone_covers_spending_runway_infinite(self) -> None:
         # I >= S so net_withdrawal <= 0 → runway is infinite even with zero return.
         result = calculate_fi_metrics(100_000, 50_000, 0.0, annual_income=50_000)
         assert result["runway_years"] is None
-        assert result["coverage_ratio"] == pytest.approx(1.0)
+        assert result["annual_surplus"] == pytest.approx(0.0)
 
     def test_income_exceeds_spending_runway_infinite(self) -> None:
         # net_withdrawal negative → portfolio actually grows even with r=0.
         result = calculate_fi_metrics(100_000, 50_000, 0.0, annual_income=60_000)
         assert result["runway_years"] is None
-        assert result["coverage_ratio"] == pytest.approx(1.2)
+        assert result["annual_surplus"] == pytest.approx(10_000)
 
     def test_income_with_zero_rate_runway_uses_net_withdrawal(self) -> None:
         # r=0 → runway = P / net_withdrawal = 100_000 / (20_000 - 5_000) = 6.6667
@@ -124,67 +162,6 @@ class TestCalculateFiMetricsWithSupplementalIncome:
         a = calculate_fi_metrics(500_000, 50_000, 5.0)
         b = calculate_fi_metrics(500_000, 50_000, 5.0, annual_income=0.0)
         assert a == b
-
-
-class TestCalculateFiMetricsWithAdditionalSpending:
-    """Verify additional_annual_spending adds to baseline spending."""
-
-    def test_additional_spending_shrinks_runway(self) -> None:
-        # Baseline depleting case (P=500k, r=5%, S=50k, runway ≈ 14.21).
-        # Add S'=10k → total = 60k, net_withdrawal = 60k.
-        # runway = log(60k / (60k - 25k)) / log(1.05) ≈ 11.0359
-        result = calculate_fi_metrics(500_000, 50_000, 5.0, additional_annual_spending=10_000)
-        baseline = calculate_fi_metrics(500_000, 50_000, 5.0)
-        expected = math.log(60_000 / 35_000) / math.log(1.05)
-        assert result["runway_years"] is not None
-        assert baseline["runway_years"] is not None
-        assert result["runway_years"] == pytest.approx(expected, rel=1e-9)
-        assert result["runway_years"] < baseline["runway_years"]
-
-    def test_additional_spending_lowers_coverage(self) -> None:
-        # P=1M, r=7% → return=70k. Baseline S=50k → coverage=1.4.
-        # Add S'=20k → total spending=70k → coverage = 70k/70k = 1.0.
-        result = calculate_fi_metrics(
-            1_000_000, 50_000, 7.0, additional_annual_spending=20_000
-        )
-        assert result["coverage_ratio"] == pytest.approx(1.0)
-        assert result["supplemental_spending"] == 20_000
-
-    def test_additional_spending_can_break_infinite_runway(self) -> None:
-        # Same P/r/S as test_infinite_runway (returns cover spending), but
-        # additional spending tips it into depletion.
-        infinite = calculate_fi_metrics(1_000_000, 50_000, 7.0)
-        finite = calculate_fi_metrics(
-            1_000_000, 50_000, 7.0, additional_annual_spending=30_000
-        )
-        assert infinite["runway_years"] is None
-        assert finite["runway_years"] is not None
-        assert finite["runway_years"] > 0
-
-    def test_additional_spending_offset_by_equal_income(self) -> None:
-        # net_withdrawal = (S + S') - I = 50k + 20k - 20k = 50k → identical
-        # to the baseline depleting case.
-        with_offsets = calculate_fi_metrics(
-            500_000, 50_000, 5.0, annual_income=20_000, additional_annual_spending=20_000
-        )
-        baseline = calculate_fi_metrics(500_000, 50_000, 5.0)
-        assert with_offsets["runway_years"] == pytest.approx(baseline["runway_years"])
-
-    def test_default_additional_spending_matches_no_additional(self) -> None:
-        a = calculate_fi_metrics(500_000, 50_000, 5.0)
-        b = calculate_fi_metrics(500_000, 50_000, 5.0, additional_annual_spending=0.0)
-        assert a == b
-
-    def test_baseline_zero_with_additional_only(self) -> None:
-        # Data-derived baseline is zero; only additional spending matters.
-        # P=200k, r=5%, S=0, S'=15k → net_withdrawal=15k, return=10k
-        # runway = log(15k / (15k - 10k)) / log(1.05)
-        result = calculate_fi_metrics(
-            200_000, 0, 5.0, additional_annual_spending=15_000
-        )
-        expected = math.log(15_000 / 5_000) / math.log(1.05)
-        assert result["runway_years"] == pytest.approx(expected, rel=1e-9)
-        assert result["coverage_ratio"] == pytest.approx(10_000 / 15_000)
 
 
 class TestProjectPortfolio:
@@ -250,32 +227,30 @@ class TestProjectPortfolio:
         b = project_portfolio(400_000, 40_000, 6.0, years=10, annual_income=0.0)
         assert list(a["Balance"]) == pytest.approx(list(b["Balance"]))
 
-    def test_additional_spending_increases_withdrawal(self) -> None:
-        # r=0, S=20k, S'=5k → net 25k subtracted each year
-        df = project_portfolio(
-            100_000, 20_000, 0.0, years=4, additional_annual_spending=5_000
-        )
-        assert list(df["Balance"]) == pytest.approx(
-            [100_000, 75_000, 50_000, 25_000, 0]
+    def test_projection_exposes_each_annual_cash_flow(self) -> None:
+        projection = project_portfolio(
+            100_000,
+            20_000,
+            5.0,
+            years=1,
+            annual_income=5_000,
         )
 
-    def test_income_and_additional_spending_offset(self) -> None:
-        # net_withdrawal = (S + S') - I = 20k + 5k - 5k = 20k → matches
-        # the baseline test_zero_rate_linear_decay (100k → 80k → ...).
-        a = project_portfolio(100_000, 20_000, 0.0, years=4)
-        b = project_portfolio(
-            100_000, 20_000, 0.0, years=4,
-            annual_income=5_000, additional_annual_spending=5_000,
-        )
-        assert list(a["Balance"]) == pytest.approx(list(b["Balance"]))
-
-    def test_default_additional_spending_matches_no_additional(self) -> None:
-        a = project_portfolio(400_000, 40_000, 6.0, years=10)
-        b = project_portfolio(
-            400_000, 40_000, 6.0, years=10, additional_annual_spending=0.0
-        )
-        assert list(a["Balance"]) == pytest.approx(list(b["Balance"]))
-
+        year_one = projection.iloc[1]
+        assert set(projection.columns) == {
+            "Year",
+            "Starting_Balance",
+            "Investment_Return",
+            "Income",
+            "Spending",
+            "Net_Cash_Flow",
+            "Balance",
+        }
+        assert year_one["Starting_Balance"] == 100_000.0
+        assert year_one["Investment_Return"] == 5_000.0
+        assert year_one["Income"] == 5_000.0
+        assert year_one["Spending"] == 20_000.0
+        assert year_one["Balance"] == 90_000.0
 
 class TestCalculateAvgMonthlySpending:
     """Verify spending math and filter reuse via apply_transaction_filters."""
@@ -322,12 +297,14 @@ class TestCalculateAvgMonthlySpending:
         df = pd.DataFrame(columns=["Date", "Amount", "Type", "Month"])
         avg, totals = calculate_avg_monthly_spending(df, "2024-01", "2024-12")
         assert avg == 0.0
-        assert totals.empty
+        assert len(totals) == 12
+        assert (totals["Spending"] == 0).all()
 
     def test_window_outside_data_returns_zero(self, fi_transactions_df: pd.DataFrame) -> None:
         avg, totals = calculate_avg_monthly_spending(fi_transactions_df, "2030-01", "2030-12")
         assert avg == 0.0
-        assert totals.empty
+        assert len(totals) == 12
+        assert (totals["Spending"] == 0).all()
 
     def test_monthly_totals_aggregate_multiple_rows(self) -> None:
         # Two expenses in the same month aggregate to a single row.
@@ -343,54 +320,69 @@ class TestCalculateAvgMonthlySpending:
         assert list(totals["Month"]) == ["2024-01", "2024-02"]
         assert list(totals["Spending"]) == pytest.approx([350.0, 500.0])
 
+    def test_zero_spend_months_are_included_in_the_average(self) -> None:
+        df = pd.DataFrame(
+            {
+                "Date": pd.to_datetime(["2024-01-05", "2024-03-05"], utc=True),
+                "Amount": [-300.0, -600.0],
+                "Type": ["Expense", "Expense"],
+                "Month": ["2024-01", "2024-03"],
+            }
+        )
 
-class TestResolveAnnualSpending:
-    """Spending override replaces the calculated baseline when set."""
+        average, totals = calculate_avg_monthly_spending(
+            df,
+            "2024-01",
+            "2024-03",
+        )
 
-    def test_no_override_uses_monthly_times_twelve(self) -> None:
-        assert resolve_annual_spending(1000.0, None) == 12_000.0
-
-    def test_override_replaces_monthly_calculation(self) -> None:
-        # Monthly avg of $1000 would give $12k, but override of $50k wins.
-        assert resolve_annual_spending(1000.0, 50_000.0) == 50_000.0
-
-    def test_override_zero_is_respected(self) -> None:
-        # Explicit 0 override means "no spending baseline" — not "no override".
-        assert resolve_annual_spending(1000.0, 0.0) == 0.0
-
-    def test_override_with_zero_monthly_avg(self) -> None:
-        assert resolve_annual_spending(0.0, 100_000.0) == 100_000.0
-
-    def test_no_override_with_zero_monthly_avg(self) -> None:
-        assert resolve_annual_spending(0.0, None) == 0.0
-
-    def test_override_returns_float_even_for_int_input(self) -> None:
-        result = resolve_annual_spending(1000.0, 50_000)  # int override
-        assert isinstance(result, float)
-        assert result == 50_000.0
+        assert average == pytest.approx(300.0)
+        assert totals["Spending"].tolist() == [300.0, 0.0, 600.0]
 
 
-class TestResolvePortfolioValue:
-    """Portfolio override replaces the calculated total when set."""
+class TestRunwaySensitivity:
+    def test_builds_every_spending_and_return_combination(self) -> None:
+        sensitivity = build_runway_sensitivity(
+            1_000_000,
+            50_000,
+            0.0,
+            spending_changes=(-10, 0, 10),
+            return_rates=(0.0, 5.0),
+        )
 
-    def test_no_override_uses_calculated_value(self) -> None:
-        assert resolve_portfolio_value(750_000.0, None) == 750_000.0
+        assert len(sensitivity) == 6
+        assert set(sensitivity["Spending_Change"]) == {
+            "-10%",
+            "Baseline",
+            "+10%",
+        }
+        sustainable = sensitivity[
+            sensitivity["Spending_Change"].eq("-10%")
+            & sensitivity["Return_Rate"].eq(5.0)
+        ].iloc[0]
+        assert sustainable["Runway_Label"] == "Sustainable"
+        assert sustainable["Runway_Years"] == 100.0
 
-    def test_override_replaces_calculated(self) -> None:
-        assert resolve_portfolio_value(750_000.0, 1_000_000.0) == 1_000_000.0
+    def test_default_grid_is_centered_on_selected_return(self) -> None:
+        sensitivity = build_runway_sensitivity(
+            500_000,
+            50_000,
+            0.0,
+            baseline_return_rate=7.0,
+        )
 
-    def test_override_zero_is_respected(self) -> None:
-        # Explicit 0 means "model an empty portfolio" — not "no override".
-        assert resolve_portfolio_value(750_000.0, 0.0) == 0.0
+        assert set(sensitivity["Return_Rate"]) == {3.0, 5.0, 7.0, 9.0, 11.0}
+        assert sensitivity.loc[
+            sensitivity["Is_Baseline_Return"], "Return_Rate"
+        ].unique().tolist() == [7.0]
 
-    def test_override_with_zero_calculated(self) -> None:
-        # User has no selected accounts but plugs in a hypothetical balance.
-        assert resolve_portfolio_value(0.0, 500_000.0) == 500_000.0
+    def test_zero_baseline_does_not_duplicate_return_scenarios(self) -> None:
+        sensitivity = build_runway_sensitivity(
+            500_000,
+            50_000,
+            0.0,
+            baseline_return_rate=0.0,
+        )
 
-    def test_no_override_with_zero_calculated(self) -> None:
-        assert resolve_portfolio_value(0.0, None) == 0.0
-
-    def test_override_returns_float_even_for_int_input(self) -> None:
-        result = resolve_portfolio_value(750_000.0, 1_000_000)  # int override
-        assert isinstance(result, float)
-        assert result == 1_000_000.0
+        assert set(sensitivity["Return_Rate"]) == {0.0, 2.0, 4.0}
+        assert len(sensitivity) == 5 * 3

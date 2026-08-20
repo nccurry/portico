@@ -1,9 +1,15 @@
 """Tests for src/filters.py — calculate_date_range and apply_transaction_filters."""
-import pandas as pd
+
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
-from src.custom_types import TransactionFilterOptions
+import pandas as pd
+
+from src.constants import (
+    DEFAULT_EXPENSE_THRESHOLD,
+    DEFAULT_FI_SPENDING_LOOKBACK_MONTHS,
+)
+from src.custom_types import FIFilters, TransactionFilterOptions
 from src.filters import (
     apply_transaction_filters,
     calculate_date_range,
@@ -612,7 +618,17 @@ class TestPageFilterDefaults:
                 ["Savings"],
             )
 
-        assert result["include_accounts"] == ["Savings", "Individual"]
-        assert result["exclude_groups"] == []
-        assert result["exclude_categories"] == []
-        assert result["filter_large_expenses"] is False
+        expected: FIFilters = {
+            "include_accounts": ["Savings", "Individual"],
+            "exclude_groups": [],
+            "exclude_categories": [],
+            "filter_large_expenses": False,
+            "expense_threshold": DEFAULT_EXPENSE_THRESHOLD,
+            "spending_lookback_months": DEFAULT_FI_SPENDING_LOOKBACK_MONTHS,
+        }
+        assert result == expected
+        mock_st.popover.assert_called_once_with(
+            "Adjust source data",
+            icon=":material/tune:",
+            width="stretch",
+        )

@@ -3,7 +3,7 @@
 import pandas as pd
 import pytest
 
-from src.analysis.budget import calculate_category_projections, summarize_budget
+from src.analysis.budget import summarize_budget
 from src.analysis.duplicates import (
     summarize_duplicates,
     summarize_duplicates_by_month,
@@ -62,7 +62,7 @@ def test_merchant_normalization_and_mode_fallbacks() -> None:
     assert _mode_or_first(pd.Series(dtype="object")) == "Unknown"
 
 
-def test_budget_summary_and_projections_follow_period_identities() -> None:
+def test_budget_summary_follows_period_identities() -> None:
     comparison = pd.DataFrame(
         {
             "Category": ["Food", "Travel", "Unbudgeted"],
@@ -72,38 +72,26 @@ def test_budget_summary_and_projections_follow_period_identities() -> None:
     )
 
     summary = summarize_budget(comparison)
-    projections = calculate_category_projections(comparison, 15, 30)
-
     assert summary == {
         "budget": 900.0,
         "spent": 775.0,
         "remaining": 125.0,
         "pct_used": pytest.approx(86.111111),
     }
-    assert projections.set_index("Category")["Projected"].to_dict() == {
-        "Food": 600.0,
-        "Travel": 900.0,
-    }
-    assert projections.set_index("Category")["Over_Budget"].to_dict() == {
-        "Food": False,
-        "Travel": True,
-    }
 
 
-def test_fi_summary_exposes_displayed_totals_and_cashflow_gap() -> None:
+def test_fi_summary_exposes_displayed_totals_and_annual_surplus() -> None:
     summary = calculate_fi_metrics(
         portfolio_value=500_000.0,
         annual_spending=50_000.0,
         rate_pct=5.0,
         annual_income=10_000.0,
-        additional_annual_spending=5_000.0,
     )
 
     assert summary["annual_return"] == pytest.approx(25_000.0)
-    assert summary["total_spending"] == pytest.approx(55_000.0)
-    assert summary["total_inflow"] == pytest.approx(35_000.0)
-    assert summary["cashflow_gap"] == pytest.approx(-20_000.0)
-    assert summary["coverage_ratio"] == pytest.approx(35_000 / 55_000)
+    assert summary["annual_income"] == pytest.approx(10_000.0)
+    assert summary["total_spending"] == pytest.approx(50_000.0)
+    assert summary["annual_surplus"] == pytest.approx(-15_000.0)
 
 
 def test_savings_account_selection_handles_missing_and_hidden_groups() -> None:

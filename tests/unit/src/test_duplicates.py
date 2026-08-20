@@ -344,6 +344,25 @@ class TestFindDuplicatesEfficient:
                                            require_same_description=True)
         assert result.iloc[0]['Days_Apart'] == 2
 
+    def test_missing_dates_are_ignored(self) -> None:
+        df = _make_df([
+            {"Date": pd.NaT, "Amount": -50.00},
+            {"Date": "2024-01-15", "Amount": -50.00},
+            {"Date": "2024-01-15", "Amount": -50.00},
+        ])
+
+        result = find_duplicates_efficient(
+            df,
+            days_threshold=1,
+            min_amount=10,
+            check_same_account=False,
+            check_same_category=False,
+            require_same_description=True,
+        )
+
+        assert len(result) == 1
+        assert result[["Date1", "Date2"]].notna().all().all()
+
     def test_empty_input(self) -> None:
         df = pd.DataFrame({
             'Date': pd.Series([], dtype='datetime64[ns, UTC]'),
