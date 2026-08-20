@@ -1,72 +1,47 @@
-"""Tiller-backed group budget dashboard."""
+"""Tiller-backed budget pulse, comparison, and drill-down."""
 
 import calendar
 from collections.abc import Sequence
 from typing import cast
+from zlib import crc32
 
 import altair as alt
 import pandas as pd
 import streamlit as st
+from streamlit.elements.arrow import DataframeState
 
 from src.analysis.budget import (
-    build_group_budget_table,
+    build_budget_history,
+    build_budget_performance,
     filter_budget_transactions,
-    get_budget_vs_actual,
     get_default_budget_groups,
-    get_group_budget_vs_actual,
-    get_trailing_group_guidance,
     get_ytd_group_budget_vs_actual,
     summarize_budget,
+    summarize_budget_history,
 )
 from src.constants import (
+    COLOR_ADDITIONAL_SPENDING,
     COLOR_BUDGET,
+    COLOR_NET_WORTH,
     COLOR_OVER_BUDGET,
+    COLOR_PLACEHOLDER,
+    COLOR_SAVINGS,
     COLOR_UNDER_BUDGET,
-    DEFAULT_EXPENSE_THRESHOLD,
 )
-from src.custom_types import BudgetFilters
+from src.custom_types import BudgetFilters, ColumnConfig
 from src.filters import render_budget_filters
 from src.page_helpers import render_data_refresh_controls
+from src.reporting_periods import latest_data_timestamp
 from src.spreadsheet import load_categories_data, load_transactions_data
 
 
-def create_budget_group_chart(df: pd.DataFrame, title: str) -> alt.Chart:
-    """Build a horizontal group-spending chart with budget target ticks."""
-    if df.empty:
-        return alt.Chart(pd.DataFrame()).mark_text().encode(text=alt.value("No budget data"))  # type: ignore[no-any-return]
+SELECTED_GROUP_KEY = "budget_selected_group"
+LOOKBACK_MONTHS = 12
 
-    chart_df = df[["Group", "Budget", "Spent"]].copy()
-    chart_df["Over"] = chart_df["Spent"] > chart_df["Budget"]
-    group_order = chart_df.sort_values("Spent", ascending=False)["Group"].tolist()
 
-    bars = (
-        alt.Chart(chart_df)
-        .mark_bar()
-        .encode(
-            y=alt.Y("Group:N", sort=group_order, title=None),
-            x=alt.X("Spent:Q", title="Amount ($)"),
-            color=alt.condition(
-                alt.datum.Over,
-                alt.value(COLOR_OVER_BUDGET),
-                alt.value(COLOR_UNDER_BUDGET),
-            ),
-            tooltip=[
-                alt.Tooltip("Group:N"),
-                alt.Tooltip("Spent:Q", format="$,.2f", title="Spent"),
-                alt.Tooltip("Budget:Q", format="$,.2f", title="Budget"),
-            ],
-        )
-    )
-    targets = (
-        alt.Chart(chart_df)
-        .mark_tick(color=COLOR_BUDGET, thickness=3, size=24)
-        .encode(
-            y=alt.Y("Group:N", sort=group_order),
-            x=alt.X("Budget:Q"),
-            tooltip=[alt.Tooltip("Budget:Q", format="$,.2f", title="Budget")],
-        )
-    )
-    return (bars + targets).properties(height=max(240, len(chart_df) * 55), title=title)  # type: ignore[no-any-return]
+def _format_currency(value: float, *, signed: bool = False) -> str:
+    sign = "+" if signed and value > 0 else "-" if value < 0 else ""
+    return f"{sign}${abs(value):,.0f}"
 
 
 def _categories_sheet_url() -> str | None:
@@ -80,342 +55,615 @@ def _categories_sheet_url() -> str | None:
 
 
 def _passthrough_filters() -> BudgetFilters:
-    """Return filters for the always-visible gross view."""
     return {
         "exclude_groups": [],
         "exclude_categories": [],
         "filter_large_expenses": False,
-        "expense_threshold": DEFAULT_EXPENSE_THRESHOLD,
-        "show_zero_budget": True,
+        "expense_threshold": 0,
     }
 
 
 def _has_adjustments(filters: BudgetFilters) -> bool:
-    """Return whether any one-off adjustment is active."""
-    return bool(filters["exclude_groups"] or filters["exclude_categories"] or filters["filter_large_expenses"])
-
-
-def _render_summary(label: str, comparison: pd.DataFrame) -> None:
-    """Render one responsive row of budget metrics."""
-    summary = summarize_budget(comparison)
-    with st.container(horizontal=True):
-        st.metric(f"{label} budget", f"${summary['budget']:,.2f}", border=True)
-        st.metric(f"{label} spent", f"${summary['spent']:,.2f}", border=True)
-        st.metric(
-            f"{label} remaining",
-            f"${summary['remaining']:,.2f}",
-            delta_color="inverse" if summary["remaining"] >= 0 else "normal",
-            border=True,
-        )
-        st.metric(f"{label} used", f"{summary['pct_used']:.1f}%", border=True)
-
-
-def _guidance_table(
-    gross: pd.DataFrame,
-    adjusted: pd.DataFrame,
-    *,
-    show_adjusted: bool,
-) -> pd.DataFrame:
-    """Combine gross and adjusted trailing-average guidance."""
-    result = gross.rename(columns={"Monthly_Average": "Gross_Monthly_Average"})
-    result = result[["Group", "Monthly_Target", "Gross_Monthly_Average", "Monthly_Reduction", "Annualized_Reduction"]]
-    if not show_adjusted:
-        return result
-
-    adjusted_values = adjusted[["Group", "Monthly_Average"]].rename(
-        columns={"Monthly_Average": "Adjusted_Monthly_Average"}
+    return bool(
+        filters["exclude_groups"]
+        or filters["exclude_categories"]
+        or filters["filter_large_expenses"]
     )
-    result = result.merge(adjusted_values, on="Group", how="left")
-    result["Adjusted_Monthly_Reduction"] = result["Adjusted_Monthly_Average"] - result["Monthly_Target"]
-    result["Adjusted_Annualized_Reduction"] = result["Adjusted_Monthly_Reduction"] * 12
+
+
+def _month_progress(
+    transactions: pd.DataFrame,
+    selected_month: str,
+) -> tuple[float, pd.Timestamp | None]:
+    dates = pd.to_datetime(transactions["Date"], errors="coerce", utc=True)
+    valid = transactions.assign(_Date=dates).dropna(subset=["_Date"])
+    if valid.empty:
+        return 1.0, None
+    latest = cast(pd.Timestamp, valid["_Date"].max())
+    if latest.strftime("%Y-%m") != selected_month:
+        return 1.0, latest
+    days = calendar.monthrange(latest.year, latest.month)[1]
+    return latest.day / days, latest
+
+
+def _add_status(
+    performance: pd.DataFrame,
+    *,
+    month_progress: float,
+) -> pd.DataFrame:
+    result = performance.copy()
+    result["Status"] = "On pace"
+    outside = result["Budget"].le(0) & result["Spent"].gt(0)
+    ahead = (
+        result["Budget"].gt(0)
+        & result["Spent"].le(result["Budget"])
+        & (month_progress < 1)
+        & result["Pct_Used"].gt(month_progress * 100 + 10)
+    )
+    over = result["Budget"].gt(0) & result["Spent"].gt(result["Budget"])
+    result.loc[ahead, "Status"] = "Ahead of pace"
+    result.loc[over, "Status"] = "Over budget"
+    result.loc[outside, "Status"] = "Outside plan"
     return result
 
 
-def _render_group_drilldowns(
-    groups: Sequence[str],
-    month_str: str,
+def create_budget_pulse_chart(
+    performance: pd.DataFrame,
+    *,
+    height_per_row: int = 48,
+) -> alt.LayerChart:
+    """Compare spending bars with budget targets and typical-spend markers."""
+    order = performance.sort_values("Spent", ascending=False)["Entity"].tolist()
+    base = alt.Chart(performance).encode(
+        y=alt.Y("Entity:N", sort=order, title=None),
+    )
+    bars = base.mark_bar(cornerRadiusEnd=3).encode(
+        x=alt.X("Spent:Q", title="Spending ($)", axis=alt.Axis(format="$,.2s")),
+        color=alt.Color(
+            "Status:N",
+            title=None,
+            scale=alt.Scale(
+                domain=["On pace", "Ahead of pace", "Over budget", "Outside plan"],
+                range=[
+                    COLOR_UNDER_BUDGET,
+                    COLOR_SAVINGS,
+                    COLOR_OVER_BUDGET,
+                    COLOR_ADDITIONAL_SPENDING,
+                ],
+            ),
+        ),
+        tooltip=[
+            alt.Tooltip("Entity:N", title="Name"),
+            alt.Tooltip("Status:N"),
+            alt.Tooltip("Spent:Q", title="Spent", format="$,.2f"),
+            alt.Tooltip("Budget:Q", title="Budget", format="$,.2f"),
+            alt.Tooltip("Typical_Spend:Q", title="Typical", format="$,.2f"),
+            alt.Tooltip("Vs_Typical:Q", title="Vs typical", format="$,.2f"),
+            alt.Tooltip("Outside_Plan:Q", title="Outside plan", format="$,.2f"),
+        ],
+    )
+    targets = base.mark_tick(
+        color=COLOR_BUDGET,
+        thickness=3,
+        size=24,
+    ).encode(x=alt.X("Budget:Q"))
+    typical = base.mark_point(
+        color=COLOR_NET_WORTH,
+        filled=True,
+        shape="diamond",
+        size=90,
+    ).encode(
+        x=alt.X("Typical_Spend:Q"),
+        tooltip=[
+            alt.Tooltip("Entity:N", title="Name"),
+            alt.Tooltip("Typical_Spend:Q", title="Typical", format="$,.2f"),
+        ],
+    )
+    return cast(
+        alt.LayerChart,
+        (bars + targets + typical).properties(
+            height=max(240, len(performance) * height_per_row)
+        ),
+    )
+
+
+def _performance_column_config(entity_label: str) -> ColumnConfig:
+    return {
+        "Entity": st.column_config.TextColumn(entity_label, pinned=True),
+        "Status": st.column_config.TextColumn("Status"),
+        "Budget": st.column_config.NumberColumn("Budget", format="$%.2f"),
+        "Spent": st.column_config.NumberColumn("Spent", format="$%.2f"),
+        "Remaining": st.column_config.NumberColumn("Remaining", format="$%.2f"),
+        "Pct_Used": st.column_config.NumberColumn("Used", format="%.1f%%"),
+        "Vs_Typical": st.column_config.NumberColumn("Vs typical", format="$%.2f"),
+        "Outside_Plan": st.column_config.NumberColumn(
+            "Outside plan", format="$%.2f"
+        ),
+        "Success_Rate": st.column_config.NumberColumn(
+            "12-mo hit rate", format="%.0f%%"
+        ),
+        "Trend": st.column_config.LineChartColumn(
+            "13-month trend",
+            color=COLOR_NET_WORTH,
+        ),
+    }
+
+
+def _select_group(performance: pd.DataFrame, *, state_key: str) -> str:
+    remembered = st.session_state.get(SELECTED_GROUP_KEY)
+    default_position = 0
+    if isinstance(remembered, str) and remembered in performance["Entity"].values:
+        default_position = int(
+            performance.index[performance["Entity"].eq(remembered)].tolist()[0]
+        )
+    selection_default = cast(
+        DataframeState,
+        {"selection": {"rows": [default_position]}},
+    )
+    display_columns = [
+        "Entity",
+        "Status",
+        "Budget",
+        "Spent",
+        "Remaining",
+        "Pct_Used",
+        "Vs_Typical",
+        "Outside_Plan",
+        "Success_Rate",
+        "Trend",
+    ]
+    event = st.dataframe(
+        performance[display_columns],
+        key=state_key,
+        width="stretch",
+        height=min(610, 38 * (len(performance) + 1) + 8),
+        hide_index=True,
+        on_select="rerun",
+        selection_mode="single-row-required",
+        selection_default=selection_default,
+        column_config=_performance_column_config("Group"),
+    )
+    rows = event["selection"]["rows"]
+    position = rows[0] if rows else 0
+    if position >= len(performance):
+        position = 0
+    selected = str(performance.iloc[position]["Entity"])
+    st.session_state[SELECTED_GROUP_KEY] = selected
+    return selected
+
+
+def _history_chart(
+    history: pd.DataFrame,
+    *,
+    typical_spend: float,
+    selected_month: str,
+) -> alt.LayerChart:
+    chart_data = history.copy()
+    chart_data["Date"] = pd.PeriodIndex(chart_data["Month"], freq="M").to_timestamp()
+    chart_data["Selected"] = chart_data["Month"].eq(selected_month)
+    bars = alt.Chart(chart_data).mark_bar(
+        cornerRadiusTopLeft=3,
+        cornerRadiusTopRight=3,
+    ).encode(
+        x=alt.X("Date:T", title=None, axis=alt.Axis(format="%b %Y", labelAngle=-35)),
+        y=alt.Y("Spent:Q", title="Spending ($)", axis=alt.Axis(format="$,.2s")),
+        color=alt.condition(
+            "datum.Selected",
+            alt.value(COLOR_NET_WORTH),
+            alt.value(COLOR_PLACEHOLDER),
+        ),
+        tooltip=[
+            alt.Tooltip("Date:T", title="Month", format="%B %Y"),
+            alt.Tooltip("Spent:Q", title="Spent", format="$,.2f"),
+            alt.Tooltip("Budget:Q", title="Budget", format="$,.2f"),
+            alt.Tooltip("Outside_Plan:Q", title="Outside plan", format="$,.2f"),
+        ],
+    )
+    budget = alt.Chart(chart_data).mark_line(
+        color=COLOR_BUDGET,
+        strokeWidth=2,
+    ).encode(x=alt.X("Date:T"), y=alt.Y("Budget:Q"))
+    typical = alt.Chart(pd.DataFrame({"Typical": [typical_spend]})).mark_rule(
+        color=COLOR_SAVINGS,
+        strokeDash=[6, 4],
+    ).encode(y=alt.Y("Typical:Q"))
+    return cast(
+        alt.LayerChart,
+        (bars + budget + typical).properties(height=320),
+    )
+
+
+def _render_summary(
+    history: pd.DataFrame,
+    group_performance: pd.DataFrame,
+    category_performance: pd.DataFrame,
+    *,
+    selected_month: str,
+    month_progress: float,
+) -> None:
+    pulse = summarize_budget_history(history, selected_month)
+    outside_categories = int(
+        (
+            category_performance["Budget"].le(0)
+            & category_performance["Spent"].abs().gt(0.005)
+        ).sum()
+    )
+    groups_within = int(
+        (
+            group_performance["Budget"].gt(0)
+            & group_performance["Spent"].le(group_performance["Budget"])
+        ).sum()
+    )
+    budgeted_groups = int(group_performance["Budget"].gt(0).sum())
+    pace_delta = pulse["pct_used"] - month_progress * 100
+    with st.container(horizontal=True):
+        st.metric(
+            "Spending",
+            _format_currency(pulse["spent"]),
+            delta=(
+                f"{_format_currency(pulse['vs_typical'], signed=True)} vs typical"
+                if pulse["typical_spend"]
+                else None
+            ),
+            delta_color="inverse",
+            border=True,
+        )
+        st.metric(
+            "Remaining",
+            _format_currency(pulse["remaining"]),
+            delta=f"{_format_currency(pulse['budget'])} budget",
+            delta_color="off",
+            border=True,
+        )
+        st.metric(
+            "Budget used",
+            f"{pulse['pct_used']:.1f}%",
+            delta=(
+                f"{pace_delta:+.1f} pts vs month elapsed"
+                if month_progress < 1
+                else f"{groups_within} of {budgeted_groups} groups within budget"
+            ),
+            delta_color="inverse" if month_progress < 1 else "off",
+            border=True,
+        )
+        st.metric(
+            "Outside the plan",
+            _format_currency(pulse["outside_plan"]),
+            delta=f"{outside_categories} unbudgeted categories",
+            delta_color="off",
+            border=True,
+        )
+
+
+def _render_group_detail(
     budget_df: pd.DataFrame,
     transactions_df: pd.DataFrame,
+    *,
+    selected_month: str,
+    selected_group: str,
+    filters: BudgetFilters,
+    group_history: pd.DataFrame,
+    group_performance: pd.DataFrame,
+    month_progress: float,
+) -> None:
+    group_row = group_performance[
+        group_performance["Entity"].eq(selected_group)
+    ].iloc[0]
+    history = group_history[group_history["Entity"].eq(selected_group)]
+    with st.container(border=True):
+        st.subheader(selected_group)
+        with st.container(horizontal=True):
+            st.metric("Spent", _format_currency(float(group_row["Spent"])))
+            st.metric("Budget", _format_currency(float(group_row["Budget"])))
+            st.metric(
+                "Typical month",
+                _format_currency(float(group_row["Typical_Spend"])),
+            )
+            st.metric(
+                "Outside the plan",
+                _format_currency(float(group_row["Outside_Plan"])),
+            )
+        st.altair_chart(
+            _history_chart(
+                history,
+                typical_spend=float(group_row["Typical_Spend"]),
+                selected_month=selected_month,
+            ),
+            width="stretch",
+        )
+
+        category_history = build_budget_history(
+            budget_df,
+            transactions_df,
+            selected_month,
+            filters,
+            [selected_group],
+            dimension="Category",
+            lookback_months=LOOKBACK_MONTHS,
+        )
+        categories = _add_status(
+            build_budget_performance(category_history, selected_month),
+            month_progress=month_progress,
+        )
+        if categories.empty:
+            st.info("No category spending is available for this group and month.")
+            return
+
+        st.markdown("**What drove spending**")
+        chart_column, table_column = st.columns(
+            [1, 1.45],
+            gap="large",
+            vertical_alignment="top",
+        )
+        with chart_column:
+            st.altair_chart(
+                create_budget_pulse_chart(categories.head(10), height_per_row=42),
+                width="stretch",
+            )
+        with table_column:
+            category_config = dict(_performance_column_config("Category"))
+            category_config["Budget_Variance"] = st.column_config.NumberColumn(
+                "Vs budget", format="$%.2f"
+            )
+            st.dataframe(
+                categories[
+                    [
+                        "Entity",
+                        "Status",
+                        "Budget",
+                        "Spent",
+                        "Budget_Variance",
+                        "Vs_Typical",
+                        "Success_Rate",
+                    ]
+                ],
+                width="stretch",
+                height=min(510, 38 * (len(categories) + 1) + 8),
+                hide_index=True,
+                column_config=category_config,
+            )
+
+        current_transactions = filter_budget_transactions(
+            transactions_df,
+            selected_month,
+            filters,
+            groups=[selected_group],
+        ).copy()
+        current_transactions["Net spend"] = -pd.to_numeric(
+            current_transactions["Amount"], errors="coerce"
+        ).fillna(0.0)
+        category_options = ["All categories", *categories["Entity"].tolist()]
+        transaction_category = str(
+            st.selectbox(
+                "Transactions",
+                category_options,
+                key=f"budget_transaction_category_{selected_group}",
+            )
+        )
+        if transaction_category != "All categories":
+            current_transactions = current_transactions[
+                current_transactions["Category"].eq(transaction_category)
+            ]
+        current_transactions = current_transactions.sort_values(
+            ["Net spend", "Date"], ascending=[False, False]
+        )
+        if current_transactions.empty:
+            st.info("No transactions match this category selection.")
+        else:
+            st.dataframe(
+                current_transactions[
+                    [
+                        "Date",
+                        "Category",
+                        "Full Description",
+                        "Account",
+                        "Net spend",
+                    ]
+                ].rename(columns={"Full Description": "Description"}),
+                width="stretch",
+                hide_index=True,
+                column_config={
+                    "Date": st.column_config.DateColumn(
+                        "Date", format="MMM DD, YYYY"
+                    ),
+                    "Description": st.column_config.TextColumn(
+                        "Description", pinned=True, width="large"
+                    ),
+                    "Net spend": st.column_config.NumberColumn(
+                        "Net spend", format="$%.2f"
+                    ),
+                },
+            )
+
+
+def _render_ytd(
+    budget_df: pd.DataFrame,
+    transactions_df: pd.DataFrame,
+    *,
+    selected_month: str,
+    groups: Sequence[str],
     filters: BudgetFilters,
 ) -> None:
-    """Render category and transaction details inside each group."""
-    category_filters = dict(filters)
-    category_filters["show_zero_budget"] = True
-    category_comparison = get_budget_vs_actual(
+    ytd = get_ytd_group_budget_vs_actual(
         budget_df,
         transactions_df,
-        month_str,
-        cast(BudgetFilters, category_filters),
-    )
-    transactions = filter_budget_transactions(
-        transactions_df,
-        month_str,
+        selected_month,
         filters,
-        groups=groups,
+        groups,
     )
-
-    for group in groups:
-        with st.expander(group):
-            group_categories = category_comparison[category_comparison["Group"] == group]
-            st.markdown("**Category breakdown**")
-            st.dataframe(
-                group_categories[["Category", "Budget", "Spent", "Remaining", "Pct_Used"]],
-                width="stretch",
-                hide_index=True,
-                column_config={
-                    "Budget": st.column_config.NumberColumn("Budget", format="$%.2f"),
-                    "Spent": st.column_config.NumberColumn("Spent", format="$%.2f"),
-                    "Remaining": st.column_config.NumberColumn("Remaining", format="$%.2f"),
-                    "Pct_Used": st.column_config.NumberColumn("Used", format="%.1f%%"),
-                },
-            )
-
-            group_transactions = transactions[transactions["Group"] == group].sort_values(
-                "Amount",
-                key=lambda amounts: amounts.abs(),
-                ascending=False,
-            )
-            st.markdown("**Transactions**")
-            st.dataframe(
-                group_transactions[["Date", "Category", "Full Description", "Amount"]],
-                width="stretch",
-                hide_index=True,
-                column_config={
-                    "Date": st.column_config.DateColumn("Date", format="YYYY-MM-DD"),
-                    "Amount": st.column_config.NumberColumn("Amount", format="$%.2f"),
-                },
-            )
-
-
-def main() -> None:
-    """Render the Tiller-backed group budget dashboard."""
-    st.set_page_config(layout="wide")
-    render_data_refresh_controls()
-    st.header("Budget")
-    st.caption(
-        "Tiller is the source of truth. Streamlit rolls category budgets up into the groups that move the needle."
-    )
-
-    sheet_url = _categories_sheet_url()
-    if sheet_url:
-        st.link_button(
-            "Edit budgets in Tiller",
-            sheet_url,
-            icon=":material/open_in_new:",
-            type="primary",
-        )
-
-    transactions_spreadsheet = load_transactions_data()
-    categories_spreadsheet = load_categories_data()
-    transactions_df = transactions_spreadsheet.scrubbed_df
-    budget_df = categories_spreadsheet.budget_df
-
-    months = sorted(transactions_df["Month"].dropna().unique(), reverse=True)
-    if not months:
-        st.info("No transaction data available")
-        st.stop()
-
-    selected_month = st.selectbox("Month", months, index=0)
-    available_groups = transactions_spreadsheet.get_all_groups()
-    default_groups = get_default_budget_groups(budget_df, selected_month, available_groups)
-    selected_groups_value = st.pills(
-        "Budget groups",
-        available_groups,
-        default=default_groups,
-        selection_mode="multi",
-        help="Defaults to groups with a nonzero expense budget for the selected month.",
-        key=f"budget_groups_{selected_month}",
-        persist_state="session",
-    )
-    selected_groups = list(selected_groups_value or [])
-    if not selected_groups:
-        if default_groups:
-            st.info("Select at least one budget group")
-        else:
-            st.info(
-                f"No nonzero expense budgets are configured for {selected_month}. "
-                "Select a group to inspect it."
-            )
-        st.stop()
-
-    adjusted_filters = render_budget_filters(
-        transactions_spreadsheet.get_all_categories(),
-        selected_groups,
-    )
-    gross_filters = _passthrough_filters()
-    show_adjusted = _has_adjustments(adjusted_filters)
-
-    gross_monthly = get_group_budget_vs_actual(
-        budget_df,
-        transactions_df,
-        selected_month,
-        gross_filters,
-        selected_groups,
-    )
-    gross_ytd = get_ytd_group_budget_vs_actual(
-        budget_df,
-        transactions_df,
-        selected_month,
-        gross_filters,
-        selected_groups,
-    )
-    adjusted_monthly = get_group_budget_vs_actual(
-        budget_df,
-        transactions_df,
-        selected_month,
-        adjusted_filters,
-        selected_groups,
-    )
-    adjusted_ytd = get_ytd_group_budget_vs_actual(
-        budget_df,
-        transactions_df,
-        selected_month,
-        adjusted_filters,
-        selected_groups,
-    )
-
-    st.subheader("Gross performance")
-    _render_summary("Monthly", gross_monthly)
-    _render_summary("YTD", gross_ytd)
-
-    gross_monthly_transactions = filter_budget_transactions(
-        transactions_df,
-        selected_month,
-        gross_filters,
-        groups=selected_groups,
-    )
-    adjusted_monthly_transactions = filter_budget_transactions(
-        transactions_df,
-        selected_month,
-        adjusted_filters,
-        groups=selected_groups,
-    )
-
-    if show_adjusted:
-        st.subheader("One-off-adjusted performance")
-        _render_summary("Adjusted monthly", adjusted_monthly)
-        _render_summary("Adjusted YTD", adjusted_ytd)
-        excluded_indices = gross_monthly_transactions.index.difference(adjusted_monthly_transactions.index)
-        excluded_transactions = gross_monthly_transactions.loc[excluded_indices]
-        excluded_amount = float(excluded_transactions["Amount"].sum().abs())
-        st.info(
-            f"This adjusted view excludes {len(excluded_transactions):,} monthly transactions "
-            f"totaling ${excluded_amount:,.2f}. Gross results above always include them."
-        )
-
-    st.subheader("Group performance")
-    chart_data = gross_monthly
-    chart_label = "Gross"
-    if show_adjusted:
-        chart_label = cast(
-            str,
-            st.segmented_control("Chart view", ["Gross", "Adjusted"], default="Adjusted"),
-        )
-        if chart_label == "Adjusted":
-            chart_data = adjusted_monthly
-    st.altair_chart(
-        create_budget_group_chart(chart_data, f"{chart_label} budget vs actual — {selected_month}"),
-        width="stretch",
-    )
-
-    now = pd.Timestamp.now(tz="UTC")
-    if selected_month == now.strftime("%Y-%m"):
-        summary = summarize_budget(chart_data)
-        projected = summary["spent"] / now.day * calendar.monthrange(now.year, now.month)[1]
-        days_remaining = calendar.monthrange(now.year, now.month)[1] - now.day
-        color = "red" if projected > summary["budget"] else "green"
-        st.markdown(
-            f"**{days_remaining} days remaining** — on pace to spend "
-            f":{color}[**${projected:,.0f}**] of the ${summary['budget']:,.0f} group budget."
-        )
-
-    group_table = build_group_budget_table(
-        gross_monthly,
-        adjusted_monthly,
-        gross_ytd,
-        adjusted_ytd,
-    )
-    display_columns = ["Group", "Monthly_Budget", "Monthly_Gross", "YTD_Budget", "YTD_Gross", "YTD_Pct"]
-    if show_adjusted:
-        display_columns = [
-            "Group",
-            "Monthly_Budget",
-            "Monthly_Gross",
-            "Monthly_Adjusted",
-            "Monthly_Excluded",
-            "YTD_Budget",
-            "YTD_Gross",
-            "YTD_Adjusted",
-            "YTD_Excluded",
-            "YTD_Pct",
-        ]
-    st.dataframe(
-        group_table[display_columns],
-        width="stretch",
-        hide_index=True,
-        column_config={
-            column: st.column_config.NumberColumn(column.replace("_", " "), format="$%.2f")
-            for column in display_columns
-            if column not in {"Group", "YTD_Pct"}
-        }
-        | {"YTD_Pct": st.column_config.NumberColumn("YTD used", format="%.1f%%")},
-    )
-
-    st.subheader("Trailing 12-month guidance")
-    st.caption(
-        "Uses the 12 complete months before the selected month, so a partial current month does not distort the baseline."
-    )
-    gross_guidance = get_trailing_group_guidance(
-        budget_df,
-        transactions_df,
-        selected_month,
-        gross_filters,
-        selected_groups,
-    )
-    adjusted_guidance = get_trailing_group_guidance(
-        budget_df,
-        transactions_df,
-        selected_month,
-        adjusted_filters,
-        selected_groups,
-    )
-    guidance = _guidance_table(gross_guidance, adjusted_guidance, show_adjusted=show_adjusted)
-    st.dataframe(
-        guidance,
-        width="stretch",
-        hide_index=True,
-        column_config={
-            column: st.column_config.NumberColumn(column.replace("_", " "), format="$%.2f")
-            for column in guidance.columns
-            if column != "Group"
-        },
-    )
-
-    major_transactions = gross_monthly_transactions[
-        gross_monthly_transactions["Amount"].abs() > DEFAULT_EXPENSE_THRESHOLD
-    ].sort_values("Amount", key=lambda amounts: amounts.abs(), ascending=False)
-    st.subheader("Major spending drivers")
-    if major_transactions.empty:
-        st.caption(f"No individual transactions over ${DEFAULT_EXPENSE_THRESHOLD:,.0f} this month.")
-    else:
-        st.caption("These transactions remain included in gross budget performance.")
+    summary = summarize_budget(ytd)
+    with st.expander("Year-to-date position"):
+        with st.container(horizontal=True):
+            st.metric("YTD spending", _format_currency(summary["spent"]))
+            st.metric("YTD budget", _format_currency(summary["budget"]))
+            st.metric("YTD remaining", _format_currency(summary["remaining"]))
+            st.metric("YTD used", f"{summary['pct_used']:.1f}%")
         st.dataframe(
-            major_transactions[["Date", "Group", "Category", "Full Description", "Amount"]],
+            ytd[["Group", "Budget", "Spent", "Remaining", "Pct_Used"]],
             width="stretch",
             hide_index=True,
             column_config={
-                "Date": st.column_config.DateColumn("Date", format="YYYY-MM-DD"),
-                "Amount": st.column_config.NumberColumn("Amount", format="$%.2f"),
+                "Budget": st.column_config.NumberColumn("Budget", format="$%.2f"),
+                "Spent": st.column_config.NumberColumn("Spent", format="$%.2f"),
+                "Remaining": st.column_config.NumberColumn(
+                    "Remaining", format="$%.2f"
+                ),
+                "Pct_Used": st.column_config.NumberColumn(
+                    "Used", format="%.1f%%"
+                ),
             },
         )
 
-    st.subheader("Drill-downs")
-    _render_group_drilldowns(
-        selected_groups,
-        selected_month,
+
+def main() -> None:
+    """Render the monthly budget pulse and drill-down."""
+    st.set_page_config(layout="wide")
+    render_data_refresh_controls()
+    st.header("Budget")
+
+    transactions_spreadsheet = load_transactions_data()
+    categories_spreadsheet = load_categories_data()
+    transactions_df = transactions_spreadsheet.scrubbed_df.copy()
+    budget_df = categories_spreadsheet.budget_df.copy()
+    if transactions_df.empty:
+        st.info("No transaction data is available.")
+        return
+
+    latest = latest_data_timestamp(transactions_df)
+    if latest is not None:
+        st.caption(f"Spending through {latest.strftime('%B %d, %Y').replace(' 0', ' ')}")
+
+    months = sorted(transactions_df["Month"].dropna().astype(str).unique(), reverse=True)
+    if not months:
+        st.info("No monthly transaction data is available.")
+        return
+
+    available_groups = transactions_spreadsheet.get_all_groups()
+    controls = st.columns([1, 3.2, 1.15, 1.15], vertical_alignment="bottom")
+    with controls[0]:
+        selected_month = st.selectbox(
+            "Month",
+            months,
+            index=0,
+            key="budget_month",
+            persist_state="page",
+        )
+    default_groups = get_default_budget_groups(
+        budget_df,
+        str(selected_month),
+        available_groups,
+    )
+    with controls[1]:
+        selected_groups_value = st.pills(
+            "Budget groups",
+            available_groups,
+            default=default_groups,
+            selection_mode="multi",
+            key=f"budget_groups_{selected_month}",
+            persist_state="session",
+        )
+    selected_groups = list(selected_groups_value or [])
+    with controls[2]:
+        adjusted_filters = render_budget_filters(
+            transactions_spreadsheet.get_all_categories(),
+            selected_groups,
+        )
+    with controls[3]:
+        sheet_url = _categories_sheet_url()
+        if sheet_url:
+            st.link_button(
+                "Edit in Tiller",
+                sheet_url,
+                icon=":material/open_in_new:",
+                width="stretch",
+            )
+
+    if not selected_groups:
+        message = (
+            "Select at least one budget group."
+            if default_groups
+            else f"No positive expense budgets are configured for {selected_month}."
+        )
+        st.info(message)
+        return
+
+    adjusted = _has_adjustments(adjusted_filters)
+    filters = adjusted_filters if adjusted else _passthrough_filters()
+    if adjusted:
+        st.badge("Adjusted view", icon=":material/tune:", color="orange")
+
+    group_history = build_budget_history(
         budget_df,
         transactions_df,
-        adjusted_filters if show_adjusted else gross_filters,
+        str(selected_month),
+        filters,
+        selected_groups,
+        lookback_months=LOOKBACK_MONTHS,
+    )
+    group_performance = build_budget_performance(
+        group_history,
+        str(selected_month),
+    )
+    if group_performance.empty:
+        st.info("No budget or spending data is available for this selection.")
+        return
+
+    month_progress, _ = _month_progress(transactions_df, str(selected_month))
+    group_performance = _add_status(
+        group_performance,
+        month_progress=month_progress,
+    )
+    category_history = build_budget_history(
+        budget_df,
+        transactions_df,
+        str(selected_month),
+        filters,
+        selected_groups,
+        dimension="Category",
+        lookback_months=LOOKBACK_MONTHS,
+    )
+    category_performance = build_budget_performance(
+        category_history,
+        str(selected_month),
+    )
+    _render_summary(
+        group_history,
+        group_performance,
+        category_performance,
+        selected_month=str(selected_month),
+        month_progress=month_progress,
+    )
+
+    with st.container(border=True):
+        st.subheader("This month against the plan")
+        st.altair_chart(
+            create_budget_pulse_chart(group_performance),
+            width="stretch",
+        )
+        selected_group = _select_group(
+            group_performance,
+            state_key=(
+                f"budget_group_performance_{selected_month}_"
+                f"{crc32(repr((selected_groups, filters)).encode()):08x}"
+            ),
+        )
+
+    _render_group_detail(
+        budget_df,
+        transactions_df,
+        selected_month=str(selected_month),
+        selected_group=selected_group,
+        filters=filters,
+        group_history=group_history,
+        group_performance=group_performance,
+        month_progress=month_progress,
+    )
+    _render_ytd(
+        budget_df,
+        transactions_df,
+        selected_month=str(selected_month),
+        groups=selected_groups,
+        filters=filters,
     )
 
 

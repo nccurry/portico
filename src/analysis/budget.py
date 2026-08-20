@@ -1,11 +1,40 @@
 """Budget comparison calculations shared by the Budget page and tests."""
 
 from collections.abc import Sequence
+from typing import Literal, cast
 
 import pandas as pd
 
 from src.custom_types import BudgetFilters, BudgetSummary
 from src.filters import apply_transaction_filters
+
+
+type BudgetDimension = Literal["Group", "Category"]
+
+BUDGET_HISTORY_COLUMNS = [
+    "Month",
+    "Entity",
+    "Budget",
+    "Tracked_Spent",
+    "Outside_Plan",
+    "Spent",
+]
+BUDGET_PERFORMANCE_COLUMNS = [
+    "Entity",
+    "Budget",
+    "Tracked_Spent",
+    "Outside_Plan",
+    "Spent",
+    "Remaining",
+    "Pct_Used",
+    "Typical_Spend",
+    "Vs_Typical",
+    "Budget_Variance",
+    "Months_Within_Budget",
+    "Months_Budgeted",
+    "Success_Rate",
+    "Trend",
+]
 
 
 def get_default_budget_groups(
@@ -23,6 +52,204 @@ def get_default_budget_groups(
     ]
     budgeted_groups = set(monthly["Group"].dropna())
     return [group for group in available_groups if group in budgeted_groups]
+
+
+def build_budget_history(
+    budget_df: pd.DataFrame,
+    transactions_df: pd.DataFrame,
+    month_str: str,
+    filters: BudgetFilters,
+    groups: Sequence[str],
+    *,
+    dimension: BudgetDimension = "Group",
+    lookback_months: int = 12,
+) -> pd.DataFrame:
+    """Return complete monthly budget and spending history for one scope."""
+    selected_period = pd.Period(month_str, freq="M")
+    excluded_groups = set(filters.get("exclude_groups", []))
+    effective_groups = [group for group in groups if group not in excluded_groups]
+    if not effective_groups:
+        return pd.DataFrame(columns=BUDGET_HISTORY_COLUMNS)
+
+    observed_months = pd.concat(
+        [
+            budget_df.loc[
+                budget_df["Group"].isin(effective_groups), "Month"
+            ],
+            transactions_df.loc[
+                transactions_df["Group"].isin(effective_groups), "Month"
+            ],
+        ],
+        ignore_index=True,
+    ).dropna()
+    observed_periods = [
+        period
+        for period in pd.PeriodIndex(observed_months.astype(str), freq="M")
+        if period <= selected_period
+    ]
+    requested_start = selected_period - lookback_months
+    history_start = (
+        max(requested_start, min(observed_periods))
+        if observed_periods
+        else selected_period
+    )
+    periods = pd.period_range(start=history_start, end=selected_period, freq="M")
+    months = periods.astype(str).tolist()
+
+    budgets = _budget_rows(budget_df, months, filters, effective_groups).copy()
+    budgets["Budget"] = pd.to_numeric(
+        budgets["Budget"], errors="coerce"
+    ).fillna(0.0)
+    budgets["Entity"] = budgets[dimension].astype(str)
+    budget_totals = (
+        budgets.groupby(["Month", "Entity"], dropna=False)["Budget"]
+        .sum()
+        .reset_index()
+    )
+    tracked_categories = budgets.loc[
+        budgets["Budget"] > 0,
+        ["Month", "Category"],
+    ].drop_duplicates()
+    tracked_categories["Tracked"] = True
+
+    transactions = transactions_df[
+        transactions_df["Month"].isin(months)
+    ].copy()
+    transactions = apply_transaction_filters(transactions, filters)
+    transactions = transactions[
+        transactions["Type"].eq("Expense")
+        & transactions["Group"].isin(effective_groups)
+    ].copy()
+    transactions["Entity"] = transactions[dimension].astype(str)
+    transactions["Net_Spend"] = -pd.to_numeric(
+        transactions["Amount"], errors="coerce"
+    ).fillna(0.0)
+    transactions = transactions.merge(
+        tracked_categories,
+        on=["Month", "Category"],
+        how="left",
+    )
+    is_tracked = transactions["Tracked"].fillna(False).astype(bool)
+    transactions["Tracked_Spent"] = transactions["Net_Spend"].where(
+        is_tracked, 0.0
+    )
+    transactions["Outside_Plan"] = transactions["Net_Spend"].where(
+        ~is_tracked, 0.0
+    )
+    actuals = (
+        transactions.groupby(["Month", "Entity"], dropna=False)[
+            ["Tracked_Spent", "Outside_Plan"]
+        ]
+        .sum()
+        .reset_index()
+    )
+
+    if dimension == "Group":
+        entities = effective_groups
+    else:
+        current_budget_entities = budgets.loc[
+            budgets["Month"].eq(month_str), "Entity"
+        ]
+        current_spending_entities = transactions.loc[
+            transactions["Month"].eq(month_str), "Entity"
+        ]
+        entities = sorted(
+            set(current_budget_entities) | set(current_spending_entities)
+        )
+    if not entities:
+        return pd.DataFrame(columns=BUDGET_HISTORY_COLUMNS)
+
+    grid = pd.MultiIndex.from_product(
+        [months, entities], names=["Month", "Entity"]
+    ).to_frame(index=False)
+    history = grid.merge(
+        budget_totals, on=["Month", "Entity"], how="left"
+    ).merge(actuals, on=["Month", "Entity"], how="left")
+    numeric_columns = ["Budget", "Tracked_Spent", "Outside_Plan"]
+    history[numeric_columns] = history[numeric_columns].fillna(0.0).astype(float)
+    history["Spent"] = history["Tracked_Spent"] + history["Outside_Plan"]
+    return history[BUDGET_HISTORY_COLUMNS]
+
+
+def build_budget_performance(
+    history: pd.DataFrame,
+    month_str: str,
+) -> pd.DataFrame:
+    """Summarize current budget performance against trailing complete months."""
+    if history.empty:
+        return pd.DataFrame(columns=BUDGET_PERFORMANCE_COLUMNS)
+
+    current = history[history["Month"].eq(month_str)].copy()
+    prior = history[history["Month"].lt(month_str)].copy()
+    records: list[dict[str, object]] = []
+    for row in current.itertuples(index=False):
+        entity = str(row.Entity)
+        entity_history = prior[prior["Entity"].eq(entity)]
+        budgeted = entity_history[entity_history["Budget"] > 0]
+        months_budgeted = len(budgeted)
+        months_within = int((budgeted["Spent"] <= budgeted["Budget"]).sum())
+        typical = (
+            float(entity_history["Spent"].median())
+            if not entity_history.empty
+            else 0.0
+        )
+        budget = float(cast(float, row.Budget))
+        spent = float(cast(float, row.Spent))
+        records.append(
+            {
+                "Entity": entity,
+                "Budget": budget,
+                "Tracked_Spent": float(cast(float, row.Tracked_Spent)),
+                "Outside_Plan": float(cast(float, row.Outside_Plan)),
+                "Spent": spent,
+                "Remaining": budget - spent,
+                "Pct_Used": spent / budget * 100 if budget > 0 else float("inf"),
+                "Typical_Spend": typical,
+                "Vs_Typical": spent - typical,
+                "Budget_Variance": spent - budget,
+                "Months_Within_Budget": months_within,
+                "Months_Budgeted": months_budgeted,
+                "Success_Rate": (
+                    months_within / months_budgeted * 100
+                    if months_budgeted
+                    else float("nan")
+                ),
+                "Trend": [*entity_history["Spent"].tolist(), spent],
+            }
+        )
+    return (
+        pd.DataFrame(records, columns=BUDGET_PERFORMANCE_COLUMNS)
+        .sort_values(["Spent", "Entity"], ascending=[False, True])
+        .reset_index(drop=True)
+    )
+
+
+def summarize_budget_history(
+    history: pd.DataFrame,
+    month_str: str,
+) -> dict[str, float]:
+    """Return a reconciled pulse for the selected month and scope."""
+    current = history[history["Month"].eq(month_str)]
+    prior = history[history["Month"].lt(month_str)]
+    budget = float(current["Budget"].sum())
+    tracked = float(current["Tracked_Spent"].sum())
+    outside = float(current["Outside_Plan"].sum())
+    spent = tracked + outside
+    typical = (
+        float(prior.groupby("Month")["Spent"].sum().median())
+        if not prior.empty
+        else 0.0
+    )
+    return {
+        "budget": budget,
+        "tracked_spent": tracked,
+        "outside_plan": outside,
+        "spent": spent,
+        "remaining": budget - spent,
+        "pct_used": spent / budget * 100 if budget > 0 else 0.0,
+        "typical_spend": typical,
+        "vs_typical": spent - typical,
+    }
 
 
 def _period_months(month_str: str, *, ytd: bool) -> list[str]:
@@ -67,54 +294,6 @@ def filter_budget_transactions(
     if groups is not None:
         transactions = transactions[transactions["Group"].isin(groups)]
     return transactions
-
-
-def _budget_comparison(
-    budget_df: pd.DataFrame,
-    transactions_df: pd.DataFrame,
-    month_str: str,
-    filters: BudgetFilters,
-    *,
-    ytd: bool,
-) -> pd.DataFrame:
-    """Compare category budgets and actuals for one period."""
-    months = _period_months(month_str, ytd=ytd)
-    budgets = _budget_rows(budget_df, months, filters)
-    budgets = budgets.groupby(["Category", "Group", "Type"])["Budget"].sum().reset_index()
-    transactions = filter_budget_transactions(
-        transactions_df,
-        month_str,
-        filters,
-        ytd=ytd,
-    )
-
-    actuals = (
-        transactions.groupby("Category")["Amount"]
-        .sum()
-        .abs()
-        .reset_index()
-        .rename(columns={"Amount": "Spent"})
-    )
-
-    result = budgets.merge(actuals, on="Category", how="outer")
-    result["Budget"] = pd.to_numeric(result["Budget"], errors="coerce").fillna(0)
-    result["Spent"] = pd.to_numeric(result["Spent"], errors="coerce").fillna(0)
-
-    if not transactions.empty:
-        metadata = transactions[["Category", "Group", "Type"]].drop_duplicates("Category")
-        missing = result["Group"].isna()
-        if missing.any():
-            filled = result.loc[missing, ["Category"]].merge(metadata, on="Category", how="left")
-            result.loc[missing, "Group"] = filled["Group"].values
-            result.loc[missing, "Type"] = filled["Type"].values
-
-    result["Remaining"] = result["Budget"] - result["Spent"]
-    result["Pct_Used"] = _pct_used(result["Spent"], result["Budget"])
-
-    if not filters.get("show_zero_budget", False):
-        result = result[result["Budget"] > 0]
-
-    return result.sort_values("Pct_Used", ascending=False).reset_index(drop=True)
 
 
 def _group_budget_comparison(
@@ -163,44 +342,6 @@ def _pct_used(spent: pd.Series, budget: pd.Series) -> pd.Series:
     return result
 
 
-def get_budget_vs_actual(
-    budget_df: pd.DataFrame,
-    transactions_df: pd.DataFrame,
-    month_str: str,
-    filters: BudgetFilters,
-) -> pd.DataFrame:
-    """Compare monthly category budgets to actual spending."""
-    return _budget_comparison(budget_df, transactions_df, month_str, filters, ytd=False)
-
-
-def get_ytd_budget_vs_actual(
-    budget_df: pd.DataFrame,
-    transactions_df: pd.DataFrame,
-    month_str: str,
-    filters: BudgetFilters,
-) -> pd.DataFrame:
-    """Compare YTD category budgets to actual spending."""
-    return _budget_comparison(budget_df, transactions_df, month_str, filters, ytd=True)
-
-
-def get_group_budget_vs_actual(
-    budget_df: pd.DataFrame,
-    transactions_df: pd.DataFrame,
-    month_str: str,
-    filters: BudgetFilters,
-    groups: Sequence[str],
-) -> pd.DataFrame:
-    """Compare monthly group budgets to all actual spending in those groups."""
-    return _group_budget_comparison(
-        budget_df,
-        transactions_df,
-        month_str,
-        filters,
-        groups,
-        ytd=False,
-    )
-
-
 def get_ytd_group_budget_vs_actual(
     budget_df: pd.DataFrame,
     transactions_df: pd.DataFrame,
@@ -219,92 +360,6 @@ def get_ytd_group_budget_vs_actual(
     )
 
 
-def get_trailing_group_guidance(
-    budget_df: pd.DataFrame,
-    transactions_df: pd.DataFrame,
-    month_str: str,
-    filters: BudgetFilters,
-    groups: Sequence[str],
-    *,
-    lookback_months: int = 12,
-) -> pd.DataFrame:
-    """Compare current targets with average spending in prior complete months."""
-    selected_period = pd.Period(month_str, freq="M")
-    periods = pd.period_range(end=selected_period - 1, periods=lookback_months, freq="M")
-    months = periods.astype(str).tolist()
-
-    budgets = _budget_rows(budget_df, [month_str], filters, groups)
-    targets = budgets.groupby("Group")["Budget"].sum().rename("Monthly_Target")
-
-    transactions = transactions_df[transactions_df["Month"].isin(months)].copy()
-    transactions = apply_transaction_filters(transactions, filters)
-    transactions = transactions[
-        (transactions["Type"] == "Expense") & transactions["Group"].isin(groups)
-    ]
-    averages = (
-        transactions.groupby("Group")["Amount"].sum().abs().div(lookback_months).rename("Monthly_Average")
-    )
-
-    result = pd.DataFrame({"Group": list(groups)}).set_index("Group")
-    result = result.join(targets).join(averages).fillna(0.0).reset_index()
-    result["Monthly_Reduction"] = result["Monthly_Average"] - result["Monthly_Target"]
-    result["Annualized_Reduction"] = result["Monthly_Reduction"] * 12
-    return result.sort_values("Monthly_Reduction", ascending=False).reset_index(drop=True)
-
-
-def build_group_budget_table(
-    gross_monthly: pd.DataFrame,
-    adjusted_monthly: pd.DataFrame,
-    gross_ytd: pd.DataFrame,
-    adjusted_ytd: pd.DataFrame,
-) -> pd.DataFrame:
-    """Combine gross and adjusted monthly/YTD group results for display."""
-    monthly = gross_monthly[["Group", "Budget", "Spent"]].rename(
-        columns={"Budget": "Monthly_Budget", "Spent": "Monthly_Gross"}
-    )
-    monthly_adjusted = adjusted_monthly[["Group", "Spent"]].rename(columns={"Spent": "Monthly_Adjusted"})
-    ytd = gross_ytd[["Group", "Budget", "Spent"]].rename(
-        columns={"Budget": "YTD_Budget", "Spent": "YTD_Gross"}
-    )
-    ytd_adjusted = adjusted_ytd[["Group", "Spent"]].rename(columns={"Spent": "YTD_Adjusted"})
-
-    result = monthly.merge(monthly_adjusted, on="Group", how="outer")
-    result = result.merge(ytd, on="Group", how="outer").merge(ytd_adjusted, on="Group", how="outer")
-    numeric_columns = [column for column in result.columns if column != "Group"]
-    result[numeric_columns] = result[numeric_columns].fillna(0.0)
-    result["Monthly_Excluded"] = result["Monthly_Gross"] - result["Monthly_Adjusted"]
-    result["YTD_Excluded"] = result["YTD_Gross"] - result["YTD_Adjusted"]
-    result["Monthly_Pct"] = _pct_used(result["Monthly_Adjusted"], result["Monthly_Budget"])
-    result["YTD_Pct"] = _pct_used(result["YTD_Adjusted"], result["YTD_Budget"])
-    return result.sort_values("YTD_Pct", ascending=False).reset_index(drop=True)
-
-
-def build_unified_budget_table(
-    monthly_df: pd.DataFrame,
-    ytd_df: pd.DataFrame,
-) -> pd.DataFrame:
-    """Merge monthly and YTD category comparisons into one display table."""
-    monthly = monthly_df[["Category", "Group", "Budget", "Spent", "Pct_Used"]].rename(
-        columns={"Budget": "Mo_Budget", "Spent": "Mo_Spent", "Pct_Used": "Mo_Pct"}
-    )
-    ytd = ytd_df[["Category", "Budget", "Spent", "Pct_Used"]].rename(
-        columns={"Budget": "YTD_Budget", "Spent": "YTD_Spent", "Pct_Used": "YTD_Pct"}
-    )
-
-    merged = monthly.merge(ytd, on="Category", how="outer")
-    for column in ["Mo_Budget", "Mo_Spent", "Mo_Pct", "YTD_Budget", "YTD_Spent", "YTD_Pct"]:
-        merged[column] = merged[column].fillna(0)
-    merged["Group"] = merged["Group"].fillna("")
-    return merged.sort_values("Mo_Pct", ascending=False).reset_index(drop=True)
-
-
-def calculate_projected_spend(spent: float, days_elapsed: int, days_in_month: int) -> float:
-    """Project end-of-month spend based on current pace."""
-    if days_elapsed <= 0:
-        return 0.0
-    return spent / days_elapsed * days_in_month
-
-
 def summarize_budget(comparison: pd.DataFrame) -> BudgetSummary:
     """Return aggregate budget, spending, remaining, and utilization."""
     budget = float(comparison["Budget"].sum()) if not comparison.empty else 0.0
@@ -315,17 +370,3 @@ def summarize_budget(comparison: pd.DataFrame) -> BudgetSummary:
         remaining=budget - spent,
         pct_used=spent / budget * 100 if budget > 0 else 0.0,
     )
-
-
-def calculate_category_projections(
-    comparison: pd.DataFrame,
-    days_elapsed: int,
-    days_in_month: int,
-) -> pd.DataFrame:
-    """Return budgeted categories with projected end-of-month spending."""
-    budgeted = comparison[comparison["Budget"] > 0][["Category", "Budget", "Spent"]].copy()
-    budgeted["Projected"] = budgeted["Spent"].apply(
-        lambda spent: calculate_projected_spend(float(spent), days_elapsed, days_in_month)
-    )
-    budgeted["Over_Budget"] = budgeted["Projected"] > budgeted["Budget"]
-    return budgeted

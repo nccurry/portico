@@ -9,7 +9,7 @@ import pytest
 
 from src.custom_types import BudgetFilters
 from src.constants import MIN_DUPLICATE_AMOUNT, DEFAULT_DUPLICATE_DAYS_THRESHOLD
-from src.analysis.budget import get_budget_vs_actual
+from src.analysis.budget import build_budget_history, build_budget_performance
 from src.analysis.duplicates import find_duplicates_efficient
 from src.analysis.subscriptions import build_subscription_inventory, get_subscription_transactions
 from src.analysis.top_transactions import (
@@ -108,7 +108,7 @@ class TestBudgetPatternsIntegration:
         self, full_dataset: SpreadsheetBundle, reference_date: pd.Timestamp,
     ) -> None:
         """The injected over-budget and under-budget categories appear in
-        get_budget_vs_actual output."""
+        current budget performance."""
         txns, _bal, cats, _accts = full_dataset
         month_str = reference_date.strftime("%Y-%m")
         filters: BudgetFilters = {
@@ -116,11 +116,21 @@ class TestBudgetPatternsIntegration:
             "exclude_categories": [],
             "filter_large_expenses": False,
             "expense_threshold": 0,
-            "show_zero_budget": False,
         }
-        result = get_budget_vs_actual(
-            cats.budget_df, txns.scrubbed_df, month_str, filters,
+        groups = sorted(
+            cats.budget_df.loc[
+                cats.budget_df["Type"].eq("Expense"), "Group"
+            ].dropna().unique()
         )
+        history = build_budget_history(
+            cats.budget_df,
+            txns.scrubbed_df,
+            month_str,
+            filters,
+            groups,
+            dimension="Category",
+        )
+        result = build_budget_performance(history, month_str)
         if result.empty:
             pytest.skip("No budget data for reference month")
 

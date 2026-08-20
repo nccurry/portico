@@ -32,45 +32,48 @@ def find_duplicates_efficient(
     require_same_description: bool,
 ) -> pd.DataFrame:
     """Return unique pairs of transactions that satisfy duplicate rules."""
-    candidates = df[df["Amount"].abs() >= min_amount].copy()
+    candidates = df[
+        (df["Amount"].abs() >= min_amount) & df["Date"].notna()
+    ].copy()
     if candidates.empty:
         return pd.DataFrame(columns=_DUPLICATE_COLUMNS)
 
     candidates = candidates.sort_values(["Amount", "Date"]).reset_index(drop=True)
-    candidates["_row_id"] = range(len(candidates))
     candidates["_norm_desc"] = candidates["Full Description"].apply(
         normalize_description
     )
-    duplicates = candidates.merge(candidates, on="Amount", suffixes=("_1", "_2"))
-    duplicates = duplicates[duplicates["_row_id_1"] < duplicates["_row_id_2"]]
-    duplicates["Days_Apart"] = (
-        duplicates["Date_2"] - duplicates["Date_1"]
-    ).dt.days.abs()
-    duplicates = duplicates[duplicates["Days_Apart"] <= days_threshold]
-
-    if check_same_account:
-        duplicates = duplicates[duplicates["Account_1"] == duplicates["Account_2"]]
-    if check_same_category:
-        duplicates = duplicates[duplicates["Category_1"] == duplicates["Category_2"]]
-    if require_same_description:
-        duplicates = duplicates[
-            duplicates["_norm_desc_1"] == duplicates["_norm_desc_2"]
-        ]
-
-    return pd.DataFrame(
-        {
-            "Date1": duplicates["Date_1"],
-            "Date2": duplicates["Date_2"],
-            "Days_Apart": duplicates["Days_Apart"],
-            "Amount": duplicates["Amount"],
-            "Category": duplicates["Category_1"],
-            "Account1": duplicates["Account_1"],
-            "Account2": duplicates["Account_2"],
-            "Description1": duplicates["Full Description_1"],
-            "Description2": duplicates["Full Description_2"],
-            "Month": duplicates["Month_1"],
-        }
-    )
+    pairs: list[dict[str, object]] = []
+    for amount, amount_group in candidates.groupby("Amount", sort=False):
+        records = amount_group.to_dict("records")
+        for left_position, left in enumerate(records):
+            for right in records[left_position + 1 :]:
+                days_apart = (right["Date"] - left["Date"]).days
+                if days_apart > days_threshold:
+                    break
+                if check_same_account and left["Account"] != right["Account"]:
+                    continue
+                if check_same_category and left["Category"] != right["Category"]:
+                    continue
+                if (
+                    require_same_description
+                    and left["_norm_desc"] != right["_norm_desc"]
+                ):
+                    continue
+                pairs.append(
+                    {
+                        "Date1": left["Date"],
+                        "Date2": right["Date"],
+                        "Days_Apart": days_apart,
+                        "Amount": amount,
+                        "Category": left["Category"],
+                        "Account1": left["Account"],
+                        "Account2": right["Account"],
+                        "Description1": left["Full Description"],
+                        "Description2": right["Full Description"],
+                        "Month": left["Month"],
+                    }
+                )
+    return pd.DataFrame(pairs, columns=_DUPLICATE_COLUMNS)
 
 
 def summarize_duplicates(duplicates: pd.DataFrame) -> DuplicateSummary:

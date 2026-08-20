@@ -60,26 +60,17 @@ class BudgetFilters(TransactionFilterOptions):
     exclude_categories: list[str]
     filter_large_expenses: bool
     expense_threshold: int
-    show_zero_budget: bool
 
 
 class FIFilters(TransactionFilterOptions):
-    """Sidebar filter state for the Financial Independence page."""
+    """Source-data filter state for the Financial Independence page."""
 
     include_accounts: list[str]
     exclude_groups: list[str]
     exclude_categories: list[str]
     filter_large_expenses: bool
     expense_threshold: int
-    expected_return_rate: float
     spending_lookback_months: int
-    projection_years: int
-    supplemental_annual_income: float
-    supplemental_annual_spending: float
-    override_annual_spending: bool
-    annual_spending_override: float
-    override_portfolio_value: bool
-    portfolio_value_override: float
 
 
 class TransactionExplorerSummary(TypedDict):
@@ -166,22 +157,14 @@ class YearOverYearSummary(TypedDict):
 
 
 class FISummary(TypedDict):
-    """Financial Independence metrics for the FI page.
+    """Financial Independence metrics for the active scenario."""
 
-    ``annual_spending`` is the data-derived baseline; ``supplemental_spending``
-    is added on top to model planned/extra outflows. ``runway_years`` is
-    ``None`` when expected returns + supplemental income cover total spending
-    (baseline + supplemental). ``coverage_ratio`` is
-    ``(annual_return + supplemental_income) / (annual_spending + supplemental_spending)``.
-    """
-
-    portfolio_value: float
     annual_return: float
-    annual_spending: float
-    supplemental_spending: float
-    supplemental_income: float
+    annual_income: float
     total_spending: float
-    total_inflow: float
-    cashflow_gap: float
-    coverage_ratio: float
+    annual_surplus: float
     runway_years: float | None
+    net_annual_spending: float
+    sustainable_spending: float
+    fi_target: float
+    fi_gap: float

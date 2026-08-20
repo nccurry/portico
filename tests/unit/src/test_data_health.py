@@ -4,9 +4,9 @@ import pandas as pd
 
 from src.analysis.data_health import (
     build_data_health_report,
-    find_categories_without_budget,
+    find_cash_flow_reversals,
+    find_incomplete_transactions,
     find_missing_account_mappings,
-    find_sign_anomalies,
     find_stale_accounts,
     find_uncategorized_transactions,
 )
@@ -26,7 +26,7 @@ class TestDataHealth:
         assert len(result) == 1
         assert result.iloc[0]["Category"] == "Mystery"
 
-    def test_sign_anomalies_finds_positive_expense_and_negative_income(self) -> None:
+    def test_cash_flow_reversals_label_refunds_and_income_reversals(self) -> None:
         df = _transactions_df([
             {"Date": "2024-01-01", "Category": "Refund", "Amount": 10,
              "Account": "Checking", "Month": "2024-01", "Group": "Food", "Type": "Expense"},
@@ -35,19 +35,55 @@ class TestDataHealth:
             {"Date": "2024-01-03", "Category": "Groceries", "Amount": -30,
              "Account": "Checking", "Month": "2024-01", "Group": "Food", "Type": "Expense"},
         ])
-        result = find_sign_anomalies(df)
+        result = find_cash_flow_reversals(df)
         assert set(result["Category"]) == {"Refund", "Clawback"}
+        assert result.set_index("Category")["Review_Reason"].to_dict() == {
+            "Refund": "Expense refund",
+            "Clawback": "Income reversal",
+        }
+
+    def test_incomplete_transactions_lists_missing_identifying_fields(self) -> None:
+        df = _transactions_df([
+            {"Date": "2024-01-01", "Category": "Groceries", "Amount": -10,
+             "Account": "", "Month": "2024-01", "Group": "Food", "Type": "Expense",
+             "Full Description": ""},
+            {"Date": "2024-01-02", "Category": "Groceries", "Amount": -20,
+             "Account": "Checking", "Month": "2024-01", "Group": "Food", "Type": "Expense",
+             "Full Description": "STORE"},
+        ])
+        result = find_incomplete_transactions(df)
+        assert len(result) == 1
+        assert result.iloc[0]["Missing_Fields"] == "Account, Full Description"
 
     def test_missing_account_mappings_uses_latest_rows(self) -> None:
         df = _balance_df([
             {"Date": "2024-01-01", "Time": "2024-01-01 08:00", "Account": "Checking",
-             "Account ID": "1", "Group": "", "Balance": 100},
+             "Account ID": "1", "Group": "", "Class": "Asset", "Balance": 100},
             {"Date": "2024-01-02", "Time": "2024-01-02 08:00", "Account": "Savings",
-             "Account ID": "2", "Group": "Savings", "Balance": 200},
+             "Account ID": "2", "Group": "Savings", "Class": "Asset", "Balance": 200},
         ])
         result = find_missing_account_mappings(df)
         assert len(result) == 1
         assert result.iloc[0]["Account"] == "Checking"
+        assert result.iloc[0]["Missing_Fields"] == "Group"
+
+    def test_missing_account_mappings_checks_identity_and_class(self) -> None:
+        df = _balance_df([
+            {"Date": "2024-01-01", "Time": "2024-01-01 08:00", "Account": "Mystery",
+             "Account ID": "", "Group": "Assets", "Class": "", "Balance": 100},
+        ])
+        result = find_missing_account_mappings(df)
+        assert result.iloc[0]["Missing_Fields"] == "Account ID, Class"
+
+    def test_missing_account_ids_do_not_collapse_distinct_accounts(self) -> None:
+        df = _balance_df([
+            {"Date": "2024-01-01", "Time": "2024-01-01 08:00", "Account": "Checking",
+             "Account ID": "", "Group": "Assets", "Class": "Asset", "Balance": 100},
+            {"Date": "2024-01-02", "Time": "2024-01-02 08:00", "Account": "Savings",
+             "Account ID": "", "Group": "Assets", "Class": "Asset", "Balance": 200},
+        ])
+        result = find_missing_account_mappings(df)
+        assert set(result["Account"]) == {"Checking", "Savings"}
 
     def test_stale_accounts(self) -> None:
         df = _balance_df([
@@ -61,21 +97,6 @@ class TestDataHealth:
         assert result.iloc[0]["Account"] == "Old"
         assert result.iloc[0]["Days_Stale"] == 11
 
-    def test_categories_without_budget(self) -> None:
-        txns = _transactions_df([
-            {"Date": "2024-01-01", "Category": "Groceries", "Amount": -100,
-             "Account": "Checking", "Month": "2024-01", "Group": "Food", "Type": "Expense"},
-            {"Date": "2024-01-02", "Category": "Coffee", "Amount": -20,
-             "Account": "Checking", "Month": "2024-01", "Group": "Food", "Type": "Expense"},
-        ])
-        budget = pd.DataFrame({
-            "Category": ["Groceries"],
-            "Budget": [500],
-        })
-        result = find_categories_without_budget(txns, budget)
-        assert len(result) == 1
-        assert result.iloc[0]["Category"] == "Coffee"
-
     def test_report_contains_all_sections(self) -> None:
         txns = _transactions_df([
             {"Date": "2024-01-01", "Category": "Mystery", "Amount": 10,
@@ -88,13 +109,12 @@ class TestDataHealth:
         report = build_data_health_report(
             txns,
             balances,
-            pd.DataFrame(columns=["Category", "Budget"]),
             as_of=pd.Timestamp("2024-01-12", tz="UTC"),
         )
         assert set(report) == {
             "uncategorized_transactions",
-            "sign_anomalies",
+            "incomplete_transactions",
+            "cash_flow_reversals",
             "missing_account_mappings",
             "stale_accounts",
-            "categories_without_budget",
         }

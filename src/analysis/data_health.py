@@ -9,16 +9,15 @@ class DataHealthReport(TypedDict):
     """Collection of data-quality findings."""
 
     uncategorized_transactions: pd.DataFrame
-    sign_anomalies: pd.DataFrame
+    incomplete_transactions: pd.DataFrame
+    cash_flow_reversals: pd.DataFrame
     missing_account_mappings: pd.DataFrame
     stale_accounts: pd.DataFrame
-    categories_without_budget: pd.DataFrame
 
 
 def build_data_health_report(
     transactions_df: pd.DataFrame,
     balance_history_df: pd.DataFrame,
-    budget_df: pd.DataFrame,
     *,
     as_of: pd.Timestamp | None = None,
     stale_days: int = 7,
@@ -29,10 +28,10 @@ def build_data_health_report(
 
     return DataHealthReport(
         uncategorized_transactions=find_uncategorized_transactions(transactions_df),
-        sign_anomalies=find_sign_anomalies(transactions_df),
+        incomplete_transactions=find_incomplete_transactions(transactions_df),
+        cash_flow_reversals=find_cash_flow_reversals(transactions_df),
         missing_account_mappings=find_missing_account_mappings(balance_history_df),
         stale_accounts=find_stale_accounts(balance_history_df, as_of=as_of, stale_days=stale_days),
-        categories_without_budget=find_categories_without_budget(transactions_df, budget_df),
     )
 
 
@@ -51,24 +50,81 @@ def find_uncategorized_transactions(transactions_df: pd.DataFrame) -> pd.DataFra
     return transactions_df[category_missing | group_missing | type_missing].copy()
 
 
-def find_sign_anomalies(transactions_df: pd.DataFrame) -> pd.DataFrame:
-    """Return income/expense rows whose amount sign does not match the type."""
+def find_incomplete_transactions(transactions_df: pd.DataFrame) -> pd.DataFrame:
+    """Return transactions missing fields needed to identify and analyze them."""
+    if transactions_df.empty:
+        return transactions_df.copy()
+
+    missing = pd.Series(False, index=transactions_df.index)
+    reasons: list[pd.Series] = []
+    for column in ("Date", "Amount", "Account", "Full Description"):
+        if column not in transactions_df.columns:
+            column_missing = pd.Series(True, index=transactions_df.index)
+        elif column in {"Date", "Amount"}:
+            column_missing = transactions_df[column].isna()
+        else:
+            column_missing = transactions_df[column].isna() | (
+                transactions_df[column].astype(str).str.strip() == ""
+            )
+        missing |= column_missing
+        reasons.append(column_missing.map({True: column, False: ""}))
+
+    result = transactions_df[missing].copy()
+    if result.empty:
+        return result
+
+    reason_frame = pd.concat(reasons, axis=1).loc[result.index]
+    result["Missing_Fields"] = reason_frame.apply(
+        lambda row: ", ".join(value for value in row if value),
+        axis=1,
+    )
+    return result
+
+
+def find_cash_flow_reversals(transactions_df: pd.DataFrame) -> pd.DataFrame:
+    """Return expense refunds and income reversals that merit review."""
     if transactions_df.empty:
         return transactions_df.copy()
 
     positive_expense = (transactions_df["Type"] == "Expense") & (transactions_df["Amount"] > 0)
     negative_income = (transactions_df["Type"] == "Income") & (transactions_df["Amount"] < 0)
-    return transactions_df[positive_expense | negative_income].copy()
+    result = transactions_df[positive_expense | negative_income].copy()
+    if result.empty:
+        return result
+    result["Review_Reason"] = "Income reversal"
+    result.loc[positive_expense, "Review_Reason"] = "Expense refund"
+    return result
 
 
 def find_missing_account_mappings(balance_history_df: pd.DataFrame) -> pd.DataFrame:
-    """Return latest balance rows whose account metadata has no group mapping."""
+    """Return latest balance rows missing identity, group, or class metadata."""
     latest = _latest_account_rows(balance_history_df)
-    if latest.empty or "Group" not in latest.columns:
+    if latest.empty:
         return latest
 
-    missing = latest["Group"].isna() | (latest["Group"].astype(str).str.strip() == "")
-    return latest[missing].copy()
+    missing = pd.Series(False, index=latest.index)
+    reason_parts: list[pd.Series] = []
+    for column in ("Account ID", "Group", "Class"):
+        if column not in latest.columns:
+            column_missing = pd.Series(True, index=latest.index)
+        else:
+            column_missing = latest[column].isna() | (
+                latest[column].astype(str).str.strip() == ""
+            )
+            if column == "Class":
+                column_missing |= ~latest[column].isin(["Asset", "Liability"])
+        missing |= column_missing
+        reason_parts.append(column_missing.map({True: column, False: ""}))
+
+    result = latest[missing].copy()
+    if result.empty:
+        return result
+    reason_frame = pd.concat(reason_parts, axis=1).loc[result.index]
+    result["Missing_Fields"] = reason_frame.apply(
+        lambda row: ", ".join(value for value in row if value),
+        axis=1,
+    )
+    return result
 
 
 def find_stale_accounts(
@@ -87,36 +143,6 @@ def find_stale_accounts(
     return latest[latest["Days_Stale"] > stale_days].sort_values("Days_Stale", ascending=False)
 
 
-def find_categories_without_budget(
-    transactions_df: pd.DataFrame,
-    budget_df: pd.DataFrame,
-) -> pd.DataFrame:
-    """Return expense categories with spending but no positive monthly budget."""
-    if transactions_df.empty:
-        return pd.DataFrame(columns=["Category", "Group", "Spent"])
-
-    expenses = transactions_df[transactions_df["Type"] == "Expense"].copy()
-    if expenses.empty:
-        return pd.DataFrame(columns=["Category", "Group", "Spent"])
-
-    if budget_df.empty or not {"Budget", "Category"}.issubset(budget_df.columns):
-        budgeted: set[object] = set()
-    else:
-        budgeted = set(
-            budget_df.loc[pd.to_numeric(budget_df["Budget"], errors="coerce").fillna(0) > 0, "Category"]
-        )
-
-    spending = (
-        expenses.groupby(["Category", "Group"])["Amount"]
-        .sum()
-        .abs()
-        .reset_index()
-        .rename(columns={"Amount": "Spent"})
-    )
-    result = spending[~spending["Category"].isin(budgeted)]
-    return result.sort_values("Spent", ascending=False).reset_index(drop=True)
-
-
 def _latest_account_rows(balance_history_df: pd.DataFrame) -> pd.DataFrame:
     """Return one latest row per account ID."""
     if balance_history_df.empty:
@@ -125,8 +151,24 @@ def _latest_account_rows(balance_history_df: pd.DataFrame) -> pd.DataFrame:
     sort_cols = ["Date"]
     if "Time" in balance_history_df.columns:
         sort_cols.append("Time")
-    id_col = "Account ID" if "Account ID" in balance_history_df.columns else "Account"
-    return balance_history_df.sort_values(sort_cols).drop_duplicates(id_col, keep="last")
+    latest = balance_history_df.sort_values(sort_cols).copy()
+    accounts = latest.get(
+        "Account",
+        pd.Series("", index=latest.index, dtype="string"),
+    ).fillna("").astype(str).str.strip()
+    account_ids = latest.get(
+        "Account ID",
+        pd.Series("", index=latest.index, dtype="string"),
+    ).fillna("").astype(str).str.strip()
+    fallback = "account:" + accounts
+    row_fallback = pd.Series(
+        "row:" + latest.index.astype(str),
+        index=latest.index,
+        dtype="string",
+    )
+    fallback = fallback.where(accounts.ne(""), row_fallback)
+    latest["_Account_Key"] = account_ids.where(account_ids.ne(""), fallback)
+    return latest.drop_duplicates("_Account_Key", keep="last").drop(columns="_Account_Key")
 
 
 def _latest_timestamp(df: pd.DataFrame, column: str) -> pd.Timestamp | None:

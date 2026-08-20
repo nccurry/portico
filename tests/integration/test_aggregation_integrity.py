@@ -325,13 +325,15 @@ class TestFinancialIndependenceIntegrity:
 
         avg, totals = calculate_avg_monthly_spending(df, start, end)
 
-        # Independently compute: sum of absolute expense amounts per Month in
-        # [start, end], divided by number of months that had any expense.
+        # Independently compute net spending for every month in the requested
+        # window, including zero-spend months.
         exp = df[df["Type"] == "Expense"]
         exp = exp[(exp["Month"] >= start) & (exp["Month"] <= end)]
         if exp.empty:
             pytest.skip("No expense rows in window for real fixture")
-        expected_monthly = exp.groupby("Month")["Amount"].sum().abs()
+        expected_monthly = -exp.groupby("Month")["Amount"].sum()
+        months = pd.period_range(start=start, end=end, freq="M").astype(str)
+        expected_monthly = expected_monthly.reindex(months, fill_value=0.0)
         expected_avg = float(expected_monthly.mean())
 
         assert avg == pytest.approx(expected_avg)
