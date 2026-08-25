@@ -5,6 +5,7 @@ import streamlit as st
 
 from src.analysis.merchants import build_merchant_aliases, extract_merchant_name
 from src.custom_types import ColumnConfig
+from src.value_visibility import mask_value, value_safe_dataframe
 
 __all__ = [
     "configured_merchant_aliases",
@@ -33,15 +34,15 @@ def get_transaction_column_config() -> ColumnConfig:
         dictionary of column configurations for st.dataframe
     """
     return {
-        'Date': st.column_config.DateColumn('Date', format='YYYY-MM-DD'),
-        'Amount': st.column_config.NumberColumn('Amount', format='$%.2f'),
-        'Category': st.column_config.TextColumn('Category'),
-        'Group': st.column_config.TextColumn('Group'),
-        'Type': st.column_config.TextColumn('Type'),
-        'Account': st.column_config.TextColumn('Account'),
-        'Month': st.column_config.TextColumn('Month'),
-        'Full Description': st.column_config.TextColumn('Description'),
-        'Institution': st.column_config.TextColumn('Institution')
+        "Date": st.column_config.DateColumn("Date", format="YYYY-MM-DD"),
+        "Amount": st.column_config.NumberColumn("Amount", format="$%.2f"),
+        "Category": st.column_config.TextColumn("Category"),
+        "Group": st.column_config.TextColumn("Group"),
+        "Type": st.column_config.TextColumn("Type"),
+        "Account": st.column_config.TextColumn("Account"),
+        "Month": st.column_config.TextColumn("Month"),
+        "Full Description": st.column_config.TextColumn("Description"),
+        "Institution": st.column_config.TextColumn("Institution"),
     }
 
 
@@ -49,8 +50,8 @@ def display_transactions_expander(
     df: pd.DataFrame,
     title: str,
     height: int = 600,
-    default_sort_column: str = 'Date',
-    default_sort_ascending: bool = False
+    default_sort_column: str = "Date",
+    default_sort_ascending: bool = False,
 ) -> None:
     """Display transactions in an expandable section.
 
@@ -61,7 +62,7 @@ def display_transactions_expander(
         default_sort_column: Column to sort by before display
         default_sort_ascending: Sort order
     """
-    with st.expander(f"{title} ({len(df)} transactions)"):
+    with st.expander(f"{title} ({mask_value(f'{len(df):,}')} transactions)"):
         if df.empty:
             st.info("No transactions found")
             return
@@ -69,12 +70,8 @@ def display_transactions_expander(
         # Sort by specified column
         df_display = df.sort_values(default_sort_column, ascending=default_sort_ascending)
 
-        st.dataframe(
-            df_display,
-            width='stretch',
-            height=height,
-            hide_index=True,
-            column_config=get_transaction_column_config()
+        value_safe_dataframe(
+            df_display, width="stretch", height=height, hide_index=True, column_config=get_transaction_column_config()
         )
 
 

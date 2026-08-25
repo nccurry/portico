@@ -24,6 +24,7 @@ from src.constants import (
 from src.page_helpers import configured_merchant_aliases, render_data_refresh_controls
 from src.reporting_periods import latest_data_timestamp, reporting_anchor
 from src.spreadsheet import TransactionsSpreadsheet, load_transactions_data
+from src.value_visibility import mask_value, value_safe_altair_chart, value_safe_dataframe
 
 
 LOOKBACK_DAYS = {"3M": 90, "6M": 180, "1Y": 365, "2Y": 730, "All": None}
@@ -37,14 +38,12 @@ TYPE_VIEWS = {
 
 def _format_currency(value: float, *, signed: bool = False) -> str:
     sign = "+" if signed and value > 0 else "-" if value < 0 else ""
-    return f"{sign}${abs(value):,.0f}"
+    return mask_value(f"{sign}${abs(value):,.0f}")
 
 
 def _create_transaction_chart(transactions: pd.DataFrame) -> alt.LayerChart:
     zero = (
-        alt.Chart(pd.DataFrame({"Amount": [0.0]}))
-        .mark_rule(color=COLOR_PLACEHOLDER, opacity=0.55)
-        .encode(y="Amount:Q")
+        alt.Chart(pd.DataFrame({"Amount": [0.0]})).mark_rule(color=COLOR_PLACEHOLDER, opacity=0.55).encode(y="Amount:Q")
     )
     points = (
         alt.Chart(transactions)
@@ -93,9 +92,7 @@ def _create_breakdown_chart(breakdown: pd.DataFrame) -> alt.Chart:
                 tooltip=[
                     alt.Tooltip("Entity:N", title="Name"),
                     alt.Tooltip("Transactions:Q", title="Transactions"),
-                    alt.Tooltip(
-                        "Magnitude:Q", title="Total magnitude", format="$,.2f"
-                    ),
+                    alt.Tooltip("Magnitude:Q", title="Total magnitude", format="$,.2f"),
                     alt.Tooltip("Outflow:Q", title="Money out", format="$,.2f"),
                     alt.Tooltip("Inflow:Q", title="Money in", format="$,.2f"),
                     alt.Tooltip("Share:Q", title="Share (%)", format=".1f"),
@@ -154,7 +151,7 @@ def _render_transaction_table(transactions: pd.DataFrame) -> None:
                 icon=":material/download:",
                 on_click="ignore",
             )
-        st.dataframe(
+        value_safe_dataframe(
             display,
             height=TRANSACTION_TABLE_HEIGHT,
             hide_index=True,
@@ -297,9 +294,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
                     persist_state="page",
                 )
             )
-    maximum_magnitude = (
-        float(maximum_input) if maximum_input is not None else None
-    )
+    maximum_magnitude = float(maximum_input) if maximum_input is not None else None
 
     selected_lookback = str(lookback) if lookback in LOOKBACK_DAYS else "1Y"
     selected_type = str(type_view) if type_view in TYPE_VIEWS else "All"
@@ -346,7 +341,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
     with st.container(horizontal=True):
         st.metric(
             "Transactions",
-            f"{summary['transaction_count']:,}",
+            mask_value(f"{summary['transaction_count']:,}"),
             border=True,
             width="stretch",
         )
@@ -386,7 +381,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
                     f"Median {_format_currency(summary['median_magnitude'])}",
                     color="gray",
                 )
-            st.altair_chart(_create_transaction_chart(results), width="stretch")
+            value_safe_altair_chart(_create_transaction_chart(results), width="stretch")
     with breakdown_column:
         with st.container(border=True):
             dimension = st.segmented_control(
@@ -397,11 +392,9 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
                 persist_state="page",
                 width="stretch",
             )
-            selected_dimension = (
-                str(dimension) if dimension in BREAKDOWN_DIMENSIONS else "Group"
-            )
+            selected_dimension = str(dimension) if dimension in BREAKDOWN_DIMENSIONS else "Group"
             breakdown = build_transaction_breakdown(results, selected_dimension)
-            st.altair_chart(_create_breakdown_chart(breakdown), width="stretch")
+            value_safe_altair_chart(_create_breakdown_chart(breakdown), width="stretch")
 
     _render_transaction_table(results)
 

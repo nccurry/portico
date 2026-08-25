@@ -20,6 +20,7 @@ from src.spreadsheet import (
     load_balance_history_data,
     load_transactions_data,
 )
+from src.value_visibility import mask_value, value_safe_dataframe
 
 
 class HealthCheck(TypedDict):
@@ -84,8 +85,8 @@ def _age_label(value: pd.Timestamp | None) -> str:
     if age == 0:
         return "Updated today"
     if age == 1:
-        return "Updated 1 day ago"
-    return f"Updated {age} days ago"
+        return f"Updated {mask_value('1')} day ago"
+    return f"Updated {mask_value(str(age))} days ago"
 
 
 def _amount_scope(df: pd.DataFrame, column: str = "Amount") -> str:
@@ -93,7 +94,7 @@ def _amount_scope(df: pd.DataFrame, column: str = "Amount") -> str:
     if df.empty or column not in df.columns:
         return "—"
     amount = pd.to_numeric(df[column], errors="coerce").abs().sum()
-    return f"${amount:,.0f}"
+    return mask_value(f"${amount:,.0f}")
 
 
 def _build_health_checks(
@@ -141,7 +142,7 @@ def _build_health_checks(
             "Review",
             "Confirm whether each pair represents the same underlying charge.",
             duplicates,
-            f"${duplicate_summary['total_amount']:,.0f}",
+            mask_value(f"${duplicate_summary['total_amount']:,.0f}"),
         ),
         (
             "reversals",
@@ -230,9 +231,7 @@ def _render_summary(
     balances: pd.DataFrame,
 ) -> None:
     """Render headline issue counts and source freshness."""
-    attention = sum(
-        check["findings"] for check in checks if check["status"] == "Needs attention"
-    )
+    attention = sum(check["findings"] for check in checks if check["status"] == "Needs attention")
     review = sum(check["findings"] for check in checks if check["status"] == "Review")
     transaction_latest = _latest_timestamp(transactions)
     balance_latest = _latest_timestamp(balances)
@@ -240,19 +239,19 @@ def _render_summary(
     account_count = balances[account_column].nunique() if account_column in balances else 0
 
     with st.container(horizontal=True):
-        st.metric("Needs attention", attention, border=True)
-        st.metric("Review items", review, border=True)
+        st.metric("Needs attention", mask_value(f"{attention:,}"), border=True)
+        st.metric("Review items", mask_value(f"{review:,}"), border=True)
         st.metric(
             "Transactions through",
             _format_date(transaction_latest),
-            delta=f"{len(transactions):,} rows · {_age_label(transaction_latest)}",
+            delta=(f"{mask_value(f'{len(transactions):,}')} rows · {_age_label(transaction_latest)}"),
             delta_color="off",
             border=True,
         )
         st.metric(
             "Balances through",
             _format_date(balance_latest),
-            delta=f"{account_count:,} accounts · {_age_label(balance_latest)}",
+            delta=(f"{mask_value(f'{account_count:,}')} accounts · {_age_label(balance_latest)}"),
             delta_color="off",
             border=True,
         )
@@ -271,7 +270,7 @@ def _render_queue(checks: list[HealthCheck]) -> None:
     )
     with st.container(border=True):
         st.subheader("Health checks")
-        st.dataframe(
+        value_safe_dataframe(
             queue,
             hide_index=True,
             column_config={
@@ -295,7 +294,7 @@ def _transaction_columns(extra: str | None = None) -> ColumnConfig:
 def _render_transaction_findings(check: HealthCheck, extra: str | None = None) -> None:
     """Render transaction-level findings newest first."""
     findings = check["data"].sort_values("Date", ascending=False)
-    st.dataframe(
+    value_safe_dataframe(
         findings,
         hide_index=True,
         height=min(600, 42 + 35 * max(len(findings), 1)),
@@ -305,7 +304,7 @@ def _render_transaction_findings(check: HealthCheck, extra: str | None = None) -
 
 def _render_duplicate_findings(duplicates: pd.DataFrame) -> None:
     """Render duplicate pairs and a compact monthly rollup."""
-    st.dataframe(
+    value_safe_dataframe(
         duplicates.sort_values("Date1", ascending=False),
         hide_index=True,
         height=min(600, 42 + 35 * max(len(duplicates), 1)),
@@ -323,14 +322,12 @@ def _render_duplicate_findings(duplicates: pd.DataFrame) -> None:
     monthly = summarize_duplicates_by_month(duplicates)
     if len(monthly) > 1:
         st.markdown("**By month**")
-        st.dataframe(
+        value_safe_dataframe(
             monthly,
             hide_index=True,
             column_config={
                 "Count": st.column_config.NumberColumn("Pairs", format="%d"),
-                "Total_Amount": st.column_config.NumberColumn(
-                    "Flagged amount", format="$%.2f"
-                ),
+                "Total_Amount": st.column_config.NumberColumn("Flagged amount", format="$%.2f"),
             },
         )
 
@@ -339,7 +336,7 @@ def _render_account_findings(check: HealthCheck) -> None:
     """Render account-level mapping or freshness findings."""
     sort_column = "Days_Stale" if "Days_Stale" in check["data"].columns else "Account"
     ascending = sort_column != "Days_Stale"
-    st.dataframe(
+    value_safe_dataframe(
         check["data"].sort_values(sort_column, ascending=ascending),
         hide_index=True,
         column_config={
@@ -379,13 +376,13 @@ def _render_detail(checks: list[HealthCheck]) -> None:
                 st.badge("Passed", icon=":material/check_circle:", color="green")
             elif selected["status"] == "Review":
                 st.badge(
-                    f"{selected['findings']} to review",
+                    f"{mask_value(str(selected['findings']))} to review",
                     icon=":material/visibility:",
                     color="orange",
                 )
             else:
                 st.badge(
-                    f"{selected['findings']} need attention",
+                    f"{mask_value(str(selected['findings']))} need attention",
                     icon=":material/warning:",
                     color="red",
                 )

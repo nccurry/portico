@@ -33,6 +33,7 @@ from src.filters import render_budget_filters
 from src.page_helpers import render_data_refresh_controls
 from src.reporting_periods import latest_data_timestamp
 from src.spreadsheet import load_categories_data, load_transactions_data
+from src.value_visibility import mask_value, value_safe_altair_chart, value_safe_dataframe
 
 
 SELECTED_GROUP_KEY = "budget_selected_group"
@@ -41,7 +42,7 @@ LOOKBACK_MONTHS = 12
 
 def _format_currency(value: float, *, signed: bool = False) -> str:
     sign = "+" if signed and value > 0 else "-" if value < 0 else ""
-    return f"{sign}${abs(value):,.0f}"
+    return mask_value(f"{sign}${abs(value):,.0f}")
 
 
 def _categories_sheet_url() -> str | None:
@@ -64,11 +65,7 @@ def _passthrough_filters() -> BudgetFilters:
 
 
 def _has_adjustments(filters: BudgetFilters) -> bool:
-    return bool(
-        filters["exclude_groups"]
-        or filters["exclude_categories"]
-        or filters["filter_large_expenses"]
-    )
+    return bool(filters["exclude_groups"] or filters["exclude_categories"] or filters["filter_large_expenses"])
 
 
 def _month_progress(
@@ -161,9 +158,7 @@ def create_budget_pulse_chart(
     )
     return cast(
         alt.LayerChart,
-        (bars + targets + typical).properties(
-            height=max(240, len(performance) * height_per_row)
-        ),
+        (bars + targets + typical).properties(height=max(240, len(performance) * height_per_row)),
     )
 
 
@@ -176,12 +171,8 @@ def _performance_column_config(entity_label: str) -> ColumnConfig:
         "Remaining": st.column_config.NumberColumn("Remaining", format="$%.2f"),
         "Pct_Used": st.column_config.NumberColumn("Used", format="%.1f%%"),
         "Vs_Typical": st.column_config.NumberColumn("Vs typical", format="$%.2f"),
-        "Outside_Plan": st.column_config.NumberColumn(
-            "Outside plan", format="$%.2f"
-        ),
-        "Success_Rate": st.column_config.NumberColumn(
-            "12-mo hit rate", format="%.0f%%"
-        ),
+        "Outside_Plan": st.column_config.NumberColumn("Outside plan", format="$%.2f"),
+        "Success_Rate": st.column_config.NumberColumn("12-mo hit rate", format="%.0f%%"),
         "Trend": st.column_config.LineChartColumn(
             "13-month trend",
             color=COLOR_NET_WORTH,
@@ -193,9 +184,7 @@ def _select_group(performance: pd.DataFrame, *, state_key: str) -> str:
     remembered = st.session_state.get(SELECTED_GROUP_KEY)
     default_position = 0
     if isinstance(remembered, str) and remembered in performance["Entity"].values:
-        default_position = int(
-            performance.index[performance["Entity"].eq(remembered)].tolist()[0]
-        )
+        default_position = int(performance.index[performance["Entity"].eq(remembered)].tolist()[0])
     selection_default = cast(
         DataframeState,
         {"selection": {"rows": [default_position]}},
@@ -212,7 +201,7 @@ def _select_group(performance: pd.DataFrame, *, state_key: str) -> str:
         "Success_Rate",
         "Trend",
     ]
-    event = st.dataframe(
+    event = value_safe_dataframe(
         performance[display_columns],
         key=state_key,
         width="stretch",
@@ -241,32 +230,44 @@ def _history_chart(
     chart_data = history.copy()
     chart_data["Date"] = pd.PeriodIndex(chart_data["Month"], freq="M").to_timestamp()
     chart_data["Selected"] = chart_data["Month"].eq(selected_month)
-    bars = alt.Chart(chart_data).mark_bar(
-        cornerRadiusTopLeft=3,
-        cornerRadiusTopRight=3,
-    ).encode(
-        x=alt.X("Date:T", title=None, axis=alt.Axis(format="%b %Y", labelAngle=-35)),
-        y=alt.Y("Spent:Q", title="Spending ($)", axis=alt.Axis(format="$,.2s")),
-        color=alt.condition(
-            "datum.Selected",
-            alt.value(COLOR_NET_WORTH),
-            alt.value(COLOR_PLACEHOLDER),
-        ),
-        tooltip=[
-            alt.Tooltip("Date:T", title="Month", format="%B %Y"),
-            alt.Tooltip("Spent:Q", title="Spent", format="$,.2f"),
-            alt.Tooltip("Budget:Q", title="Budget", format="$,.2f"),
-            alt.Tooltip("Outside_Plan:Q", title="Outside plan", format="$,.2f"),
-        ],
+    bars = (
+        alt.Chart(chart_data)
+        .mark_bar(
+            cornerRadiusTopLeft=3,
+            cornerRadiusTopRight=3,
+        )
+        .encode(
+            x=alt.X("Date:T", title=None, axis=alt.Axis(format="%b %Y", labelAngle=-35)),
+            y=alt.Y("Spent:Q", title="Spending ($)", axis=alt.Axis(format="$,.2s")),
+            color=alt.condition(
+                "datum.Selected",
+                alt.value(COLOR_NET_WORTH),
+                alt.value(COLOR_PLACEHOLDER),
+            ),
+            tooltip=[
+                alt.Tooltip("Date:T", title="Month", format="%B %Y"),
+                alt.Tooltip("Spent:Q", title="Spent", format="$,.2f"),
+                alt.Tooltip("Budget:Q", title="Budget", format="$,.2f"),
+                alt.Tooltip("Outside_Plan:Q", title="Outside plan", format="$,.2f"),
+            ],
+        )
     )
-    budget = alt.Chart(chart_data).mark_line(
-        color=COLOR_BUDGET,
-        strokeWidth=2,
-    ).encode(x=alt.X("Date:T"), y=alt.Y("Budget:Q"))
-    typical = alt.Chart(pd.DataFrame({"Typical": [typical_spend]})).mark_rule(
-        color=COLOR_SAVINGS,
-        strokeDash=[6, 4],
-    ).encode(y=alt.Y("Typical:Q"))
+    budget = (
+        alt.Chart(chart_data)
+        .mark_line(
+            color=COLOR_BUDGET,
+            strokeWidth=2,
+        )
+        .encode(x=alt.X("Date:T"), y=alt.Y("Budget:Q"))
+    )
+    typical = (
+        alt.Chart(pd.DataFrame({"Typical": [typical_spend]}))
+        .mark_rule(
+            color=COLOR_SAVINGS,
+            strokeDash=[6, 4],
+        )
+        .encode(y=alt.Y("Typical:Q"))
+    )
     return cast(
         alt.LayerChart,
         (bars + budget + typical).properties(height=320),
@@ -283,16 +284,10 @@ def _render_summary(
 ) -> None:
     pulse = summarize_budget_history(history, selected_month)
     outside_categories = int(
-        (
-            category_performance["Budget"].le(0)
-            & category_performance["Spent"].abs().gt(0.005)
-        ).sum()
+        (category_performance["Budget"].le(0) & category_performance["Spent"].abs().gt(0.005)).sum()
     )
     groups_within = int(
-        (
-            group_performance["Budget"].gt(0)
-            & group_performance["Spent"].le(group_performance["Budget"])
-        ).sum()
+        (group_performance["Budget"].gt(0) & group_performance["Spent"].le(group_performance["Budget"])).sum()
     )
     budgeted_groups = int(group_performance["Budget"].gt(0).sum())
     pace_delta = pulse["pct_used"] - month_progress * 100
@@ -301,9 +296,7 @@ def _render_summary(
             "Spending",
             _format_currency(pulse["spent"]),
             delta=(
-                f"{_format_currency(pulse['vs_typical'], signed=True)} vs typical"
-                if pulse["typical_spend"]
-                else None
+                f"{_format_currency(pulse['vs_typical'], signed=True)} vs typical" if pulse["typical_spend"] else None
             ),
             delta_color="inverse",
             border=True,
@@ -317,11 +310,11 @@ def _render_summary(
         )
         st.metric(
             "Budget used",
-            f"{pulse['pct_used']:.1f}%",
+            mask_value(f"{pulse['pct_used']:.1f}%"),
             delta=(
-                f"{pace_delta:+.1f} pts vs month elapsed"
+                f"{mask_value(f'{pace_delta:+.1f} pts')} vs month elapsed"
                 if month_progress < 1
-                else f"{groups_within} of {budgeted_groups} groups within budget"
+                else f"{mask_value(str(groups_within))} of {mask_value(str(budgeted_groups))} groups within budget"
             ),
             delta_color="inverse" if month_progress < 1 else "off",
             border=True,
@@ -329,7 +322,7 @@ def _render_summary(
         st.metric(
             "Outside the plan",
             _format_currency(pulse["outside_plan"]),
-            delta=f"{outside_categories} unbudgeted categories",
+            delta=f"{mask_value(str(outside_categories))} unbudgeted categories",
             delta_color="off",
             border=True,
         )
@@ -346,9 +339,7 @@ def _render_group_detail(
     group_performance: pd.DataFrame,
     month_progress: float,
 ) -> None:
-    group_row = group_performance[
-        group_performance["Entity"].eq(selected_group)
-    ].iloc[0]
+    group_row = group_performance[group_performance["Entity"].eq(selected_group)].iloc[0]
     history = group_history[group_history["Entity"].eq(selected_group)]
     with st.container(border=True):
         st.subheader(selected_group)
@@ -363,7 +354,7 @@ def _render_group_detail(
                 "Outside the plan",
                 _format_currency(float(group_row["Outside_Plan"])),
             )
-        st.altair_chart(
+        value_safe_altair_chart(
             _history_chart(
                 history,
                 typical_spend=float(group_row["Typical_Spend"]),
@@ -396,16 +387,14 @@ def _render_group_detail(
             vertical_alignment="top",
         )
         with chart_column:
-            st.altair_chart(
+            value_safe_altair_chart(
                 create_budget_pulse_chart(categories.head(10), height_per_row=42),
                 width="stretch",
             )
         with table_column:
             category_config = dict(_performance_column_config("Category"))
-            category_config["Budget_Variance"] = st.column_config.NumberColumn(
-                "Vs budget", format="$%.2f"
-            )
-            st.dataframe(
+            category_config["Budget_Variance"] = st.column_config.NumberColumn("Vs budget", format="$%.2f")
+            value_safe_dataframe(
                 categories[
                     [
                         "Entity",
@@ -429,9 +418,7 @@ def _render_group_detail(
             filters,
             groups=[selected_group],
         ).copy()
-        current_transactions["Net spend"] = -pd.to_numeric(
-            current_transactions["Amount"], errors="coerce"
-        ).fillna(0.0)
+        current_transactions["Net spend"] = -pd.to_numeric(current_transactions["Amount"], errors="coerce").fillna(0.0)
         category_options = ["All categories", *categories["Entity"].tolist()]
         transaction_category = str(
             st.selectbox(
@@ -441,16 +428,12 @@ def _render_group_detail(
             )
         )
         if transaction_category != "All categories":
-            current_transactions = current_transactions[
-                current_transactions["Category"].eq(transaction_category)
-            ]
-        current_transactions = current_transactions.sort_values(
-            ["Net spend", "Date"], ascending=[False, False]
-        )
+            current_transactions = current_transactions[current_transactions["Category"].eq(transaction_category)]
+        current_transactions = current_transactions.sort_values(["Net spend", "Date"], ascending=[False, False])
         if current_transactions.empty:
             st.info("No transactions match this category selection.")
         else:
-            st.dataframe(
+            value_safe_dataframe(
                 current_transactions[
                     [
                         "Date",
@@ -463,15 +446,9 @@ def _render_group_detail(
                 width="stretch",
                 hide_index=True,
                 column_config={
-                    "Date": st.column_config.DateColumn(
-                        "Date", format="MMM DD, YYYY"
-                    ),
-                    "Description": st.column_config.TextColumn(
-                        "Description", pinned=True, width="large"
-                    ),
-                    "Net spend": st.column_config.NumberColumn(
-                        "Net spend", format="$%.2f"
-                    ),
+                    "Date": st.column_config.DateColumn("Date", format="MMM DD, YYYY"),
+                    "Description": st.column_config.TextColumn("Description", pinned=True, width="large"),
+                    "Net spend": st.column_config.NumberColumn("Net spend", format="$%.2f"),
                 },
             )
 
@@ -497,20 +474,16 @@ def _render_ytd(
             st.metric("YTD spending", _format_currency(summary["spent"]))
             st.metric("YTD budget", _format_currency(summary["budget"]))
             st.metric("YTD remaining", _format_currency(summary["remaining"]))
-            st.metric("YTD used", f"{summary['pct_used']:.1f}%")
-        st.dataframe(
+            st.metric("YTD used", mask_value(f"{summary['pct_used']:.1f}%"))
+        value_safe_dataframe(
             ytd[["Group", "Budget", "Spent", "Remaining", "Pct_Used"]],
             width="stretch",
             hide_index=True,
             column_config={
                 "Budget": st.column_config.NumberColumn("Budget", format="$%.2f"),
                 "Spent": st.column_config.NumberColumn("Spent", format="$%.2f"),
-                "Remaining": st.column_config.NumberColumn(
-                    "Remaining", format="$%.2f"
-                ),
-                "Pct_Used": st.column_config.NumberColumn(
-                    "Used", format="%.1f%%"
-                ),
+                "Remaining": st.column_config.NumberColumn("Remaining", format="$%.2f"),
+                "Pct_Used": st.column_config.NumberColumn("Used", format="%.1f%%"),
             },
         )
 
@@ -636,15 +609,14 @@ def main() -> None:
 
     with st.container(border=True):
         st.subheader("This month against the plan")
-        st.altair_chart(
+        value_safe_altair_chart(
             create_budget_pulse_chart(group_performance),
             width="stretch",
         )
         selected_group = _select_group(
             group_performance,
             state_key=(
-                f"budget_group_performance_{selected_month}_"
-                f"{crc32(repr((selected_groups, filters)).encode()):08x}"
+                f"budget_group_performance_{selected_month}_{crc32(repr((selected_groups, filters)).encode()):08x}"
             ),
         )
 

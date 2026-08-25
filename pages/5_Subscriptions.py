@@ -19,6 +19,7 @@ from src.constants import DEFAULT_EXCLUDE_CATEGORIES_SUBSCRIPTIONS
 from src.custom_types import SubscriptionSummary
 from src.page_helpers import get_transaction_column_config, render_data_refresh_controls
 from src.spreadsheet import TransactionsSpreadsheet, load_transactions_data
+from src.value_visibility import mask_value, value_safe_altair_chart, value_safe_dataframe
 
 COLOR_ACTIVE = "#57CC57"
 COLOR_INACTIVE = "#7D8590"
@@ -326,7 +327,7 @@ def _table_data(inventory: pd.DataFrame, *, include_evidence: bool = False) -> p
         columns.append("Evidence")
     display = inventory[columns].copy()
     display["Price_Change"] = display["Price_Change"].map(
-        lambda amount: f"{'+' if float(amount) > 0 else '-'}${abs(float(amount)):,.2f}" if amount else ""
+        lambda amount: mask_value(f"{'+' if float(amount) > 0 else '-'}${abs(float(amount)):,.2f}") if amount else ""
     )
     return display
 
@@ -341,7 +342,7 @@ def _render_inventory_table(
     display = _table_data(inventory, include_evidence=include_evidence)
     event = cast(
         Any,
-        st.dataframe(
+        value_safe_dataframe(
             display,
             key=key,
             width="stretch",
@@ -397,9 +398,13 @@ def _render_merchant_detail(
         )
 
         metric_row = st.container(horizontal=True)
-        metric_row.metric("Charges", f"{int(row['Charge_Count']):,}", border=True)
+        metric_row.metric("Charges", mask_value(f"{int(row['Charge_Count']):,}"), border=True)
         metric_row.metric("Est. monthly", _format_optional_currency(row["Monthly_Run_Rate"]), border=True)
-        metric_row.metric("Last 12 months", f"${float(row['Trailing_12_Month_Spend']):,.2f}", border=True)
+        metric_row.metric(
+            "Last 12 months",
+            mask_value(f"${float(row['Trailing_12_Month_Spend']):,.2f}"),
+            border=True,
+        )
         metric_row.metric("Cadence", str(row["Cadence"]), border=True)
 
         if _is_missing_number(row["Monthly_Run_Rate"]):
@@ -410,18 +415,18 @@ def _render_merchant_detail(
         price_change = float(row["Price_Change"])
         if price_change > 0:
             st.error(
-                f"Latest detected price increase: +${price_change:,.2f} on "
+                f"Latest detected price increase: {mask_value(f'+${price_change:,.2f}')} on "
                 f"{pd.Timestamp(row['Price_Change_Date']):%B %d, %Y}.",
                 icon=":material/trending_up:",
             )
         elif price_change < 0:
             st.success(
-                f"Latest detected price decrease: -${abs(price_change):,.2f} on "
+                f"Latest detected price decrease: {mask_value(f'-${abs(price_change):,.2f}')} on "
                 f"{pd.Timestamp(row['Price_Change_Date']):%B %d, %Y}.",
                 icon=":material/trending_down:",
             )
 
-        st.altair_chart(create_charge_history_chart(charges), width="stretch")
+        value_safe_altair_chart(create_charge_history_chart(charges), width="stretch")
         monthly_totals = (
             charges.assign(Month=charges["Date"].map(lambda value: _month_label(value)))
             .groupby("Month")["Amount_Abs"]
@@ -431,7 +436,7 @@ def _render_merchant_detail(
             .sort_values("Month", ascending=False)
         )
         with st.expander("Monthly totals", icon=":material/calendar_month:"):
-            st.dataframe(
+            value_safe_dataframe(
                 monthly_totals,
                 width="stretch",
                 hide_index=True,
@@ -441,7 +446,7 @@ def _render_merchant_detail(
                 },
             )
         with st.expander("Individual charges", icon=":material/receipt_long:"):
-            st.dataframe(
+            value_safe_dataframe(
                 charges.drop(columns=["Amount_Abs", "Merchant", "Month_Key"], errors="ignore"),
                 width="stretch",
                 height=350,
@@ -452,7 +457,7 @@ def _render_merchant_detail(
 
 def _format_optional_currency(value: object) -> str:
     """Format nullable currency values without implying false precision."""
-    return "Pending" if _is_missing_number(value) else f"${float(cast(float, value)):,.2f}"
+    return "Pending" if _is_missing_number(value) else mask_value(f"${float(cast(float, value)):,.2f}")
 
 
 def _is_missing_number(value: object) -> bool:
@@ -560,7 +565,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
     days_stale = (pd.Timestamp.now(tz="UTC").normalize() - latest_utc.normalize()).days
     if days_stale > 45:
         st.warning(
-            f"The newest transaction is {days_stale} days old. Statuses and forecasts may be stale.",
+            f"The newest transaction is {mask_value(str(days_stale))} days old. Statuses and forecasts may be stale.",
             icon=":material/history:",
         )
 
@@ -594,31 +599,35 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
 
     annual_change = summary["annual_change_pct"]
     metric_row = st.container(horizontal=True)
-    metric_row.metric("Active subscriptions", f"{summary['active_count']:,}", border=True)
+    metric_row.metric(
+        "Active subscriptions",
+        mask_value(f"{summary['active_count']:,}"),
+        border=True,
+    )
     metric_row.metric(
         "Estimated monthly run rate",
-        f"${summary['monthly_run_rate']:,.2f}",
+        mask_value(f"${summary['monthly_run_rate']:,.2f}"),
         border=True,
     )
     metric_row.metric(
         "Spent in the last 12 months",
-        f"${summary['trailing_12_month_spend']:,.2f}",
+        mask_value(f"${summary['trailing_12_month_spend']:,.2f}"),
         border=True,
     )
     metric_row.metric(
         "12-month change",
-        "Not available" if annual_change is None else f"{annual_change:+.1f}%",
+        "Not available" if annual_change is None else mask_value(f"{annual_change:+.1f}%"),
         delta=(
             None
             if annual_change is None
-            else f"${summary['trailing_12_month_spend'] - summary['prior_12_month_spend']:+,.2f}"
+            else mask_value(f"${summary['trailing_12_month_spend'] - summary['prior_12_month_spend']:+,.2f}")
         ),
         delta_color="inverse",
         border=True,
     )
     if summary["pending_estimate_count"]:
         st.caption(
-            f"{summary['pending_estimate_count']} active subscription"
+            f"{mask_value(str(summary['pending_estimate_count']))} active subscription"
             f"{'s are' if summary['pending_estimate_count'] != 1 else ' is'} excluded from the run rate "
             "until more charge history is available."
         )
@@ -694,7 +703,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
                     icon=":material/info:",
                 )
             else:
-                st.altair_chart(
+                value_safe_altair_chart(
                     create_lifecycle_timeline_chart(
                         visible_lifecycles,
                         range_start=range_start,
@@ -703,9 +712,9 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
                     width="stretch",
                 )
             st.markdown("**Actual spend and 3-month average**")
-            st.altair_chart(create_spend_history_chart(visible_history), width="stretch")
+            value_safe_altair_chart(create_spend_history_chart(visible_history), width="stretch")
             st.markdown("**Active subscription merchants**")
-            st.altair_chart(create_active_history_chart(visible_history), width="stretch")
+            value_safe_altair_chart(create_active_history_chart(visible_history), width="stretch")
 
     st.subheader("Potential subscriptions")
     st.caption(
