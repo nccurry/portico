@@ -36,6 +36,13 @@ from src.spreadsheet import (
     load_balance_history_data,
     load_transactions_data,
 )
+from src.value_visibility import (
+    MASKED_VALUE,
+    mask_value,
+    value_safe_altair_chart,
+    value_safe_dataframe,
+    values_hidden,
+)
 
 
 SCENARIO_KEYS = {
@@ -52,7 +59,7 @@ SOURCE_SPENDING_KEY = "fi_source_spending"
 
 def _currency(value: float, *, signed: bool = False) -> str:
     sign = "+" if signed and value > 0 else "-" if value < 0 else ""
-    return f"{sign}${abs(value):,.0f}"
+    return mask_value(f"{sign}${abs(value):,.0f}")
 
 
 def _build_spending_filters(filters: FIFilters) -> TransactionFilterOptions:
@@ -80,10 +87,7 @@ def _set_scenario_defaults(portfolio_value: float, annual_spending: float) -> No
     annual_spending = float(round(annual_spending))
     previous_assets = st.session_state.get(SOURCE_ASSETS_KEY)
     previous_spending = st.session_state.get(SOURCE_SPENDING_KEY)
-    if (
-        SCENARIO_KEYS["assets"] not in st.session_state
-        or st.session_state[SCENARIO_KEYS["assets"]] == previous_assets
-    ):
+    if SCENARIO_KEYS["assets"] not in st.session_state or st.session_state[SCENARIO_KEYS["assets"]] == previous_assets:
         st.session_state[SCENARIO_KEYS["assets"]] = portfolio_value
     if (
         SCENARIO_KEYS["spending"] not in st.session_state
@@ -106,12 +110,8 @@ def _reset_scenario(portfolio_value: float, annual_spending: float) -> None:
     st.session_state[SCENARIO_KEYS["assets"]] = float(round(portfolio_value))
     st.session_state[SCENARIO_KEYS["spending"]] = float(round(annual_spending))
     st.session_state[SCENARIO_KEYS["income"]] = 0.0
-    st.session_state[SCENARIO_KEYS["return_rate"]] = float(
-        DEFAULT_EXPECTED_RETURN_RATE
-    )
-    st.session_state[SCENARIO_KEYS["withdrawal_rate"]] = float(
-        DEFAULT_WITHDRAWAL_RATE
-    )
+    st.session_state[SCENARIO_KEYS["return_rate"]] = float(DEFAULT_EXPECTED_RETURN_RATE)
+    st.session_state[SCENARIO_KEYS["withdrawal_rate"]] = float(DEFAULT_WITHDRAWAL_RATE)
     st.session_state[SCENARIO_KEYS["years"]] = int(DEFAULT_FI_PROJECTION_YEARS)
 
 
@@ -120,6 +120,19 @@ def _render_scenario_controls(
     annual_spending: float,
 ) -> tuple[float, float, float, float, float, int]:
     _set_scenario_defaults(portfolio_value, annual_spending)
+    if values_hidden():
+        with st.container(border=True):
+            st.subheader("Scenario")
+            st.caption("Turn off Hide values to edit the scenario.")
+        return (
+            float(st.session_state[SCENARIO_KEYS["assets"]]),
+            float(st.session_state[SCENARIO_KEYS["spending"]]),
+            float(st.session_state[SCENARIO_KEYS["income"]]),
+            float(st.session_state[SCENARIO_KEYS["return_rate"]]),
+            float(st.session_state[SCENARIO_KEYS["withdrawal_rate"]]),
+            int(st.session_state[SCENARIO_KEYS["years"]]),
+        )
+
     with st.container(border=True):
         heading, reset = st.columns([4, 1], vertical_alignment="center")
         with heading:
@@ -141,7 +154,7 @@ def _render_scenario_controls(
                 max_value=100_000_000.0,
                 step=10_000.0,
                 key=SCENARIO_KEYS["assets"],
-                persist_state="page",
+                persist_state="session",
             )
         with first_row[1]:
             spending = st.number_input(
@@ -150,7 +163,7 @@ def _render_scenario_controls(
                 max_value=10_000_000.0,
                 step=1_000.0,
                 key=SCENARIO_KEYS["spending"],
-                persist_state="page",
+                persist_state="session",
             )
         with first_row[2]:
             income = st.number_input(
@@ -159,7 +172,7 @@ def _render_scenario_controls(
                 max_value=10_000_000.0,
                 step=1_000.0,
                 key=SCENARIO_KEYS["income"],
-                persist_state="page",
+                persist_state="session",
             )
 
         second_row = st.columns(3)
@@ -171,7 +184,7 @@ def _render_scenario_controls(
                 step=0.5,
                 format="%.1f",
                 key=SCENARIO_KEYS["return_rate"],
-                persist_state="page",
+                persist_state="session",
             )
         with second_row[1]:
             withdrawal_rate = st.number_input(
@@ -181,7 +194,7 @@ def _render_scenario_controls(
                 step=0.25,
                 format="%.2f",
                 key=SCENARIO_KEYS["withdrawal_rate"],
-                persist_state="page",
+                persist_state="session",
             )
         with second_row[2]:
             years = st.number_input(
@@ -190,7 +203,7 @@ def _render_scenario_controls(
                 max_value=100,
                 step=5,
                 key=SCENARIO_KEYS["years"],
-                persist_state="page",
+                persist_state="session",
             )
     return (
         float(assets),
@@ -204,20 +217,16 @@ def _render_scenario_controls(
 
 def _render_metrics(summary: FISummary) -> None:
     runway = summary["runway_years"]
-    runway_value = "Sustainable" if runway is None else f"{runway:.1f} years"
+    runway_value = "Sustainable" if runway is None else mask_value(f"{runway:.1f} years")
     runway_delta = (
         "Portfolio does not deplete"
         if runway is None
-        else "Until portfolio reaches $0"
+        else f"Until portfolio reaches {mask_value('$0')}"
     )
     gap = summary["annual_surplus"]
     gap_delta = "Annual surplus" if gap >= 0 else "Annual shortfall"
     fi_gap = summary["fi_gap"]
-    fi_delta = (
-        f"{_currency(fi_gap)} above target"
-        if fi_gap >= 0
-        else f"{_currency(-fi_gap)} still needed"
-    )
+    fi_delta = f"{_currency(fi_gap)} above target" if fi_gap >= 0 else f"{_currency(-fi_gap)} still needed"
     with st.container(horizontal=True):
         st.metric(
             "Runway",
@@ -330,18 +339,33 @@ def _create_funding_chart(summary: FISummary) -> alt.Chart:
 
 def _create_sensitivity_chart(sensitivity: pd.DataFrame) -> alt.LayerChart:
     order = ["+20%", "+10%", "Baseline", "-10%", "-20%"]
+    hidden = values_hidden()
+    return_axis = (
+        alt.Axis(labelExpr=f"'{MASKED_VALUE}'")
+        if hidden
+        else alt.Axis(labelExpr="datum.label + '%'")
+    )
+    spending_axis = (
+        alt.Axis(labelExpr=f"'{MASKED_VALUE}'") if hidden else alt.Undefined
+    )
+    tooltip = [
+        alt.Tooltip("Annual_Spending:Q", title="Annual spending", format="$,.0f"),
+        alt.Tooltip("Return_Rate:Q", title="Real return", format=".1f"),
+        alt.Tooltip("Runway_Label:N", title="Runway"),
+    ]
     base = alt.Chart(sensitivity).encode(
         x=alt.X(
             "Return_Rate:O",
             title="Expected real return",
-            axis=alt.Axis(labelExpr="datum.label + '%'"),
+            axis=return_axis,
         ),
-        y=alt.Y("Spending_Change:N", title="Annual spending", sort=order),
-        tooltip=[
-            alt.Tooltip("Annual_Spending:Q", title="Annual spending", format="$,.0f"),
-            alt.Tooltip("Return_Rate:Q", title="Real return", format=".1f"),
-            alt.Tooltip("Runway_Label:N", title="Runway"),
-        ],
+        y=alt.Y(
+            "Spending_Change:N",
+            title="Annual spending",
+            sort=order,
+            axis=spending_axis,
+        ),
+        tooltip=tooltip,
     )
     cells = base.mark_rect(cornerRadius=2).encode(
         color=alt.Color(
@@ -363,8 +387,9 @@ def _create_sensitivity_chart(sensitivity: pd.DataFrame) -> alt.LayerChart:
             alt.value(0),
         ),
     )
+    label_text = alt.value(MASKED_VALUE) if hidden else alt.Text("Runway_Label:N")
     labels = base.mark_text(fontSize=12).encode(
-        text=alt.Text("Runway_Label:N"),
+        text=label_text,
         color=alt.value("white"),
     )
     return cast(alt.LayerChart, (cells + labels).properties(height=220))
@@ -379,14 +404,12 @@ def _render_source_details(
     end_month: str,
 ) -> None:
     with st.expander("Source details", icon=":material/table_view:"):
-        accounts_tab, spending_tab, transactions_tab = st.tabs(
-            ["Accounts", "Spending", "Transactions"]
-        )
+        accounts_tab, spending_tab, transactions_tab = st.tabs(["Accounts", "Spending", "Transactions"])
         with accounts_tab:
             if accounts.empty:
                 st.info("No portfolio accounts are selected.")
             else:
-                st.dataframe(
+                value_safe_dataframe(
                     accounts.sort_values("Balance", ascending=False),
                     width="stretch",
                     hide_index=True,
@@ -396,14 +419,19 @@ def _render_source_details(
                 )
         with spending_tab:
             st.caption(f"{start_month} through {end_month}")
-            st.bar_chart(
-                monthly_spending,
-                x="Month",
-                y="Spending",
-                color=COLOR_EXPENSE,
-                x_label="Month",
-                y_label="Spending",
+            spending_chart = (
+                alt.Chart(monthly_spending)
+                .mark_bar(color=COLOR_EXPENSE)
+                .encode(
+                    x=alt.X("Month:N", title="Month"),
+                    y=alt.Y("Spending:Q", title="Spending"),
+                    tooltip=[
+                        alt.Tooltip("Month:N", title="Month"),
+                        alt.Tooltip("Spending:Q", title="Spending", format="$,.0f"),
+                    ],
+                )
             )
+            value_safe_altair_chart(spending_chart, width="stretch")
             category_spending = (
                 transactions.groupby(["Group", "Category"], dropna=False)["Amount"]
                 .sum()
@@ -412,7 +440,7 @@ def _render_source_details(
                 .reset_index()
                 .sort_values("Spending", ascending=False)
             )
-            st.dataframe(
+            value_safe_dataframe(
                 category_spending,
                 width="stretch",
                 hide_index=True,
@@ -421,12 +449,10 @@ def _render_source_details(
                 },
             )
         with transactions_tab:
-            display = transactions[
-                ["Date", "Full Description", "Group", "Category", "Account", "Amount"]
-            ].copy()
+            display = transactions[["Date", "Full Description", "Group", "Category", "Account", "Amount"]].copy()
             display = display.rename(columns={"Full Description": "Description"})
             display["Spending"] = -display.pop("Amount")
-            st.dataframe(
+            value_safe_dataframe(
                 display.sort_values("Spending", ascending=False),
                 width="stretch",
                 hide_index=True,
@@ -484,10 +510,7 @@ def configure_page(
         transactions_df,
         _build_spending_filters(filters),
     )
-    expenses = expenses[
-        expenses["Type"].eq("Expense")
-        & expenses["Month"].between(start_month, end_month)
-    ].copy()
+    expenses = expenses[expenses["Type"].eq("Expense") & expenses["Month"].between(start_month, end_month)].copy()
     monthly_spending_value, monthly_spending = calculate_avg_monthly_spending(
         expenses,
         start_month,
@@ -495,8 +518,8 @@ def configure_page(
     )
     calculated_spending = monthly_spending_value * 12
 
-    assets, spending, income, return_rate, withdrawal_rate, years = (
-        _render_scenario_controls(calculated_portfolio, calculated_spending)
+    assets, spending, income, return_rate, withdrawal_rate, years = _render_scenario_controls(
+        calculated_portfolio, calculated_spending
     )
     summary = calculate_fi_metrics(
         assets,
@@ -516,13 +539,13 @@ def configure_page(
 
     with st.container(border=True):
         st.subheader("Portfolio runway")
-        st.altair_chart(_create_projection_chart(projection), width="stretch")
+        value_safe_altair_chart(_create_projection_chart(projection), width="stretch")
 
     supporting = st.columns([1, 2])
     with supporting[0]:
         with st.container(border=True, height="stretch"):
             st.subheader("Annual funding")
-            st.altair_chart(_create_funding_chart(summary), width="stretch")
+            value_safe_altair_chart(_create_funding_chart(summary), width="stretch")
     with supporting[1]:
         with st.container(border=True, height="stretch"):
             st.subheader("Runway sensitivity")
@@ -532,7 +555,7 @@ def configure_page(
                 income,
                 baseline_return_rate=return_rate,
             )
-            st.altair_chart(
+            value_safe_altair_chart(
                 _create_sensitivity_chart(sensitivity),
                 width="stretch",
             )

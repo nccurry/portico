@@ -29,6 +29,12 @@ from src.spreadsheet import (
     BalanceHistorySpreadsheet,
     load_balance_history_data,
 )
+from src.value_visibility import (
+    mask_chart_values,
+    mask_numeric_column_config,
+    mask_value,
+    render_value_visibility_control,
+)
 
 
 ANALYZE_PAGE_SPECS = (
@@ -89,11 +95,7 @@ def create_financial_position_chart(history: pd.DataFrame) -> alt.LayerChart:
             ],
         )
     )
-    zero = (
-        alt.Chart(pd.DataFrame({"Value": [0]}))
-        .mark_rule(color="#64748B", opacity=0.55)
-        .encode(y="Value:Q")
-    )
+    zero = alt.Chart(pd.DataFrame({"Value": [0]})).mark_rule(color="#64748B", opacity=0.55).encode(y="Value:Q")
     return cast(alt.LayerChart, alt.layer(areas, zero, net_worth).properties(height=330))
 
 
@@ -121,11 +123,7 @@ def _render_global_status(
     balances: pd.DataFrame,
 ) -> None:
     """Show compact balance freshness and account-mapping signals."""
-    stale_count = (
-        len(find_stale_accounts(balances, as_of=balance_as_of))
-        if balance_as_of is not None
-        else 0
-    )
+    stale_count = len(find_stale_accounts(balances, as_of=balance_as_of)) if balance_as_of is not None else 0
     missing_mapping_count = len(find_missing_account_mappings(balances))
 
     with st.container(border=True):
@@ -138,13 +136,13 @@ def _render_global_status(
             st.caption(f"Latest balance update {_format_date(balance_as_of)}")
             if stale_count:
                 st.badge(
-                    f"{stale_count} stale account{'s' if stale_count != 1 else ''}",
+                    f"{mask_value(str(stale_count))} stale account{'s' if stale_count != 1 else ''}",
                     icon=":material/history:",
                     color="orange",
                 )
             if missing_mapping_count:
                 st.badge(
-                    f"{missing_mapping_count} missing account "
+                    f"{mask_value(str(missing_mapping_count))} missing account "
                     f"mapping{'s' if missing_mapping_count != 1 else ''}",
                     icon=":material/account_tree:",
                     color="orange",
@@ -177,7 +175,7 @@ def _period_label(
 def _format_currency(value: float, *, show_plus: bool = False) -> str:
     """Format a dollar amount with an optional explicit positive sign."""
     sign = "-" if value < 0 else "+" if show_plus and value > 0 else ""
-    return f"{sign}${abs(value):,.0f}"
+    return mask_value(f"{sign}${abs(value):,.0f}")
 
 
 def _render_financial_position(
@@ -218,7 +216,10 @@ def _render_financial_position(
                 delta_description="Change in total liability balances; lower is better",
                 width="stretch",
             )
-        st.altair_chart(create_financial_position_chart(history), width="stretch")
+        st.altair_chart(
+            mask_chart_values(create_financial_position_chart(history)),
+            width="stretch",
+        )
 
 
 def _render_account_group(group_row: pd.Series, accounts: pd.DataFrame) -> None:
@@ -247,7 +248,7 @@ def _render_account_group(group_row: pd.Series, accounts: pd.DataFrame) -> None:
 
         account_count = len(selected_accounts)
         with st.expander(
-            f"Account details ({account_count})",
+            f"Account details ({mask_value(str(account_count))})",
             icon=":material/account_balance:",
         ):
             details = selected_accounts[
@@ -268,16 +269,19 @@ def _render_account_group(group_row: pd.Series, accounts: pd.DataFrame) -> None:
                 details,
                 width="stretch",
                 hide_index=True,
-                column_config={
-                    "Account": st.column_config.TextColumn("Account", pinned=True),
-                    "Institution": "Institution",
-                    "Balance": st.column_config.NumberColumn("Balance", format="$%+,.2f"),
-                    "Change": st.column_config.NumberColumn("Change", format="$%+,.2f"),
-                    "Last_Updated": st.column_config.DatetimeColumn(
-                        "Updated",
-                        format="MMM D, YYYY",
-                    ),
-                },
+                column_config=mask_numeric_column_config(
+                    details,
+                    {
+                        "Account": st.column_config.TextColumn("Account", pinned=True),
+                        "Institution": "Institution",
+                        "Balance": st.column_config.NumberColumn("Balance", format="$%+,.2f"),
+                        "Change": st.column_config.NumberColumn("Change", format="$%+,.2f"),
+                        "Last_Updated": st.column_config.DatetimeColumn(
+                            "Updated",
+                            format="MMM D, YYYY",
+                        ),
+                    },
+                ),
                 placeholder="No current accounts are available for this group.",
             )
 
@@ -321,9 +325,7 @@ def configure_page(
     end_date = reporting_anchor(balances, anchor_to_data=True)
     lookback_days = SPARKLINE_LOOKBACK_OPTIONS[lookback]
     start_date = (
-        pd.Timestamp(balances["Date"].min())
-        if lookback_days is None
-        else end_date - timedelta(days=lookback_days)
+        pd.Timestamp(balances["Date"].min()) if lookback_days is None else end_date - timedelta(days=lookback_days)
     )
     history, groups, accounts = _analyze_balances(balances, start_date, end_date)
     if history.empty:
@@ -355,11 +357,7 @@ def main() -> None:
             help="Controls every balance, movement, and trend shown on this page.",
             width="stretch",
         )
-        selected_lookback = (
-            str(lookback)
-            if lookback in SPARKLINE_LOOKBACK_OPTIONS
-            else SPARKLINE_LOOKBACK_DEFAULT
-        )
+        selected_lookback = str(lookback) if lookback in SPARKLINE_LOOKBACK_OPTIONS else SPARKLINE_LOOKBACK_DEFAULT
         loading = st.empty()
         loading.skeleton(height=300)
         try:
@@ -373,10 +371,7 @@ def main() -> None:
             "": [
                 st.Page(home_page, title="Home", icon=":material/home:", default=True),
             ],
-            "Analyze": [
-                st.Page(path, title=title, icon=icon)
-                for path, title, icon in ANALYZE_PAGE_SPECS
-            ],
+            "Analyze": [st.Page(path, title=title, icon=icon) for path, title, icon in ANALYZE_PAGE_SPECS],
             "Plan": [
                 st.Page(
                     "pages/7_Budget.py",
@@ -400,6 +395,7 @@ def main() -> None:
         position="sidebar",
         expanded=True,
     )
+    render_value_visibility_control()
     page.run()
 
 

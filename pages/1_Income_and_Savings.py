@@ -22,6 +22,7 @@ from src.filters import render_income_expense_filters
 from src.page_helpers import render_data_refresh_controls
 from src.reporting_periods import completed_month_window, current_month_string
 from src.spreadsheet import TransactionsSpreadsheet, load_transactions_data
+from src.value_visibility import mask_value, value_safe_altair_chart, value_safe_dataframe
 
 
 LOOKBACK_MONTHS = {"3M": 3, "6M": 6, "1Y": 12, "2Y": 24}
@@ -35,23 +36,25 @@ CHART_EPOCH_KEY = "income_chart_epoch"
 
 def _format_currency(value: float) -> str:
     sign = "-" if value < 0 else ""
-    return f"{sign}${abs(value):,.0f}"
+    return mask_value(f"{sign}${abs(value):,.0f}")
 
 
 def _format_money_delta(value: float, comparison_months: int) -> str:
     sign = "+" if value > 0 else "-" if value < 0 else ""
-    return f"{sign}${abs(value):,.0f} vs previous {comparison_months} months"
+    amount = mask_value(f"{sign}${abs(value):,.0f}")
+    return f"{amount} vs previous {comparison_months} months"
 
 
 def _format_rate(value: float | None) -> str:
-    return "—" if value is None else f"{value:.1f}%"
+    return "—" if value is None else mask_value(f"{value:.1f}%")
 
 
 def _format_rate_delta(value: float | None, comparison_months: int) -> str | None:
     if value is None:
         return None
     sign = "+" if value > 0 else ""
-    return f"{sign}{value:.1f} pts vs previous {comparison_months} months"
+    rate = mask_value(f"{sign}{value:.1f} pts")
+    return f"{rate} vs previous {comparison_months} months"
 
 
 def _render_summary_metrics(
@@ -239,10 +242,7 @@ def create_cash_flow_history_chart(
         .mark_rule(color=COLOR_PLACEHOLDER, opacity=0.75, strokeWidth=2)
         .encode(x=hidden_month_axis)
     )
-    cash_flow = (
-        alt.layer(bars, surplus, cash_zero, click_target, selected_cash_month)
-        .properties(height=300)
-    )
+    cash_flow = alt.layer(bars, surplus, cash_zero, click_target, selected_cash_month).properties(height=300)
 
     rate = (
         alt.Chart(chart_data)
@@ -273,26 +273,18 @@ def create_cash_flow_history_chart(
         alt.Chart(pd.DataFrame({"Value": [0]})).mark_rule(color=COLOR_PLACEHOLDER, opacity=0.35).encode(y="Value:Q")
     )
     rate_click_target = (
-        alt.Chart(chart_data)
-        .mark_point(opacity=0.001, size=1600)
-        .encode(x=month_axis)
-        .add_params(rate_month_pick)
+        alt.Chart(chart_data).mark_point(opacity=0.001, size=1600).encode(x=month_axis).add_params(rate_month_pick)
     )
     selected_rate_month = (
-        alt.Chart(selected_data)
-        .mark_rule(color=COLOR_PLACEHOLDER, opacity=0.75, strokeWidth=2)
-        .encode(x=month_axis)
+        alt.Chart(selected_data).mark_rule(color=COLOR_PLACEHOLDER, opacity=0.75, strokeWidth=2).encode(x=month_axis)
     )
-    savings_rate = (
-        alt.layer(
-            rate,
-            target,
-            rate_zero,
-            rate_click_target,
-            selected_rate_month,
-        )
-        .properties(height=135)
-    )
+    savings_rate = alt.layer(
+        rate,
+        target,
+        rate_zero,
+        rate_click_target,
+        selected_rate_month,
+    ).properties(height=135)
 
     return cast(
         alt.VConcatChart,
@@ -341,19 +333,23 @@ def _transaction_table(transactions: pd.DataFrame, *, show_reason: bool) -> None
     if show_reason:
         columns.append("Exclusion_Reason")
     available = [column for column in columns if column in transactions]
-    display = transactions.assign(
-        _Sort_Amount=pd.to_numeric(transactions["Amount"], errors="coerce").abs(),
-    ).sort_values(
-        ["_Sort_Amount", "Date"],
-        ascending=[False, False],
-    )[available].copy()
+    display = (
+        transactions.assign(
+            _Sort_Amount=pd.to_numeric(transactions["Amount"], errors="coerce").abs(),
+        )
+        .sort_values(
+            ["_Sort_Amount", "Date"],
+            ascending=[False, False],
+        )[available]
+        .copy()
+    )
     display = display.rename(
         columns={
             "Full Description": "Description",
             "Exclusion_Reason": "Exclusion reason",
         }
     )
-    st.dataframe(
+    value_safe_dataframe(
         display,
         width="stretch",
         hide_index=True,
@@ -392,11 +388,7 @@ def _render_largest_transactions(transactions: pd.DataFrame) -> None:
         matching = transactions[transactions["Type"] == transaction_type]
         if matching.empty:
             continue
-        row = (
-            matching.assign(_Magnitude=matching["Amount"].abs())
-            .sort_values("_Magnitude", ascending=False)
-            .iloc[0]
-        )
+        row = matching.assign(_Magnitude=matching["Amount"].abs()).sort_values("_Magnitude", ascending=False).iloc[0]
         raw_description = row.get("Full Description", row.get("Description", "Transaction"))
         description = "Transaction" if pd.isna(raw_description) else str(raw_description)
         badges.append(
@@ -418,10 +410,7 @@ def _render_month_detail(
 ) -> None:
     months = monthly["Month"].astype(str).tolist()
     selected_from_chart = _selected_month_from_event(chart_event)
-    if (
-        selected_from_chart in months
-        and selected_from_chart != st.session_state.get(DETAIL_MONTH_KEY)
-    ):
+    if selected_from_chart in months and selected_from_chart != st.session_state.get(DETAIL_MONTH_KEY):
         st.session_state[DETAIL_MONTH_KEY] = selected_from_chart
         st.rerun()
     if st.session_state.get(DETAIL_MONTH_KEY) not in months:
@@ -471,7 +460,7 @@ def _render_month_detail(
             else:
                 _render_largest_transactions(included)
                 st.markdown("**By category**")
-                st.dataframe(
+                value_safe_dataframe(
                     _category_summary(included),
                     width="stretch",
                     hide_index=True,
@@ -506,7 +495,7 @@ def _render_monthly_totals(monthly: pd.DataFrame) -> None:
                 "Savings_Rate",
             ]
         ].copy()
-        st.dataframe(
+        value_safe_dataframe(
             display,
             width="stretch",
             hide_index=True,
@@ -623,21 +612,15 @@ def configure_page(
     )
     summary = calculate_savings_summary(monthly)
     previous_summary = (
-        calculate_savings_summary(prior_monthly)
-        if _has_full_period_history(transactions, prior_start)
-        else None
+        calculate_savings_summary(prior_monthly) if _has_full_period_history(transactions, prior_start) else None
     )
     _render_summary_metrics(summary, previous_summary, lookback_months)
 
     included_count = int(ledger["Included"].sum())
     excluded_count = len(ledger) - included_count
     excluded = ledger[~ledger["Included"]]
-    excluded_income = float(
-        excluded.loc[excluded["Type"] == "Income", "Amount"].sum()
-    )
-    excluded_spending = float(
-        -excluded.loc[excluded["Type"] == "Expense", "Amount"].sum()
-    )
+    excluded_income = float(excluded.loc[excluded["Type"] == "Income", "Amount"].sum())
+    excluded_spending = float(-excluded.loc[excluded["Type"] == "Expense", "Amount"].sum())
     with st.container(border=True):
         with st.container(horizontal=True, vertical_alignment="center"):
             st.subheader("Monthly cash flow")
@@ -645,13 +628,14 @@ def configure_page(
                 "green" if summary["positive_surplus_months"] >= summary["num_months"] / 2 else "orange"
             )
             st.badge(
-                f"{summary['positive_surplus_months']} of {summary['num_months']} positive months",
+                f"{mask_value(str(summary['positive_surplus_months']))} of "
+                f"{mask_value(str(summary['num_months']))} positive months",
                 color=positive_color,
             )
             if excluded_count:
                 st.badge(
                     (
-                        f"{excluded_count} excluded · "
+                        f"{mask_value(str(excluded_count))} excluded · "
                         f"{_format_currency(excluded_income)} income · "
                         f"{_format_currency(excluded_spending)} spending"
                     ),
@@ -669,7 +653,7 @@ def configure_page(
                 filters["target_rate"],
                 str(st.session_state[DETAIL_MONTH_KEY]),
             )
-            chart_event = st.altair_chart(
+            chart_event = value_safe_altair_chart(
                 chart,
                 width="stretch",
                 key=f"income_history_{st.session_state[CHART_EPOCH_KEY]}",

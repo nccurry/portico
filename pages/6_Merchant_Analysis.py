@@ -24,6 +24,7 @@ from src.filters import render_spending_filters
 from src.page_helpers import configured_merchant_aliases, render_data_refresh_controls
 from src.reporting_periods import completed_month_window, latest_data_timestamp
 from src.spreadsheet import TransactionsSpreadsheet, load_transactions_data
+from src.value_visibility import mask_value, value_safe_altair_chart, value_safe_dataframe
 
 
 LOOKBACK_MONTHS = {"3M": 3, "6M": 6, "1Y": 12, "2Y": 24}
@@ -35,19 +36,19 @@ DETAIL_MONTH_KEY = "merchant_detail_month"
 
 def _format_currency(value: float) -> str:
     sign = "-" if value < 0 else ""
-    return f"{sign}${abs(value):,.0f}"
+    return mask_value(f"{sign}${abs(value):,.0f}")
 
 
 def _format_signed_currency(value: float) -> str:
     sign = "+" if value > 0 else "-" if value < 0 else ""
-    return f"{sign}${abs(value):,.0f}"
+    return mask_value(f"{sign}${abs(value):,.0f}")
 
 
 def _format_percent(value: float | None) -> str:
     if value is None or pd.isna(value):
         return "—"
     sign = "+" if value > 0 else ""
-    return f"{sign}{value:.1f}%"
+    return mask_value(f"{sign}{value:.1f}%")
 
 
 def _month_label(month: str) -> str:
@@ -77,9 +78,7 @@ def _analysis_periods(
     current_months = _month_sequence(current_start, current_end)
     if comparison == "Previous period":
         comparison_end = current_start
-        comparison_start = str(
-            pd.Period(current_start, freq="M") - lookback_months
-        )
+        comparison_start = str(pd.Period(current_start, freq="M") - lookback_months)
     else:
         comparison_start = str(pd.Period(current_start, freq="M") - 12)
         comparison_end = str(pd.Period(current_end, freq="M") - 12)
@@ -105,17 +104,11 @@ def _overview_column_config(comparison_label: str) -> ColumnConfig:
         "Merchant": st.column_config.TextColumn("Merchant", pinned=True),
         "Spending": st.column_config.NumberColumn("Spending", format="$%.0f"),
         "Share": st.column_config.NumberColumn("Share", format="%.1f%%"),
-        "Average_Monthly": st.column_config.NumberColumn(
-            "Avg/month", format="$%.0f"
-        ),
-        "Change": st.column_config.NumberColumn(
-            f"Change vs {comparison_label}", format="$%+.0f"
-        ),
+        "Average_Monthly": st.column_config.NumberColumn("Avg/month", format="$%.0f"),
+        "Change": st.column_config.NumberColumn(f"Change vs {comparison_label}", format="$%+.0f"),
         "Change_Pct": st.column_config.NumberColumn("Change %", format="%+.1f%%"),
         "Transactions": st.column_config.NumberColumn("Transactions", format="%d"),
-        "Average_Transaction": st.column_config.NumberColumn(
-            "Avg purchase", format="$%.0f"
-        ),
+        "Average_Transaction": st.column_config.NumberColumn("Avg purchase", format="$%.0f"),
         "Primary_Category": st.column_config.TextColumn("Main category"),
         "Monthly_Trend": st.column_config.LineChartColumn(
             "Monthly trend",
@@ -138,10 +131,10 @@ def _render_summary_metrics(overview: pd.DataFrame, *, num_months: int) -> None:
             _format_currency(summary["average_monthly_spending"]),
             border=True,
         )
-        st.metric("Merchants", f"{summary['merchant_count']:,}", border=True)
+        st.metric("Merchants", mask_value(f"{summary['merchant_count']:,}"), border=True)
         st.metric(
             "At repeat merchants",
-            f"{summary['repeat_spending_share']:.1f}%",
+            mask_value(f"{summary['repeat_spending_share']:.1f}%"),
             border=True,
         )
 
@@ -155,9 +148,7 @@ def _render_overview_table(
     remembered = st.session_state.get(SELECTED_MERCHANT_KEY)
     default_position = 0
     if remembered in overview["Merchant"].values:
-        default_position = int(
-            overview.index[overview["Merchant"] == remembered].tolist()[0]
-        )
+        default_position = int(overview.index[overview["Merchant"] == remembered].tolist()[0])
     selection_default = cast(
         DataframeState,
         {"selection": {"rows": [default_position]}},
@@ -174,7 +165,7 @@ def _render_overview_table(
         "Primary_Category",
         "Monthly_Trend",
     ]
-    event = st.dataframe(
+    event = value_safe_dataframe(
         overview[display_columns],
         key=state_key,
         width="stretch",
@@ -266,12 +257,8 @@ def _merchant_history_chart(
             ),
             tooltip=[
                 alt.Tooltip("Current_Month:N", title="Month"),
-                alt.Tooltip(
-                    "Current_Spending:Q", title="Spending", format="$,.2f"
-                ),
-                alt.Tooltip(
-                    "Current_Transactions:Q", title="Transactions"
-                ),
+                alt.Tooltip("Current_Spending:Q", title="Spending", format="$,.2f"),
+                alt.Tooltip("Current_Transactions:Q", title="Transactions"),
             ],
         )
     )
@@ -283,20 +270,14 @@ def _merchant_history_chart(
             y=alt.Y("Comparison_Spending:Q", title="Monthly spending ($)"),
             tooltip=[
                 alt.Tooltip("Comparison_Month:N", title=comparison_label.title()),
-                alt.Tooltip(
-                    "Comparison_Spending:Q", title="Spending", format="$,.2f"
-                ),
-                alt.Tooltip(
-                    "Comparison_Transactions:Q", title="Transactions"
-                ),
+                alt.Tooltip("Comparison_Spending:Q", title="Spending", format="$,.2f"),
+                alt.Tooltip("Comparison_Transactions:Q", title="Transactions"),
             ],
         )
     )
     return cast(
         alt.LayerChart,
-        alt.layer(current, comparison)
-        .resolve_scale(y="shared")
-        .properties(height=380),
+        alt.layer(current, comparison).resolve_scale(y="shared").properties(height=380),
     )
 
 
@@ -326,13 +307,11 @@ def _render_merchant_detail(
         st.metric(
             f"Change vs {comparison_label}",
             _format_signed_currency(float(row["Change"])),
-            _format_percent(
-                None if pd.isna(row["Change_Pct"]) else float(row["Change_Pct"])
-            ),
+            _format_percent(None if pd.isna(row["Change_Pct"]) else float(row["Change_Pct"])),
             delta_color="inverse",
             border=True,
         )
-        st.metric("Transactions", f"{int(row['Transactions']):,}", border=True)
+        st.metric("Transactions", mask_value(f"{int(row['Transactions']):,}"), border=True)
         st.metric(
             "Average purchase",
             _format_currency(float(row["Average_Transaction"])),
@@ -348,7 +327,7 @@ def _render_merchant_detail(
     )
     with st.container(border=True):
         st.markdown(f"**Monthly spending · gray is {comparison_label}**")
-        st.altair_chart(
+        value_safe_altair_chart(
             _merchant_history_chart(history, comparison_label=comparison_label),
             width="stretch",
         )
@@ -359,22 +338,15 @@ def _render_merchant_detail(
     selected_month = st.selectbox(
         "Detail month",
         month_options,
-        format_func=lambda value: (
-            value if value == "All months" else _month_label(str(value))
-        ),
+        format_func=lambda value: value if value == "All months" else _month_label(str(value)),
         key=DETAIL_MONTH_KEY,
         persist_state="page",
     )
-    scoped = current_ledger[
-        current_ledger["Included"]
-        & current_ledger["Merchant"].astype(str).eq(merchant)
-    ].copy()
+    scoped = current_ledger[current_ledger["Included"] & current_ledger["Merchant"].astype(str).eq(merchant)].copy()
     if selected_month != "All months":
         scoped = scoped[scoped["Month"].astype(str).eq(str(selected_month))]
 
-    breakdown_tab, descriptions_tab, transactions_tab = st.tabs(
-        ["Breakdown", "Descriptions", "Transactions"]
-    )
+    breakdown_tab, descriptions_tab, transactions_tab = st.tabs(["Breakdown", "Descriptions", "Transactions"])
     with breakdown_tab:
         category_column, account_column = st.columns(2)
         with category_column:
@@ -384,7 +356,7 @@ def _render_merchant_detail(
                 merchant=merchant,
                 dimension="Category",
             )
-            st.dataframe(
+            value_safe_dataframe(
                 categories,
                 width="stretch",
                 hide_index=True,
@@ -397,7 +369,7 @@ def _render_merchant_detail(
                 merchant=merchant,
                 dimension="Account",
             )
-            st.dataframe(
+            value_safe_dataframe(
                 accounts,
                 width="stretch",
                 hide_index=True,
@@ -408,23 +380,15 @@ def _render_merchant_detail(
             scoped,
             merchant=merchant,
         )
-        st.dataframe(
+        value_safe_dataframe(
             descriptions,
             width="stretch",
             hide_index=True,
             column_config={
-                "Description": st.column_config.TextColumn(
-                    "Description", pinned=True, width="large"
-                ),
-                "Spending": st.column_config.NumberColumn(
-                    "Spending", format="$%.2f"
-                ),
-                "Transactions": st.column_config.NumberColumn(
-                    "Transactions", format="%d"
-                ),
-                "Last_Transaction": st.column_config.DateColumn(
-                    "Last transaction", format="MMM DD, YYYY"
-                ),
+                "Description": st.column_config.TextColumn("Description", pinned=True, width="large"),
+                "Spending": st.column_config.NumberColumn("Spending", format="$%.2f"),
+                "Transactions": st.column_config.NumberColumn("Transactions", format="%d"),
+                "Last_Transaction": st.column_config.DateColumn("Last transaction", format="MMM DD, YYYY"),
             },
         )
     with transactions_tab:
@@ -436,29 +400,20 @@ def _render_merchant_detail(
             "Account",
             "Net_Spend",
         ]
-        transactions = (
-            scoped.sort_values(["Net_Spend", "Date"], ascending=[False, False])[
-                columns
-            ]
-            .rename(
-                columns={
-                    "Full Description": "Description",
-                    "Net_Spend": "Spending",
-                }
-            )
+        transactions = scoped.sort_values(["Net_Spend", "Date"], ascending=[False, False])[columns].rename(
+            columns={
+                "Full Description": "Description",
+                "Net_Spend": "Spending",
+            }
         )
-        st.dataframe(
+        value_safe_dataframe(
             transactions,
             width="stretch",
             hide_index=True,
             column_config={
                 "Date": st.column_config.DateColumn("Date", format="MMM DD, YYYY"),
-                "Description": st.column_config.TextColumn(
-                    "Description", pinned=True, width="large"
-                ),
-                "Spending": st.column_config.NumberColumn(
-                    "Spending", format="$%.2f"
-                ),
+                "Description": st.column_config.TextColumn("Description", pinned=True, width="large"),
+                "Spending": st.column_config.NumberColumn("Spending", format="$%.2f"),
             },
         )
 
@@ -562,14 +517,14 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
     excluded = current_ledger[~current_ledger["Included"]]
     if not excluded.empty:
         st.badge(
-            f"{len(excluded):,} excluded · "
+            f"{mask_value(f'{len(excluded):,}')} excluded · "
             f"{_format_currency(float(excluded['Net_Spend'].sum()))} net spending",
             color="gray",
         )
     if merchant_aliases:
         st.badge(
-            f"{len(set(merchant_aliases.values()))} aliased vendors · "
-            f"{len(merchant_aliases)} rules",
+            f"{mask_value(str(len(set(merchant_aliases.values()))))} aliased vendors · "
+            f"{mask_value(str(len(merchant_aliases)))} rules",
             color="gray",
         )
 
@@ -603,14 +558,11 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
             selected_merchant = _render_overview_table(
                 filtered,
                 comparison_label=comparison_text,
-                state_key=(
-                    f"merchant_overview_{lookback}_{view}_{comparison}_"
-                    f"{crc32(repr(filters).encode()):08x}"
-                ),
+                state_key=(f"merchant_overview_{lookback}_{view}_{comparison}_{crc32(repr(filters).encode()):08x}"),
             )
         with ranking_column:
             st.markdown("**Top merchants by spending**")
-            st.altair_chart(
+            value_safe_altair_chart(
                 _ranking_chart(overview, selected_merchant),
                 width="stretch",
             )
