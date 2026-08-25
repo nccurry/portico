@@ -135,6 +135,7 @@ def create_cash_flow_history_chart(
     chart_data["Month_Key"] = chart_data["Month"].astype(str)
     chart_data["Month_Date"] = pd.to_datetime(chart_data["Month"] + "-01")
     chart_data["Spending_Chart"] = -chart_data["Net_Expenses"]
+    month_ticks = chart_data["Month_Date"].dt.strftime("%Y-%m-%d").tolist()
 
     bar_data = chart_data[["Month_Key", "Month_Date", "Income", "Spending_Chart"]].melt(
         id_vars=["Month_Key", "Month_Date"],
@@ -161,7 +162,12 @@ def create_cash_flow_history_chart(
     month_axis = alt.X(
         "Month_Date:T",
         title=None,
-        axis=alt.Axis(format="%b %Y", labelAngle=-35, labelOverlap=True),
+        axis=alt.Axis(
+            format="%b %Y",
+            labelAngle=-35,
+            labelOverlap=True,
+            values=month_ticks,
+        ),
     )
     hidden_month_axis = alt.X(
         "Month_Date:T",

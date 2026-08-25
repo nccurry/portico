@@ -550,6 +550,10 @@ class TestIncomeAndSavingsSmoke:
         ]
         spec = json.loads(charts[0].proto.spec)
         assert len(spec["vconcat"]) == 2
+        month_axis = spec["vconcat"][1]["layer"][0]["encoding"]["x"]["axis"]
+        month_ticks = month_axis["values"]
+        assert len(month_ticks) == len(set(month_ticks)) == 12
+        assert all(str(value).endswith("-01") for value in month_ticks)
         month_picks = {
             str(param.get("name")): param
             for param in _chart_params(spec)
