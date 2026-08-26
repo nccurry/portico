@@ -37,7 +37,7 @@ def full_date_range() -> tuple[pd.Timestamp, pd.Timestamp]:
 
 
 # ---------------------------------------------------------------------------
-# Real CSV fixtures (generated anonymized data from tests/data/fixtures/)
+# Canonical synthetic demo data from demo/data/
 # ---------------------------------------------------------------------------
 #
 # These drive the real Spreadsheet.scrub() pipeline end-to-end.
@@ -48,9 +48,9 @@ def full_date_range() -> tuple[pd.Timestamp, pd.Timestamp]:
 #   - make_full_dataset for integration tests; it patches all four
 #     load_*_data() loaders simultaneously.
 # Mixing them stacks patches in non-obvious order and produces
-# "why is this dataframe empty?" bugs. See tests/data/README.md.
+# "why is this dataframe empty?" bugs.
 
-_FIXTURES_DIR = Path(__file__).resolve().parents[1] / "data" / "fixtures"
+_FIXTURES_DIR = Path(__file__).resolve().parents[2] / "demo" / "data"
 
 
 def _read_fixture_csv(name: str) -> pd.DataFrame:
@@ -62,25 +62,25 @@ def _read_fixture_csv(name: str) -> pd.DataFrame:
 
 @pytest.fixture(scope="session")
 def real_transactions_csv_df() -> pd.DataFrame:
-    """Raw-shape transactions.csv from tests/data/fixtures/."""
+    """Raw-shape transactions.csv from the canonical demo dataset."""
     return _read_fixture_csv("transactions")
 
 
 @pytest.fixture(scope="session")
 def real_balance_csv_df() -> pd.DataFrame:
-    """Raw-shape balance_history.csv from tests/data/fixtures/."""
+    """Raw-shape balance_history.csv from the canonical demo dataset."""
     return _read_fixture_csv("balance_history")
 
 
 @pytest.fixture(scope="session")
 def real_categories_csv_df() -> pd.DataFrame:
-    """Raw categories.csv (with budget month columns) from tests/data/fixtures/."""
+    """Raw categories.csv with budget month columns from the demo dataset."""
     return _read_fixture_csv("categories")
 
 
 @pytest.fixture(scope="session")
 def real_accounts_csv_df() -> pd.DataFrame:
-    """Raw accounts.csv from tests/data/fixtures/."""
+    """Raw accounts.csv from the canonical demo dataset."""
     return _read_fixture_csv("accounts")
 
 

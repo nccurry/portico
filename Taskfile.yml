@@ -4,11 +4,10 @@ version: '3'
 vars:
   VENV: .venv
   PYTHON: '{{if eq OS "windows"}}{{.VENV}}/Scripts/python.exe{{else}}{{.VENV}}/bin/python{{end}}'
-  STREAMLIT: '{{if eq OS "windows"}}{{.VENV}}/Scripts/streamlit.exe{{else}}{{.VENV}}/bin/streamlit{{end}}'
   UV: '{{if eq OS "windows"}}.tools/bin/uv.exe{{else}}.tools/bin/uv{{end}}'
   TASK: '{{if eq OS "windows"}}.tools/bin/task.exe{{else}}.tools/bin/task{{end}}'
   LINT_PATHS: src/ pages/ tests/ scripts/ Home.py
-  ADDRESS: '{{default "0.0.0.0" .ADDRESS}}'
+  ADDRESS: '{{default "127.0.0.1" .ADDRESS}}'
   PORT: '{{default "8501" .PORT}}'
   PERIOD_END: '{{default "" .PERIOD_END}}'
   FORCE: '{{default "false" .FORCE}}'
@@ -187,7 +186,7 @@ tasks:
     internal: true
     platforms: [linux, darwin]
     cmds:
-      - sh -n scripts/bootstrap.sh scripts/install-python-toolchain.sh scripts/systemd-service.sh scripts/systemd-discord.sh
+      - sh -n scripts/bootstrap.sh scripts/install-python-toolchain.sh
 
   format:
     desc: "Apply safe lint fixes, then run mypy"
@@ -212,19 +211,60 @@ tasks:
     cmds:
       - '{{.UV}} run --locked --dev python scripts/check_repository_privacy.py'
 
+  config:init:
+    desc: "Create an ignored local configuration file"
+    cmds:
+      - '{{.UV}} run --locked --dev python scripts/init_config.py'
+
   # ========================================
   # Run
   # ========================================
 
   run:
-    desc: "Run the Streamlit app"
+    desc: "Run the Streamlit app on a validated address (localhost by default)"
     cmds:
-      - '{{.UV}} run --locked --dev streamlit run Home.py'
+      - '{{.UV}} run --locked --dev python -m scripts.run_app --address={{.ADDRESS | quote}} --port={{.PORT | quote}}'
 
-  run:production:
-    desc: "Run Streamlit with the systemd production settings"
+  demo:
+    desc: "Run the app with synthetic demo data on localhost"
     cmds:
-      - '{{.STREAMLIT}} run Home.py --server.address={{.ADDRESS | quote}} --server.port={{.PORT | quote}} --server.headless=true --server.runOnSave=false --client.showErrorDetails=false'
+      - '{{.UV}} run --locked --dev python -m scripts.run_app --address=127.0.0.1 --port={{.PORT | quote}} --data-source=demo'
+
+  run:lan:
+    desc: "Run the app on all interfaces for a trusted network"
+    cmds:
+      - '{{.UV}} run --locked --dev python -m scripts.run_app --address=0.0.0.0 --port={{.PORT | quote}}'
+
+  doctor:
+    desc: "Validate the configured data source"
+    cmds:
+      - '{{.UV}} run --locked --dev python -m scripts.doctor {{.CLI_ARGS}}'
+
+  container:build:
+    desc: "Build the local Linux container image"
+    cmds:
+      - docker build --tag tiller-streamlit:local .
+
+  container:demo:
+    desc: "Build and run the demo container on localhost"
+    cmds:
+      - docker compose --profile demo up --build demo
+
+  container:live:
+    desc: "Build and run the live container on localhost"
+    cmds:
+      - docker compose --profile live up --build live
+
+  container:down:
+    desc: "Stop app containers"
+    cmds:
+      - docker compose --profile demo --profile live down
+
+  container:notifier:
+    desc: "Run one notifier command in a temporary container"
+    cmds:
+      - docker compose build notifier
+      - docker compose --profile notifier run --rm notifier {{.CLI_ARGS}}
 
   # ========================================
   # Weekly Discord Summary
@@ -264,110 +304,3 @@ tasks:
         msg: "Runtime dependencies are missing. Run 'task discord:check'."
     cmds:
       - '{{.PYTHON}} scripts/weekly-discord-summary.py send --output={{.OUTPUT | quote}} {{if .PERIOD_END}}--period-end={{.PERIOD_END | quote}}{{end}} {{if eq .FORCE "true"}}--force{{end}}'
-
-  discord:install:
-    desc: "Install runtime dependencies and the weekly Discord systemd timer"
-    platforms: [linux]
-    preconditions:
-      - sh: test "$(id -u)" -ne 0
-        msg: "Run installation as a non-root user with sudo access."
-    cmds:
-      - task: deps:install:runtime
-      - sh scripts/systemd-discord.sh install
-
-  discord:uninstall:
-    desc: "Remove the weekly Discord systemd units"
-    platforms: [linux]
-    cmds:
-      - sh scripts/systemd-discord.sh uninstall
-
-  discord:status:
-    desc: "Show the Discord timer status and last result"
-    platforms: [linux]
-    cmds:
-      - sh scripts/systemd-discord.sh status
-
-  discord:logs:
-    desc: "Follow weekly Discord notifier logs"
-    platforms: [linux]
-    cmds:
-      - sh scripts/systemd-discord.sh logs
-
-  # ========================================
-  # Linux Installation
-  # ========================================
-
-  install:
-    desc: "Install runtime dependencies and the systemd service"
-    platforms: [linux]
-    preconditions:
-      - sh: test "$(id -u)" -ne 0
-        msg: "Run installation as a non-root user with sudo access."
-    cmds:
-      - task: deps:install:runtime
-      - task: service:install
-        vars:
-          ADDRESS: '{{.ADDRESS}}'
-          PORT: '{{.PORT}}'
-
-  uninstall:
-    desc: "Uninstall the systemd service"
-    platforms: [linux]
-    cmds:
-      - task: service:uninstall
-
-  service:install:
-    desc: "Install, enable, and start the systemd service"
-    platforms: [linux]
-    env:
-      ADDRESS: '{{.ADDRESS}}'
-      PORT: '{{.PORT}}'
-    preconditions:
-      - sh: test "$(id -u)" -ne 0
-        msg: "Run installation as a non-root user with sudo access."
-      - sh: command -v systemctl >/dev/null 2>&1
-        msg: "systemctl is required to install the service."
-      - sh: command -v sudo >/dev/null 2>&1
-        msg: "sudo is required; run this task as a non-root user with sudo access."
-      - sh: test -f .streamlit/secrets.toml
-        msg: "Missing .streamlit/secrets.toml. Configure Streamlit secrets before installing."
-      - sh: test -x .venv/bin/streamlit
-        msg: "Runtime dependencies are missing. Run 'task deps:install:runtime'."
-    cmds:
-      - sh scripts/systemd-service.sh install
-
-  service:uninstall:
-    desc: "Stop, disable, and remove the systemd service"
-    platforms: [linux]
-    cmds:
-      - sh scripts/systemd-service.sh uninstall
-
-  service:start:
-    desc: "Start the systemd service"
-    platforms: [linux]
-    cmds:
-      - sh scripts/systemd-service.sh start
-
-  service:stop:
-    desc: "Stop the systemd service"
-    platforms: [linux]
-    cmds:
-      - sh scripts/systemd-service.sh stop
-
-  service:restart:
-    desc: "Restart the systemd service"
-    platforms: [linux]
-    cmds:
-      - sh scripts/systemd-service.sh restart
-
-  service:status:
-    desc: "Show systemd service status"
-    platforms: [linux]
-    cmds:
-      - sh scripts/systemd-service.sh status
-
-  service:logs:
-    desc: "Follow systemd service logs"
-    platforms: [linux]
-    cmds:
-      - sh scripts/systemd-service.sh logs

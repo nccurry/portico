@@ -2,8 +2,8 @@
 
 import pandas as pd
 
+from src.config import get_settings
 from src.custom_types import IncomeExpenseFilters, SavingsSummary, TransactionFilterOptions
-from src.constants import DEFAULT_EXPENSE_THRESHOLD, DEFAULT_INCOME_THRESHOLD
 from src.spreadsheet import TransactionsSpreadsheet
 
 
@@ -46,6 +46,7 @@ def _row_exclusion_reasons(
     filters: TransactionFilterOptions,
 ) -> str:
     """Describe every filter rule that excludes one transaction."""
+    thresholds = get_settings().thresholds
     reasons: list[str] = []
     include_groups = set(filters.get("include_groups", ()))
     include_categories = set(filters.get("include_categories", ()))
@@ -78,14 +79,14 @@ def _row_exclusion_reasons(
         )
 
     if transaction_type == "Income" and filters.get("filter_large_income"):
-        threshold = float(filters.get("income_threshold", DEFAULT_INCOME_THRESHOLD))
+        threshold = float(filters.get("income_threshold", thresholds.income))
         _append_reason(
             reasons,
             abs(amount) > threshold,
             f"Income over ${threshold:,.0f}",
         )
     if transaction_type == "Expense" and filters.get("filter_large_expenses"):
-        threshold = float(filters.get("expense_threshold", DEFAULT_EXPENSE_THRESHOLD))
+        threshold = float(filters.get("expense_threshold", thresholds.expense))
         _append_reason(
             reasons,
             abs(amount) > threshold,

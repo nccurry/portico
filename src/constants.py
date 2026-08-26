@@ -2,38 +2,13 @@
 
 from typing import Final
 
-# Data filtering thresholds
-DEFAULT_EXPENSE_THRESHOLD: Final[int] = 3000
-DEFAULT_INCOME_THRESHOLD: Final[int] = 20000
-DEFAULT_LARGE_TRANSACTION_THRESHOLD: Final[int] = 500
-MIN_DUPLICATE_AMOUNT: Final[float] = 10.0
-DEFAULT_DUPLICATE_DAYS_THRESHOLD: Final[int] = 1
-
-# Savings and budget targets
-DEFAULT_SAVINGS_RATE_TARGET: Final[int] = 20
+# Savings and budget controls
 MIN_SAVINGS_RATE: Final[int] = 0
 MAX_SAVINGS_RATE: Final[int] = 100
 SAVINGS_RATE_STEP: Final[int] = 5
 
 # Financial Independence page
-DEFAULT_EXPECTED_RETURN_RATE: Final[float] = 7.0
-DEFAULT_WITHDRAWAL_RATE: Final[float] = 4.0
-DEFAULT_FI_SPENDING_LOOKBACK_MONTHS: Final[int] = 12
-DEFAULT_FI_PROJECTION_YEARS: Final[int] = 50
 FI_SPENDING_LOOKBACK_OPTIONS: Final[list[int]] = [6, 12, 24, 36]
-
-# Default portfolio accounts pre-selected in the FI filter panel.
-# Matched case-insensitively against Account names; also unions any account
-# whose Group is "Savings".
-DEFAULT_FI_INCLUDED_ACCOUNTS: Final[list[str]] = [
-    "Treasury Bond",
-    "HSA",
-    "Individual",
-    "NVIDIA",
-    "Corp IRA",
-    "Traditional IRA",
-    "Equity Awards",
-]
 
 # Date filtering
 SPARKLINE_LOOKBACK_OPTIONS: Final[dict[str, int | None]] = {
@@ -70,70 +45,6 @@ COLOR_PALETTE: Final[list[str]] = [
     '#70A5EB', '#57CC57', '#F2B84B', '#A78BFA', '#E07A75',
     '#5CC8BE', '#94A3B8', '#D98CC8', '#D19A66', '#7F9EBC'
 ]
-
-# Default filter lists
-DEFAULT_EXCLUDE_CATEGORIES_INCOME_SAVINGS: Final[list[str]] = [
-    'Tax Return Refund',
-    'Investment',
-    'Credit Card Rewards',
-    'RSU',
-    'ESPP',
-    'Bonus',
-    'Received Gift',
-    'Tax Return Payment',
-    'Christmas',
-    'Home Repairs',
-    'Automobile Repairs',
-    'Home Improvements',
-    'Misc Maintainence',
-]
-
-DEFAULT_EXCLUDE_GROUPS_INCOME_SAVINGS: Final[list[str]] = [
-    'Travel',
-    'Donations',
-]
-
-# Categories hidden from the discretionary spending view by default.
-DEFAULT_EXCLUDE_CATEGORIES_SPENDING: Final[list[str]] = [
-    'Christmas',
-    'Given Gift',
-    'Tax Return Payment',
-]
-
-DEFAULT_EXCLUDE_GROUPS_SPENDING: Final[list[str]] = [
-    'Bills',
-    'Income',
-    'Donations',
-    'Maintenance',
-    'Travel',
-]
-
-DEFAULT_EXCLUDE_CATEGORIES_SUBSCRIPTIONS: Final[list[str]] = [
-    'Automobile Fuel',
-    'Fee',
-    'Medical Bill',
-    'Video Games',
-]
-
-# Subscription detection — categories excluded from recurring-charge detection
-SUBSCRIPTION_EXCLUDED_CATEGORIES: Final[list[str]] = [
-    'Mortgage Payment',
-    'Auto Loan Payment',
-    'Student Loan Payment',
-    'Personal Loan Payment',
-    'Car Payment',
-    'Rent',
-    'Investment',
-    'Stock Purchase',
-    '401k',
-    'HSA',
-    'RSU',
-    'ESPP',
-]
-
-SUBSCRIPTION_EXCLUDED_CATEGORY_PATTERN: Final[str] = (
-    r'Mortgage|Loan|Investment|401k|HSA|RSU|ESPP'
-)
 
 # Time period options
 TIME_PERIODS: Final[list[str]] = [

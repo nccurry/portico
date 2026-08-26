@@ -6,10 +6,7 @@ from typing import Final, cast
 import pandas as pd
 
 from src.analysis.merchants import _mode_or_first, normalize_merchant_name
-from src.constants import (
-    SUBSCRIPTION_EXCLUDED_CATEGORIES,
-    SUBSCRIPTION_EXCLUDED_CATEGORY_PATTERN,
-)
+from src.config import get_settings
 from src.custom_types import SubscriptionSummary
 
 CADENCE_DAYS: Final[dict[str, int]] = {
@@ -393,13 +390,14 @@ def _eligible_candidate_expenses(
     excluded_categories: list[str],
 ) -> pd.DataFrame:
     """Keep non-bill expenses that are eligible for subscription discovery."""
+    settings = get_settings().subscriptions
     category_text = expenses["Category"].fillna("").astype(str)
     return expenses[
         (~expenses["Category"].isin(excluded_categories))
-        & (~expenses["Category"].isin(SUBSCRIPTION_EXCLUDED_CATEGORIES))
+        & (~expenses["Category"].isin(settings.detection_excluded_categories))
         & (
             ~category_text.str.contains(
-                SUBSCRIPTION_EXCLUDED_CATEGORY_PATTERN,
+                settings.detection_excluded_pattern,
                 case=False,
                 na=False,
                 regex=True,

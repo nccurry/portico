@@ -23,7 +23,8 @@ from src.constants import (
     SPARKLINE_LOOKBACK_DEFAULT,
     SPARKLINE_LOOKBACK_OPTIONS,
 )
-from src.page_helpers import render_data_refresh_controls
+from src.config import ConfigError, get_settings
+from src.page_helpers import render_data_refresh_controls, render_demo_banner
 from src.reporting_periods import latest_data_timestamp, reporting_anchor
 from src.spreadsheet import (
     BalanceHistorySpreadsheet,
@@ -345,6 +346,12 @@ def main() -> None:
         layout="wide",
         initial_sidebar_state="expanded",
     )
+    try:
+        get_settings()
+    except ConfigError as error:
+        st.error(f"Configuration error: {error}")
+        st.stop()
+    render_demo_banner()
 
     def home_page() -> None:
         render_data_refresh_controls()

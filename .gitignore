@@ -1,6 +1,7 @@
 .streamlit/*
 !.streamlit/config.toml
 !.streamlit/secrets.example.toml
+config/local.toml
 .venv
 .tools/
 .local/
@@ -14,11 +15,12 @@
 credentials*.json
 service-account*.json
 *.csv
-!tests/data/fixtures/*.csv
+!demo/data/*.csv
 .idea
 *.xlsx
 .coverage
 __pycache__/
 .pytest_cache/
+.pytest-tmp*/
 .mypy_cache/
 .ruff_cache/

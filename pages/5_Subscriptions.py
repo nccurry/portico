@@ -15,7 +15,7 @@ from src.analysis.subscriptions import (
     get_subscription_transactions,
     summarize_subscriptions,
 )
-from src.constants import DEFAULT_EXCLUDE_CATEGORIES_SUBSCRIPTIONS
+from src.config import get_settings
 from src.custom_types import SubscriptionSummary
 from src.page_helpers import get_transaction_column_config, render_data_refresh_controls
 from src.spreadsheet import TransactionsSpreadsheet, load_transactions_data
@@ -552,7 +552,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
     default_subscription_categories = [category for category in all_categories if "subscription" in category.lower()]
     default_discovery_exclusions = [
         category
-        for category in DEFAULT_EXCLUDE_CATEGORIES_SUBSCRIPTIONS
+        for category in get_settings().subscriptions.default_exclude_categories
         if category in all_categories and not category.lower().endswith("bill")
     ]
 

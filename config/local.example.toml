@@ -1,0 +1,10 @@
+# Copy this file to config/local.toml. The copied file is ignored by Git.
+# Add only the values that differ from config/defaults.toml.
+
+[financial_independence]
+# Match account names by case-insensitive substring.
+included_account_patterns = ["Example brokerage", "Example HSA"]
+
+[merchants.aliases]
+# Each key is the display name. Each value contains description fragments.
+"Example merchant" = ["EXAMPLE MERCHANT", "EXAMPLE MKTPLACE"]

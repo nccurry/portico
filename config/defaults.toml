@@ -1,0 +1,60 @@
+[data]
+mode = "google_sheets"
+demo_directory = "demo/data"
+
+[thresholds]
+expense = 3000
+income = 20000
+duplicate_minimum = 10.0
+duplicate_days = 1
+
+[income_savings]
+target_rate = 20
+exclude_categories = [
+    "Tax Return Refund",
+    "Investment",
+    "Credit Card Rewards",
+    "RSU",
+    "ESPP",
+    "Bonus",
+    "Received Gift",
+    "Tax Return Payment",
+    "Christmas",
+    "Home Repairs",
+    "Automobile Repairs",
+    "Home Improvements",
+    "Misc Maintainence",
+]
+exclude_groups = ["Travel", "Donations"]
+
+[spending]
+exclude_categories = ["Christmas", "Given Gift", "Tax Return Payment"]
+exclude_groups = ["Bills", "Income", "Donations", "Maintenance", "Travel"]
+
+[subscriptions]
+default_exclude_categories = ["Automobile Fuel", "Fee", "Medical Bill", "Video Games"]
+detection_excluded_categories = [
+    "Mortgage Payment",
+    "Auto Loan Payment",
+    "Student Loan Payment",
+    "Personal Loan Payment",
+    "Car Payment",
+    "Rent",
+    "Investment",
+    "Stock Purchase",
+    "401k",
+    "HSA",
+    "RSU",
+    "ESPP",
+]
+detection_excluded_pattern = "Mortgage|Loan|Investment|401k|HSA|RSU|ESPP"
+
+[financial_independence]
+expected_return_rate = 7.0
+withdrawal_rate = 4.0
+spending_lookback_months = 12
+projection_years = 50
+included_account_patterns = []
+included_groups = ["Savings", "Investments", "Retirement"]
+
+[merchants.aliases]

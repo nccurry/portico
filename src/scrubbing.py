@@ -32,6 +32,21 @@ CATEGORIES_REQUIRED_COLUMNS: frozenset[str] = frozenset(
         "Hide From Reports",
     }
 )
+BALANCE_HISTORY_REQUIRED_COLUMNS: frozenset[str] = frozenset(
+    {
+        "Date",
+        "Time",
+        "Balance",
+        "Account",
+        "Account #",
+        "Account ID",
+        "Institution",
+        "Class",
+        "Month",
+        "Week",
+        "Date Added",
+    }
+)
 
 
 def validate_required_columns(

@@ -7,27 +7,14 @@ import pandas as pd
 import streamlit as st
 from streamlit_gsheets import GSheetsConnection
 
+from src.config import get_settings
 from src.scrubbing import (
+    BALANCE_HISTORY_REQUIRED_COLUMNS,
     SpreadsheetSchemaError as SpreadsheetSchemaError,
     scrub_categories,
     scrub_transactions,
     validate_required_columns as validate_required_columns,
 )
-
-
-BALANCE_HISTORY_REQUIRED_COLUMNS: frozenset[str] = frozenset({
-    "Date",
-    "Time",
-    "Balance",
-    "Account",
-    "Account #",
-    "Account ID",
-    "Institution",
-    "Class",
-    "Month",
-    "Week",
-    "Date Added",
-})
 def validate_min_columns(
     df: pd.DataFrame,
     min_columns: int,
@@ -76,12 +63,23 @@ class Spreadsheet(metaclass=ABCMeta):
             raise
 
     def load(self) -> None:
-        """Load data from the external spreadsheet"""
+        """Load raw data from the configured source."""
+        settings = get_settings()
+        if settings.data.is_demo:
+            path = settings.data.demo_directory / f"{self.name}.csv"
+            try:
+                self.raw_df = pd.read_csv(path)
+            except Exception:
+                st.error(f"Failed to load demo data ({self.name}).")
+                st.info("Restore the committed files under demo/data, then restart the app.")
+                st.stop()
+            return
+
         try:
             conn = st.connection(name=self.name, type=GSheetsConnection)
             self.raw_df = conn.read()
-        except Exception as e:
-            st.error(f"Failed to load data from Google Sheets ({self.name}): {e}")
+        except Exception:
+            st.error(f"Failed to load data from Google Sheets ({self.name}).")
             st.info("Check your .streamlit/secrets.toml configuration and network connection.")
             st.stop()
 

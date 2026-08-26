@@ -8,7 +8,7 @@ from src.analysis.duplicates import (
     summarize_duplicates,
     summarize_duplicates_by_month,
 )
-from src.analysis.financial_independence import calculate_fi_metrics, get_savings_accounts
+from src.analysis.financial_independence import calculate_fi_metrics, get_accounts_in_groups
 from src.analysis.merchants import _mode_or_first, normalize_merchant_name
 
 
@@ -95,9 +95,11 @@ def test_fi_summary_exposes_displayed_totals_and_annual_surplus() -> None:
 
 
 def test_savings_account_selection_handles_missing_and_hidden_groups() -> None:
-    assert get_savings_accounts(pd.DataFrame({"Account": ["A"]})) == []
-    assert get_savings_accounts(
-        pd.DataFrame({"Account": ["Savings"], "Group": ["Savings"]})
+    groups = ("Saving", "Savings")
+    assert get_accounts_in_groups(pd.DataFrame({"Account": ["A"]}), groups) == []
+    assert get_accounts_in_groups(
+        pd.DataFrame({"Account": ["Savings"], "Group": ["Savings"]}),
+        groups,
     ) == ["Savings"]
     balances = pd.DataFrame(
         {
@@ -106,4 +108,4 @@ def test_savings_account_selection_handles_missing_and_hidden_groups() -> None:
             "Hide": ["", "", "Hide", ""],
         }
     )
-    assert get_savings_accounts(balances) == ["Visible Plural", "Visible Singular"]
+    assert get_accounts_in_groups(balances, groups) == ["Visible Plural", "Visible Singular"]

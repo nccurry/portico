@@ -28,6 +28,7 @@ from src.constants import (
     COLOR_SAVINGS,
     COLOR_UNDER_BUDGET,
 )
+from src.config import get_settings
 from src.custom_types import BudgetFilters, ColumnConfig
 from src.filters import render_budget_filters
 from src.page_helpers import render_data_refresh_controls
@@ -47,10 +48,12 @@ def _format_currency(value: float, *, signed: bool = False) -> str:
 
 def _categories_sheet_url() -> str | None:
     """Return the configured Categories sheet URL without exposing credentials."""
+    if get_settings().data.is_demo:
+        return None
     try:
         config = st.secrets["connections"]["categories"]
         url = str(config.get("spreadsheet", ""))
-    except KeyError, TypeError:
+    except (FileNotFoundError, KeyError, TypeError):
         return None
     return url or None
 
