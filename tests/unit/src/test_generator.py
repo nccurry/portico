@@ -2,7 +2,7 @@
 
 These tests do NOT read the source xlsx. They exercise the generator's pure
 helpers against synthetic inputs and validate invariants on the committed
-fixture artifacts under ``tests/data/fixtures/``.
+demo artifacts under ``demo/data``.
 """
 import re
 from datetime import time

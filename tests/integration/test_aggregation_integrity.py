@@ -6,7 +6,7 @@ that the numbers at each stage are arithmetically consistent.
 import pandas as pd
 import pytest
 
-from src.constants import DEFAULT_EXCLUDE_GROUPS_INCOME_SAVINGS
+from src.config import get_settings
 from src.custom_types import IncomeExpenseFilters, SpendingFilters, TransactionFilterOptions
 from src.analysis.financial_independence import calculate_avg_monthly_spending
 from src.analysis.income import process_income_expense_data
@@ -313,7 +313,7 @@ class TestFinancialIndependenceIntegrity:
         same post-filter frame."""
         txns, _bal, _cats, _accts = make_full_dataset()
         filters: TransactionFilterOptions = {
-            "exclude_groups": DEFAULT_EXCLUDE_GROUPS_INCOME_SAVINGS,
+            "exclude_groups": list(get_settings().income_savings.exclude_groups),
             "exclude_categories": [],
             "filter_large_expenses": False,
             "expense_threshold": 999_999,

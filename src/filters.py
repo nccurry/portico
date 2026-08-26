@@ -2,23 +2,13 @@
 import pandas as pd
 import streamlit as st
 
-from src.reporting_periods import calculate_date_range as _calculate_date_range
-
 from src.constants import (
-    DEFAULT_EXCLUDE_CATEGORIES_INCOME_SAVINGS,
-    DEFAULT_EXCLUDE_CATEGORIES_SPENDING,
-    DEFAULT_EXCLUDE_GROUPS_INCOME_SAVINGS,
-    DEFAULT_EXCLUDE_GROUPS_SPENDING,
-    DEFAULT_EXPENSE_THRESHOLD,
-    DEFAULT_FI_INCLUDED_ACCOUNTS,
-    DEFAULT_FI_SPENDING_LOOKBACK_MONTHS,
-    DEFAULT_INCOME_THRESHOLD,
-    DEFAULT_SAVINGS_RATE_TARGET,
     FI_SPENDING_LOOKBACK_OPTIONS,
-    MIN_SAVINGS_RATE,
     MAX_SAVINGS_RATE,
+    MIN_SAVINGS_RATE,
     SAVINGS_RATE_STEP,
 )
+from src.config import get_settings
 from src.custom_types import (
     BudgetFilters,
     FIFilters,
@@ -26,6 +16,7 @@ from src.custom_types import (
     SpendingFilters,
     TransactionFilterOptions,
 )
+from src.reporting_periods import calculate_date_range as _calculate_date_range
 
 
 def _set_income_filter_state(
@@ -35,13 +26,14 @@ def _set_income_filter_state(
     expense_groups: list[str],
 ) -> None:
     """Reset one editable Income & Savings preset."""
+    thresholds = get_settings().thresholds
     st.session_state[f"{prefix}_exclude_income_categories"] = income_categories
     st.session_state[f"{prefix}_exclude_expense_categories"] = expense_categories
     st.session_state[f"{prefix}_exclude_expense_groups"] = expense_groups
     st.session_state[f"{prefix}_filter_large_income"] = False
-    st.session_state[f"{prefix}_income_threshold"] = DEFAULT_INCOME_THRESHOLD
+    st.session_state[f"{prefix}_income_threshold"] = thresholds.income
     st.session_state[f"{prefix}_filter_large_expenses"] = False
-    st.session_state[f"{prefix}_expense_threshold"] = DEFAULT_EXPENSE_THRESHOLD
+    st.session_state[f"{prefix}_expense_threshold"] = thresholds.expense
 
 
 def _set_spending_filter_state(
@@ -50,10 +42,11 @@ def _set_spending_filter_state(
     groups: list[str],
 ) -> None:
     """Reset one editable spending preset."""
+    expense_threshold = get_settings().thresholds.expense
     st.session_state[f"{prefix}_exclude_categories"] = categories
     st.session_state[f"{prefix}_exclude_groups"] = groups
     st.session_state[f"{prefix}_filter_large_expenses"] = False
-    st.session_state[f"{prefix}_expense_threshold"] = DEFAULT_EXPENSE_THRESHOLD
+    st.session_state[f"{prefix}_expense_threshold"] = expense_threshold
 
 
 def render_income_expense_filters(
@@ -68,19 +61,22 @@ def render_income_expense_filters(
     Returns:
         dictionary containing all filter selections
     """
+    settings = get_settings()
+    thresholds = settings.thresholds
+    income_defaults = settings.income_savings
     regular_income_categories = [
         category
-        for category in DEFAULT_EXCLUDE_CATEGORIES_INCOME_SAVINGS
+        for category in income_defaults.exclude_categories
         if category in income_categories
     ]
     regular_expense_categories = [
         category
-        for category in DEFAULT_EXCLUDE_CATEGORIES_INCOME_SAVINGS
+        for category in income_defaults.exclude_categories
         if category in expense_categories
     ]
     regular_expense_groups = [
         group
-        for group in DEFAULT_EXCLUDE_GROUPS_INCOME_SAVINGS
+        for group in income_defaults.exclude_groups
         if group in expense_groups
     ]
 
@@ -101,9 +97,9 @@ def render_income_expense_filters(
         f"{prefix}_exclude_expense_categories": default_expense_categories,
         f"{prefix}_exclude_expense_groups": default_expense_groups,
         f"{prefix}_filter_large_income": False,
-        f"{prefix}_income_threshold": DEFAULT_INCOME_THRESHOLD,
+        f"{prefix}_income_threshold": thresholds.income,
         f"{prefix}_filter_large_expenses": False,
-        f"{prefix}_expense_threshold": DEFAULT_EXPENSE_THRESHOLD,
+        f"{prefix}_expense_threshold": thresholds.expense,
     }
     for key, value in defaults.items():
         st.session_state.setdefault(key, value)
@@ -190,7 +186,7 @@ def render_income_expense_filters(
             "Savings rate target",
             min_value=MIN_SAVINGS_RATE,
             max_value=MAX_SAVINGS_RATE,
-            value=DEFAULT_SAVINGS_RATE_TARGET,
+            value=income_defaults.target_rate,
             step=SAVINGS_RATE_STEP,
             key="income_savings_target_rate",
         ))
@@ -214,14 +210,17 @@ def render_spending_filters(
     view: str,
 ) -> SpendingFilters:
     """Render editable All spending and Discretionary presets."""
+    settings = get_settings()
+    spending_defaults = settings.spending
+    expense_threshold_default = settings.thresholds.expense
     discretionary_categories = [
         category
-        for category in DEFAULT_EXCLUDE_CATEGORIES_SPENDING
+        for category in spending_defaults.exclude_categories
         if category in all_categories
     ]
     discretionary_groups = [
         group
-        for group in DEFAULT_EXCLUDE_GROUPS_SPENDING
+        for group in spending_defaults.exclude_groups
         if group in all_groups
     ]
     if view == "All spending":
@@ -239,7 +238,7 @@ def render_spending_filters(
         f"{prefix}_exclude_categories": default_categories,
         f"{prefix}_exclude_groups": default_groups,
         f"{prefix}_filter_large_expenses": False,
-        f"{prefix}_expense_threshold": DEFAULT_EXPENSE_THRESHOLD,
+        f"{prefix}_expense_threshold": expense_threshold_default,
     }
     for key, value in defaults.items():
         st.session_state.setdefault(key, value)
@@ -301,6 +300,7 @@ def render_budget_filters(
     all_groups: list[str],
 ) -> BudgetFilters:
     """Render compact controls for an optional adjusted budget view."""
+    default_expense_threshold = get_settings().thresholds.expense
     with st.popover(
         "Adjust view",
         icon=":material/tune:",
@@ -329,13 +329,13 @@ def render_budget_filters(
                 key="budget_filter_large_expenses",
                 persist_state="page",
             )
-            expense_threshold = DEFAULT_EXPENSE_THRESHOLD
+            expense_threshold = default_expense_threshold
             if filter_large_expenses:
                 expense_threshold = st.number_input(
                     "Maximum individual expense",
                     min_value=1000,
                     max_value=100000,
-                    value=DEFAULT_EXPENSE_THRESHOLD,
+                    value=default_expense_threshold,
                     step=500,
                     key="budget_expense_threshold",
                     persist_state="page",
@@ -349,19 +349,26 @@ def render_budget_filters(
     }
 
 
-def default_fi_accounts(all_accounts: list[str], all_savings_accounts: list[str]) -> list[str]:
+def default_fi_accounts(
+    all_accounts: list[str],
+    included_group_accounts: list[str],
+    account_patterns: tuple[str, ...] | None = None,
+) -> list[str]:
     """Pick accounts pre-selected for the FI page.
 
-    Returns accounts whose names contain any of ``DEFAULT_FI_INCLUDED_ACCOUNTS``
-    (case-insensitive substring match), unioned with ``all_savings_accounts``.
-    Preserves the sorted order of ``all_accounts``.
+    Return accounts selected by configured patterns or configured account groups.
     """
-    patterns = [p.lower() for p in DEFAULT_FI_INCLUDED_ACCOUNTS]
-    savings = set(all_savings_accounts)
+    configured_patterns = (
+        get_settings().financial_independence.included_account_patterns
+        if account_patterns is None
+        else account_patterns
+    )
+    patterns = [pattern.casefold() for pattern in configured_patterns]
+    grouped = set(included_group_accounts)
     selected: list[str] = []
     for acct in all_accounts:
-        lower = acct.lower()
-        if acct in savings or any(p in lower for p in patterns):
+        normalized = acct.casefold()
+        if acct in grouped or any(pattern in normalized for pattern in patterns):
             selected.append(acct)
     return selected
 
@@ -370,10 +377,13 @@ def render_fi_filters(
     all_accounts: list[str],
     all_categories: list[str],
     all_groups: list[str],
-    all_savings_accounts: list[str],
+    included_group_accounts: list[str],
 ) -> FIFilters:
     """Render compact controls for the data behind the FI scenario."""
-    default_accounts = default_fi_accounts(all_accounts, all_savings_accounts)
+    settings = get_settings()
+    fi_defaults = settings.financial_independence
+    default_expense_threshold = settings.thresholds.expense
+    default_accounts = default_fi_accounts(all_accounts, included_group_accounts)
     with st.popover(
         "Adjust source data",
         icon=":material/tune:",
@@ -393,7 +403,7 @@ def render_fi_filters(
                 "Spending history",
                 options=FI_SPENDING_LOOKBACK_OPTIONS,
                 index=FI_SPENDING_LOOKBACK_OPTIONS.index(
-                    DEFAULT_FI_SPENDING_LOOKBACK_MONTHS
+                    fi_defaults.spending_lookback_months
                 ),
                 format_func=lambda n: f"Last {n} months",
                 key="fi_spending_lookback",
@@ -421,13 +431,13 @@ def render_fi_filters(
                 key="fi_filter_large_expenses",
                 persist_state="page",
             )
-            expense_threshold = DEFAULT_EXPENSE_THRESHOLD
+            expense_threshold = default_expense_threshold
             if filter_large_expenses:
                 expense_threshold = st.number_input(
                     "Maximum individual expense",
                     min_value=1000,
                     max_value=100000,
-                    value=DEFAULT_EXPENSE_THRESHOLD,
+                    value=default_expense_threshold,
                     step=500,
                     key="fi_expense_threshold",
                     persist_state="page",
@@ -497,12 +507,12 @@ def apply_transaction_filters(
 
     # Filter large expenses
     if filters.get('filter_large_expenses'):
-        threshold = filters.get('expense_threshold', DEFAULT_EXPENSE_THRESHOLD)
+        threshold = filters.get('expense_threshold', get_settings().thresholds.expense)
         df = df[(df['Type'] != 'Expense') | (df['Amount'].abs() <= threshold)]
 
     # Filter large income
     if filters.get('filter_large_income'):
-        threshold = filters.get('income_threshold', DEFAULT_INCOME_THRESHOLD)
+        threshold = filters.get('income_threshold', get_settings().thresholds.income)
         df = df[(df['Type'] != 'Income') | (df['Amount'].abs() <= threshold)]
 
     return df
