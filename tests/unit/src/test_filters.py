@@ -5,10 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pandas as pd
 
-from src.constants import (
-    DEFAULT_EXPENSE_THRESHOLD,
-    DEFAULT_FI_SPENDING_LOOKBACK_MONTHS,
-)
+from src.config import get_settings
 from src.custom_types import FIFilters, TransactionFilterOptions
 from src.filters import (
     apply_transaction_filters,
@@ -317,7 +314,7 @@ class TestApplyTransactionFilters:
             _make_row("2024-01-01", "Normal", -50.0, "Food", "Expense"),
         )
         filters: TransactionFilterOptions = {"filter_large_expenses": True}
-        # Should not raise, should use DEFAULT_EXPENSE_THRESHOLD
+        # The configured default applies when the filter omits a threshold.
         result = apply_transaction_filters(df, filters)
         assert "Normal" in result["Category"].values
 
@@ -364,24 +361,32 @@ class TestDefaultFiAccounts:
     def test_matches_substring_case_insensitive(self) -> None:
         all_accounts = ["401k Fidelity", "Roth IRA Vanguard", "Joe Checking", "Brokerage Individual"]
         # "Individual" pattern should match "Brokerage Individual"
-        result = default_fi_accounts(all_accounts, all_savings_accounts=[])
+        result = default_fi_accounts(all_accounts, included_group_accounts=[], account_patterns=("Individual",))
         assert "Brokerage Individual" in result
         assert "Joe Checking" not in result
 
     def test_unions_savings_accounts(self) -> None:
         all_accounts = ["Joe Checking", "Ally Savings", "HSA Fidelity"]
-        result = default_fi_accounts(all_accounts, all_savings_accounts=["Ally Savings"])
+        result = default_fi_accounts(
+            all_accounts,
+            included_group_accounts=["Ally Savings"],
+            account_patterns=("HSA",),
+        )
         assert "Ally Savings" in result
         assert "HSA Fidelity" in result
         assert "Joe Checking" not in result
 
     def test_preserves_input_order(self) -> None:
         all_accounts = ["ZZZ Savings", "AAA HSA"]
-        result = default_fi_accounts(all_accounts, all_savings_accounts=["ZZZ Savings"])
+        result = default_fi_accounts(
+            all_accounts,
+            included_group_accounts=["ZZZ Savings"],
+            account_patterns=("HSA",),
+        )
         assert result == ["ZZZ Savings", "AAA HSA"]
 
     def test_no_matches_returns_empty(self) -> None:
-        assert default_fi_accounts(["Joe Checking"], all_savings_accounts=[]) == []
+        assert default_fi_accounts(["Joe Checking"], included_group_accounts=[], account_patterns=()) == []
 
 
 def _mock_filter_widgets(mock_st: MagicMock) -> None:
@@ -619,12 +624,12 @@ class TestPageFilterDefaults:
             )
 
         expected: FIFilters = {
-            "include_accounts": ["Savings", "Individual"],
+            "include_accounts": ["Savings"],
             "exclude_groups": [],
             "exclude_categories": [],
             "filter_large_expenses": False,
-            "expense_threshold": DEFAULT_EXPENSE_THRESHOLD,
-            "spending_lookback_months": DEFAULT_FI_SPENDING_LOOKBACK_MONTHS,
+            "expense_threshold": get_settings().thresholds.expense,
+            "spending_lookback_months": get_settings().financial_independence.spending_lookback_months,
         }
         assert result == expected
         mock_st.popover.assert_called_once_with(

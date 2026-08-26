@@ -11,7 +11,7 @@ from src.analysis.duplicates import (
     summarize_duplicates,
     summarize_duplicates_by_month,
 )
-from src.constants import DEFAULT_DUPLICATE_DAYS_THRESHOLD, MIN_DUPLICATE_AMOUNT
+from src.config import get_settings
 from src.custom_types import ColumnConfig
 from src.page_helpers import get_transaction_column_config, render_data_refresh_controls
 from src.spreadsheet import (
@@ -169,6 +169,7 @@ def _build_health_checks(
 
 def _render_settings() -> tuple[int, int, float, bool, bool, bool]:
     """Render compact controls for checks with adjustable thresholds."""
+    thresholds = get_settings().thresholds
     with st.popover("Check settings", icon=":material/tune:", width="stretch"):
         stale_days = st.slider(
             "Stale account threshold",
@@ -184,7 +185,7 @@ def _render_settings() -> tuple[int, int, float, bool, bool, bool]:
             "Maximum days apart",
             min_value=0,
             max_value=7,
-            value=DEFAULT_DUPLICATE_DAYS_THRESHOLD,
+            value=thresholds.duplicate_days,
             key="data_health_duplicate_days",
             persist_state="page",
         )
@@ -192,7 +193,7 @@ def _render_settings() -> tuple[int, int, float, bool, bool, bool]:
             "Minimum amount",
             min_value=0.0,
             max_value=1000.0,
-            value=MIN_DUPLICATE_AMOUNT,
+            value=thresholds.duplicate_minimum,
             step=10.0,
             key="data_health_duplicate_minimum",
             persist_state="page",

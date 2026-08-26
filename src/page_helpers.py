@@ -1,9 +1,8 @@
-from collections.abc import Mapping
-
 import pandas as pd
 import streamlit as st
 
 from src.analysis.merchants import build_merchant_aliases, extract_merchant_name
+from src.config import get_settings
 from src.custom_types import ColumnConfig
 from src.value_visibility import mask_value, value_safe_dataframe
 
@@ -13,17 +12,13 @@ __all__ = [
     "extract_merchant_name",
     "get_transaction_column_config",
     "render_data_refresh_controls",
+    "render_demo_banner",
 ]
 
 
 def configured_merchant_aliases() -> dict[str, str]:
-    """Return validated merchant aliases from Streamlit secrets."""
-    try:
-        configured = st.secrets.get("merchant_aliases", {})
-    except FileNotFoundError:
-        return {}
-    if not isinstance(configured, Mapping):
-        raise ValueError("The merchant_aliases configuration must be a TOML table")
+    """Return validated merchant aliases from application settings."""
+    configured = dict(get_settings().merchants.aliases)
     return build_merchant_aliases(configured)
 
 
@@ -44,6 +39,15 @@ def get_transaction_column_config() -> ColumnConfig:
         "Full Description": st.column_config.TextColumn("Description"),
         "Institution": st.column_config.TextColumn("Institution"),
     }
+
+
+def render_demo_banner() -> None:
+    """Show a shared banner when the app uses synthetic demo data."""
+    if get_settings().data.is_demo:
+        st.info(
+            "Demo data is active. The dashboard uses committed synthetic records and does not contact Google Sheets.",
+            icon=":material/science:",
+        )
 
 
 def display_transactions_expander(

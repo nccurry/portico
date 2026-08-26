@@ -10,7 +10,7 @@ from src.analysis.financial_independence import (
     build_runway_sensitivity,
     calculate_avg_monthly_spending,
     calculate_fi_metrics,
-    get_savings_accounts as _get_savings_accounts,
+    get_accounts_in_groups,
     project_portfolio,
 )
 from src.constants import (
@@ -20,10 +20,8 @@ from src.constants import (
     COLOR_NET_WORTH,
     COLOR_PLACEHOLDER,
     COLOR_SAVINGS,
-    DEFAULT_EXPECTED_RETURN_RATE,
-    DEFAULT_FI_PROJECTION_YEARS,
-    DEFAULT_WITHDRAWAL_RATE,
 )
+from src.config import get_settings
 from src.custom_types import FIFilters, FISummary, TransactionFilterOptions
 from src.filters import apply_transaction_filters, render_fi_filters
 from src.page_helpers import render_data_refresh_controls
@@ -83,6 +81,7 @@ def _spending_window_months(
 
 
 def _set_scenario_defaults(portfolio_value: float, annual_spending: float) -> None:
+    defaults_config = get_settings().financial_independence
     portfolio_value = float(round(portfolio_value))
     annual_spending = float(round(annual_spending))
     previous_assets = st.session_state.get(SOURCE_ASSETS_KEY)
@@ -98,21 +97,22 @@ def _set_scenario_defaults(portfolio_value: float, annual_spending: float) -> No
     st.session_state[SOURCE_SPENDING_KEY] = annual_spending
     defaults = {
         SCENARIO_KEYS["income"]: 0.0,
-        SCENARIO_KEYS["return_rate"]: float(DEFAULT_EXPECTED_RETURN_RATE),
-        SCENARIO_KEYS["withdrawal_rate"]: float(DEFAULT_WITHDRAWAL_RATE),
-        SCENARIO_KEYS["years"]: int(DEFAULT_FI_PROJECTION_YEARS),
+        SCENARIO_KEYS["return_rate"]: defaults_config.expected_return_rate,
+        SCENARIO_KEYS["withdrawal_rate"]: defaults_config.withdrawal_rate,
+        SCENARIO_KEYS["years"]: defaults_config.projection_years,
     }
     for key, value in defaults.items():
         st.session_state.setdefault(key, value)
 
 
 def _reset_scenario(portfolio_value: float, annual_spending: float) -> None:
+    defaults_config = get_settings().financial_independence
     st.session_state[SCENARIO_KEYS["assets"]] = float(round(portfolio_value))
     st.session_state[SCENARIO_KEYS["spending"]] = float(round(annual_spending))
     st.session_state[SCENARIO_KEYS["income"]] = 0.0
-    st.session_state[SCENARIO_KEYS["return_rate"]] = float(DEFAULT_EXPECTED_RETURN_RATE)
-    st.session_state[SCENARIO_KEYS["withdrawal_rate"]] = float(DEFAULT_WITHDRAWAL_RATE)
-    st.session_state[SCENARIO_KEYS["years"]] = int(DEFAULT_FI_PROJECTION_YEARS)
+    st.session_state[SCENARIO_KEYS["return_rate"]] = defaults_config.expected_return_rate
+    st.session_state[SCENARIO_KEYS["withdrawal_rate"]] = defaults_config.withdrawal_rate
+    st.session_state[SCENARIO_KEYS["years"]] = defaults_config.projection_years
 
 
 def _render_scenario_controls(
@@ -492,7 +492,10 @@ def configure_page(
             all_accounts,
             transactions_spreadsheet.get_all_categories(),
             transactions_spreadsheet.get_all_groups(),
-            _get_savings_accounts(balances_df),
+            get_accounts_in_groups(
+                balances_df,
+                get_settings().financial_independence.included_groups,
+            ),
         )
 
     accounts, calculated_portfolio = get_portfolio_value(

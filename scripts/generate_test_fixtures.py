@@ -4,7 +4,7 @@ Reads ``example_data/tillder_data_v2.0.xlsx`` (gitignored, local-only) and
 emits four CSVs under ``.local/test-fixtures/`` plus a ``REFERENCE_DATE.txt``
 and ``INJECTED_ROWS.md`` manifest. The output preserves financial patterns
 and must never be committed. The repository's test fixtures are fully
-synthetic and are maintained separately under ``tests/data/fixtures/``.
+synthetic and are maintained separately under ``demo/data/``.
 
 The CSVs preserve the *raw* (pre-scrub) column shapes so the test suite can
 drive the real ``Spreadsheet.scrub()`` pipeline end-to-end.
@@ -73,7 +73,7 @@ SUBSCRIPTION_EXCLUDED_REGEX = re.compile(
     r"Mortgage|Loan|Investment|401k|HSA|RSU|ESPP", re.IGNORECASE
 )
 
-MIN_DUPLICATE_AMOUNT = 10.0  # Mirrors src/constants.py.
+MIN_DUPLICATE_AMOUNT = 10.0  # Mirrors config/defaults.toml.
 SYNTHETIC_SUBSCRIPTION_CATEGORY = "Misc Subscription"
 
 
@@ -1186,7 +1186,7 @@ def write_csvs(
     categories: pd.DataFrame,
     accounts_df: pd.DataFrame,
 ) -> None:
-    """Write the four CSVs to ``tests/data/fixtures/``."""
+    """Write the four CSVs to the local output directory."""
     FIXTURES_DIR.mkdir(parents=True, exist_ok=True)
     transactions.to_csv(FIXTURES_DIR / "transactions.csv", index=False)
     balance_history.to_csv(FIXTURES_DIR / "balance_history.csv", index=False)

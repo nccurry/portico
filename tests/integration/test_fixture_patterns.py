@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 
 from src.custom_types import BudgetFilters
-from src.constants import MIN_DUPLICATE_AMOUNT, DEFAULT_DUPLICATE_DAYS_THRESHOLD
+from src.config import get_settings
 from src.analysis.budget import build_budget_history, build_budget_performance
 from src.analysis.duplicates import find_duplicates_efficient
 from src.analysis.subscriptions import build_subscription_inventory, get_subscription_transactions
@@ -45,8 +45,8 @@ class TestDuplicatePatternsIntegration:
         df = apply_transaction_filters(txns.scrubbed_df, {})
         duplicates = find_duplicates_efficient(
             df,
-            days_threshold=DEFAULT_DUPLICATE_DAYS_THRESHOLD,
-            min_amount=MIN_DUPLICATE_AMOUNT,
+            days_threshold=get_settings().thresholds.duplicate_days,
+            min_amount=get_settings().thresholds.duplicate_minimum,
             check_same_account=True,
             check_same_category=False,
             require_same_description=True,

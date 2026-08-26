@@ -7,15 +7,16 @@ import pandas as pd
 from src.custom_types import FISummary
 
 
-def get_savings_accounts(balance_history: pd.DataFrame) -> list[str]:
-    """Return visible accounts assigned to the Saving or Savings group."""
+def get_accounts_in_groups(balance_history: pd.DataFrame, groups: tuple[str, ...]) -> list[str]:
+    """Return visible accounts assigned to configured groups."""
     if "Group" not in balance_history.columns:
         return []
     balances = balance_history
     if "Hide" in balances.columns:
         balances = balances[balances["Hide"] != "Hide"]
-    savings = balances["Group"].astype(str).str.lower().isin({"saving", "savings"})
-    return sorted(balances.loc[savings, "Account"].dropna().unique().tolist())
+    normalized_groups = {group.casefold() for group in groups}
+    selected = balances["Group"].astype(str).str.casefold().isin(normalized_groups)
+    return sorted(balances.loc[selected, "Account"].dropna().unique().tolist())
 
 
 def calculate_avg_monthly_spending(
