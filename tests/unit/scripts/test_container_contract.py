@@ -15,7 +15,7 @@ def test_dockerfile_uses_locked_non_root_runtime_with_healthcheck() -> None:
     assert "python:3.14.6-slim-bookworm" in dockerfile
     assert "ghcr.io/astral-sh/uv:0.12.1" in dockerfile
     assert "uv sync --locked --no-dev --no-install-project" in dockerfile
-    assert "chown tiller:tiller /app/.local" in dockerfile
+    assert "chown portico:portico /app/.local" in dockerfile
     assert "USER 10001:10001" in dockerfile
     assert "HEALTHCHECK" in dockerfile
     assert "http://127.0.0.1:8501/_stcore/health" in dockerfile
@@ -31,7 +31,7 @@ def test_compose_live_mode_has_safe_network_and_mounts() -> None:
     assert "read_only: true" in app
     assert "no-new-privileges:true" in app
     assert "cap_drop:" in app
-    assert "TILLER_DATA_SOURCE: google_sheets" in live
+    assert "PORTICO_DATA_SOURCE: google_sheets" in live
     assert '"${HOST_ADDRESS:-127.0.0.1}:${PORT:-8501}:8501"' in live
     assert "target: /app/.streamlit/secrets.toml" in live
     assert "target: /app/config" in live
@@ -44,7 +44,7 @@ def test_demo_profile_needs_no_secret_mount() -> None:
     compose = (REPO_ROOT / "compose.yaml").read_text(encoding="utf-8")
     demo = _section(compose, "  demo:", "  live:")
 
-    assert "TILLER_DATA_SOURCE: demo" in demo
+    assert "PORTICO_DATA_SOURCE: demo" in demo
     assert "secrets.toml" not in demo
 
 

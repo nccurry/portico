@@ -38,7 +38,7 @@ from src.weekly_expenses import (
 DEFAULT_SECRETS_PATH = Path(".streamlit/secrets.toml")
 DEFAULT_STATE_PATH = Path(".local/discord-weekly-state.json")
 HTTP_TIMEOUT_SECONDS = 30
-USER_AGENT = "tiller-streamlit-weekly-summary/1.0"
+USER_AGENT = "portico-weekly-summary/1.0"
 
 
 class NotifierError(RuntimeError):
@@ -152,7 +152,7 @@ def test_payload() -> dict[str, Any]:
     return {
         "embeds": [
             {
-                "title": "Tiller weekly summary is connected",
+                "title": "Portico weekly summary is connected",
                 "description": "No financial data was included in this test message.",
                 "color": 0x95A5A6,
             }

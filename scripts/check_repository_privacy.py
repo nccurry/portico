@@ -50,7 +50,7 @@ def sensitive_text_patterns() -> dict[str, re.Pattern[str]]:
     """Return patterns for private text that must not be committed."""
     unix_home = "/" + "home" + "/"
     mac_home = "/" + "Users" + "/"
-    placeholder_user = r"(?!(?:example|tester|tiller|user)(?:[/\s\"']|$))"
+    placeholder_user = r"(?!(?:example|portico|tester|tiller|user)(?:[/\s\"']|$))"
     return {
         "absolute user path": re.compile(
             r"(?i)(?:[A-Z]:[\\/]Users[\\/][^\\/\s]+|"

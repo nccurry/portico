@@ -23,17 +23,17 @@ FROM ${PYTHON_IMAGE} AS runtime
 ARG VERSION=dev
 ARG REVISION=unknown
 
-LABEL org.opencontainers.image.title="Tiller Streamlit" \
+LABEL org.opencontainers.image.title="Portico" \
       org.opencontainers.image.description="A self-hosted personal finance dashboard for Tiller data" \
-      org.opencontainers.image.source="https://github.com/nccurry/tiller-streamlit" \
+      org.opencontainers.image.source="https://github.com/nccurry/portico" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.revision="${REVISION}" \
       org.opencontainers.image.licenses="Apache-2.0"
 
-RUN groupadd --gid 10001 tiller \
-    && useradd --uid 10001 --gid tiller --create-home --home-dir /home/tiller tiller \
+RUN groupadd --gid 10001 portico \
+    && useradd --uid 10001 --gid portico --create-home --home-dir /home/portico portico \
     && mkdir -p /app/.local \
-    && chown tiller:tiller /app/.local
+    && chown portico:portico /app/.local
 
 ENV PATH="/app/.venv/bin:${PATH}" \
     HOME=/tmp \
@@ -42,14 +42,14 @@ ENV PATH="/app/.venv/bin:${PATH}" \
 
 WORKDIR /app
 
-COPY --from=builder --chown=tiller:tiller /app/.venv /app/.venv
-COPY --chown=tiller:tiller Home.py LICENSE README.md ./
-COPY --chown=tiller:tiller .streamlit/config.toml .streamlit/config.toml
-COPY --chown=tiller:tiller config/defaults.toml config/defaults.toml
-COPY --chown=tiller:tiller demo/ demo/
-COPY --chown=tiller:tiller pages/ pages/
-COPY --chown=tiller:tiller src/ src/
-COPY --chown=tiller:tiller scripts/doctor.py scripts/weekly-discord-summary.py scripts/
+COPY --from=builder --chown=portico:portico /app/.venv /app/.venv
+COPY --chown=portico:portico Home.py LICENSE README.md ./
+COPY --chown=portico:portico .streamlit/config.toml .streamlit/config.toml
+COPY --chown=portico:portico config/defaults.toml config/defaults.toml
+COPY --chown=portico:portico demo/ demo/
+COPY --chown=portico:portico pages/ pages/
+COPY --chown=portico:portico src/ src/
+COPY --chown=portico:portico scripts/doctor.py scripts/weekly-discord-summary.py scripts/
 
 USER 10001:10001
 

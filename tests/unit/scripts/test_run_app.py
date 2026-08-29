@@ -18,7 +18,7 @@ def test_loopback_launch_has_no_network_warning(address: str, capsys: pytest.Cap
     command = run.call_args.args[0]
     environment = run.call_args.kwargs["env"]
     assert "--server.port=8601" in command
-    assert environment["TILLER_DATA_SOURCE"] == "demo"
+    assert environment["PORTICO_DATA_SOURCE"] == "demo"
     assert capsys.readouterr().err == ""
 
 
@@ -53,4 +53,4 @@ def test_streamlit_status_passes_through() -> None:
     with patch("scripts.run_app.subprocess.run", return_value=completed) as run:
         assert main([]) == 7
 
-    assert run.call_args.kwargs["env"]["TILLER_DATA_SOURCE"] == "google_sheets"
+    assert run.call_args.kwargs["env"]["PORTICO_DATA_SOURCE"] == "google_sheets"

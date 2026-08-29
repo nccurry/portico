@@ -24,6 +24,9 @@ Companion requirements: `SRD.md`
 - New production behavior must be testable without a live Google account or Discord webhook.
 - Google Sheets is the only live provider. Demo CSVs are not a general import feature.
 - Container builds must not require or copy local secrets.
+- GitHub Pages can publish static files, JavaScript, and WebAssembly. It cannot run the Python server or OCI image.
+- The hosted demo uses synthetic data only. It does not support live Sheets, secrets, uploads, webhooks, or saved state.
+- GitHub remains the canonical repository and release host.
 
 ## 3. Context
 
@@ -111,7 +114,7 @@ Do not add provider interfaces, factories, or registration. Google Sheets is the
 
 Move the canonical synthetic files from `tests/data/fixtures/` to `demo/data/`. Update tests to load that location. Retain provenance documentation, the reference date, and injected-edge-case notes.
 
-Demo mode is explicit through `TILLER_DATA_SOURCE=demo` or an equivalent narrowly scoped variable set by `task demo`. Normal `task run` uses configured live data and provides a setup error when unavailable. It must not silently show demo data.
+Demo mode is explicit through `PORTICO_DATA_SOURCE=demo` or a variable set by `task demo`. Normal `task run` uses configured live data. It does not silently show demo data.
 
 All pages render a shared demo banner. The banner must be derived from validated settings, not inferred from a missing secrets file.
 
@@ -183,7 +186,7 @@ Image design:
 
 `compose.yaml` is the primary Linux operator experience. It publishes to host loopback by default and uses an explicit environment variable or override for LAN exposure. Demo mode must run with no mounts. Live mode must fail clearly when the secret mount is absent.
 
-Publish only to GitHub Container Registry as `ghcr.io/nccurry/tiller-streamlit`. Required platforms are `linux/amd64` and `linux/arm64`.
+Publish only to GitHub Container Registry as `ghcr.io/nccurry/portico`. Required platforms are `linux/amd64` and `linux/arm64`.
 
 Tag policy:
 
@@ -243,9 +246,29 @@ Avoid duplicating the same procedure in README and a guide. README should summar
 
 ### 4.11 Screenshots
 
-Capture the first README images manually from explicit demo mode. Record the page, viewport, and capture date in `assets/screenshots/README.md`. Do not add Playwright or pixel-diff infrastructure solely for a few landing-page images. Add automation later only if screenshot churn becomes a real maintenance problem.
+Capture the first README images manually from explicit demo mode. Record the page, viewport, and capture date in `docs/images/README.md`. Do not add Playwright or pixel-diff infrastructure solely for a few landing-page images. Add automation later only if screenshot churn becomes a real maintenance problem.
 
-### 4.12 CI and release design
+### 4.12 Browser demo and GitHub Pages
+
+GitHub Pages cannot run the normal Streamlit process. Portico uses the static-gallery fallback defined by `WEB-006`.
+
+The Pages artifact contains:
+
+```text
+build/pages/index.html    gallery and local demo instructions
+build/pages/images/       canonical synthetic screenshots
+build/pages/logo.svg      Portico logo
+```
+
+The build reads the committed logo and screenshots. It records the source commit and links to the canonical GitHub repository.
+
+The time-boxed test used stlite 1.8.1 with the complete Portico source and synthetic data. stlite started the app but failed on Streamlit 1.60 APIs. The first confirmed error came from the `width` argument on `st.toggle`.
+
+Portico does not add browser-only shims or maintain a second application. A later phase can repeat the test after stlite supports the required Streamlit APIs.
+
+The Pages site uses the canonical GitHub repository. A GitHub Actions workflow builds the gallery from `main` and deploys it to the `github-pages` environment.
+
+### 4.13 CI and release design
 
 Split responsibilities without duplicating expensive work:
 
@@ -253,10 +276,11 @@ Split responsibilities without duplicating expensive work:
 - Container lane: build and run demo/live configuration smoke tests, inspect the runtime user and health check, and validate both amd64 and ARM64 manifests
 - Dependency automation: grouped routine updates with lockfile regeneration
 - Release workflow: tag/version consistency, release check, multi-architecture GHCR publish, GitHub Release
+- Pages workflow: browser compatibility test and GitHub Pages publish, or static gallery fallback
 
 The release workflow publishes source through GitHub Releases and the runtime image through GHCR. It does not upload Python packages or deploy to any host.
 
-### 4.13 Community files
+### 4.14 Community files
 
 Use the concise Roci structure as a reference, adapted to this application:
 
@@ -325,6 +349,16 @@ task container:run
   -> publish to host loopback unless LAN exposure is explicit
 ```
 
+### 5.7 Browser-hosted demo
+
+```text
+GitHub Pages request
+  -> load the generated static gallery
+  -> show the five canonical demo screenshots
+  -> link to the exact source revision
+  -> direct users to the local container demo
+```
+
 ## 6. Security and privacy design
 
 - Loopback is the default at every entry point.
@@ -339,6 +373,9 @@ task container:run
 - Hide-values tests continue to cover Pandas numeric dtypes and explicitly configured Streamlit `NumberColumn`/`ProgressColumn` types.
 - Documentation warns that link-readable Sheets and unauthenticated Streamlit are security boundaries, not convenience details.
 - Container smoke tests verify that secrets and local overrides are absent from the final filesystem.
+- The Pages artifact contains no secrets, live URLs, local settings, or user financial data.
+- Browser tests reject requests to Google Sheets and Discord.
+- The hosted demo does not accept uploads or persist browser data.
 
 ## 7. Test architecture
 
@@ -354,6 +391,7 @@ task container:run
 | Release | Version/tag match, changelog entry, license/community files, clean release check |
 | Privacy | Current tree, one-time pre-public history scan, fixture provenance, value-hiding column configs |
 | Container | Non-root user, locked runtime deps, health check, loopback host mapping, read-only secrets, and amd64/ARM64 manifests |
+| Browser demo | Pinned stlite startup, every-page smoke, Chrome and Firefox, network deny list, demo banner, cold-load timeout, and static fallback |
 
 ## 8. Decisions
 
@@ -372,11 +410,16 @@ task container:run
 | Live data providers | Google Sheets only | Keep the product focused; CSV remains synthetic demo/test infrastructure. |
 | Google access | Link-readable public URL | Match the personal-budget scope and current read-only workflow. Service accounts are intentionally unsupported. |
 | In-app auth | Deferred | Access control belongs at a private VPN or authenticated reverse proxy for this release. |
+| Hosted demo | Feasibility-gated stlite on GitHub Pages | Pages is static. stlite can run Python in WebAssembly, but Portico must pass every-page and privacy gates first. |
+| Hosted fallback | Static screenshot gallery | A clear static site is better than a partial or broken interactive demo. |
+| Source authority | GitHub | The Pages workflow builds from the canonical repository and records the deployed commit. |
 
 ## 9. Deferred decisions
 
 - Whether a horizontal logo lockup is necessary
 - Whether automated screenshot comparison becomes valuable if manual captures become frequent
+- GitHub Pages URL
+- Custom domain for the hosted demo
 
 ## 10. Phase gates
 

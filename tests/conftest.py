@@ -21,7 +21,7 @@ pytest_plugins = [
 @pytest.fixture(autouse=True)
 def isolate_application_settings(monkeypatch: MonkeyPatch) -> Iterator[None]:
     """Keep ignored local settings from changing test behavior."""
-    monkeypatch.setenv("TILLER_CONFIG_PATH", os.devnull)
+    monkeypatch.setenv("PORTICO_CONFIG_PATH", os.devnull)
     clear_settings_cache()
     yield
     clear_settings_cache()

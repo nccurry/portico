@@ -10,7 +10,7 @@ Base: local `main` at `da76d0a` (one commit ahead of `origin/main` when planned)
 
 ## 1. Purpose
 
-Prepare Tiller Streamlit for a public Apache-2.0 release that a new user can understand, try without private data, configure safely, deploy as a Linux container, and contribute to without relying on the maintainer's environment.
+Prepare Portico for a public Apache-2.0 release. A new user can run the demo, configure the app, deploy the container, and contribute.
 
 The work must preserve the maintainer's current workflow through ignored local overrides. Public defaults must remain useful and broadly aligned with the existing financial assumptions without publishing employer, institution, account, merchant, or household-specific values.
 
@@ -22,6 +22,9 @@ The work must preserve the maintainer's current workflow through ignored local o
 - The maintainer's local visual reference repository
 - Apache License 2.0 canonical text
 - Official Streamlit and `st-gsheets-connection` documentation, verified during implementation
+- [GitHub Pages documentation](https://docs.github.com/en/pages/getting-started-with-github-pages/creating-a-github-pages-site)
+- [GitHub Pages custom workflows](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)
+- [stlite browser runtime](https://github.com/whitphx/stlite)
 
 ## 3. Users and first-success outcomes
 
@@ -32,6 +35,8 @@ A visitor must understand the product and see representative screens within one 
 ### 3.2 Evaluating user
 
 A user must run a complete local demo without Google credentials, a Tiller workbook, a Discord webhook, or outbound data access after dependencies are installed.
+
+If the browser-runtime gate passes, a user must also open the same synthetic demo from a public URL without an installation.
 
 ### 3.3 Tiller user
 
@@ -53,6 +58,7 @@ A contributor must find the setup, checks, contribution expectations, support bo
 - Public project metadata and an unofficial Tiller affiliation disclaimer
 - Layered application configuration with safe, useful defaults
 - A network-independent demo backed by synthetic data
+- A browser-demo feasibility test and a GitHub Pages deployment when that test passes
 - Human-readable configuration diagnostics
 - Localhost-by-default networking and explicit LAN/reverse-proxy guidance
 - An original SVG logo and Roci-inspired README presentation
@@ -73,6 +79,8 @@ A contributor must find the setup, checks, contribution expectations, support bo
 - Editing Tiller data from the dashboard
 - A plugin system or generalized data-provider framework
 - Telemetry, analytics, or crash reporting
+- Server-side Streamlit or container hosting on GitHub Pages
+- Live Google Sheets, secrets, Discord, file uploads, or saved state in the hosted demo
 
 ## 5. Functional requirements
 
@@ -107,7 +115,18 @@ A contributor must find the setup, checks, contribution expectations, support bo
 | DEMO-005 | Keep diagnostics safe and actionable. | Doctor output names the failed check and remediation without printing complete sheet URLs, webhook values, or financial rows. |
 | DEMO-006 | Cover disconnected and malformed configurations. | Tests cover absent config, inaccessible sheets, missing `gid`, duplicate tab mapping, wrong tab schema, empty sheets, and demo success. |
 
-### 5.4 Network and deployment safety
+### 5.4 Browser-hosted demo
+
+| ID | Requirement | Acceptance criteria |
+| --- | --- | --- |
+| WEB-001 | Test Portico in a browser-only Python runtime. | A pinned stlite build loads the canonical app and demo files. The result records the first blocking compatibility error. |
+| WEB-002 | Publish an interactive GitHub Pages demo when the browser test passes. | Every page opens from synthetic data in current desktop Chrome and Firefox. The app becomes ready within 60 seconds from an empty cache. |
+| WEB-003 | Keep the hosted demo isolated from private services. | The browser demo does not read secrets, Google Sheets, Discord, local files, uploads, or saved browser state. It always shows the demo banner. |
+| WEB-004 | Keep one source for app code and demo data. | An interactive build packages tracked Portico files and `demo/data/`. The static fallback uses canonical screenshots and does not contain a copied or reduced dashboard implementation. |
+| WEB-005 | Publish from the canonical repository. | A GitHub Actions workflow builds the Pages artifact from `main`. The deployment records its commit and public URL. |
+| WEB-006 | Fail closed when stlite is not compatible. | If a page, package, or privacy gate fails, Pages publishes a static demo gallery instead. The gallery links to the container demo and states that it is not interactive. |
+
+### 5.5 Network and deployment safety
 
 | ID | Requirement | Acceptance criteria |
 | --- | --- | --- |
@@ -118,7 +137,7 @@ A contributor must find the setup, checks, contribution expectations, support bo
 | NET-005 | Keep live data focused on Google Sheets. | Google Sheets is the only supported live data provider. The app uses link-readable, read-only sheet URLs. CSV files remain demo/test-only. |
 | NET-006 | Provide an operator health check. | Documentation identifies a non-sensitive health check suitable for local service monitoring and reverse proxies. |
 
-### 5.5 Container distribution
+### 5.6 Container distribution
 
 | ID | Requirement | Acceptance criteria |
 | --- | --- | --- |
@@ -129,7 +148,7 @@ A contributor must find the setup, checks, contribution expectations, support bo
 | CTR-005 | Provide demo and live container paths. | A user can run demo mode without mounts. Live mode mounts Streamlit secrets read-only and mounts only the writable state directory required by the app/notifier. |
 | CTR-006 | Tag container releases predictably. | Release images have immutable version tags plus moving major/latest tags and basic OCI source/version labels. |
 
-### 5.6 Brand, README, and screenshots
+### 5.7 Brand, README, and screenshots
 
 | ID | Requirement | Acceptance criteria |
 | --- | --- | --- |
@@ -141,7 +160,7 @@ A contributor must find the setup, checks, contribution expectations, support bo
 | IMG-002 | Document screenshot provenance. | A short capture checklist records demo mode, viewport, page, and date. The first release does not add a browser-automation dependency solely for README images. |
 | IMG-003 | Cover representative UI. | At minimum, committed images show Home, Spending by Category, Budget, Financial Independence, and Data Health; one narrow viewport is reviewed for responsive behavior. |
 
-### 5.7 Documentation, compatibility, and community
+### 5.8 Documentation, compatibility, and community
 
 | ID | Requirement | Acceptance criteria |
 | --- | --- | --- |
@@ -152,7 +171,7 @@ A contributor must find the setup, checks, contribution expectations, support bo
 | COM-001 | Add contributor and issue guidance. | Concise `CONTRIBUTING.md`, `SECURITY.md`, one bug-report template, and one pull-request template exist and point to real commands. |
 | COM-002 | Keep community policy proportional. | Templates direct users to bugs, questions, and feature discussions without requesting financial data. Add broader policy files only if contribution volume creates a need. |
 
-### 5.8 CI, security, and release
+### 5.9 CI, security, and release
 
 | ID | Requirement | Acceptance criteria |
 | --- | --- | --- |
@@ -174,6 +193,7 @@ A contributor must find the setup, checks, contribution expectations, support bo
 | Reliability | Demo and doctor commands have bounded startup/connection timeouts, deterministic exit behavior, and actionable errors. |
 | Maintainability | Configuration and data-source selection have one owner each. Pages consume validated objects and do not implement their own precedence rules. |
 | Portability | The OCI image supports `linux/amd64` and `linux/arm64`. Documentation describes Linux container deployment only and does not prevent use through compatible container runtimes on other hosts. |
+| Browser demo | The hosted demo runs only from synthetic data. It remains separate from the supported Linux container deployment. |
 | Accessibility | Logo metadata, alt text, keyboard navigation, color contrast, value-hiding behavior, and narrow layouts receive explicit review. |
 | Performance | Demo startup and common pages remain interactive with the current synthetic dataset. Container startup and health readiness are bounded. A larger synthetic dataset is used for a non-blocking baseline before `v1.0.0`. |
 | Operability | Human-readable diagnostics, container health checks, Compose commands, and clear network profiles support routine operation. |
@@ -190,6 +210,9 @@ A contributor must find the setup, checks, contribution expectations, support bo
 - Demo data may be relocated, but tests must keep a single source of truth.
 - Personal local overrides are not committed, even when they are convenient defaults for the maintainer.
 - Public screenshots are generated only from synthetic demo data.
+- GitHub Pages can host static HTML, JavaScript, and WebAssembly. It cannot run the Portico Python server or OCI image.
+- stlite is a community browser runtime. Portico must pass the browser gate before the README links to an interactive demo.
+- GitHub Actions builds and deploys the Pages artifact from the canonical repository.
 
 ## 8. Risks
 
@@ -204,6 +227,9 @@ A contributor must find the setup, checks, contribution expectations, support bo
 | Personal defaults leak through screenshots or config examples. | Run privacy checks over assets/config and require demo-only capture provenance. |
 | Container port publishing bypasses the loopback default. | Bind Streamlit inside the container as required, but publish to `127.0.0.1` on the host in every default command and Compose file. |
 | ARM64 images build but fail at runtime. | Build both architectures and run an ARM64 container smoke test before release. |
+| stlite cannot run the pinned Streamlit version or a required package. | Test every page before publication. Publish the static gallery when the test fails. |
+| The browser demo becomes a second application. | Build the site from tracked Portico files and canonical demo data. Do not maintain a separate dashboard. |
+| The Pages demo does not match the source release. | Build from the canonical commit and show the deployed commit in the Pages artifact. |
 
 ## 9. Phased delivery
 

@@ -12,6 +12,7 @@ Target: stable `v1.0.0`
 - Build demo mode before producing public screenshots.
 - Make loopback networking the default; make LAN access an explicit choice.
 - Treat the Linux container as the single documented deployment runtime. Do not add host-specific guides for other operating systems.
+- Treat GitHub Pages as a demo host only. It never replaces the Linux container or GitHub releases.
 - Keep the v1 solution small: no service accounts, auth framework, provider abstraction, Kubernetes, PyPI package, SBOM program, or automated browser screenshot system.
 - A `1.0.0` release declares the documented configuration, task commands, Google Sheets schema expectations, and container invocation as the stable 1.x public contract.
 
@@ -25,8 +26,9 @@ Target: stable `v1.0.0`
 | 3 | Anyone can run and diagnose the app without private data | Demo and doctor | Phase 2 |
 | 4 | Linux container deployment and network behavior are documented and safe by default | Network and deployment | Phase 2 |
 | 5 | Public landing experience is polished | Logo, README, docs, screenshots | Phases 3–4 |
-| 6 | CI and release mechanics enforce the public contract | CI, image publishing, release | Phases 1–5 |
-| 7 | Stable release is verified and published | `v1.0.0` | Phase 6 |
+| 6 | A hosted browser demo is published when stlite passes the compatibility gate | GitHub Pages demo or static fallback | Phases 3 and 5 |
+| 7 | CI and release mechanics enforce the public contract | CI, image publishing, release | Phases 1–6 |
+| 8 | Stable release is verified and published | `v1.0.0` | Phase 7 |
 
 ## Phase 0 — Plan and decisions
 
@@ -246,7 +248,50 @@ Turn the repository into a polished landing page with truthful public visuals.
 2. `docs(public): rebuild readme and publish setup guides`
 3. `docs(images): add demo screenshots and provenance`
 
-## Phase 6 — CI and release automation
+## Phase 6 — Browser demo and GitHub Pages
+
+### Objective
+
+Test whether Portico can run fully in the browser. Publish it from GitHub Pages only when the complete demo works.
+
+### Result
+
+The 2026-08-29 compatibility test used stlite 1.8.1 with the complete app and synthetic data. The runtime started Portico but failed on Streamlit 1.60 APIs. The first confirmed error was the unsupported `width` argument on `st.toggle`.
+
+The phase uses the planned static fallback. The GitHub Pages workflow publishes the five synthetic screenshots, the logo, local demo instructions, and the source commit. Portico does not include browser-only API shims.
+
+### Work items
+
+1. Create a time-boxed stlite test with the current Portico code and canonical demo data.
+2. Pin the stlite version and the browser-only Python packages.
+3. Generate the Pages artifact from tracked source files. Do not copy or fork the dashboard code.
+4. Set `PORTICO_DATA_SOURCE=demo` in the browser entry point before `Home.py` starts.
+5. Test every page, navigation, filters, charts, and tables in current desktop Chrome and Firefox.
+6. Reject requests to Google Sheets and Discord during browser tests.
+7. Measure cold-load time and transferred bytes. Fail the gate when the app is not ready within 60 seconds.
+8. Enable GitHub Pages with GitHub Actions as its source. Record the public URL.
+9. Add a GitHub Actions workflow that builds and publishes the interactive demo from `main` after the browser test passes.
+10. Record the deployed Git commit in the Pages artifact and link it to the canonical source.
+11. If the test fails, publish a static screenshot gallery with local demo instructions.
+12. Add the hosted demo link to the README only after the public URL passes the release gate.
+
+### Validation and acceptance
+
+- GitHub Pages serves only static HTML, JavaScript, WebAssembly, and data files.
+- Every page opens from the canonical synthetic dataset.
+- The demo banner remains visible.
+- Browser logs contain no uncaught errors.
+- Network logs contain no request to Google Sheets or Discord.
+- The app is ready within 60 seconds from an empty cache in Chrome and Firefox.
+- The deployed page records the Git commit and links to the GitHub source.
+- If stlite is not compatible, the static gallery replaces the interactive claim.
+- A failed stlite test does not block the container release.
+
+### Suggested pull request
+
+`feat(web-demo): publish the Portico demo on GitHub Pages`
+
+## Phase 7 — CI and release automation
 
 ### Objective
 
@@ -277,7 +322,7 @@ Make source and container releases repeatable with a small set of useful checks.
 
 `ci(release): add source checks and multi-architecture releases`
 
-## Phase 7 — Stable `v1.0.0` release
+## Phase 8 — Stable `v1.0.0` release
 
 ### Objective
 
@@ -295,6 +340,7 @@ Verify the complete public experience and publish the stable first release.
 8. Document known limitations: link-readable Sheets, supported Tiller schema, no in-app authentication, supported image architectures, and 1.x compatibility expectations.
 9. Tag `v1.0.0` only after the version and changelog commit reaches `main`.
 10. Verify the GitHub Release, source archives, GHCR image tags, and container health.
+11. Verify the hosted demo or static gallery and its link to the release commit.
 
 ### Acceptance
 
@@ -312,8 +358,9 @@ Verify the complete public experience and publish the stable first release.
 | DEMO | Existing spreadsheet loader, demo data, doctor | 3 | AppTest, exit-code, redaction, and no-network tests |
 | NET/CTR | Taskfile, Dockerfile, Compose, Linux deployment docs | 4 | Render, build, and health tests |
 | BRD/IMG | `assets/`, README, manual captures | 5 | SVG, docs, privacy, and visual reviews |
+| WEB | Generated browser bundle and GitHub Pages workflow | 6 | Every-page browser smoke, network deny list, load timeout, and static fallback |
 | DOC/COM | README and focused public guides | 1 and 5 | Link, command, and policy review |
-| CI/REL | GitHub workflows and release tasks | 6 and 7 | Clean-worktree release gate and artifact smoke |
+| CI/REL | GitHub workflows and release tasks | 7 and 8 | Clean-worktree release gate and artifact smoke |
 
 ## Aggregate verification matrix
 
@@ -327,9 +374,10 @@ Verify the complete public experience and publish the stable first release.
 | Diagnostics | 3 onward | `task doctor` and focused failure tests |
 | Deployment | 4 onward | Container health and Compose checks on Linux |
 | Docs/assets | 1 and 5 onward | Link checks and manual image provenance review |
-| Architectures | 4 and 7 | Multi-architecture image plus clean-Linux-host container smoke |
-| Release | 6–7 | `task release:check`; tag/version/changelog/image verification |
+| Hosted demo | 6 onward | Chrome and Firefox smoke, network deny list, 60-second cold-load gate, or static fallback evidence |
+| Architectures | 4 and 8 | Multi-architecture image plus clean-Linux-host container smoke |
+| Release | 7–8 | `task release:check` and tag/version/changelog/image verification |
 
 ## Recommended execution order
 
-Start with Phase 1. Phase 2 is the architectural hinge. Phases 3 and 4 can proceed independently after the settings API stabilizes. Complete demo mode before screenshots. Finish the public documentation before locking the release workflow, so CI validates the final contract.
+Start with Phase 1. Phase 2 is the architectural hinge. Phases 3 and 4 can proceed independently after the settings API stabilizes. Complete demo mode before screenshots. Test browser hosting after Phase 5. Finish the hosted demo decision before locking the release workflow.

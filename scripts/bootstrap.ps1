@@ -59,7 +59,7 @@ function Install-Task {
 
     $arch = Get-TaskArchitecture
     $url = "https://github.com/go-task/task/releases/download/v$Version/task_windows_$arch.zip"
-    $tempDir = Join-Path ([IO.Path]::GetTempPath()) "tiller-task-$Version-$([Guid]::NewGuid())"
+    $tempDir = Join-Path ([IO.Path]::GetTempPath()) "portico-task-$Version-$([Guid]::NewGuid())"
     $archivePath = Join-Path $tempDir "task.zip"
 
     Write-Host "[SETUP] Installing Task $Version"

@@ -43,7 +43,7 @@ def _is_loopback(address: str) -> bool:
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Start Tiller Streamlit with validated local network settings.",
+        description="Start Portico with validated local network settings.",
         epilog="Exit code 2 means invalid command usage. Streamlit exit codes pass through unchanged.",
     )
     parser.add_argument("--address", type=_address, default=DEFAULT_ADDRESS)
@@ -62,7 +62,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
 
     environment = os.environ.copy()
-    environment["TILLER_DATA_SOURCE"] = arguments.data_source
+    environment["PORTICO_DATA_SOURCE"] = arguments.data_source
 
     command = [
         sys.executable,

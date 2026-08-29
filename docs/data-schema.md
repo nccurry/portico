@@ -1,6 +1,6 @@
 # Google Sheets data schema
 
-Tiller Streamlit reads four tabs and ignores unknown columns. Column names are
+Portico reads four Tiller tabs and ignores unknown columns. Column names are
 case-sensitive.
 
 ## Transactions
