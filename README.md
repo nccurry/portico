@@ -1,15 +1,33 @@
-<div align="center">
+<p align="center">
+  <img src="assets/brand/logo.svg" alt="Tiller Streamlit logo" width="180" />
+</p>
 
-# Tiller Streamlit
+<h1 align="center">Tiller Streamlit</h1>
 
-**A private, self-hosted dashboard for exploring Tiller-powered personal finances.**
+<p align="center">
+  <strong>A private, self-hosted dashboard for exploring Tiller-powered personal finances.</strong>
+</p>
 
-[Demo](#try-the-demo) · [Deployment](docs/deployment.md) · [Google Sheets setup](docs/quickstart.md) · [Contributing](CONTRIBUTING.md)
+<p align="center">
+  <a href="#try-the-demo">Try the demo</a>
+  |
+  <a href="docs/deployment.md">Deploy on Linux</a>
+  |
+  <a href="docs/quickstart.md">Connect Google Sheets</a>
+  |
+  <a href="CONTRIBUTING.md">Contribute</a>
+</p>
 
-[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![Python 3.14](https://img.shields.io/badge/python-3.14-3776AB.svg)](pyproject.toml)
+<p align="center">
+  <a href="https://github.com/nccurry/tiller-streamlit/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/nccurry/tiller-streamlit/actions/workflows/ci.yml/badge.svg" /></a>
+  <a href="pyproject.toml"><img alt="Python 3.14" src="https://img.shields.io/badge/Python-3.14-3776AB?logo=python&amp;logoColor=white" /></a>
+  <a href="#try-the-demo"><img alt="Synthetic demo included" src="https://img.shields.io/badge/demo-synthetic_data-2DA44E?logo=streamlit&amp;logoColor=white" /></a>
+  <a href="docs/deployment.md"><img alt="Linux container" src="https://img.shields.io/badge/container-Linux-2496ED?logo=docker&amp;logoColor=white" /></a>
+  <a href="#live-google-sheets"><img alt="Google Sheets data source" src="https://img.shields.io/badge/data-Google_Sheets-34A853?logo=googlesheets&amp;logoColor=white" /></a>
+  <a href="LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/License-Apache--2.0-blue.svg" /></a>
+</p>
 
-</div>
+---
 
 Tiller Streamlit turns a Tiller workbook into focused views for income, spending,
 subscriptions, budgets, net worth, financial independence, and data health. It is
@@ -17,6 +35,22 @@ read-only: the app analyzes your sheets but does not change them.
 
 The repository includes synthetic data, so you can explore every dashboard
 without a Tiller account or Google Sheet.
+
+## Explore the demo
+
+These screenshots use the committed synthetic dataset. The demo does not contact Google Sheets.
+
+<p align="center">
+  <img src="docs/images/demo-overview.png" alt="Demo dashboard with net worth metrics, account groups, and a balance history chart" />
+</p>
+
+### Spending analysis
+
+![Demo spending dashboard with category trends and rankings](docs/images/demo-spending.png)
+
+### Budget tracking
+
+![Demo budget dashboard with plan status and monthly allocation](docs/images/demo-budget.png)
 
 ## Try the demo
 
