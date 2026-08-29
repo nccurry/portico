@@ -28,7 +28,7 @@ cp .streamlit/secrets.example.toml .streamlit/secrets.toml
 
 Open each tab in Google Sheets and copy its complete URL into the matching
 connection. Each URL must use `https://docs.google.com`, contain the workbook ID,
-and include one numeric `gid` query value.
+and include one numeric `gid` value in the query or fragment.
 
 Check the configuration before starting the app:
 

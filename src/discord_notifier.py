@@ -22,6 +22,7 @@ from urllib.request import Request, urlopen
 import pandas as pd
 
 from src.scrubbing import SpreadsheetSchemaError, scrub_categories, scrub_transactions
+from src.sheet_config import SheetConfigError, parse_sheet_location
 from src.weekly_expenses import (
     AVERAGE_WEEKS,
     ROLLING_WEEKS,
@@ -96,28 +97,10 @@ def load_config(path: Path = DEFAULT_SECRETS_PATH) -> NotifierConfig:
 
 def google_export_url(sheet_url: str) -> str:
     """Convert a configured Google Sheets tab URL to a CSV export URL."""
-    parsed = urlparse(sheet_url)
-    match = re.fullmatch(r"/spreadsheets/d/([A-Za-z0-9_-]+)(?:/.*)?", parsed.path)
-    if parsed.scheme != "https" or parsed.hostname != "docs.google.com" or match is None:
-        raise NotifierError("A Google Sheets connection URL is invalid.")
-
-    query = parse_qs(parsed.query)
-    fragment = parse_qs(parsed.fragment)
-    gid_values = query.get("gid") or fragment.get("gid")
-    if not gid_values or not gid_values[0].isdigit():
-        raise NotifierError("Each Google Sheets connection URL must contain a numeric gid.")
-
-    spreadsheet_id = match.group(1)
-    return urlunparse(
-        (
-            "https",
-            "docs.google.com",
-            f"/spreadsheets/d/{spreadsheet_id}/export",
-            "",
-            urlencode({"format": "csv", "gid": gid_values[0]}),
-            "",
-        )
-    )
+    try:
+        return parse_sheet_location(sheet_url).export_url
+    except SheetConfigError as error:
+        raise NotifierError("A Google Sheets connection URL is invalid.") from error
 
 
 def read_google_sheet(sheet_url: str, label: str) -> pd.DataFrame:

@@ -153,6 +153,11 @@ def test_google_export_url_supports_query_and_fragment_gid() -> None:
     assert fragment == "https://docs.google.com/spreadsheets/d/example/export?format=csv&gid=43"
 
 
+def test_google_export_url_rejects_conflicting_gid_values() -> None:
+    with pytest.raises(NotifierError, match="Google Sheets connection URL"):
+        google_export_url("https://docs.google.com/spreadsheets/d/example/edit?gid=42#gid=43")
+
+
 def test_read_google_sheet_returns_csv_without_streamlit() -> None:
     response = BytesIO(b"Column A,Column B\n1,2\n")
 

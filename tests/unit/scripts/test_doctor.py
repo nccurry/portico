@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pandas as pd
+import pytest
 from pytest import MonkeyPatch
 
 from scripts.doctor import EXIT_CHECK_FAILED, EXIT_OK, _sheet_locations, main, run_doctor
@@ -126,9 +127,15 @@ def test_network_failure_does_not_print_exception_details(tmp_path: Path) -> Non
     assert details.count("RuntimeError: data could not be read or parsed") == 4
 
 
+@pytest.mark.parametrize("timeout", ["0", "-1", "nan", "inf", "-inf"])
+def test_main_rejects_invalid_timeouts(monkeypatch: MonkeyPatch, timeout: str) -> None:
+    monkeypatch.setenv("TILLER_DATA_SOURCE", "demo")
+
+    assert main([f"--timeout={timeout}"]) == 2
+
+
 def test_main_returns_stable_status_codes(monkeypatch: MonkeyPatch) -> None:
     monkeypatch.setenv("TILLER_DATA_SOURCE", "demo")
 
     assert main([]) == EXIT_OK
-    assert main(["--timeout", "0"]) != EXIT_OK
     assert EXIT_CHECK_FAILED == 1
