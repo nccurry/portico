@@ -20,7 +20,6 @@
 
 <p align="center">
   <a href="https://github.com/nccurry/portico/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/nccurry/portico/actions/workflows/ci.yml/badge.svg" /></a>
-  <a href="pyproject.toml"><img alt="Python 3.14" src="https://img.shields.io/badge/Python-3.14-3776AB?logo=python&amp;logoColor=white" /></a>
   <a href="#try-the-demo"><img alt="Synthetic demo included" src="https://img.shields.io/badge/demo-synthetic_data-2DA44E?logo=streamlit&amp;logoColor=white" /></a>
   <a href="docs/deployment.md"><img alt="Linux container" src="https://img.shields.io/badge/container-Linux-2496ED?logo=docker&amp;logoColor=white" /></a>
   <a href="#live-google-sheets"><img alt="Google Sheets data source" src="https://img.shields.io/badge/data-Google_Sheets-34A853?logo=googlesheets&amp;logoColor=white" /></a>
