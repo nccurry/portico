@@ -305,16 +305,16 @@ def load_settings(
     environment = os.environ if environ is None else environ
     document = _read_toml(defaults_path)
 
-    configured_local = environment.get("TILLER_CONFIG_PATH")
+    configured_local = environment.get("PORTICO_CONFIG_PATH")
     selected_local = (
         Path(configured_local) if configured_local else local_path or project_root / "config" / "local.toml"
     )
     if selected_local.exists():
         document = _merge(document, _read_toml(selected_local))
     elif configured_local:
-        raise ConfigError("TILLER_CONFIG_PATH does not exist")
+        raise ConfigError("PORTICO_CONFIG_PATH does not exist")
 
-    data_mode = environment.get("TILLER_DATA_SOURCE")
+    data_mode = environment.get("PORTICO_DATA_SOURCE")
     if data_mode:
         document = _merge(document, {"data": {"mode": data_mode}})
     return _build_settings(document, project_root)

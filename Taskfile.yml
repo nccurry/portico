@@ -12,6 +12,7 @@ vars:
   PERIOD_END: '{{default "" .PERIOD_END}}'
   FORCE: '{{default "false" .FORCE}}'
   OUTPUT: '{{default "text" .OUTPUT}}'
+  REVISION: '{{default "local" .REVISION}}'
 
 tasks:
   # ========================================
@@ -240,10 +241,15 @@ tasks:
     cmds:
       - '{{.UV}} run --locked --dev python -m scripts.doctor {{.CLI_ARGS}}'
 
+  pages:build:
+    desc: "Build the GitHub Pages demo artifact"
+    cmds:
+      - '{{.UV}} run --locked --dev python scripts/build_pages_demo.py --revision={{.REVISION | quote}}'
+
   container:build:
     desc: "Build the local Linux container image"
     cmds:
-      - docker build --tag tiller-streamlit:local .
+      - docker build --tag portico:local .
 
   container:demo:
     desc: "Build and run the demo container on localhost"

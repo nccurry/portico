@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="assets/brand/logo.svg" alt="Tiller Streamlit logo" width="180" />
+  <img src="assets/brand/logo.svg" alt="Portico logo" width="180" />
 </p>
 
-<h1 align="center">Tiller Streamlit</h1>
+<h1 align="center">Portico</h1>
 
 <p align="center">
-  <strong>A private, self-hosted dashboard for exploring Tiller-powered personal finances.</strong>
+  <strong>A private, self-hosted dashboard for your Tiller-powered finances.</strong>
 </p>
 
 <p align="center">
@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/nccurry/tiller-streamlit/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/nccurry/tiller-streamlit/actions/workflows/ci.yml/badge.svg" /></a>
+  <a href="https://github.com/nccurry/portico/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/nccurry/portico/actions/workflows/ci.yml/badge.svg" /></a>
   <a href="pyproject.toml"><img alt="Python 3.14" src="https://img.shields.io/badge/Python-3.14-3776AB?logo=python&amp;logoColor=white" /></a>
   <a href="#try-the-demo"><img alt="Synthetic demo included" src="https://img.shields.io/badge/demo-synthetic_data-2DA44E?logo=streamlit&amp;logoColor=white" /></a>
   <a href="docs/deployment.md"><img alt="Linux container" src="https://img.shields.io/badge/container-Linux-2496ED?logo=docker&amp;logoColor=white" /></a>
@@ -29,7 +29,7 @@
 
 ---
 
-Tiller Streamlit turns a Tiller workbook into focused views for income, spending,
+Portico turns a Tiller workbook into focused views for income, spending,
 subscriptions, budgets, net worth, financial independence, and data health. It is
 read-only: the app analyzes your sheets but does not change them.
 
@@ -51,6 +51,14 @@ These screenshots use the committed synthetic dataset. The demo does not contact
 ### Budget tracking
 
 ![Demo budget dashboard with plan status and monthly allocation](docs/images/demo-budget.png)
+
+### Financial independence
+
+![Demo financial independence dashboard with progress and projection charts](docs/images/demo-financial-independence.png)
+
+### Data health
+
+![Demo data health dashboard with quality checks and duplicate review](docs/images/demo-data-health.png)
 
 ## Try the demo
 
@@ -122,7 +130,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the contributor workflow and
 
 ## Security and scope
 
-Tiller Streamlit is a personal application with no login screen. The default
+Portico is a personal application with no login screen. The default
 source and container commands publish to `127.0.0.1`. Do not expose the app
 directly to the public internet. See [SECURITY.md](SECURITY.md).
 

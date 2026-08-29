@@ -1,7 +1,7 @@
-name: tiller-streamlit
+name: portico
 
 x-app: &app
-  image: ${TILLER_IMAGE:-ghcr.io/nccurry/tiller-streamlit:latest}
+  image: ${PORTICO_IMAGE:-ghcr.io/nccurry/portico:latest}
   build:
     context: .
     args:
@@ -21,7 +21,7 @@ services:
     <<: *app
     profiles: [demo]
     environment:
-      TILLER_DATA_SOURCE: demo
+      PORTICO_DATA_SOURCE: demo
       TZ: ${TZ:-Etc/UTC}
     ports:
       - "${HOST_ADDRESS:-127.0.0.1}:${PORT:-8501}:8501"
@@ -31,7 +31,7 @@ services:
     <<: *app
     profiles: [live]
     environment:
-      TILLER_DATA_SOURCE: google_sheets
+      PORTICO_DATA_SOURCE: google_sheets
       TZ: ${TZ:-Etc/UTC}
     ports:
       - "${HOST_ADDRESS:-127.0.0.1}:${PORT:-8501}:8501"
