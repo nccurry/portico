@@ -39,6 +39,7 @@ without a Tiller account or Google Sheet.
 ## Explore the demo
 
 These screenshots use the committed synthetic dataset. The demo does not contact Google Sheets.
+See [the capture record](docs/images/README.md) for their source revisions and viewport.
 
 <p align="center">
   <img src="docs/images/demo-overview.png" alt="Demo dashboard with net worth metrics, account groups, and a balance history chart" />
