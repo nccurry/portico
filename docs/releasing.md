@@ -1,6 +1,6 @@
 # Release process
 
-Tiller Streamlit uses Semantic Versioning. A stable `1.x` release keeps documented configuration keys, Task commands, sheet requirements, and container commands compatible.
+Portico uses Semantic Versioning. A stable `1.x` release keeps its documented settings, Task commands, sheet requirements, and container commands compatible.
 
 ## Prepare a release
 

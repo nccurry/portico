@@ -1126,7 +1126,7 @@ wheels = [
 ]
 
 [[package]]
-name = "tiller-streamlit"
+name = "portico"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

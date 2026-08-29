@@ -29,7 +29,7 @@ def test_local_file_and_environment_override_defaults(tmp_path: Path) -> None:
     settings = load_settings(
         defaults_path=DEFAULTS,
         local_path=local,
-        environ={"TILLER_DATA_SOURCE": "demo"},
+        environ={"PORTICO_DATA_SOURCE": "demo"},
         project_root=PROJECT_ROOT,
     )
 
@@ -94,9 +94,9 @@ def test_demo_directory_cannot_escape_repository(tmp_path: Path) -> None:
 
 
 def test_explicit_missing_local_file_is_an_error() -> None:
-    with pytest.raises(ConfigError, match="TILLER_CONFIG_PATH does not exist"):
+    with pytest.raises(ConfigError, match="PORTICO_CONFIG_PATH does not exist"):
         load_settings(
             defaults_path=DEFAULTS,
-            environ={"TILLER_CONFIG_PATH": "missing-local.toml"},
+            environ={"PORTICO_CONFIG_PATH": "missing-local.toml"},
             project_root=PROJECT_ROOT,
         )

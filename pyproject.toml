@@ -1,5 +1,5 @@
 [project]
-name = "tiller-streamlit"
+name = "portico"
 version = "0.1.0"
 description = "A private, self-hosted Streamlit dashboard for Tiller-powered personal finance analysis."
 readme = "README.md"
@@ -19,10 +19,10 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/nccurry/tiller-streamlit"
-Repository = "https://github.com/nccurry/tiller-streamlit"
-Issues = "https://github.com/nccurry/tiller-streamlit/issues"
-Changelog = "https://github.com/nccurry/tiller-streamlit/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/nccurry/portico"
+Repository = "https://github.com/nccurry/portico"
+Issues = "https://github.com/nccurry/portico/issues"
+Changelog = "https://github.com/nccurry/portico/blob/main/CHANGELOG.md"
 
 [dependency-groups]
 dev = [
@@ -34,7 +34,7 @@ dev = [
     "ruff==0.16.1",
 ]
 
-[tool.tiller.bootstrap]
+[tool.portico.bootstrap]
 python = "3.14.6"
 uv = "0.12.1"
 task = "3.52.0"

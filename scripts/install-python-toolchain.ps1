@@ -54,7 +54,7 @@ function Install-Uv {
 
     $target = Get-UvTarget
     $url = "https://github.com/astral-sh/uv/releases/download/$Version/uv-$target.zip"
-    $tempDir = Join-Path ([IO.Path]::GetTempPath()) "tiller-uv-$Version-$([Guid]::NewGuid())"
+    $tempDir = Join-Path ([IO.Path]::GetTempPath()) "portico-uv-$Version-$([Guid]::NewGuid())"
     $archivePath = Join-Path $tempDir "uv.zip"
 
     Write-Host "[SETUP] Installing uv $Version"

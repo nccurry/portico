@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for improving Tiller Streamlit.
+Thank you for improving Portico.
 
 ## Prepare the repository
 

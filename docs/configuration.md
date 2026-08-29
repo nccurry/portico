@@ -24,8 +24,8 @@ duplicate values, and out-of-range numbers cause a clear startup error.
 
 | Variable | Purpose |
 | --- | --- |
-| `TILLER_CONFIG_PATH` | Use a different local TOML override file. |
-| `TILLER_DATA_SOURCE` | Select `google_sheets` or `demo`. |
+| `PORTICO_CONFIG_PATH` | Use a different local TOML override file. |
+| `PORTICO_DATA_SOURCE` | Select `google_sheets` or `demo`. |
 
 `task demo` sets the data source explicitly. Normal `task run` does not fall back
 to demo data when Google Sheets configuration is missing.
@@ -36,7 +36,7 @@ Compose also accepts these deployment values:
 | --- | --- | --- |
 | `HOST_ADDRESS` | Select the host address that publishes the container port. | `127.0.0.1` |
 | `PORT` | Select the published host port. | `8501` |
-| `TILLER_IMAGE` | Select the local or published image name. | `ghcr.io/nccurry/tiller-streamlit:latest` |
+| `PORTICO_IMAGE` | Select the local or published image name. | `ghcr.io/nccurry/portico:latest` |
 
 Set `HOST_ADDRESS=0.0.0.0` only for a trusted LAN. The application has no login
 screen.

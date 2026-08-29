@@ -341,7 +341,7 @@ def configure_page(
 def main() -> None:
     """Run the grouped multipage navigation shell."""
     st.set_page_config(
-        page_title="Tiller dashboard",
+        page_title="Portico",
         page_icon=":material/account_balance:",
         layout="wide",
         initial_sidebar_state="expanded",

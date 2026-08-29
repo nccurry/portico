@@ -47,7 +47,7 @@ SheetReader = Callable[[SheetLocation, float], pd.DataFrame]
 
 
 def _read_google_sheet(location: SheetLocation, timeout: float) -> pd.DataFrame:
-    request = Request(location.export_url, headers={"User-Agent": "tiller-streamlit-doctor/1.0"})
+    request = Request(location.export_url, headers={"User-Agent": "portico-doctor/1.0"})
     with urlopen(request, timeout=timeout) as response:
         return pd.read_csv(BytesIO(response.read()))
 
@@ -152,7 +152,7 @@ def run_doctor(
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Validate Tiller Streamlit data configuration without printing financial rows or URLs.",
+        description="Validate Portico data settings without printing financial rows or URLs.",
         epilog="Exit codes: 0 = all checks passed, 1 = a check failed, 2 = invalid command usage.",
     )
     parser.add_argument(

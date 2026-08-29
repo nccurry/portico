@@ -17,7 +17,7 @@ def test_demo_doctor_validates_committed_data(tmp_path: Path) -> None:
     settings = load_settings(
         defaults_path=DEFAULTS,
         local_path=tmp_path / "missing.toml",
-        environ={"TILLER_DATA_SOURCE": "demo"},
+        environ={"PORTICO_DATA_SOURCE": "demo"},
         project_root=PROJECT_ROOT,
     )
 
@@ -129,13 +129,13 @@ def test_network_failure_does_not_print_exception_details(tmp_path: Path) -> Non
 
 @pytest.mark.parametrize("timeout", ["0", "-1", "nan", "inf", "-inf"])
 def test_main_rejects_invalid_timeouts(monkeypatch: MonkeyPatch, timeout: str) -> None:
-    monkeypatch.setenv("TILLER_DATA_SOURCE", "demo")
+    monkeypatch.setenv("PORTICO_DATA_SOURCE", "demo")
 
     assert main([f"--timeout={timeout}"]) == 2
 
 
 def test_main_returns_stable_status_codes(monkeypatch: MonkeyPatch) -> None:
-    monkeypatch.setenv("TILLER_DATA_SOURCE", "demo")
+    monkeypatch.setenv("PORTICO_DATA_SOURCE", "demo")
 
     assert main([]) == EXIT_OK
     assert EXIT_CHECK_FAILED == 1
