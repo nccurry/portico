@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import math
 import sys
 import tomllib
 from collections.abc import Callable, Sequence
@@ -172,8 +173,8 @@ def _parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     """Run the configuration doctor and print safe results."""
     arguments = _parser().parse_args(argv)
-    if arguments.timeout <= 0:
-        print("[FAIL] timeout: --timeout must be greater than zero", file=sys.stderr)
+    if not math.isfinite(arguments.timeout) or arguments.timeout <= 0:
+        print("[FAIL] timeout: --timeout must be a finite number greater than zero", file=sys.stderr)
         return EXIT_USAGE
     try:
         settings = load_settings()
