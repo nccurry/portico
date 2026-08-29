@@ -1,6 +1,6 @@
 # Public Release Productionization — Phased Delivery Plan
 
-Status: Phases 1–4 implemented
+Status: Phases 1–6 implemented locally; Pages deployment follows the merge to `main`
 
 Target: stable `v1.0.0`
 
@@ -26,7 +26,7 @@ Target: stable `v1.0.0`
 | 3 | Anyone can run and diagnose the app without private data | Demo and doctor | Phase 2 |
 | 4 | Linux container deployment and network behavior are documented and safe by default | Network and deployment | Phase 2 |
 | 5 | Public landing experience is polished | Logo, README, docs, screenshots | Phases 3–4 |
-| 6 | A hosted browser demo is published when stlite passes the compatibility gate | GitHub Pages demo or static fallback | Phases 3 and 5 |
+| 6 | Browser compatibility is tested and GitHub Pages publishes an honest demo | GitHub Pages demo or static fallback | Phases 3 and 5 |
 | 7 | CI and release mechanics enforce the public contract | CI, image publishing, release | Phases 1–6 |
 | 8 | Stable release is verified and published | `v1.0.0` | Phase 7 |
 
@@ -262,29 +262,22 @@ The phase uses the planned static fallback. The GitHub Pages workflow publishes 
 
 ### Work items
 
-1. Create a time-boxed stlite test with the current Portico code and canonical demo data.
-2. Pin the stlite version and the browser-only Python packages.
-3. Generate the Pages artifact from tracked source files. Do not copy or fork the dashboard code.
-4. Set `PORTICO_DATA_SOURCE=demo` in the browser entry point before `Home.py` starts.
-5. Test every page, navigation, filters, charts, and tables in current desktop Chrome and Firefox.
-6. Reject requests to Google Sheets and Discord during browser tests.
-7. Measure cold-load time and transferred bytes. Fail the gate when the app is not ready within 60 seconds.
-8. Enable GitHub Pages with GitHub Actions as its source. Record the public URL.
-9. Add a GitHub Actions workflow that builds and publishes the interactive demo from `main` after the browser test passes.
-10. Record the deployed Git commit in the Pages artifact and link it to the canonical source.
-11. If the test fails, publish a static screenshot gallery with local demo instructions.
-12. Add the hosted demo link to the README only after the public URL passes the release gate.
+1. Run a time-boxed stlite 1.8.1 test with the complete Portico app and canonical demo data.
+2. Record the first blocking Streamlit compatibility error.
+3. Keep browser-only shims and a second dashboard implementation out of the repository.
+4. Build a static gallery from the committed logo and five canonical demo screenshots.
+5. Record the deployed source commit and link to the canonical repository.
+6. Publish the gallery from `main` through GitHub Actions.
+7. Enable GitHub Pages with GitHub Actions as its source and record the public URL.
+8. Add the hosted gallery link to the README only after the public URL passes the release gate.
 
 ### Validation and acceptance
 
 - GitHub Pages serves only static HTML, JavaScript, WebAssembly, and data files.
-- Every page opens from the canonical synthetic dataset.
-- The demo banner remains visible.
-- Browser logs contain no uncaught errors.
-- Network logs contain no request to Google Sheets or Discord.
-- The app is ready within 60 seconds from an empty cache in Chrome and Firefox.
+- The compatibility result names the tested stlite and Streamlit versions and the first blocking API.
+- The static fallback uses only canonical synthetic screenshots and contains no private services or data.
 - The deployed page records the Git commit and links to the GitHub source.
-- If stlite is not compatible, the static gallery replaces the interactive claim.
+- The static gallery replaces the interactive claim because stlite is not compatible.
 - A failed stlite test does not block the container release.
 
 ### Suggested pull request
@@ -358,7 +351,7 @@ Verify the complete public experience and publish the stable first release.
 | DEMO | Existing spreadsheet loader, demo data, doctor | 3 | AppTest, exit-code, redaction, and no-network tests |
 | NET/CTR | Taskfile, Dockerfile, Compose, Linux deployment docs | 4 | Render, build, and health tests |
 | BRD/IMG | `assets/`, README, manual captures | 5 | SVG, docs, privacy, and visual reviews |
-| WEB | Generated browser bundle and GitHub Pages workflow | 6 | Every-page browser smoke, network deny list, load timeout, and static fallback |
+| WEB | Static gallery builder and GitHub Pages workflow | 6 | Recorded compatibility failure, canonical asset tests, and workflow contract |
 | DOC/COM | README and focused public guides | 1 and 5 | Link, command, and policy review |
 | CI/REL | GitHub workflows and release tasks | 7 and 8 | Clean-worktree release gate and artifact smoke |
 
@@ -374,7 +367,7 @@ Verify the complete public experience and publish the stable first release.
 | Diagnostics | 3 onward | `task doctor` and focused failure tests |
 | Deployment | 4 onward | Container health and Compose checks on Linux |
 | Docs/assets | 1 and 5 onward | Link checks and manual image provenance review |
-| Hosted demo | 6 onward | Chrome and Firefox smoke, network deny list, 60-second cold-load gate, or static fallback evidence |
+| Hosted demo | 6 onward | Static artifact build, canonical asset checks, source revision validation, and deployed URL review |
 | Architectures | 4 and 8 | Multi-architecture image plus clean-Linux-host container smoke |
 | Release | 7–8 | `task release:check` and tag/version/changelog/image verification |
 

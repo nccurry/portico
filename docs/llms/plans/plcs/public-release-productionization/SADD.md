@@ -276,7 +276,7 @@ Split responsibilities without duplicating expensive work:
 - Container lane: build and run demo/live configuration smoke tests, inspect the runtime user and health check, and validate both amd64 and ARM64 manifests
 - Dependency automation: grouped routine updates with lockfile regeneration
 - Release workflow: tag/version consistency, release check, multi-architecture GHCR publish, GitHub Release
-- Pages workflow: browser compatibility test and GitHub Pages publish, or static gallery fallback
+- Pages workflow: build and publish the static gallery selected by the recorded compatibility test
 
 The release workflow publishes source through GitHub Releases and the runtime image through GHCR. It does not upload Python packages or deploy to any host.
 
@@ -374,8 +374,8 @@ GitHub Pages request
 - Documentation warns that link-readable Sheets and unauthenticated Streamlit are security boundaries, not convenience details.
 - Container smoke tests verify that secrets and local overrides are absent from the final filesystem.
 - The Pages artifact contains no secrets, live URLs, local settings, or user financial data.
-- Browser tests reject requests to Google Sheets and Discord.
-- The hosted demo does not accept uploads or persist browser data.
+- The Pages build copies only the tracked template, logo, and canonical screenshots.
+- The hosted gallery has no upload, saved-state, Google Sheets, or Discord path.
 
 ## 7. Test architecture
 
@@ -391,7 +391,7 @@ GitHub Pages request
 | Release | Version/tag match, changelog entry, license/community files, clean release check |
 | Privacy | Current tree, one-time pre-public history scan, fixture provenance, value-hiding column configs |
 | Container | Non-root user, locked runtime deps, health check, loopback host mapping, read-only secrets, and amd64/ARM64 manifests |
-| Browser demo | Pinned stlite startup, every-page smoke, Chrome and Firefox, network deny list, demo banner, cold-load timeout, and static fallback |
+| Browser demo | Recorded stlite startup failure, canonical gallery assets, safe revision values, and Pages workflow contract |
 
 ## 8. Decisions
 
@@ -410,7 +410,7 @@ GitHub Pages request
 | Live data providers | Google Sheets only | Keep the product focused; CSV remains synthetic demo/test infrastructure. |
 | Google access | Link-readable public URL | Match the personal-budget scope and current read-only workflow. Service accounts are intentionally unsupported. |
 | In-app auth | Deferred | Access control belongs at a private VPN or authenticated reverse proxy for this release. |
-| Hosted demo | Feasibility-gated stlite on GitHub Pages | Pages is static. stlite can run Python in WebAssembly, but Portico must pass every-page and privacy gates first. |
+| Hosted demo | Static gallery on GitHub Pages | The current stlite release cannot run the complete Portico app, so Pages shows canonical demo screenshots instead. |
 | Hosted fallback | Static screenshot gallery | A clear static site is better than a partial or broken interactive demo. |
 | Source authority | GitHub | The Pages workflow builds from the canonical repository and records the deployed commit. |
 
