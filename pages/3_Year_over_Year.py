@@ -17,7 +17,7 @@ from src.analysis.year_over_year import (
 from src.constants import COLOR_NET_WORTH
 from src.custom_types import YearOverYearSummary
 from src.page_helpers import render_data_refresh_controls
-from src.reporting_periods import completed_month_window, latest_data_timestamp
+from src.reporting_periods import latest_data_timestamp, rolling_month_window
 from src.spreadsheet import TransactionsSpreadsheet, load_transactions_data
 from src.value_visibility import mask_value, value_safe_altair_chart, value_safe_dataframe
 
@@ -302,16 +302,12 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
         st.info("No expense transactions are available.")
         return
 
-    _, complete_through = completed_month_window(
-        1,
-        transactions,
-        anchor_to_data=True,
-    )
-    cutoff = pd.Period(complete_through, freq="M")
-    analysis_transactions = transactions[transactions["Month"].astype(str) <= complete_through].copy()
+    _, current_through = rolling_month_window(1)
+    cutoff = pd.Period(current_through, freq="M")
+    analysis_transactions = transactions[transactions["Month"].astype(str) <= current_through].copy()
     latest = latest_data_timestamp(transactions)
     if latest is not None:
-        st.caption(f"Latest data {latest.strftime('%b %d, %Y')} · complete months through {cutoff.strftime('%b %Y')}")
+        st.caption(f"Latest data {latest.strftime('%b %d, %Y')} · includes {cutoff.strftime('%b %Y')} to date")
 
     controls = st.columns([3, 2], vertical_alignment="bottom")
     with controls[0]:

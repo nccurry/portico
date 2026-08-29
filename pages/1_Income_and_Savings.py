@@ -20,7 +20,7 @@ from src.constants import (
 from src.custom_types import SavingsSummary
 from src.filters import render_income_expense_filters
 from src.page_helpers import render_data_refresh_controls
-from src.reporting_periods import completed_month_window, current_month_string
+from src.reporting_periods import rolling_month_window
 from src.spreadsheet import TransactionsSpreadsheet, load_transactions_data
 from src.value_visibility import mask_value, value_safe_altair_chart, value_safe_dataframe
 
@@ -576,12 +576,8 @@ def configure_page(
         )
 
     lookback_months = LOOKBACK_MONTHS[lookback]
-    start_month, _ = completed_month_window(
-        lookback_months,
-        transactions,
-        anchor_to_data=True,
-    )
-    end_month = current_month_string(transactions, anchor_to_data=True)
+    start_month, current_month = rolling_month_window(lookback_months)
+    end_month = str(pd.Period(current_month, freq="M") + 1)
     ledger = build_income_expense_ledger(
         transactions,
         filters,
