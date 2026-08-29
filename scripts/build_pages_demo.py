@@ -37,12 +37,11 @@ def clean_output(output: Path) -> None:
     """Replace a prior build only inside its explicit output directory."""
     resolved = output.resolve()
     build_root = (PROJECT_ROOT / "build").resolve()
-    resolved.relative_to(build_root)
-    if resolved == build_root:
-        raise ValueError("The Pages output cannot be the build root")
-    if output.exists():
-        shutil.rmtree(output)
-    output.mkdir(parents=True)
+    if resolved == build_root or not resolved.is_relative_to(build_root):
+        raise ValueError("The Pages output must be inside the build directory")
+    if resolved.exists():
+        shutil.rmtree(resolved)
+    resolved.mkdir(parents=True)
 
 
 def build_gallery(output: Path, revision: str) -> None:

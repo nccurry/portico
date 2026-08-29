@@ -18,3 +18,7 @@ Portico uses Semantic Versioning. A stable `1.x` release keeps its documented se
    container publishing is added.
 
 Do not reuse or move a published version tag. If a release is bad, fix the problem and publish a new patch version.
+
+## Publish the demo gallery
+
+Before the first deployment, open the repository's **Settings > Pages** page and select **GitHub Actions** as the source. Each later push to `main` rebuilds and publishes the static gallery from the canonical logo and demo screenshots.
