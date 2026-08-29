@@ -25,7 +25,7 @@ from src.config import get_settings
 from src.custom_types import FIFilters, FISummary, TransactionFilterOptions
 from src.filters import apply_transaction_filters, render_fi_filters
 from src.page_helpers import render_data_refresh_controls
-from src.reporting_periods import completed_month_window, latest_data_timestamp
+from src.reporting_periods import latest_data_timestamp, rolling_month_window
 from src.spreadsheet import (
     BalanceHistorySpreadsheet,
     TransactionsSpreadsheet,
@@ -67,17 +67,6 @@ def _build_spending_filters(filters: FIFilters) -> TransactionFilterOptions:
         "filter_large_expenses": filters["filter_large_expenses"],
         "expense_threshold": filters["expense_threshold"],
     }
-
-
-def _spending_window_months(
-    lookback_months: int,
-    transactions_df: pd.DataFrame,
-) -> tuple[str, str]:
-    return completed_month_window(
-        lookback_months,
-        transactions_df,
-        anchor_to_data=True,
-    )
 
 
 def _set_scenario_defaults(portfolio_value: float, annual_spending: float) -> None:
@@ -502,10 +491,7 @@ def configure_page(
         balances_df,
         filters["include_accounts"],
     )
-    start_month, end_month = _spending_window_months(
-        filters["spending_lookback_months"],
-        transactions_df,
-    )
+    start_month, end_month = rolling_month_window(filters["spending_lookback_months"])
     available_months = transactions_df["Month"].dropna().astype(str)
     if not available_months.empty:
         start_month = max(start_month, str(available_months.min()))

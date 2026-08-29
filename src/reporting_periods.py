@@ -75,23 +75,9 @@ def calculate_date_range(
     return end - pd.DateOffset(months=3), end
 
 
-def completed_month_window(
-    lookback_months: int,
-    df: pd.DataFrame | None = None,
-    *,
-    anchor_to_data: bool = False,
-) -> tuple[str, str]:
-    """Return inclusive YYYY-MM bounds ending at the previous complete month."""
-    anchor = reporting_anchor(df, anchor_to_data=anchor_to_data)
-    end = anchor - pd.DateOffset(months=1)
-    start = anchor - pd.DateOffset(months=lookback_months)
+def rolling_month_window(lookback_months: int) -> tuple[str, str]:
+    """Return inclusive YYYY-MM bounds ending at the current month."""
+    anchor = reporting_anchor()
+    end = anchor
+    start = anchor - pd.DateOffset(months=lookback_months - 1)
     return start.strftime("%Y-%m"), end.strftime("%Y-%m")
-
-
-def current_month_string(
-    df: pd.DataFrame | None = None,
-    *,
-    anchor_to_data: bool = False,
-) -> str:
-    """Return the reporting anchor's month as ``YYYY-MM``."""
-    return reporting_anchor(df, anchor_to_data=anchor_to_data).strftime("%Y-%m")

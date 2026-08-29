@@ -55,15 +55,15 @@ def _edit_and_reset_regular_income(at: AppTest) -> None:
     next(button for button in at.button if button.label == "Reset defaults").click()
 
 
-def _select_empty_income_month_from_cash_chart(at: AppTest) -> None:
+def _select_may_income_month_from_cash_chart(at: AppTest) -> None:
     at.session_state["income_history_0"] = {
-        "selection": {"cash_month_pick": [{"Month_Key": "2025-04"}]},
+        "selection": {"cash_month_pick": [{"Month_Key": "2025-05"}]},
     }
 
 
-def _select_empty_income_month_from_rate_chart(at: AppTest) -> None:
+def _select_may_income_month_from_rate_chart(at: AppTest) -> None:
     at.session_state["income_history_0"] = {
-        "selection": {"rate_month_pick": [{"Month_Key": "2025-04"}]},
+        "selection": {"rate_month_pick": [{"Month_Key": "2025-05"}]},
     }
 
 
@@ -302,6 +302,9 @@ def _dataset_with_one_off_travel(
     travel["Group"] = "Travel"
     travel["Amount"] = -1_200.0
     travel["Full Description"] = "one-off travel"
+    latest = pd.to_datetime(transactions.scrubbed_df["Date"], utc=True).max()
+    travel["Date"] = latest
+    travel["Month"] = latest.strftime("%Y-%m")
     transactions.scrubbed_df = pd.concat(
         [transactions.scrubbed_df, travel],
         ignore_index=True,
@@ -321,6 +324,9 @@ def _dataset_with_non_discretionary_expenses(
     rows["Category"] = ["Given Gift", "Tax Return Payment"]
     rows["Amount"] = [-8_000.0, -7_000.0]
     rows["Full Description"] = ["gift test merchant", "tax test merchant"]
+    latest = pd.to_datetime(transactions.scrubbed_df["Date"], utc=True).max()
+    rows["Date"] = latest
+    rows["Month"] = latest.strftime("%Y-%m")
     transactions.scrubbed_df = pd.concat(
         [transactions.scrubbed_df, rows],
         ignore_index=True,
@@ -666,10 +672,10 @@ class TestIncomeAndSavingsSmoke:
         assert at.number_input(key="income_savings_target_rate").value == 20
 
         assert _metric_values(at)[:4] == [
-            ("Avg monthly income", "$4,583", ""),
-            ("Avg monthly spending", "$2,556", ""),
-            ("Avg monthly surplus", "$2,027", ""),
-            ("Savings rate", "44.2%", ""),
+            ("Avg monthly income", "$5,000", ""),
+            ("Avg monthly spending", "$2,777", ""),
+            ("Avg monthly surplus", "$2,223", ""),
+            ("Savings rate", "44.5%", ""),
         ]
 
         charts = at.get("vega_lite_chart")
@@ -710,13 +716,13 @@ class TestIncomeAndSavingsSmoke:
 
         month_detail = at.selectbox(key="income_detail_month")
         assert month_detail.label == "Month detail"
-        assert month_detail.value == "2026-03"
+        assert month_detail.value == "2026-04"
         assert [tab.label for tab in at.tabs] == [
-            "Included (10)",
+            "Included (9)",
             "Excluded (0)",
         ]
         included = _table_with_columns(at, {"Description", "Amount", "Category"})
-        assert len(included) == 10
+        assert len(included) == 9
         assert "Exclusion reason" not in included.columns
         monthly = _table_with_columns(at, {"Month", "Savings_Rate"})
         assert len(monthly) == 12
@@ -724,8 +730,8 @@ class TestIncomeAndSavingsSmoke:
     @pytest.mark.parametrize(
         "select_chart",
         [
-            _select_empty_income_month_from_cash_chart,
-            _select_empty_income_month_from_rate_chart,
+            _select_may_income_month_from_cash_chart,
+            _select_may_income_month_from_rate_chart,
         ],
         ids=["cash-flow", "savings-rate"],
     )
@@ -742,21 +748,19 @@ class TestIncomeAndSavingsSmoke:
         )
 
         assert not at.exception
-        assert at.selectbox(key="income_detail_month").value == "2025-04"
+        assert at.selectbox(key="income_detail_month").value == "2025-05"
         assert _metric_values(at)[4:] == [
-            ("Income", "$0", ""),
-            ("Spending", "$0", ""),
-            ("Net cash flow", "$0", ""),
-            ("Savings rate", "—", ""),
+            ("Income", "$5,000", ""),
+            ("Spending", "$2,270", ""),
+            ("Net cash flow", "$2,730", ""),
+            ("Savings rate", "54.6%", ""),
         ]
         assert [tab.label for tab in at.tabs] == [
-            "Included (0)",
+            "Included (5)",
             "Excluded (0)",
         ]
-        assert {
-            "No transactions are included for this month.",
-            "No transactions are excluded for this month.",
-        }.issubset({message.value for message in at.info})
+        included = _table_with_columns(at, {"Description", "Amount", "Category"})
+        assert len(included) == 5
 
     def test_three_month_selection_updates_metrics(
         self, make_full_dataset: FullDatasetFactory,
@@ -771,9 +775,9 @@ class TestIncomeAndSavingsSmoke:
         assert at.segmented_control(key="income_lookback").value == "3M"
         assert _metric_values(at)[:4] == [
             ("Avg monthly income", "$5,000", "$0 vs previous 3 months"),
-            ("Avg monthly spending", "$4,023", "+$1,603 vs previous 3 months"),
-            ("Avg monthly surplus", "$977", "-$1,603 vs previous 3 months"),
-            ("Savings rate", "19.5%", "-32.1 pts vs previous 3 months"),
+            ("Avg monthly spending", "$4,139", "+$1,763 vs previous 3 months"),
+            ("Avg monthly surplus", "$861", "-$1,763 vs previous 3 months"),
+            ("Savings rate", "17.2%", "-35.3 pts vs previous 3 months"),
         ]
         monthly = _table_with_columns(at, {"Month", "Savings_Rate"})
         assert len(monthly) == 3
@@ -803,13 +807,13 @@ class TestIncomeAndSavingsSmoke:
             key="income_actual_exclude_expense_categories"
         ).value == []
         assert _metric_values(at)[:4] == [
-            ("Avg monthly income", "$4,583", ""),
-            ("Avg monthly spending", "$2,656", ""),
-            ("Avg monthly surplus", "$1,927", ""),
-            ("Savings rate", "42.0%", ""),
+            ("Avg monthly income", "$5,000", ""),
+            ("Avg monthly spending", "$2,877", ""),
+            ("Avg monthly surplus", "$2,123", ""),
+            ("Savings rate", "42.5%", ""),
         ]
         assert [tab.label for tab in at.tabs] == [
-            "Included (11)",
+            "Included (10)",
             "Excluded (0)",
         ]
         included = _table_with_columns(at, {"Description", "Amount", "Category"})
@@ -834,13 +838,13 @@ class TestIncomeAndSavingsSmoke:
         assert not expense_groups.disabled
         assert expense_groups.value == []
         assert _metric_values(at)[:4] == [
-            ("Avg monthly income", "$4,583", ""),
-            ("Avg monthly spending", "$2,656", ""),
-            ("Avg monthly surplus", "$1,927", ""),
-            ("Savings rate", "42.0%", ""),
+            ("Avg monthly income", "$5,000", ""),
+            ("Avg monthly spending", "$2,877", ""),
+            ("Avg monthly surplus", "$2,123", ""),
+            ("Savings rate", "42.5%", ""),
         ]
         assert [tab.label for tab in at.tabs] == [
-            "Included (11)",
+            "Included (10)",
             "Excluded (0)",
         ]
         included = _table_with_columns(at, {"Description", "Amount", "Category"})
@@ -862,13 +866,13 @@ class TestIncomeAndSavingsSmoke:
             key="income_regular_exclude_expense_groups"
         ).value == ["Travel"]
         assert _metric_values(at)[:4] == [
-            ("Avg monthly income", "$4,583", ""),
-            ("Avg monthly spending", "$2,556", ""),
-            ("Avg monthly surplus", "$2,027", ""),
-            ("Savings rate", "44.2%", ""),
+            ("Avg monthly income", "$5,000", ""),
+            ("Avg monthly spending", "$2,777", ""),
+            ("Avg monthly surplus", "$2,223", ""),
+            ("Savings rate", "44.5%", ""),
         ]
         assert [tab.label for tab in at.tabs] == [
-            "Included (10)",
+            "Included (9)",
             "Excluded (1)",
         ]
 
@@ -959,13 +963,13 @@ class TestSpendingByCategorySmoke:
             ("Breakdown", "Category", ["Group", "Category"]),
         ]
         assert _metric_values(at) == [
-            ("Total spending", "$29,357", ""),
-            ("Average monthly", "$2,446", ""),
-            ("Change vs previous 12 months", "+$29,269", "+33392.9%"),
-            ("Spending", "$17,600", ""),
-            ("Average monthly", "$1,467", ""),
-            ("Share of view", "60.0%", ""),
-            ("Change vs previous 12 months", "+$17,600", "—"),
+            ("Total spending", "$31,883", ""),
+            ("Average monthly", "$2,657", ""),
+            ("Change vs previous 12 months", "+$31,795", "+36274.8%"),
+            ("Spending", "$19,200", ""),
+            ("Average monthly", "$1,600", ""),
+            ("Share of view", "60.2%", ""),
+            ("Change vs previous 12 months", "+$19,200", "—"),
         ]
         charts = at.get("vega_lite_chart")
         assert len(charts) == 3
@@ -990,13 +994,13 @@ class TestSpendingByCategorySmoke:
         )
         assert overview["Entity"].tolist() == [
             "Rent",
-            "Shopping",
             "Groceries",
+            "Shopping",
             "Restaurants",
             "Streaming Subscription",
             "Cloud Subscription",
         ]
-        assert overview["Spending"].sum() == pytest.approx(29_356.54)
+        assert overview["Spending"].sum() == pytest.approx(31_882.52)
 
     def test_group_selection_drives_composition_and_transactions(
         self, make_full_dataset: FullDatasetFactory,
@@ -1012,10 +1016,10 @@ class TestSpendingByCategorySmoke:
         assert at.session_state["spending_selected_group"] == "Food"
         assert "Food" in [subheader.value for subheader in at.subheader]
         assert _metric_values(at)[3:] == [
-            ("Spending", "$6,637", ""),
-            ("Average monthly", "$553", ""),
-            ("Share of view", "22.6%", ""),
-            ("Change vs previous 12 months", "+$6,549", "+7471.7%"),
+            ("Spending", "$7,537", ""),
+            ("Average monthly", "$628", ""),
+            ("Share of view", "23.6%", ""),
+            ("Change vs previous 12 months", "+$7,449", "+8498.6%"),
         ]
         categories = at.dataframe[1].value
         assert categories["Entity"].tolist() == ["Groceries", "Restaurants"]
@@ -1111,7 +1115,7 @@ class TestSpendingByCategorySmoke:
         )
 
         assert not default_at.exception
-        assert _metric_values(default_at)[0] == ("Total spending", "$29,357", "")
+        assert _metric_values(default_at)[0] == ("Total spending", "$31,883", "")
         overview = next(
             table.value
             for table in default_at.dataframe
@@ -1142,7 +1146,7 @@ class TestSpendingByCategorySmoke:
             if str(table.key).startswith("spending_overview_")
         )
         assert {"Given Gift", "Tax Return Payment"} <= set(all_overview["Entity"])
-        assert _metric_values(all_at)[0] == ("Total spending", "$45,677", "")
+        assert _metric_values(all_at)[0] == ("Total spending", "$48,323", "")
 
 
 @pytest.mark.uses_real_dates
@@ -1176,9 +1180,9 @@ class TestYearOverYearSmoke:
         assert not at.selectbox
         assert not at.tabs
         assert _metric_values(at) == [
-            ("2026 through March", "$360", ""),
-            ("2025 through March", "$0", ""),
-            ("Change", "+$360", ""),
+            ("2026 through April", "$480", ""),
+            ("2025 through April", "$0", ""),
+            ("Change", "+$480", ""),
         ]
 
         charts = at.get("vega_lite_chart")
@@ -1451,13 +1455,13 @@ class TestMerchantAnalysisSmoke:
         assert not at.exception
         assert at.header[0].value == "Spending by Merchant"
         assert _metric_values(at) == [
-            ("Total spending", "$29,357", ""),
-            ("Average monthly", "$2,446", ""),
-            ("Merchants", "8", ""),
-            ("At repeat merchants", "99.7%", ""),
-            ("Spending", "$17,600", ""),
-            ("Change vs previous 12 months", "+$17,600", "—"),
-            ("Transactions", "11", ""),
+            ("Total spending", "$31,883", ""),
+            ("Average monthly", "$2,657", ""),
+            ("Merchants", "10", ""),
+            ("At repeat merchants", "98.6%", ""),
+            ("Spending", "$19,200", ""),
+            ("Change vs previous 12 months", "+$19,200", "—"),
+            ("Transactions", "12", ""),
             ("Average purchase", "$1,600", ""),
         ]
         assert at.segmented_control(key="merchant_lookback").value == "1Y"
@@ -1572,7 +1576,7 @@ class TestMerchantAnalysisSmoke:
             for table in at.dataframe
             if str(table.key).startswith("merchant_overview_")
         )
-        assert len(overview) == 8
+        assert len(overview) == 10
         assert "MARKET BASKET STAPLES" in overview["Merchant"].values
 
     def test_all_spending_view_restores_excluded_merchants(
@@ -1588,10 +1592,10 @@ class TestMerchantAnalysisSmoke:
         assert not at.exception
         assert at.segmented_control(key="merchant_view").value == "All spending"
         assert _metric_values(at)[:4] == [
-            ("Total spending", "$30,677", ""),
-            ("Average monthly", "$2,556", ""),
-            ("Merchants", "9", ""),
-            ("At repeat merchants", "99.7%", ""),
+            ("Total spending", "$33,323", ""),
+            ("Average monthly", "$2,777", ""),
+            ("Merchants", "11", ""),
+            ("At repeat merchants", "98.7%", ""),
         ]
 
     def test_discretionary_filters_are_editable_in_place(
@@ -1625,7 +1629,7 @@ class TestMerchantAnalysisSmoke:
         )
 
         assert not default_at.exception
-        assert _metric_values(default_at)[0] == ("Total spending", "$29,357", "")
+        assert _metric_values(default_at)[0] == ("Total spending", "$31,883", "")
         overview = next(
             table.value
             for table in default_at.dataframe
@@ -1650,7 +1654,7 @@ class TestMerchantAnalysisSmoke:
         assert {"GIFT TEST MERCHANT", "TAX TEST MERCHANT"} <= set(
             all_overview["Merchant"]
         )
-        assert _metric_values(all_at)[0] == ("Total spending", "$45,677", "")
+        assert _metric_values(all_at)[0] == ("Total spending", "$48,323", "")
 
 
 @pytest.mark.uses_real_dates
@@ -1997,14 +2001,14 @@ class TestFinancialIndependenceSmoke:
         )
         assert not at.exception
         assert _metric_values(at) == [
-            ("Runway", "30.4 years", "Until portfolio reaches $0"),
-            ("Annual gap", "-$3,923", "Annual shortfall"),
+            ("Runway", "24.0 years", "Until portfolio reaches $0"),
+            ("Annual gap", "-$6,569", "Annual shortfall"),
             (
                 "Net portfolio spending",
-                "$30,677",
+                "$33,323",
                 "$15,288 supported at withdrawal rate",
             ),
-            ("FI target", "$766,925", "$384,725 still needed"),
+            ("FI target", "$833,075", "$450,875 still needed"),
         ]
         assert at.header[0].value == "Financial independence"
         assert len(at.get("popover")) == 1
@@ -2016,7 +2020,7 @@ class TestFinancialIndependenceSmoke:
             if str(widget.key).startswith("fi_scenario_")
         ] == [
             ("Investable assets", 382_200.0),
-            ("Annual spending", 30_677.0),
+            ("Annual spending", 33_323.0),
             ("Annual earned income", 0.0),
             ("Expected real return (%)", 7.0),
             ("Withdrawal rate (%)", 4.0),
