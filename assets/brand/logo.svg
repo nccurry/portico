@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="title desc" shape-rendering="geometricPrecision">
+  <title id="title">Tiller Streamlit logo</title>
+  <desc id="desc">A faceted bank roof sits above three ascending budget bars.</desc>
+
+  <rect x="16" y="16" width="224" height="224" rx="48" fill="#0A0D12"/>
+  <rect x="16" y="16" width="224" height="224" rx="48" fill="none" stroke="#2A3441" stroke-width="4"/>
+
+  <path d="M40 104 128 40v64H40Z" fill="#8AB9F2"/>
+  <path d="m128 40 88 64h-88V40Z" fill="#4777B2"/>
+  <path d="M40 104h176l-16 20H56l-16-20Z" fill="#70A5EB"/>
+  <path d="M128 104h88l-16 20h-72v-20Z" fill="#396397"/>
+
+  <rect x="68" y="148" width="28" height="40" rx="4" fill="#57CC57"/>
+  <path d="M88 148h8v40h-8Z" fill="#319B43"/>
+  <rect x="114" y="136" width="28" height="52" rx="4" fill="#70A5EB"/>
+  <path d="M134 136h8v52h-8Z" fill="#4777B2"/>
+  <rect x="160" y="124" width="28" height="64" rx="4" fill="#F2B84B"/>
+  <path d="M180 124h8v64h-8Z" fill="#C98722"/>
+
+  <path d="M48 188h160l16 20H32l16-20Z" fill="#70A5EB"/>
+  <path d="M128 188h80l16 20h-96v-20Z" fill="#396397"/>
+  <circle cx="128" cy="88" r="10" fill="#F2B84B"/>
+  <path d="M128 78a10 10 0 0 1 0 20V78Z" fill="#C98722"/>
+</svg>
