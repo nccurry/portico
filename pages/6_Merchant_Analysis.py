@@ -22,7 +22,7 @@ from src.constants import COLOR_NET_WORTH, COLOR_PLACEHOLDER
 from src.custom_types import ColumnConfig
 from src.filters import render_spending_filters
 from src.page_helpers import configured_merchant_aliases, render_data_refresh_controls
-from src.reporting_periods import completed_month_window, latest_data_timestamp
+from src.reporting_periods import latest_data_timestamp, rolling_month_window
 from src.spreadsheet import TransactionsSpreadsheet, load_transactions_data
 from src.value_visibility import mask_value, value_safe_altair_chart, value_safe_dataframe
 
@@ -64,16 +64,11 @@ def _month_sequence(start_month: str, end_month: str) -> list[str]:
 
 
 def _analysis_periods(
-    transactions: pd.DataFrame,
     *,
     lookback_months: int,
     comparison: str,
 ) -> tuple[list[str], list[str], str, str, str, str]:
-    current_start, current_last = completed_month_window(
-        lookback_months,
-        transactions,
-        anchor_to_data=True,
-    )
+    current_start, current_last = rolling_month_window(lookback_months)
     current_end = str(pd.Period(current_last, freq="M") + 1)
     current_months = _month_sequence(current_start, current_end)
     if comparison == "Previous period":
@@ -480,7 +475,6 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
         comparison_start,
         comparison_end,
     ) = _analysis_periods(
-        transactions,
         lookback_months=lookback_months,
         comparison=str(comparison),
     )
