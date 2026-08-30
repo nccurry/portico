@@ -68,18 +68,16 @@ financial records.
 
 ## Try the demo
 
-Install Docker Engine. Then clone the repository and start the demo:
+Install Docker Engine. Then pull the latest release and start the demo:
 
 ```console
-git clone https://github.com/nccurry/portico.git
-cd portico
-docker build --tag portico:local .
+docker pull ghcr.io/nccurry/portico:latest
 docker run --rm --init --name portico \
   --read-only --tmpfs /tmp:size=64m,mode=1777 \
   --cap-drop ALL --security-opt no-new-privileges:true \
   --env PORTICO_DATA_SOURCE=demo \
   --publish 127.0.0.1:8501:8501 \
-  portico:local
+  ghcr.io/nccurry/portico:latest
 ```
 
 Open <http://127.0.0.1:8501>. The demo accepts connections only from the local
@@ -91,6 +89,13 @@ Press `Ctrl+C` to stop the demo.
 
 Google Sheets is the only supported live data source. No service account is
 required.
+
+Clone the repository to get the configuration and secrets templates:
+
+```console
+git clone https://github.com/nccurry/portico.git
+cd portico
+```
 
 ### Prepare the workbook
 
@@ -129,15 +134,15 @@ Never commit `.streamlit/secrets.toml`. Git ignores this file by default.
 
 ### Check and start Portico
 
-Build the image and check the workbook:
+Pull the latest image and check the workbook:
 
 ```console
-docker build --tag portico:local .
+docker pull ghcr.io/nccurry/portico:latest
 docker run --rm \
   --env PORTICO_DATA_SOURCE=google_sheets \
   --mount "type=bind,source=$(pwd)/config,target=/app/config,readonly" \
   --mount "type=bind,source=$(pwd)/.streamlit/secrets.toml,target=/app/.streamlit/secrets.toml,readonly" \
-  portico:local python -m scripts.doctor
+  ghcr.io/nccurry/portico:latest python -m scripts.doctor
 ```
 
 The check reads each sheet and validates its basic structure. It does not print
@@ -156,7 +161,7 @@ docker run --detach --init --name portico --restart unless-stopped \
   --mount "type=bind,source=$(pwd)/.streamlit/secrets.toml,target=/app/.streamlit/secrets.toml,readonly" \
   --mount "type=volume,source=portico-state,target=/app/.local" \
   --publish 127.0.0.1:8501:8501 \
-  portico:local
+  ghcr.io/nccurry/portico:latest
 ```
 
 Open <http://127.0.0.1:8501>.
@@ -230,12 +235,14 @@ docker rm portico
 Update Portico:
 
 ```console
-git pull --ff-only
-docker build --tag portico:local .
+docker pull ghcr.io/nccurry/portico:latest
 docker stop portico
 docker rm portico
 # Run the same docker run command from the setup section.
 ```
+
+Use `ghcr.io/nccurry/portico:1.0.0` instead of `latest` when you want to pin an
+exact release.
 
 Portico stores configuration and secrets on the host. The `portico-state`
 volume records successful Discord delivery periods so an update does not send a
