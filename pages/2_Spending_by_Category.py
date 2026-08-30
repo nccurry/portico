@@ -688,6 +688,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
             "Time frame",
             list(LOOKBACK_MONTHS),
             default="1Y",
+            required=True,
             key="spending_lookback",
             persist_state="page",
         )
@@ -696,6 +697,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
             "View",
             SPENDING_VIEWS,
             default="Discretionary",
+            required=True,
             key="spending_view",
             persist_state="page",
         )
@@ -704,6 +706,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
             "Compare with",
             COMPARISON_VIEWS,
             default="Previous period",
+            required=True,
             key="spending_comparison",
             persist_state="page",
         )
@@ -760,6 +763,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
             "Breakdown",
             BREAKDOWNS,
             default="Category",
+            required=True,
             key="spending_breakdown",
             persist_state="page",
         )
