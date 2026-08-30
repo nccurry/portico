@@ -73,20 +73,11 @@ def spending_preset_categories(
             lambda value: any(term in value for term in UTILITY_CATEGORY_TERMS)
         )
     elif preset == "Discretionary spending":
-        mask = group_lower.apply(
-            lambda value: any(term in value for term in DISCRETIONARY_GROUP_TERMS)
-        ) | (
+        mask = group_lower.apply(lambda value: any(term in value for term in DISCRETIONARY_GROUP_TERMS)) | (
             group_lower.eq("food")
-            & category_lower.apply(
-                lambda value: any(
-                    term in value for term in DISCRETIONARY_FOOD_TERMS
-                )
-            )
+            & category_lower.apply(lambda value: any(term in value for term in DISCRETIONARY_FOOD_TERMS))
         )
-        excluded_categories = {
-            category.casefold()
-            for category in get_settings().spending.exclude_categories
-        }
+        excluded_categories = {category.casefold() for category in get_settings().spending.exclude_categories}
         mask &= ~category_lower.isin(excluded_categories)
     else:
         raise ValueError(f"Unsupported year-over-year preset: {preset}")
@@ -141,11 +132,15 @@ def build_year_over_year_history(
     if dimension not in {"Group", "Category"}:
         raise ValueError(f"Unsupported year-over-year dimension: {dimension}")
 
-    coverage_dates = pd.to_datetime(
-        transactions["Date"],
-        errors="coerce",
-        utc=True,
-    ).dt.tz_convert(None).dropna()
+    coverage_dates = (
+        pd.to_datetime(
+            transactions["Date"],
+            errors="coerce",
+            utc=True,
+        )
+        .dt.tz_convert(None)
+        .dropna()
+    )
     expenses = _prepared_expenses(transactions)
     selected = expenses[expenses[dimension].astype(str).eq(entity)]
     if selected.empty or coverage_dates.empty:
@@ -162,14 +157,16 @@ def build_year_over_year_history(
         for month in range(1, 13):
             period = pd.Period(year=year, month=month, freq="M")
             if coverage_start <= period <= coverage_end:
-                rows.append({
-                    "Year": year,
-                    "Year_Label": str(year),
-                    "Month": month,
-                    "Month_Label": calendar.month_abbr[month],
-                    "Spending": float(monthly.get((year, month), 0.0)),
-                    "Is_Current": year == current_year,
-                })
+                rows.append(
+                    {
+                        "Year": year,
+                        "Year_Label": str(year),
+                        "Month": month,
+                        "Month_Label": calendar.month_abbr[month],
+                        "Spending": float(monthly.get((year, month), 0.0)),
+                        "Is_Current": year == current_year,
+                    }
+                )
     return pd.DataFrame(rows, columns=HISTORY_COLUMNS)
 
 
@@ -192,9 +189,7 @@ def build_year_totals(
     prior = totals["Spending_Through_Month"].shift(1)
     totals["Change_Pct"] = totals["Change"].div(prior.abs()).mul(100)
     totals.loc[prior.eq(0), "Change_Pct"] = pd.NA
-    return totals[TOTAL_COLUMNS].sort_values("Year", ascending=False).reset_index(
-        drop=True
-    )
+    return totals[TOTAL_COLUMNS].sort_values("Year", ascending=False).reset_index(drop=True)
 
 
 def summarize_year_over_year(
@@ -215,9 +210,7 @@ def summarize_year_over_year(
         )
     current_year = int(history["Year"].max())
     totals = build_year_totals(history, through_month=through_month).set_index("Year")
-    current_total = float(
-        cast(float, totals.loc[current_year, "Spending_Through_Month"])
-    )
+    current_total = float(cast(float, totals.loc[current_year, "Spending_Through_Month"]))
     previous_year = current_year - 1
     if previous_year not in totals.index:
         return YearOverYearSummary(
@@ -229,9 +222,7 @@ def summarize_year_over_year(
             change_pct=None,
             through_month=through_month,
         )
-    previous_total = float(
-        cast(float, totals.loc[previous_year, "Spending_Through_Month"])
-    )
+    previous_total = float(cast(float, totals.loc[previous_year, "Spending_Through_Month"]))
     change = current_total - previous_total
     return YearOverYearSummary(
         current_year=current_year,

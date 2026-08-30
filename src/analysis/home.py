@@ -59,11 +59,13 @@ def build_net_worth_history(
         assets = assets.add(asset_values, fill_value=0.0)
         liabilities = liabilities.add(liability_values, fill_value=0.0)
 
-    history = pd.DataFrame({
-        "Date": dates,
-        "Assets": assets.to_numpy(),
-        "Liabilities": liabilities.to_numpy(),
-    })
+    history = pd.DataFrame(
+        {
+            "Date": dates,
+            "Assets": assets.to_numpy(),
+            "Liabilities": liabilities.to_numpy(),
+        }
+    )
     history["Net_Worth"] = history["Assets"] + history["Liabilities"]
     return history.reset_index(drop=True)
 
@@ -110,31 +112,25 @@ def build_balance_group_inventory(
         classes = set(group_rows["_Class"])
         group_type = classes.pop() if len(classes) == 1 else "Mixed"
         net_contribution = float(group_rows["_Contribution"].sum())
-        opening_contribution = float(
-            group_rows["_Account_Key"].map(opening_contributions).fillna(0.0).sum()
-        )
+        opening_contribution = float(group_rows["_Account_Key"].map(opening_contributions).fillna(0.0).sum())
         period_change = net_contribution - opening_contribution
         period_change_pct = (
-            period_change / abs(opening_contribution) * 100
-            if abs(opening_contribution) > 0.01
-            else float("nan")
+            period_change / abs(opening_contribution) * 100 if abs(opening_contribution) > 0.01 else float("nan")
         )
-        balance = (
-            float(group_rows["_Magnitude"].sum())
-            if group_type != "Mixed"
-            else abs(net_contribution)
+        balance = float(group_rows["_Magnitude"].sum()) if group_type != "Mixed" else abs(net_contribution)
+        records.append(
+            {
+                "Group": group_name,
+                "Type": group_type,
+                "Balance": balance,
+                "Net_Contribution": net_contribution,
+                "Period_Change": period_change,
+                "Period_Change_Pct": period_change_pct,
+                "Last_Updated": group_rows["Date"].max(),
+                "Account_Count": int(group_rows["_Account_Key"].nunique()),
+                "Trend": weekly_by_group[group_name],
+            }
         )
-        records.append({
-            "Group": group_name,
-            "Type": group_type,
-            "Balance": balance,
-            "Net_Contribution": net_contribution,
-            "Period_Change": period_change,
-            "Period_Change_Pct": period_change_pct,
-            "Last_Updated": group_rows["Date"].max(),
-            "Account_Count": int(group_rows["_Account_Key"].nunique()),
-            "Trend": weekly_by_group[group_name],
-        })
 
     return pd.DataFrame.from_records(records, columns=BALANCE_GROUP_COLUMNS)
 
@@ -169,9 +165,7 @@ def build_account_inventory(
     current["Class"] = current["_Class"]
     current["Balance"] = current["_Magnitude"]
     current["Net_Contribution"] = current["_Contribution"]
-    current["Period_Change"] = current["_Contribution"] - current["_Account_Key"].map(
-        opening_contributions
-    ).fillna(0.0)
+    current["Period_Change"] = current["_Contribution"] - current["_Account_Key"].map(opening_contributions).fillna(0.0)
     current["Last_Updated"] = current["Date"]
     return (
         current.filter(ACCOUNT_INVENTORY_COLUMNS)
@@ -209,9 +203,7 @@ def _prepare_balances(balance_history_df: pd.DataFrame) -> pd.DataFrame:
         account_ids.notna() & account_ids.ne(""),
         account_names,
     )
-    balances = balances[
-        balances["_Account_Key"].notna() & balances["_Account_Key"].ne("")
-    ]
+    balances = balances[balances["_Account_Key"].notna() & balances["_Account_Key"].ne("")]
 
     if "Time" in balances:
         times = pd.to_datetime(balances["Time"], errors="coerce", utc=True)
@@ -236,45 +228,47 @@ def _latest_accounts_as_of(
 def _as_utc(value: pd.Timestamp) -> pd.Timestamp:
     """Normalize a timestamp to UTC."""
     timestamp = pd.Timestamp(value)
-    return (
-        timestamp.tz_localize("UTC")
-        if timestamp.tzinfo is None
-        else timestamp.tz_convert("UTC")
-    )
+    return timestamp.tz_localize("UTC") if timestamp.tzinfo is None else timestamp.tz_convert("UTC")
 
 
 def _empty_net_worth_history() -> pd.DataFrame:
-    return pd.DataFrame({
-        "Date": pd.Series(dtype="datetime64[ns, UTC]"),
-        "Assets": pd.Series(dtype=float),
-        "Liabilities": pd.Series(dtype=float),
-        "Net_Worth": pd.Series(dtype=float),
-    })
+    return pd.DataFrame(
+        {
+            "Date": pd.Series(dtype="datetime64[ns, UTC]"),
+            "Assets": pd.Series(dtype=float),
+            "Liabilities": pd.Series(dtype=float),
+            "Net_Worth": pd.Series(dtype=float),
+        }
+    )
 
 
 def _empty_balance_group_inventory() -> pd.DataFrame:
-    return pd.DataFrame({
-        "Group": pd.Series(dtype=str),
-        "Type": pd.Series(dtype=str),
-        "Balance": pd.Series(dtype=float),
-        "Net_Contribution": pd.Series(dtype=float),
-        "Period_Change": pd.Series(dtype=float),
-        "Period_Change_Pct": pd.Series(dtype=float),
-        "Last_Updated": pd.Series(dtype="datetime64[ns, UTC]"),
-        "Account_Count": pd.Series(dtype=int),
-        "Trend": pd.Series(dtype=object),
-    })
+    return pd.DataFrame(
+        {
+            "Group": pd.Series(dtype=str),
+            "Type": pd.Series(dtype=str),
+            "Balance": pd.Series(dtype=float),
+            "Net_Contribution": pd.Series(dtype=float),
+            "Period_Change": pd.Series(dtype=float),
+            "Period_Change_Pct": pd.Series(dtype=float),
+            "Last_Updated": pd.Series(dtype="datetime64[ns, UTC]"),
+            "Account_Count": pd.Series(dtype=int),
+            "Trend": pd.Series(dtype=object),
+        }
+    )
 
 
 def _empty_account_inventory() -> pd.DataFrame:
-    return pd.DataFrame({
-        "Group": pd.Series(dtype=str),
-        "Account": pd.Series(dtype=str),
-        "Institution": pd.Series(dtype=str),
-        "Type": pd.Series(dtype=str),
-        "Class": pd.Series(dtype=str),
-        "Balance": pd.Series(dtype=float),
-        "Net_Contribution": pd.Series(dtype=float),
-        "Period_Change": pd.Series(dtype=float),
-        "Last_Updated": pd.Series(dtype="datetime64[ns, UTC]"),
-    })
+    return pd.DataFrame(
+        {
+            "Group": pd.Series(dtype=str),
+            "Account": pd.Series(dtype=str),
+            "Institution": pd.Series(dtype=str),
+            "Type": pd.Series(dtype=str),
+            "Class": pd.Series(dtype=str),
+            "Balance": pd.Series(dtype=float),
+            "Net_Contribution": pd.Series(dtype=float),
+            "Period_Change": pd.Series(dtype=float),
+            "Last_Updated": pd.Series(dtype="datetime64[ns, UTC]"),
+        }
+    )

@@ -22,8 +22,8 @@ from tests._helpers import _df_from_rows, _make_row
 # calculate_date_range tests
 # ---------------------------------------------------------------------------
 
-class TestCalculateDateRange:
 
+class TestCalculateDateRange:
     def test_this_month(self) -> None:
         start, end = calculate_date_range("This Month")
         now = pd.Timestamp.now(tz="UTC")
@@ -64,12 +64,14 @@ class TestCalculateDateRange:
         assert abs((end - now).total_seconds()) < 2
 
     def test_all_time_with_df(self) -> None:
-        df = pd.DataFrame({
-            "Date": [
-                pd.Timestamp("2020-03-15", tz="UTC"),
-                pd.Timestamp("2023-07-01", tz="UTC"),
-            ]
-        })
+        df = pd.DataFrame(
+            {
+                "Date": [
+                    pd.Timestamp("2020-03-15", tz="UTC"),
+                    pd.Timestamp("2023-07-01", tz="UTC"),
+                ]
+            }
+        )
         start, end = calculate_date_range("All Time", df=df)
         assert start == pd.Timestamp("2020-03-15", tz="UTC")
         now = pd.Timestamp.now(tz="UTC")
@@ -88,8 +90,8 @@ class TestCalculateDateRange:
 # apply_transaction_filters tests
 # ---------------------------------------------------------------------------
 
-class TestApplyTransactionFilters:
 
+class TestApplyTransactionFilters:
     def test_always_excludes_transfer(self, scrubbed_transactions_df: pd.DataFrame) -> None:
         """Transfer group rows are always removed, even with empty filters."""
         # Add a Transfer row to the fixture data
@@ -147,9 +149,9 @@ class TestApplyTransactionFilters:
     def test_filter_large_expenses(self) -> None:
         """Expenses above the threshold are removed; income is unaffected."""
         df = _df_from_rows(
-            _make_row("2024-01-01", "Small",  -100.0, "Food",     "Expense"),
-            _make_row("2024-01-02", "Big",   -5000.0, "Shopping", "Expense"),
-            _make_row("2024-01-03", "Pay",    4000.0, "Income",   "Income"),
+            _make_row("2024-01-01", "Small", -100.0, "Food", "Expense"),
+            _make_row("2024-01-02", "Big", -5000.0, "Shopping", "Expense"),
+            _make_row("2024-01-03", "Pay", 4000.0, "Income", "Income"),
         )
         filters: TransactionFilterOptions = {"filter_large_expenses": True, "expense_threshold": 1000}
         result = apply_transaction_filters(df, filters)
@@ -161,9 +163,9 @@ class TestApplyTransactionFilters:
     def test_filter_large_income(self) -> None:
         """Income above the threshold is removed; expenses are unaffected."""
         df = _df_from_rows(
-            _make_row("2024-01-01", "Salary", 3000.0,  "Income", "Income"),
-            _make_row("2024-01-02", "Bonus",  25000.0, "Income", "Income"),
-            _make_row("2024-01-03", "Lunch",  -15.0,   "Food",   "Expense"),
+            _make_row("2024-01-01", "Salary", 3000.0, "Income", "Income"),
+            _make_row("2024-01-02", "Bonus", 25000.0, "Income", "Income"),
+            _make_row("2024-01-03", "Lunch", -15.0, "Food", "Expense"),
         )
         filters: TransactionFilterOptions = {"filter_large_income": True, "income_threshold": 10000}
         result = apply_transaction_filters(df, filters)
@@ -206,7 +208,7 @@ class TestApplyTransactionFilters:
             _make_row("2024-01-02", "Mystery", -25.0, None, "Expense"),
         )
         # Set the Group to actual NaN (not the string "None")
-        df.loc[1, "Group"] = float('nan')
+        df.loc[1, "Group"] = float("nan")
         result = apply_transaction_filters(df, {})
         # NaN != "Transfer" evaluates to True, so the row is kept
         assert len(result) == 2
@@ -218,7 +220,7 @@ class TestApplyTransactionFilters:
             _make_row("2024-01-01", "Normal", -50.0, "Food", "Expense"),
             _make_row("2024-01-02", "BigMystery", -99999.0, "Food", None),
         )
-        df.loc[1, "Type"] = float('nan')
+        df.loc[1, "Type"] = float("nan")
         filters: TransactionFilterOptions = {"filter_large_expenses": True, "expense_threshold": 1000}
         result = apply_transaction_filters(df, filters)
         # NaN Type != "Expense" is True, so the OR short-circuits and the row is kept
@@ -229,7 +231,7 @@ class TestApplyTransactionFilters:
         but Type != 'Expense' is False, so the whole condition is False and the row is dropped."""
         df = _df_from_rows(
             _make_row("2024-01-01", "Normal", -50.0, "Food", "Expense"),
-            _make_row("2024-01-02", "NanAmount", float('nan'), "Food", "Expense"),
+            _make_row("2024-01-02", "NanAmount", float("nan"), "Food", "Expense"),
         )
         filters: TransactionFilterOptions = {"filter_large_expenses": True, "expense_threshold": 1000}
         result = apply_transaction_filters(df, filters)
@@ -243,7 +245,7 @@ class TestApplyTransactionFilters:
             _make_row("2024-01-01", "Groceries", -50.0, "Food", "Expense"),
             _make_row("2024-01-02", None, -25.0, "Food", "Expense"),
         )
-        df.loc[1, "Category"] = float('nan')
+        df.loc[1, "Category"] = float("nan")
         filters: TransactionFilterOptions = {"include_categories": ["Groceries"]}
         result = apply_transaction_filters(df, filters)
         assert len(result) == 1
@@ -348,7 +350,7 @@ class TestApplyTransactionFilters:
         abs(NaN) <= threshold is False → row dropped."""
         df = _df_from_rows(
             _make_row("2024-01-01", "Pay", 3000.0, "Income", "Income"),
-            _make_row("2024-01-02", "NanPay", float('nan'), "Income", "Income"),
+            _make_row("2024-01-02", "NanPay", float("nan"), "Income", "Income"),
         )
         filters: TransactionFilterOptions = {"filter_large_income": True, "income_threshold": 10000}
         result = apply_transaction_filters(df, filters)
@@ -403,9 +405,7 @@ def _mock_filter_widgets(mock_st: MagicMock) -> None:
     mock_st.number_input.side_effect = lambda *args, **kwargs: mock_st.session_state.get(
         kwargs.get("key"), kwargs.get("value", 20)
     )
-    mock_st.selectbox.side_effect = (
-        lambda *args, **kwargs: kwargs["options"][kwargs["index"]]
-    )
+    mock_st.selectbox.side_effect = lambda *args, **kwargs: kwargs["options"][kwargs["index"]]
 
 
 class TestPageFilterDefaults:
@@ -441,16 +441,12 @@ class TestPageFilterDefaults:
             )
 
         assert result["exclude_groups"] == ["Travel", "Donations"]
-        assert set(result["exclude_income_categories"]) == set(
-            income_categories
-        ) - {
+        assert set(result["exclude_income_categories"]) == set(income_categories) - {
             "Paycheck",
             "401k",
             "HSA",
         }
-        assert set(result["exclude_expense_categories"]) == set(
-            expense_categories
-        ) - {
+        assert set(result["exclude_expense_categories"]) == set(expense_categories) - {
             "Groceries",
         }
         assert "exclude_categories" not in result
@@ -509,11 +505,13 @@ class TestPageFilterDefaults:
     def test_income_regular_view_uses_editable_widget_values(self) -> None:
         with patch("src.filters.st") as mock_st:
             _mock_filter_widgets(mock_st)
-            mock_st.session_state.update({
-                "income_regular_exclude_income_categories": ["RSU"],
-                "income_regular_exclude_expense_groups": [],
-                "income_regular_exclude_expense_categories": ["Home Repairs"],
-            })
+            mock_st.session_state.update(
+                {
+                    "income_regular_exclude_income_categories": ["RSU"],
+                    "income_regular_exclude_expense_groups": [],
+                    "income_regular_exclude_expense_categories": ["Home Repairs"],
+                }
+            )
             result = render_income_expense_filters(
                 ["Salary", "RSU"],
                 ["Groceries", "Home Repairs"],
@@ -534,14 +532,8 @@ class TestPageFilterDefaults:
         )
         mock_st.markdown.assert_not_called()
         mock_st.write.assert_not_called()
-        assert all(
-            call.kwargs["persist_state"] == "page"
-            for call in mock_st.multiselect.call_args_list
-        )
-        assert all(
-            call.kwargs["persist_state"] == "page"
-            for call in mock_st.toggle.call_args_list
-        )
+        assert all(call.kwargs["persist_state"] == "page" for call in mock_st.multiselect.call_args_list)
+        assert all(call.kwargs["persist_state"] == "page" for call in mock_st.toggle.call_args_list)
         mock_st.button.assert_called_once()
 
     def test_spending_all_view_defaults_to_no_exclusions(self) -> None:
@@ -590,10 +582,7 @@ class TestPageFilterDefaults:
             "Tax Return Payment",
         ]
         assert result["filter_large_expenses"] is False
-        assert all(
-            call.kwargs["persist_state"] == "page"
-            for call in mock_st.multiselect.call_args_list
-        )
+        assert all(call.kwargs["persist_state"] == "page" for call in mock_st.multiselect.call_args_list)
         mock_st.button.assert_called_once()
 
     def test_spending_modified_preset_is_visible(self) -> None:

@@ -26,12 +26,14 @@ def _transactions(rows: list[dict[str, object]]) -> pd.DataFrame:
 
 
 def test_spending_entities_are_expense_only_and_sorted() -> None:
-    transactions = _transactions([
-        {"Category": "Water"},
-        {"Category": "Electric"},
-        {"Category": "Salary", "Type": "Income", "Group": "Income"},
-        {"Category": "  "},
-    ])
+    transactions = _transactions(
+        [
+            {"Category": "Water"},
+            {"Category": "Electric"},
+            {"Category": "Salary", "Type": "Income", "Group": "Income"},
+            {"Category": "  "},
+        ]
+    )
 
     assert spending_entities(transactions, "Category") == ["Electric", "Water"]
     assert spending_entities(transactions, "Group") == ["Bills"]
@@ -43,12 +45,14 @@ def test_spending_entities_rejects_unknown_dimension() -> None:
 
 
 def test_utility_bill_preset_uses_bill_group_and_utility_names() -> None:
-    transactions = _transactions([
-        {"Category": "Electric", "Amount": -300.0},
-        {"Category": "Water Bill", "Amount": -100.0},
-        {"Category": "Mortgage Payment", "Amount": -2_000.0},
-        {"Category": "Internet", "Group": "Shopping", "Amount": -500.0},
-    ])
+    transactions = _transactions(
+        [
+            {"Category": "Electric", "Amount": -300.0},
+            {"Category": "Water Bill", "Amount": -100.0},
+            {"Category": "Mortgage Payment", "Amount": -2_000.0},
+            {"Category": "Internet", "Group": "Shopping", "Amount": -500.0},
+        ]
+    )
 
     assert spending_preset_categories(transactions, "Utility bills") == [
         "Electric",
@@ -57,19 +61,21 @@ def test_utility_bill_preset_uses_bill_group_and_utility_names() -> None:
 
 
 def test_discretionary_preset_includes_lifestyle_groups_and_dining() -> None:
-    transactions = _transactions([
-        {"Category": "Video Games", "Group": "Entertainment", "Amount": -50.0},
-        {"Category": "Misc Shopping", "Group": "Shopping", "Amount": -200.0},
-        {"Category": "Restaurants / Bars", "Group": "Food", "Amount": -150.0},
-        {"Category": "Groceries", "Group": "Food", "Amount": -500.0},
-        {"Category": "Flights", "Group": "Travel", "Amount": -1_000.0},
-        {"Category": "Given Gift", "Group": "Shopping", "Amount": -2_000.0},
-        {
-            "Category": "Tax Return Payment",
-            "Group": "Shopping",
-            "Amount": -3_000.0,
-        },
-    ])
+    transactions = _transactions(
+        [
+            {"Category": "Video Games", "Group": "Entertainment", "Amount": -50.0},
+            {"Category": "Misc Shopping", "Group": "Shopping", "Amount": -200.0},
+            {"Category": "Restaurants / Bars", "Group": "Food", "Amount": -150.0},
+            {"Category": "Groceries", "Group": "Food", "Amount": -500.0},
+            {"Category": "Flights", "Group": "Travel", "Amount": -1_000.0},
+            {"Category": "Given Gift", "Group": "Shopping", "Amount": -2_000.0},
+            {
+                "Category": "Tax Return Payment",
+                "Group": "Shopping",
+                "Amount": -3_000.0,
+            },
+        ]
+    )
 
     assert spending_preset_categories(
         transactions,
@@ -87,13 +93,15 @@ def test_spending_preset_categories_rejects_unknown_preset() -> None:
 
 
 def test_history_zero_fills_covered_months_and_preserves_refunds() -> None:
-    transactions = _transactions([
-        {"Date": "2023-03-05", "Category": "Other", "Group": "Shopping"},
-        {"Date": "2023-06-05", "Amount": -100.0},
-        {"Date": "2024-01-05", "Amount": -120.0},
-        {"Date": "2024-02-05", "Amount": 20.0},
-        {"Date": "2025-03-05", "Category": "Other", "Group": "Shopping"},
-    ])
+    transactions = _transactions(
+        [
+            {"Date": "2023-03-05", "Category": "Other", "Group": "Shopping"},
+            {"Date": "2023-06-05", "Amount": -100.0},
+            {"Date": "2024-01-05", "Amount": -120.0},
+            {"Date": "2024-02-05", "Amount": 20.0},
+            {"Date": "2025-03-05", "Category": "Other", "Group": "Shopping"},
+        ]
+    )
 
     result = build_year_over_year_history(
         transactions,
@@ -101,9 +109,7 @@ def test_history_zero_fills_covered_months_and_preserves_refunds() -> None:
         entity="Electric",
     )
 
-    assert result.loc[result["Year"].eq(2023), "Month"].tolist() == list(
-        range(3, 13)
-    )
+    assert result.loc[result["Year"].eq(2023), "Month"].tolist() == list(range(3, 13))
     assert result.loc[result["Year"].eq(2025), "Month"].tolist() == [1, 2, 3]
     indexed = result.set_index(["Year", "Month"])["Spending"]
     assert indexed.loc[2023, 6] == pytest.approx(100.0)
@@ -135,12 +141,14 @@ def test_empty_history_has_exact_schema() -> None:
 
 def test_year_totals_compare_every_year_through_same_month() -> None:
     history = build_year_over_year_history(
-        _transactions([
-            {"Date": "2023-01-05", "Amount": -80.0},
-            {"Date": "2023-04-05", "Amount": -400.0},
-            {"Date": "2024-01-05", "Amount": -100.0},
-            {"Date": "2024-04-05", "Amount": -500.0},
-        ]),
+        _transactions(
+            [
+                {"Date": "2023-01-05", "Amount": -80.0},
+                {"Date": "2023-04-05", "Amount": -400.0},
+                {"Date": "2024-01-05", "Amount": -100.0},
+                {"Date": "2024-04-05", "Amount": -500.0},
+            ]
+        ),
         dimension="Category",
         entity="Electric",
     )
@@ -156,11 +164,13 @@ def test_year_totals_compare_every_year_through_same_month() -> None:
 
 def test_summary_reports_matched_current_and_previous_years() -> None:
     history = build_year_over_year_history(
-        _transactions([
-            {"Date": "2023-01-05", "Amount": -80.0},
-            {"Date": "2024-01-05", "Amount": -100.0},
-            {"Date": "2024-03-05", "Amount": -20.0},
-        ]),
+        _transactions(
+            [
+                {"Date": "2023-01-05", "Amount": -80.0},
+                {"Date": "2024-01-05", "Amount": -100.0},
+                {"Date": "2024-03-05", "Amount": -20.0},
+            ]
+        ),
         dimension="Category",
         entity="Electric",
     )

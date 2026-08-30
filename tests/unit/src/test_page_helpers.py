@@ -21,7 +21,6 @@ def test_demo_banner_identifies_synthetic_data(monkeypatch: MonkeyPatch) -> None
 
 
 class TestExtractMerchantName:
-
     def test_single_word_with_multi_word_method(self) -> None:
         """A single-word description with first_three should return that word."""
         assert extract_merchant_name("NETFLIX", "first_three") == "NETFLIX"
@@ -32,13 +31,13 @@ class TestExtractMerchantName:
 
     def test_nan_input_returns_unknown(self) -> None:
         """NaN description returns 'Unknown'."""
-        assert extract_merchant_name(float('nan')) == 'Unknown'
-        assert extract_merchant_name(None) == 'Unknown'
+        assert extract_merchant_name(float("nan")) == "Unknown"
+        assert extract_merchant_name(None) == "Unknown"
 
     def test_empty_string_returns_unknown(self) -> None:
         """Empty string returns 'Unknown' (split produces empty list)."""
-        assert extract_merchant_name("") == 'Unknown'
-        assert extract_merchant_name("   ") == 'Unknown'
+        assert extract_merchant_name("") == "Unknown"
+        assert extract_merchant_name("   ") == "Unknown"
 
     def test_first_two_method(self) -> None:
         """first_two returns the first two words."""

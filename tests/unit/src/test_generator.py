@@ -4,6 +4,7 @@ These tests do NOT read the source xlsx. They exercise the generator's pure
 helpers against synthetic inputs and validate invariants on the committed
 demo artifacts under ``demo/data``.
 """
+
 import re
 from datetime import time
 from pathlib import Path
@@ -138,9 +139,7 @@ class TestSubscriptionCategoryInjection:
             InjectionLog(),
         )
 
-        recurring = transactions[
-            transactions["Full Description"].str.startswith(("verum streamus", "nimbus cloudus"))
-        ]
+        recurring = transactions[transactions["Full Description"].str.startswith(("verum streamus", "nimbus cloudus"))]
         assert SYNTHETIC_SUBSCRIPTION_CATEGORY in updated_categories["Category"].tolist()
         assert recurring["Category"].unique().tolist() == [SYNTHETIC_SUBSCRIPTION_CATEGORY]
 
@@ -169,6 +168,7 @@ class TestBuildTokenMapping:
     def test_overflow_appends_suffix(self) -> None:
         # Build a vocabulary larger than the word pool to force suffix overflow.
         from scripts.generate_test_fixtures import ADJECTIVES, NOUNS
+
         n = len(ADJECTIVES) + len(NOUNS) + 5
         tokens = [f"sourcetoken{i}" for i in range(n)]
         mapping = build_token_mapping(tokens)
@@ -240,10 +240,7 @@ class TestCompositeKey:
             composite_key="savings-b - xxxx2222 (cd02)",
         )
         # Mirror scrub() formula
-        scrub_key = (
-            f"{info.account} - {info.account_num} "
-            f"({info.account_id[-4:].upper()})"
-        ).lower()
+        scrub_key = (f"{info.account} - {info.account_num} ({info.account_id[-4:].upper()})").lower()
         assert scrub_key == info.composite_key
 
 
@@ -291,6 +288,7 @@ class TestPatternCounts:
     def test_synthetic_zero_group_in_accounts(self, fixture_files: dict[str, pd.DataFrame]) -> None:
         groups = fixture_files["accounts"]["Group"].astype(str).tolist()
         from scripts.generate_test_fixtures import SYNTHETIC_ZERO_GROUP_NAME
+
         assert SYNTHETIC_ZERO_GROUP_NAME in groups
 
     def test_synthetic_zero_account_in_balance(self, fixture_files: dict[str, pd.DataFrame]) -> None:
@@ -304,9 +302,12 @@ class TestCrossSheetJoin:
     def test_join_lands(self, fixture_files: dict[str, pd.DataFrame]) -> None:
         bh = fixture_files["balance_history"]
         keys = (
-            bh["Account"].astype(str) + " - " +
-            bh["Account #"].fillna("").astype(str) + " (" +
-            bh["Account ID"].astype(str).str[-4:].str.upper() + ")"
+            bh["Account"].astype(str)
+            + " - "
+            + bh["Account #"].fillna("").astype(str)
+            + " ("
+            + bh["Account ID"].astype(str).str[-4:].str.upper()
+            + ")"
         ).str.lower()
         accounts_keys = set(fixture_files["accounts"]["Account"].str.lower())
         missing = set(keys) - accounts_keys
@@ -332,12 +333,14 @@ class TestBuildAccountMapping:
     """Distinct source Account IDs map to distinct anonymized identities."""
 
     def test_injective(self) -> None:
-        synth = pd.DataFrame({
-            "Account ID": ["aid-1", "aid-2", "aid-3"],
-            "Account": ["My Checking", "My Savings", "My Credit Card"],
-            "Class": ["Asset", "Asset", "Liability"],
-            "Institution": ["BankA", "BankA", "BankB"],
-        })
+        synth = pd.DataFrame(
+            {
+                "Account ID": ["aid-1", "aid-2", "aid-3"],
+                "Account": ["My Checking", "My Savings", "My Credit Card"],
+                "Class": ["Asset", "Asset", "Liability"],
+                "Institution": ["BankA", "BankA", "BankB"],
+            }
+        )
         mapping = build_account_mapping(synth)
         assert len(mapping) == 3
         assert len({m.account for m in mapping.values()}) == 3
@@ -354,49 +357,57 @@ class TestAnonymizeFlow:
     """Anonymize-then-shape round trip yields raw-shape CSV-ready DataFrames."""
 
     def test_transactions_shape(self) -> None:
-        synth_bh = pd.DataFrame({
-            "Account ID": ["aid-1"],
-            "Account": ["Checking"],
-            "Class": ["Asset"],
-            "Institution": ["BankA"],
-        })
+        synth_bh = pd.DataFrame(
+            {
+                "Account ID": ["aid-1"],
+                "Account": ["Checking"],
+                "Class": ["Asset"],
+                "Institution": ["BankA"],
+            }
+        )
         accounts = build_account_mapping(synth_bh)
         token_map = build_token_mapping(["payroll", "deposit"])
 
-        synth_txn = pd.DataFrame({
-            "Date": [pd.Timestamp("2026-01-15")],
-            "Category": ["Salary"],
-            "Amount": [3500.00],
-            "Account": ["Checking"],
-            "Account ID": ["aid-1"],
-            "Full Description": ["Payroll Deposit"],
-            "Institution": ["BankA"],
-            "Account #": ["1234"],
-        })
+        synth_txn = pd.DataFrame(
+            {
+                "Date": [pd.Timestamp("2026-01-15")],
+                "Category": ["Salary"],
+                "Amount": [3500.00],
+                "Account": ["Checking"],
+                "Account ID": ["aid-1"],
+                "Full Description": ["Payroll Deposit"],
+                "Institution": ["BankA"],
+                "Account #": ["1234"],
+            }
+        )
         out = anonymize_transactions(synth_txn, accounts, token_map)
         from scripts.generate_test_fixtures import TRANSACTIONS_RAW_COLUMNS
+
         assert list(out.columns) == TRANSACTIONS_RAW_COLUMNS
         assert out["Amount"].iloc[0] == "$3,500.00"
         # First-token preservation: anonymized first token equals mapping[payroll]
         assert out["Full Description"].iloc[0].split()[0] == token_map["payroll"]
 
     def test_balance_history_shape(self) -> None:
-        synth_bh = pd.DataFrame({
-            "Date": [pd.Timestamp("2026-01-15")],
-            "Time": [pd.Timestamp("2026-01-15 12:00:00")],
-            "Account": ["Checking"],
-            "Account #": ["1234"],
-            "Account ID": ["aid-1"],
-            "Balance ID": ["bal-1"],
-            "Institution": ["BankA"],
-            "Balance": [1000.00],
-            "Class": ["Asset"],
-            "Type": ["Account"],
-            "Account Status": ["Open"],
-        })
+        synth_bh = pd.DataFrame(
+            {
+                "Date": [pd.Timestamp("2026-01-15")],
+                "Time": [pd.Timestamp("2026-01-15 12:00:00")],
+                "Account": ["Checking"],
+                "Account #": ["1234"],
+                "Account ID": ["aid-1"],
+                "Balance ID": ["bal-1"],
+                "Institution": ["BankA"],
+                "Balance": [1000.00],
+                "Class": ["Asset"],
+                "Type": ["Account"],
+                "Account Status": ["Open"],
+            }
+        )
         accounts = build_account_mapping(synth_bh)
         out = anonymize_balance_history(synth_bh, accounts)
         from scripts.generate_test_fixtures import BALANCE_HISTORY_RAW_COLUMNS
+
         assert list(out.columns) == BALANCE_HISTORY_RAW_COLUMNS
         assert out["Balance"].iloc[0] == "$1,000.00"
 
@@ -404,19 +415,21 @@ class TestAnonymizeFlow:
         """Time column should reflect the original Time, not Date."""
         import datetime
 
-        synth_bh = pd.DataFrame({
-            "Date": [pd.Timestamp("2026-03-10"), pd.Timestamp("2026-03-10")],
-            "Time": [datetime.time(9, 30, 0), datetime.time(14, 45, 15)],
-            "Account": ["Checking", "Checking"],
-            "Account #": ["1234", "1234"],
-            "Account ID": ["aid-1", "aid-1"],
-            "Balance ID": ["bal-1", "bal-2"],
-            "Institution": ["BankA", "BankA"],
-            "Balance": [1000.00, 1050.00],
-            "Class": ["Asset", "Asset"],
-            "Type": ["Account", "Account"],
-            "Account Status": ["Open", "Open"],
-        })
+        synth_bh = pd.DataFrame(
+            {
+                "Date": [pd.Timestamp("2026-03-10"), pd.Timestamp("2026-03-10")],
+                "Time": [datetime.time(9, 30, 0), datetime.time(14, 45, 15)],
+                "Account": ["Checking", "Checking"],
+                "Account #": ["1234", "1234"],
+                "Account ID": ["aid-1", "aid-1"],
+                "Balance ID": ["bal-1", "bal-2"],
+                "Institution": ["BankA", "BankA"],
+                "Balance": [1000.00, 1050.00],
+                "Class": ["Asset", "Asset"],
+                "Type": ["Account", "Account"],
+                "Account Status": ["Open", "Open"],
+            }
+        )
         accounts = build_account_mapping(synth_bh)
         out = anonymize_balance_history(synth_bh, accounts)
         assert "09:30:00" in out["Time"].iloc[0]
@@ -429,23 +442,25 @@ class TestAnonymizeFlow:
 
 
 class TestSampleTransactions:
-
     def test_head_keeps_newest_within_category(self) -> None:
         """When a category exceeds MAX_TRANSACTIONS_PER_CATEGORY, the newest
         rows survive because sorting is newest-first before head()."""
         from scripts.generate_test_fixtures import MAX_TRANSACTIONS_PER_CATEGORY
+
         n = MAX_TRANSACTIONS_PER_CATEGORY + 20
         dates = pd.date_range("2025-01-01", periods=n, freq="D")
-        df = pd.DataFrame({
-            "Date": dates,
-            "Category": ["TestCat"] * n,
-            "Amount": range(n),
-            "Account": ["Checking"] * n,
-            "Month": [d.strftime("%Y-%m") for d in dates],
-            "Full Description": [f"desc-{i}" for i in range(n)],
-            "Institution": ["Bank"] * n,
-            "Account #": ["1234"] * n,
-        })
+        df = pd.DataFrame(
+            {
+                "Date": dates,
+                "Category": ["TestCat"] * n,
+                "Amount": range(n),
+                "Account": ["Checking"] * n,
+                "Month": [d.strftime("%Y-%m") for d in dates],
+                "Full Description": [f"desc-{i}" for i in range(n)],
+                "Institution": ["Bank"] * n,
+                "Account #": ["1234"] * n,
+            }
+        )
         sampled = sample_transactions(df)
         assert len(sampled) <= MAX_TRANSACTIONS_PER_CATEGORY
         latest_date = dates[-1]
@@ -454,34 +469,39 @@ class TestSampleTransactions:
     def test_stride_preserves_tail_row(self) -> None:
         """Global stride-downsample keeps the last (newest) row."""
         from scripts.generate_test_fixtures import MAX_TRANSACTIONS_TOTAL
+
         n = MAX_TRANSACTIONS_TOTAL + 100
         dates = pd.date_range("2025-01-01", periods=n, freq="h")
-        df = pd.DataFrame({
-            "Date": dates,
-            "Category": [f"Cat-{i % 5}" for i in range(n)],
-            "Amount": range(n),
-            "Account": ["Checking"] * n,
-            "Month": [d.strftime("%Y-%m") for d in dates],
-            "Full Description": [f"desc-{i}" for i in range(n)],
-            "Institution": ["Bank"] * n,
-            "Account #": ["1234"] * n,
-        })
+        df = pd.DataFrame(
+            {
+                "Date": dates,
+                "Category": [f"Cat-{i % 5}" for i in range(n)],
+                "Amount": range(n),
+                "Account": ["Checking"] * n,
+                "Month": [d.strftime("%Y-%m") for d in dates],
+                "Full Description": [f"desc-{i}" for i in range(n)],
+                "Institution": ["Bank"] * n,
+                "Account #": ["1234"] * n,
+            }
+        )
         sampled = sample_transactions(df)
         latest_date = dates[-1]
         assert latest_date in sampled["Date"].values
 
 
 class TestSampleBalanceHistory:
-
     def test_latest_row_always_kept(self) -> None:
         """When stride-sampling dense accounts, the last observation survives."""
         dates = pd.date_range("2025-01-01", periods=200, freq="D")
-        df = pd.DataFrame({
-            "Date": dates,
-            "Account ID": ["acct-1"] * 200,
-            "Balance": range(200),
-        })
+        df = pd.DataFrame(
+            {
+                "Date": dates,
+                "Account ID": ["acct-1"] * 200,
+                "Balance": range(200),
+            }
+        )
         from scripts.generate_test_fixtures import MAX_BALANCE_ROWS_PER_ACCOUNT
+
         assert len(df) > MAX_BALANCE_ROWS_PER_ACCOUNT
 
         sampled = sample_balance_history(df)
@@ -491,11 +511,13 @@ class TestSampleBalanceHistory:
     def test_small_account_untouched(self) -> None:
         """Accounts under the cap pass through without stride-sampling."""
         dates = pd.date_range("2025-01-01", periods=10, freq="D")
-        df = pd.DataFrame({
-            "Date": dates,
-            "Account ID": ["acct-1"] * 10,
-            "Balance": range(10),
-        })
+        df = pd.DataFrame(
+            {
+                "Date": dates,
+                "Account ID": ["acct-1"] * 10,
+                "Balance": range(10),
+            }
+        )
         sampled = sample_balance_history(df)
         assert len(sampled) == 10
 
@@ -510,10 +532,15 @@ class TestPatternMinValidation:
 
     def test_all_pattern_min_keys_present(self) -> None:
         expected_keys = {
-            "duplicate_pairs", "recurring_merchants", "top_n_ties",
-            "cross_year_categories", "over_budget_categories",
-            "under_budget_categories", "single_account_groups",
-            "zero_total_groups", "all_liability_groups",
+            "duplicate_pairs",
+            "recurring_merchants",
+            "top_n_ties",
+            "cross_year_categories",
+            "over_budget_categories",
+            "under_budget_categories",
+            "single_account_groups",
+            "zero_total_groups",
+            "all_liability_groups",
         }
         assert set(PATTERN_MIN.keys()) == expected_keys
 
@@ -531,10 +558,14 @@ class TestPatternMinValidation:
         fixture_files: dict[str, pd.DataFrame],
     ) -> None:
         categories = fixture_files["categories"].copy()
-        subscription_mask = categories["Category"].astype(str).str.contains(
-            "subscription",
-            case=False,
-            regex=False,
+        subscription_mask = (
+            categories["Category"]
+            .astype(str)
+            .str.contains(
+                "subscription",
+                case=False,
+                regex=False,
+            )
         )
         categories.loc[subscription_mask, "Category"] = "Former recurring category"
 
@@ -560,13 +591,20 @@ class TestValidatorAgreesWithPageHelpers:
     check and the corresponding page helper, and asserts they agree.
     """
 
-    def _base_txn(self, date: str, amount: float, desc: str,
-                  account: str = "Checking", category: str = "Groceries") -> DataFrameRow:
+    def _base_txn(
+        self, date: str, amount: float, desc: str, account: str = "Checking", category: str = "Groceries"
+    ) -> DataFrameRow:
         return {
-            "Date": date, "Category": category, "Amount": amount,
-            "Account": account, "Month": date[:7],
-            "Full Description": desc, "Institution": "Bank",
-            "Account #": "1234", "Week": "1", "Date Added": date,
+            "Date": date,
+            "Category": category,
+            "Amount": amount,
+            "Account": account,
+            "Month": date[:7],
+            "Full Description": desc,
+            "Institution": "Bank",
+            "Account #": "1234",
+            "Week": "1",
+            "Date Added": date,
             "Categorized Date": date,
         }
 
@@ -591,8 +629,11 @@ class TestValidatorAgreesWithPageHelpers:
         df_scrubbed["Group"] = "Food"
 
         page_result = find_duplicates_efficient(
-            df_scrubbed, days_threshold=1, min_amount=10,
-            check_same_account=True, check_same_category=False,
+            df_scrubbed,
+            days_threshold=1,
+            min_amount=10,
+            check_same_account=True,
+            check_same_category=False,
             require_same_description=True,
         )
 
@@ -601,12 +642,15 @@ class TestValidatorAgreesWithPageHelpers:
         txn_amounts = df_raw["Amount"].astype(float)
         txn_descs = df_raw["Full Description"].astype(str)
         txn_accounts = df_raw["Account"].astype(str)
-        dup_df = pd.DataFrame({
-            "date": txn_dates, "amount": txn_amounts,
-            "abs_amount": txn_amounts.abs(),
-            "desc": txn_descs.str.lower().str.strip(),
-            "account": txn_accounts,
-        }).reset_index(drop=True)
+        dup_df = pd.DataFrame(
+            {
+                "date": txn_dates,
+                "amount": txn_amounts,
+                "abs_amount": txn_amounts.abs(),
+                "desc": txn_descs.str.lower().str.strip(),
+                "account": txn_accounts,
+            }
+        ).reset_index(drop=True)
         dup_df = dup_df[dup_df["abs_amount"] >= 10.0]
         dup_df["_row_id"] = range(len(dup_df))
         pairs = dup_df.merge(dup_df, on="amount", suffixes=("_1", "_2"))
@@ -639,8 +683,11 @@ class TestValidatorAgreesWithPageHelpers:
         df_scrubbed["Group"] = "Food"
 
         page_result = find_duplicates_efficient(
-            df_scrubbed, days_threshold=1, min_amount=10,
-            check_same_account=True, check_same_category=False,
+            df_scrubbed,
+            days_threshold=1,
+            min_amount=10,
+            check_same_account=True,
+            check_same_category=False,
             require_same_description=True,
         )
         assert len(page_result) == 0, "Page helper should not find duplicates"
@@ -653,7 +700,9 @@ class TestValidatorAgreesWithPageHelpers:
         dates = pd.date_range("2024-01-15", periods=6, freq="MS") + pd.Timedelta(days=14)
         rows = [
             self._base_txn(
-                d.strftime("%Y-%m-%d"), -15.99, "NETFLIX MONTHLY SUB",
+                d.strftime("%Y-%m-%d"),
+                -15.99,
+                "NETFLIX MONTHLY SUB",
                 category="Entertainment",
             )
             for d in dates
@@ -677,7 +726,9 @@ class TestValidatorAgreesWithPageHelpers:
         dates = pd.date_range("2024-01-01", periods=10, freq="5D")
         rows = [
             self._base_txn(
-                d.strftime("%Y-%m-%d"), -10.0, "DAILY COFFEE SHOP",
+                d.strftime("%Y-%m-%d"),
+                -10.0,
+                "DAILY COFFEE SHOP",
                 category="Coffee",
             )
             for d in dates

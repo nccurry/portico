@@ -1,4 +1,5 @@
 """Common filter UI components used across multiple pages."""
+
 import pandas as pd
 import streamlit as st
 
@@ -65,20 +66,12 @@ def render_income_expense_filters(
     thresholds = settings.thresholds
     income_defaults = settings.income_savings
     regular_income_categories = [
-        category
-        for category in income_defaults.exclude_categories
-        if category in income_categories
+        category for category in income_defaults.exclude_categories if category in income_categories
     ]
     regular_expense_categories = [
-        category
-        for category in income_defaults.exclude_categories
-        if category in expense_categories
+        category for category in income_defaults.exclude_categories if category in expense_categories
     ]
-    regular_expense_groups = [
-        group
-        for group in income_defaults.exclude_groups
-        if group in expense_groups
-    ]
+    regular_expense_groups = [group for group in income_defaults.exclude_groups if group in expense_groups]
 
     if view == "Regular":
         default_income_categories = regular_income_categories
@@ -105,12 +98,9 @@ def render_income_expense_filters(
         st.session_state.setdefault(key, value)
 
     is_modified = (
-        set(st.session_state[f"{prefix}_exclude_income_categories"])
-        != set(default_income_categories)
-        or set(st.session_state[f"{prefix}_exclude_expense_categories"])
-        != set(default_expense_categories)
-        or set(st.session_state[f"{prefix}_exclude_expense_groups"])
-        != set(default_expense_groups)
+        set(st.session_state[f"{prefix}_exclude_income_categories"]) != set(default_income_categories)
+        or set(st.session_state[f"{prefix}_exclude_expense_categories"]) != set(default_expense_categories)
+        or set(st.session_state[f"{prefix}_exclude_expense_groups"]) != set(default_expense_groups)
         or bool(st.session_state[f"{prefix}_filter_large_income"])
         or bool(st.session_state[f"{prefix}_filter_large_expenses"])
     )
@@ -157,14 +147,16 @@ def render_income_expense_filters(
         )
         income_threshold = int(st.session_state[f"{prefix}_income_threshold"])
         if filter_large_income:
-            income_threshold = int(st.number_input(
-                "Income limit",
-                min_value=5000,
-                max_value=100000,
-                step=1000,
-                key=f"{prefix}_income_threshold",
-                persist_state="page",
-            ))
+            income_threshold = int(
+                st.number_input(
+                    "Income limit",
+                    min_value=5000,
+                    max_value=100000,
+                    step=1000,
+                    key=f"{prefix}_income_threshold",
+                    persist_state="page",
+                )
+            )
 
         filter_large_expenses = st.toggle(
             "Exclude individual expenses over a limit",
@@ -173,33 +165,37 @@ def render_income_expense_filters(
         )
         expense_threshold = int(st.session_state[f"{prefix}_expense_threshold"])
         if filter_large_expenses:
-            expense_threshold = int(st.number_input(
-                "Expense limit",
-                min_value=1000,
-                max_value=100000,
-                step=500,
-                key=f"{prefix}_expense_threshold",
-                persist_state="page",
-            ))
+            expense_threshold = int(
+                st.number_input(
+                    "Expense limit",
+                    min_value=1000,
+                    max_value=100000,
+                    step=500,
+                    key=f"{prefix}_expense_threshold",
+                    persist_state="page",
+                )
+            )
 
-        target_rate = int(st.number_input(
-            "Savings rate target",
-            min_value=MIN_SAVINGS_RATE,
-            max_value=MAX_SAVINGS_RATE,
-            value=income_defaults.target_rate,
-            step=SAVINGS_RATE_STEP,
-            key="income_savings_target_rate",
-        ))
+        target_rate = int(
+            st.number_input(
+                "Savings rate target",
+                min_value=MIN_SAVINGS_RATE,
+                max_value=MAX_SAVINGS_RATE,
+                value=income_defaults.target_rate,
+                step=SAVINGS_RATE_STEP,
+                key="income_savings_target_rate",
+            )
+        )
 
     return {
-        'exclude_groups': exclude_groups,
-        'exclude_income_categories': exclude_income_categories,
-        'exclude_expense_categories': exclude_expense_categories,
-        'filter_large_income': filter_large_income,
-        'income_threshold': income_threshold,
-        'filter_large_expenses': filter_large_expenses,
-        'expense_threshold': expense_threshold,
-        'target_rate': target_rate
+        "exclude_groups": exclude_groups,
+        "exclude_income_categories": exclude_income_categories,
+        "exclude_expense_categories": exclude_expense_categories,
+        "filter_large_income": filter_large_income,
+        "income_threshold": income_threshold,
+        "filter_large_expenses": filter_large_expenses,
+        "expense_threshold": expense_threshold,
+        "target_rate": target_rate,
     }
 
 
@@ -214,15 +210,9 @@ def render_spending_filters(
     spending_defaults = settings.spending
     expense_threshold_default = settings.thresholds.expense
     discretionary_categories = [
-        category
-        for category in spending_defaults.exclude_categories
-        if category in all_categories
+        category for category in spending_defaults.exclude_categories if category in all_categories
     ]
-    discretionary_groups = [
-        group
-        for group in spending_defaults.exclude_groups
-        if group in all_groups
-    ]
+    discretionary_groups = [group for group in spending_defaults.exclude_groups if group in all_groups]
     if view == "All spending":
         default_categories: list[str] = []
         default_groups: list[str] = []
@@ -244,8 +234,7 @@ def render_spending_filters(
         st.session_state.setdefault(key, value)
 
     is_modified = (
-        set(st.session_state[f"{prefix}_exclude_categories"])
-        != set(default_categories)
+        set(st.session_state[f"{prefix}_exclude_categories"]) != set(default_categories)
         or set(st.session_state[f"{prefix}_exclude_groups"]) != set(default_groups)
         or bool(st.session_state[f"{prefix}_filter_large_expenses"])
     )
@@ -276,14 +265,16 @@ def render_spending_filters(
         )
         expense_threshold = int(st.session_state[f"{prefix}_expense_threshold"])
         if filter_large_expenses:
-            expense_threshold = int(st.number_input(
-                "Expense limit",
-                min_value=1000,
-                max_value=100000,
-                step=500,
-                key=f"{prefix}_expense_threshold",
-                persist_state="page",
-            ))
+            expense_threshold = int(
+                st.number_input(
+                    "Expense limit",
+                    min_value=1000,
+                    max_value=100000,
+                    step=500,
+                    key=f"{prefix}_expense_threshold",
+                    persist_state="page",
+                )
+            )
 
     return {
         "include_groups": [],
@@ -402,9 +393,7 @@ def render_fi_filters(
             spending_lookback_months = st.selectbox(
                 "Spending history",
                 options=FI_SPENDING_LOOKBACK_OPTIONS,
-                index=FI_SPENDING_LOOKBACK_OPTIONS.index(
-                    fi_defaults.spending_lookback_months
-                ),
+                index=FI_SPENDING_LOOKBACK_OPTIONS.index(fi_defaults.spending_lookback_months),
                 format_func=lambda n: f"Last {n} months",
                 key="fi_spending_lookback",
                 persist_state="page",
@@ -485,34 +474,34 @@ def apply_transaction_filters(
         Filtered dataframe
     """
     # Always exclude Transfer group
-    df = df[df['Group'] != 'Transfer']
+    df = df[df["Group"] != "Transfer"]
 
     # Apply include filters (union/OR when both set), or exclude filters
-    if filters.get('include_groups') or filters.get('include_categories'):
+    if filters.get("include_groups") or filters.get("include_categories"):
         masks = []
-        if filters.get('include_groups'):
-            masks.append(df['Group'].isin(filters['include_groups']))
-        if filters.get('include_categories'):
-            masks.append(df['Category'].isin(filters['include_categories']))
+        if filters.get("include_groups"):
+            masks.append(df["Group"].isin(filters["include_groups"]))
+        if filters.get("include_categories"):
+            masks.append(df["Category"].isin(filters["include_categories"]))
         combined = masks[0]
         for m in masks[1:]:
             combined = combined | m
         df = df[combined]
     else:
         # No include filters — apply excludes
-        if filters.get('exclude_groups'):
-            df = df[~df['Group'].isin(filters['exclude_groups'])]
-        if filters.get('exclude_categories'):
-            df = df[~df['Category'].isin(filters['exclude_categories'])]
+        if filters.get("exclude_groups"):
+            df = df[~df["Group"].isin(filters["exclude_groups"])]
+        if filters.get("exclude_categories"):
+            df = df[~df["Category"].isin(filters["exclude_categories"])]
 
     # Filter large expenses
-    if filters.get('filter_large_expenses'):
-        threshold = filters.get('expense_threshold', get_settings().thresholds.expense)
-        df = df[(df['Type'] != 'Expense') | (df['Amount'].abs() <= threshold)]
+    if filters.get("filter_large_expenses"):
+        threshold = filters.get("expense_threshold", get_settings().thresholds.expense)
+        df = df[(df["Type"] != "Expense") | (df["Amount"].abs() <= threshold)]
 
     # Filter large income
-    if filters.get('filter_large_income'):
-        threshold = filters.get('income_threshold', get_settings().thresholds.income)
-        df = df[(df['Type'] != 'Income') | (df['Amount'].abs() <= threshold)]
+    if filters.get("filter_large_income"):
+        threshold = filters.get("income_threshold", get_settings().thresholds.income)
+        df = df[(df["Type"] != "Income") | (df["Amount"].abs() <= threshold)]
 
     return df

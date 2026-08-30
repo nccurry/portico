@@ -6,6 +6,7 @@ for real, giving us cheap end-to-end coverage.
 
 Requires the committed synthetic files under ``demo/data``.
 """
+
 import json
 import re
 from collections.abc import Callable, Mapping
@@ -73,9 +74,7 @@ def _select_top_ten(at: AppTest) -> None:
 
 
 def _select_one_off_transactions(at: AppTest) -> None:
-    at.segmented_control(key="top_transactions_focus").set_value(
-        "One-off merchants"
-    )
+    at.segmented_control(key="top_transactions_focus").set_value("One-off merchants")
 
 
 def _select_transfer_transactions(at: AppTest) -> None:
@@ -128,9 +127,7 @@ def _switch_home_to_subscriptions(at: AppTest) -> None:
 def _select_food_spending_group(at: AppTest) -> None:
     at.segmented_control(key="spending_breakdown").set_value("Group")
     at.run()
-    overview = next(
-        table for table in at.dataframe if str(table.key).startswith("spending_overview_")
-    )
+    overview = next(table for table in at.dataframe if str(table.key).startswith("spending_overview_"))
     row = overview.value.index[overview.value["Entity"].eq("Food")].tolist()[0]
     at.session_state[str(overview.key)] = {
         "selection": {"rows": [row], "columns": [], "cells": []},
@@ -169,26 +166,16 @@ def _select_year_over_year_group(at: AppTest) -> None:
 
 
 def _select_year_over_year_discretionary(at: AppTest) -> None:
-    at.segmented_control(key="year_over_year_view").set_value(
-        "Discretionary spending"
-    )
+    at.segmented_control(key="year_over_year_view").set_value("Discretionary spending")
 
 
 def _add_groceries_to_year_over_year_utility(at: AppTest) -> None:
-    at.multiselect(key="year_over_year_utility_bills_categories").set_value(
-        ["Electric", "Groceries"]
-    )
+    at.multiselect(key="year_over_year_utility_bills_categories").set_value(["Electric", "Groceries"])
 
 
 def _select_market_basket_merchant(at: AppTest) -> None:
-    overview = next(
-        table
-        for table in at.dataframe
-        if str(table.key).startswith("merchant_overview_")
-    )
-    row = overview.value.index[
-        overview.value["Merchant"].eq("MARKET BASKET STAPLES")
-    ].tolist()[0]
+    overview = next(table for table in at.dataframe if str(table.key).startswith("merchant_overview_"))
+    row = overview.value.index[overview.value["Merchant"].eq("MARKET BASKET STAPLES")].tolist()[0]
     at.session_state[str(overview.key)] = {
         "selection": {"rows": [row], "columns": [], "cells": []},
     }
@@ -215,11 +202,7 @@ def _include_all_groups_in_discretionary_merchant_view(at: AppTest) -> None:
 
 
 def _select_food_budget_group(at: AppTest) -> None:
-    overview = next(
-        table
-        for table in at.dataframe
-        if str(table.key).startswith("budget_group_performance_")
-    )
+    overview = next(table for table in at.dataframe if str(table.key).startswith("budget_group_performance_"))
     row = overview.value.index[overview.value["Entity"].eq("Food")].tolist()[0]
     at.session_state[str(overview.key)] = {
         "selection": {"rows": [row], "columns": [], "cells": []},
@@ -295,9 +278,7 @@ def _dataset_with_one_off_travel(
     """Add a recent travel expense so calculation presets differ visibly."""
     bundle = make_full_dataset()
     transactions = bundle[0]
-    travel = transactions.scrubbed_df.loc[
-        transactions.scrubbed_df["Category"].eq("Shopping")
-    ].iloc[[0]].copy()
+    travel = transactions.scrubbed_df.loc[transactions.scrubbed_df["Category"].eq("Shopping")].iloc[[0]].copy()
     travel["Category"] = "Travel"
     travel["Group"] = "Travel"
     travel["Amount"] = -1_200.0
@@ -318,9 +299,7 @@ def _dataset_with_non_discretionary_expenses(
     """Add large gift and tax expenses inside an otherwise discretionary group."""
     bundle = make_full_dataset()
     transactions = bundle[0]
-    rows = transactions.scrubbed_df.loc[
-        transactions.scrubbed_df["Category"].eq("Shopping")
-    ].iloc[[0, 1]].copy()
+    rows = transactions.scrubbed_df.loc[transactions.scrubbed_df["Category"].eq("Shopping")].iloc[[0, 1]].copy()
     rows["Category"] = ["Given Gift", "Tax Return Payment"]
     rows["Amount"] = [-8_000.0, -7_000.0]
     rows["Full Description"] = ["gift test merchant", "tax test merchant"]
@@ -336,26 +315,14 @@ def _dataset_with_non_discretionary_expenses(
 
 def _table_with_columns(at: AppTest, columns: set[str]) -> pd.DataFrame:
     """Return the rendered dataframe containing all requested columns."""
-    return next(
-        table.value
-        for table in at.dataframe
-        if columns.issubset(table.value.columns)
-    )
+    return next(table.value for table in at.dataframe if columns.issubset(table.value.columns))
 
 
 def _chart_params(spec: object) -> list[Mapping[str, object]]:
     """Collect selection parameters from any level of a Vega-Lite spec."""
     if isinstance(spec, Mapping):
-        params = [
-            param
-            for param in spec.get("params", [])
-            if isinstance(param, Mapping)
-        ]
-        return params + [
-            param
-            for child in spec.values()
-            for param in _chart_params(child)
-        ]
+        params = [param for param in spec.get("params", []) if isinstance(param, Mapping)]
+        return params + [param for child in spec.values() for param in _chart_params(child)]
     if isinstance(spec, list):
         return [param for child in spec for param in _chart_params(child)]
     return []
@@ -367,20 +334,14 @@ def _assert_chart_values_hidden(spec: Mapping[str, object]) -> None:
     assert isinstance(config, Mapping)
     axis = config.get("axis")
     assert isinstance(axis, Mapping)
-    assert axis.get("labelExpr") == (
-        "isNumber(datum.value) ? 'XXXXXXXX' : datum.label"
-    )
+    assert axis.get("labelExpr") == ("isNumber(datum.value) ? 'XXXXXXXX' : datum.label")
 
 
 def _chart_marks(spec: object) -> list[object]:
     """Collect marks from every layer in a rendered Vega-Lite spec."""
     if isinstance(spec, Mapping):
         marks = [spec["mark"]] if "mark" in spec else []
-        return marks + [
-            mark
-            for child in spec.values()
-            for mark in _chart_marks(child)
-        ]
+        return marks + [mark for child in spec.values() for mark in _chart_marks(child)]
     if isinstance(spec, list):
         return [mark for child in spec for mark in _chart_marks(child)]
     return []
@@ -481,11 +442,12 @@ class TestValuePrivacyMode:
             runway = next(metric for metric in at.metric if metric.label == "Runway")
             assert runway.delta == f"Until portfolio reaches {_MASKED_VALUE}"
 
+
 @pytest.mark.uses_real_dates
 class TestHomeSmoke:
-
     def test_runs_without_exception(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         at = _make_app(
             "../Home.py",
@@ -543,8 +505,7 @@ class TestHomeSmoke:
         assert len(at.dataframe) == 6
         assert all(table.key != "home_balance_groups" for table in at.dataframe)
         assert all(
-            list(table.value.columns)
-            == ["Account", "Institution", "Balance", "Change", "Last_Updated"]
+            list(table.value.columns) == ["Account", "Institution", "Balance", "Change", "Last_Updated"]
             for table in at.dataframe
         )
         assert all(
@@ -554,7 +515,8 @@ class TestHomeSmoke:
         )
 
     def test_group_cards_summarize_accounts(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         at = _make_app(
             "../Home.py",
@@ -579,7 +541,8 @@ class TestHomeSmoke:
         assert set(investment_details["Institution"]) == {"Fidelity", "Vanguard"}
 
     def test_lookback_control_reruns_group_cards(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         at = _make_app(
             "../Home.py",
@@ -595,7 +558,8 @@ class TestHomeSmoke:
         assert ("Investments", "$146,000", "+$11,000") in _metric_values(at)
 
     def test_navigation_switches_to_registered_page(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         at = _make_app(
             "../Home.py",
@@ -635,9 +599,9 @@ class TestHomeSmoke:
 
 @pytest.mark.uses_real_dates
 class TestIncomeAndSavingsSmoke:
-
     def test_regular_view_renders_calculation_and_drilldown(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         at = _make_app(
             "1_Income_and_Savings.py",
@@ -662,9 +626,7 @@ class TestIncomeAndSavingsSmoke:
         assert len(at.get("popover")) == 1
         assert len(at.multiselect) == 3
         assert len(at.toggle) == 2
-        expense_groups = at.multiselect(
-            key="income_regular_exclude_expense_groups"
-        )
+        expense_groups = at.multiselect(key="income_regular_exclude_expense_groups")
         assert not expense_groups.disabled
         assert not at.toggle(key="income_regular_filter_large_income").value
         assert not at.toggle(key="income_regular_filter_large_expenses").value
@@ -763,7 +725,8 @@ class TestIncomeAndSavingsSmoke:
         assert len(included) == 5
 
     def test_three_month_selection_updates_metrics(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         at = _make_app(
             "1_Income_and_Savings.py",
@@ -783,7 +746,8 @@ class TestIncomeAndSavingsSmoke:
         assert len(monthly) == 3
 
     def test_actual_view_includes_one_off_travel(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         bundle = _dataset_with_one_off_travel(make_full_dataset)
         at = _make_app(
@@ -797,15 +761,9 @@ class TestIncomeAndSavingsSmoke:
         assert at.segmented_control(key="income_calculation_view").value == "Actual"
         assert len(at.multiselect) == 3
         assert len(at.toggle) == 2
-        assert at.multiselect(
-            key="income_actual_exclude_income_categories"
-        ).value == []
-        assert at.multiselect(
-            key="income_actual_exclude_expense_groups"
-        ).value == []
-        assert at.multiselect(
-            key="income_actual_exclude_expense_categories"
-        ).value == []
+        assert at.multiselect(key="income_actual_exclude_income_categories").value == []
+        assert at.multiselect(key="income_actual_exclude_expense_groups").value == []
+        assert at.multiselect(key="income_actual_exclude_expense_categories").value == []
         assert _metric_values(at)[:4] == [
             ("Avg monthly income", "$5,000", ""),
             ("Avg monthly spending", "$2,877", ""),
@@ -820,7 +778,8 @@ class TestIncomeAndSavingsSmoke:
         assert "one-off travel" in included["Description"].values
 
     def test_regular_view_can_reinclude_excluded_travel_directly(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         bundle = _dataset_with_one_off_travel(make_full_dataset)
         at = _make_app(
@@ -832,9 +791,7 @@ class TestIncomeAndSavingsSmoke:
 
         assert not at.exception
         assert at.segmented_control(key="income_calculation_view").value == "Regular"
-        expense_groups = at.multiselect(
-            key="income_regular_exclude_expense_groups"
-        )
+        expense_groups = at.multiselect(key="income_regular_exclude_expense_groups")
         assert not expense_groups.disabled
         assert expense_groups.value == []
         assert _metric_values(at)[:4] == [
@@ -851,7 +808,8 @@ class TestIncomeAndSavingsSmoke:
         assert included["Amount"].abs().is_monotonic_decreasing
 
     def test_regular_view_reset_restores_defaults(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         bundle = _dataset_with_one_off_travel(make_full_dataset)
         at = _make_app(
@@ -862,9 +820,7 @@ class TestIncomeAndSavingsSmoke:
         )
 
         assert not at.exception
-        assert at.multiselect(
-            key="income_regular_exclude_expense_groups"
-        ).value == ["Travel"]
+        assert at.multiselect(key="income_regular_exclude_expense_groups").value == ["Travel"]
         assert _metric_values(at)[:4] == [
             ("Avg monthly income", "$5,000", ""),
             ("Avg monthly spending", "$2,777", ""),
@@ -877,7 +833,8 @@ class TestIncomeAndSavingsSmoke:
         ]
 
     def test_empty_data_shows_empty_state(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         bundle = make_full_dataset()
         transactions = bundle[0]
@@ -897,16 +854,15 @@ class TestIncomeAndSavingsSmoke:
         assert not at.dataframe
 
     def test_all_excluded_period_keeps_auditable_detail(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         bundle = _dataset_with_one_off_travel(make_full_dataset)
         transactions = bundle[0]
-        travel = transactions.scrubbed_df.loc[
-            transactions.scrubbed_df["Full Description"].eq("one-off travel")
-        ]
-        anchor = transactions.scrubbed_df.loc[
-            transactions.scrubbed_df["Type"].eq("Transfer")
-        ].sort_values("Date").iloc[[-1]]
+        travel = transactions.scrubbed_df.loc[transactions.scrubbed_df["Full Description"].eq("one-off travel")]
+        anchor = (
+            transactions.scrubbed_df.loc[transactions.scrubbed_df["Type"].eq("Transfer")].sort_values("Date").iloc[[-1]]
+        )
         transactions.scrubbed_df = pd.concat([travel, anchor], ignore_index=True)
         at = _make_app(
             "1_Income_and_Savings.py",
@@ -936,9 +892,9 @@ class TestIncomeAndSavingsSmoke:
 
 @pytest.mark.uses_real_dates
 class TestSpendingByCategorySmoke:
-
     def test_default_overview_and_detail(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         at = _make_app(
             "2_Spending_by_Category.py",
@@ -949,10 +905,7 @@ class TestSpendingByCategorySmoke:
         )
         assert not at.exception
         assert at.header[0].value == "Spending by Category"
-        assert [
-            (control.label, control.value, control.options)
-            for control in at.segmented_control
-        ] == [
+        assert [(control.label, control.value, control.options) for control in at.segmented_control] == [
             ("Time frame", "1Y", ["3M", "6M", "1Y", "2Y"]),
             ("View", "Discretionary", ["All spending", "Discretionary"]),
             (
@@ -987,11 +940,7 @@ class TestSpendingByCategorySmoke:
             "Merchants",
             "Transactions",
         ]
-        overview = next(
-            table.value
-            for table in at.dataframe
-            if str(table.key).startswith("spending_overview_")
-        )
+        overview = next(table.value for table in at.dataframe if str(table.key).startswith("spending_overview_"))
         assert overview["Entity"].tolist() == [
             "Rent",
             "Groceries",
@@ -1003,7 +952,8 @@ class TestSpendingByCategorySmoke:
         assert overview["Spending"].sum() == pytest.approx(31_882.52)
 
     def test_group_selection_drives_composition_and_transactions(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         at = _make_app(
             "2_Spending_by_Category.py",
@@ -1027,7 +977,8 @@ class TestSpendingByCategorySmoke:
         assert transactions["Spending"].abs().is_monotonic_decreasing
 
     def test_chart_selection_scopes_all_detail_tabs_to_one_month(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         at = _make_app(
             "2_Spending_by_Category.py",
@@ -1045,7 +996,8 @@ class TestSpendingByCategorySmoke:
         assert pd.to_datetime(transactions["Date"]).dt.strftime("%Y-%m").eq("2026-02").all()
 
     def test_selected_entity_persists_by_identity_when_timeframe_changes(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         at = _make_app(
             "2_Spending_by_Category.py",
@@ -1060,7 +1012,8 @@ class TestSpendingByCategorySmoke:
         assert "Food" in [subheader.value for subheader in at.subheader]
 
     def test_category_breakdown_keeps_group_context(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         at = _make_app(
             "2_Spending_by_Category.py",
@@ -1071,22 +1024,15 @@ class TestSpendingByCategorySmoke:
 
         assert not at.exception
         assert at.segmented_control(key="spending_breakdown").value == "Category"
-        overview = next(
-            table.value
-            for table in at.dataframe
-            if str(table.key).startswith("spending_overview_")
-        )
-        assert {"Entity", "Group", "Spending", "Monthly_Trend"}.issubset(
-            overview.columns
-        )
+        overview = next(table.value for table in at.dataframe if str(table.key).startswith("spending_overview_"))
+        assert {"Entity", "Group", "Spending", "Monthly_Trend"}.issubset(overview.columns)
         assert {"Groceries", "Restaurants"}.issubset(set(overview["Entity"]))
-        assert set(overview.loc[
-            overview["Entity"].isin(["Groceries", "Restaurants"]), "Group"
-        ]) == {"Food"}
+        assert set(overview.loc[overview["Entity"].isin(["Groceries", "Restaurants"]), "Group"]) == {"Food"}
         assert [tab.label for tab in at.tabs] == ["Merchants", "Transactions"]
 
     def test_all_excluded_view_stays_auditable(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         at = _make_app(
             "2_Spending_by_Category.py",
@@ -1105,7 +1051,8 @@ class TestSpendingByCategorySmoke:
         assert excluded["Exclusion reason"].str.startswith("Excluded group:").all()
 
     def test_discretionary_view_excludes_gifts_and_tax_payments(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         bundle = _dataset_with_non_discretionary_expenses(make_full_dataset)
         default_at = _make_app(
@@ -1117,21 +1064,15 @@ class TestSpendingByCategorySmoke:
         assert not default_at.exception
         assert _metric_values(default_at)[0] == ("Total spending", "$31,883", "")
         overview = next(
-            table.value
-            for table in default_at.dataframe
-            if str(table.key).startswith("spending_overview_")
+            table.value for table in default_at.dataframe if str(table.key).startswith("spending_overview_")
         )
         assert not {"Given Gift", "Tax Return Payment"} & set(overview["Entity"])
         excluded = _table_with_columns(
             default_at,
             {"Description", "Exclusion reason"},
         ).set_index("Description")
-        assert excluded.loc["gift test merchant", "Exclusion reason"] == (
-            "Excluded category: Given Gift"
-        )
-        assert excluded.loc["tax test merchant", "Exclusion reason"] == (
-            "Excluded category: Tax Return Payment"
-        )
+        assert excluded.loc["gift test merchant", "Exclusion reason"] == ("Excluded category: Given Gift")
+        assert excluded.loc["tax test merchant", "Exclusion reason"] == ("Excluded category: Tax Return Payment")
 
         all_at = _make_app(
             "2_Spending_by_Category.py",
@@ -1141,9 +1082,7 @@ class TestSpendingByCategorySmoke:
         )
         assert not all_at.exception
         all_overview = next(
-            table.value
-            for table in all_at.dataframe
-            if str(table.key).startswith("spending_overview_")
+            table.value for table in all_at.dataframe if str(table.key).startswith("spending_overview_")
         )
         assert {"Given Gift", "Tax Return Payment"} <= set(all_overview["Entity"])
         assert _metric_values(all_at)[0] == ("Total spending", "$48,323", "")
@@ -1151,9 +1090,9 @@ class TestSpendingByCategorySmoke:
 
 @pytest.mark.uses_real_dates
 class TestYearOverYearSmoke:
-
     def test_defaults_to_utility_bill_comparisons(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         at = _make_app(
             "3_Year_over_Year.py",
@@ -1172,9 +1111,7 @@ class TestYearOverYearSmoke:
             "Single category",
             "Single group",
         ]
-        categories = at.multiselect(
-            key="year_over_year_utility_bills_categories"
-        )
+        categories = at.multiselect(key="year_over_year_utility_bills_categories")
         assert categories.value == ["Electric"]
         assert "Groceries" in categories.options
         assert not at.selectbox
@@ -1192,9 +1129,7 @@ class TestYearOverYearSmoke:
         line_encoding = spec["layer"][1]["encoding"]
         assert line_encoding["color"]["field"] == "Year_Label"
         assert line_encoding["color"]["scale"]["range"][0] == "#70A5EB"
-        assert line_encoding["strokeWidth"]["condition"]["test"] == (
-            "datum.Is_Current"
-        )
+        assert line_encoding["strokeWidth"]["condition"]["test"] == ("datum.Is_Current")
         assert len(at.dataframe) == 2
         totals = _table_with_columns(at, {"Year", "Spending_Through_Month"})
         assert totals["Year"].is_monotonic_decreasing
@@ -1205,7 +1140,8 @@ class TestYearOverYearSmoke:
         assert set(transactions["Category"]) == {"Electric"}
 
     def test_discretionary_view_stacks_relevant_categories(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         at = _make_app(
             "3_Year_over_Year.py",
@@ -1215,16 +1151,15 @@ class TestYearOverYearSmoke:
         )
 
         assert not at.exception
-        selected = at.multiselect(
-            key="year_over_year_discretionary_spending_categories"
-        ).value
+        selected = at.multiselect(key="year_over_year_discretionary_spending_categories").value
         assert selected == ["Shopping", "Restaurants", "Streaming Subscription"]
         assert [subheader.value for subheader in at.subheader] == selected
         assert len(at.get("vega_lite_chart")) == len(selected)
         assert len(at.metric) == len(selected) * 3
 
     def test_discretionary_defaults_omit_gifts_and_tax_payments(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         bundle = _dataset_with_non_discretionary_expenses(make_full_dataset)
         at = _make_app(
@@ -1235,14 +1170,13 @@ class TestYearOverYearSmoke:
         )
 
         assert not at.exception
-        categories = at.multiselect(
-            key="year_over_year_discretionary_spending_categories"
-        )
+        categories = at.multiselect(key="year_over_year_discretionary_spending_categories")
         assert {"Given Gift", "Tax Return Payment"} <= set(categories.options)
         assert not {"Given Gift", "Tax Return Payment"} & set(categories.value)
 
     def test_preset_can_include_any_other_category(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         at = _make_app(
             "3_Year_over_Year.py",
@@ -1259,7 +1193,8 @@ class TestYearOverYearSmoke:
         assert len(at.get("vega_lite_chart")) == 2
 
     def test_group_view_defaults_to_bills(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         at = _make_app(
             "3_Year_over_Year.py",
@@ -1278,13 +1213,12 @@ class TestYearOverYearSmoke:
         assert set(transactions["Group"]) == {"Bills"}
 
     def test_empty_expense_data_has_clear_state(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         bundle = make_full_dataset()
         transactions = bundle[0]
-        transactions.scrubbed_df = transactions.scrubbed_df[
-            ~transactions.scrubbed_df["Type"].eq("Expense")
-        ].copy()
+        transactions.scrubbed_df = transactions.scrubbed_df[~transactions.scrubbed_df["Type"].eq("Expense")].copy()
         at = _make_app(
             "3_Year_over_Year.py",
             lambda: bundle,
@@ -1292,18 +1226,16 @@ class TestYearOverYearSmoke:
         )
 
         assert not at.exception
-        assert [message.value for message in at.info] == [
-            "No expense transactions are available."
-        ]
+        assert [message.value for message in at.info] == ["No expense transactions are available."]
         assert not at.metric
         assert not at.get("vega_lite_chart")
 
 
 @pytest.mark.uses_real_dates
 class TestSubscriptionsSmoke:
-
     def test_runs_without_exception(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         at = _make_app(
             "5_Subscriptions.py",
@@ -1337,13 +1269,10 @@ class TestSubscriptionsSmoke:
         assert at.segmented_control[0].value == "Active and recent"
         assert at.segmented_control[0].key == "subscription_timeline_scope"
         assert at.segmented_control[0].options == ["Active and recent", "All merchants"]
-        history_caption = next(
-            caption.value for caption in at.caption if caption.value.startswith("Lookback affects")
-        )
+        history_caption = next(caption.value for caption in at.caption if caption.value.startswith("Lookback affects"))
         assert (
             "Lookback affects these charts only; status, cadence, forecasts, and discovery use all available "
-            "transactions."
-            in history_caption
+            "transactions." in history_caption
         )
         assert "Active and recent includes active merchants" in history_caption
         assert [heading.value for heading in at.subheader] == [
@@ -1378,7 +1307,8 @@ class TestSubscriptionsSmoke:
         ]
 
     def test_all_merchants_timeline_scope_keeps_lifecycle_chart(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         at = _make_app(
             "5_Subscriptions.py",
@@ -1394,7 +1324,8 @@ class TestSubscriptionsSmoke:
         assert "Episode_Start" in charts[0].proto.spec
 
     def test_lookback_does_not_change_full_history_metrics(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         at = _make_app(
             "5_Subscriptions.py",
@@ -1414,7 +1345,8 @@ class TestSubscriptionsSmoke:
         assert len(charts) == 3
 
     def test_clearing_subscription_categories_updates_metrics(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         at = _make_app(
             "5_Subscriptions.py",
@@ -1441,9 +1373,9 @@ class TestSubscriptionsSmoke:
 
 @pytest.mark.uses_real_dates
 class TestMerchantAnalysisSmoke:
-
     def test_default_overview_and_detail(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         at = _make_app(
             "6_Merchant_Analysis.py",
@@ -1466,15 +1398,8 @@ class TestMerchantAnalysisSmoke:
         ]
         assert at.segmented_control(key="merchant_lookback").value == "1Y"
         assert at.segmented_control(key="merchant_view").value == "Discretionary"
-        assert (
-            at.segmented_control(key="merchant_comparison").value
-            == "Previous period"
-        )
-        overview = next(
-            table.value
-            for table in at.dataframe
-            if str(table.key).startswith("merchant_overview_")
-        )
+        assert at.segmented_control(key="merchant_comparison").value == "Previous period"
+        overview = next(table.value for table in at.dataframe if str(table.key).startswith("merchant_overview_"))
         assert overview.iloc[0]["Merchant"] == "APARTMENT RENT"
         assert {
             "Merchant",
@@ -1506,7 +1431,8 @@ class TestMerchantAnalysisSmoke:
         assert "params" not in history_spec
 
     def test_selecting_merchant_updates_detail_and_transactions(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         at = _make_app(
             "6_Merchant_Analysis.py",
@@ -1517,22 +1443,18 @@ class TestMerchantAnalysisSmoke:
 
         assert not at.exception
         assert at.session_state["merchant_selected_name"] == "MARKET BASKET STAPLES"
-        assert any(
-            subheader.value == "MARKET BASKET STAPLES" for subheader in at.subheader
-        )
+        assert any(subheader.value == "MARKET BASKET STAPLES" for subheader in at.subheader)
         transactions = next(
             table.value
             for table in at.dataframe
-            if {"Date", "Description", "Category", "Group", "Account", "Spending"}
-            <= set(table.value.columns)
+            if {"Date", "Description", "Category", "Group", "Account", "Spending"} <= set(table.value.columns)
         )
         assert not transactions.empty
-        assert transactions["Description"].str.contains(
-            "MARKET BASKET", case=False
-        ).all()
+        assert transactions["Description"].str.contains("MARKET BASKET", case=False).all()
 
     def test_detail_month_scopes_transactions(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         at = _make_app(
             "6_Merchant_Analysis.py",
@@ -1546,16 +1468,14 @@ class TestMerchantAnalysisSmoke:
         transactions = next(
             table.value
             for table in at.dataframe
-            if {"Date", "Description", "Category", "Group", "Account", "Spending"}
-            <= set(table.value.columns)
+            if {"Date", "Description", "Category", "Group", "Account", "Spending"} <= set(table.value.columns)
         )
         assert not transactions.empty
-        assert set(pd.to_datetime(transactions["Date"]).dt.strftime("%Y-%m")) == {
-            "2026-02"
-        }
+        assert set(pd.to_datetime(transactions["Date"]).dt.strftime("%Y-%m")) == {"2026-02"}
 
     def test_discretionary_and_comparison_controls_rebuild_inventory(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         at = _make_app(
             "6_Merchant_Analysis.py",
@@ -1568,19 +1488,14 @@ class TestMerchantAnalysisSmoke:
         assert at.segmented_control(key="merchant_lookback").value == "3M"
         assert at.segmented_control(key="merchant_view").value == "Discretionary"
         assert at.segmented_control(key="merchant_comparison").value == "Last year"
-        assert "Bills" in at.multiselect(
-            key="spending_discretionary_exclude_groups"
-        ).value
-        overview = next(
-            table.value
-            for table in at.dataframe
-            if str(table.key).startswith("merchant_overview_")
-        )
+        assert "Bills" in at.multiselect(key="spending_discretionary_exclude_groups").value
+        overview = next(table.value for table in at.dataframe if str(table.key).startswith("merchant_overview_"))
         assert len(overview) == 10
         assert "MARKET BASKET STAPLES" in overview["Merchant"].values
 
     def test_all_spending_view_restores_excluded_merchants(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         at = _make_app(
             "6_Merchant_Analysis.py",
@@ -1599,7 +1514,8 @@ class TestMerchantAnalysisSmoke:
         ]
 
     def test_discretionary_filters_are_editable_in_place(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         at = _make_app(
             "6_Merchant_Analysis.py",
@@ -1611,15 +1527,12 @@ class TestMerchantAnalysisSmoke:
         assert not at.exception
         assert at.segmented_control(key="merchant_view").value == "Discretionary"
         assert at.multiselect(key="spending_discretionary_exclude_groups").value == []
-        overview = next(
-            table.value
-            for table in at.dataframe
-            if str(table.key).startswith("merchant_overview_")
-        )
+        overview = next(table.value for table in at.dataframe if str(table.key).startswith("merchant_overview_"))
         assert "UTILITY POWER BILL" in overview["Merchant"].values
 
     def test_discretionary_view_excludes_gift_and_tax_merchants(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         bundle = _dataset_with_non_discretionary_expenses(make_full_dataset)
         default_at = _make_app(
@@ -1631,13 +1544,9 @@ class TestMerchantAnalysisSmoke:
         assert not default_at.exception
         assert _metric_values(default_at)[0] == ("Total spending", "$31,883", "")
         overview = next(
-            table.value
-            for table in default_at.dataframe
-            if str(table.key).startswith("merchant_overview_")
+            table.value for table in default_at.dataframe if str(table.key).startswith("merchant_overview_")
         )
-        assert not {"GIFT TEST MERCHANT", "TAX TEST MERCHANT"} & set(
-            overview["Merchant"]
-        )
+        assert not {"GIFT TEST MERCHANT", "TAX TEST MERCHANT"} & set(overview["Merchant"])
 
         all_at = _make_app(
             "6_Merchant_Analysis.py",
@@ -1647,21 +1556,17 @@ class TestMerchantAnalysisSmoke:
         )
         assert not all_at.exception
         all_overview = next(
-            table.value
-            for table in all_at.dataframe
-            if str(table.key).startswith("merchant_overview_")
+            table.value for table in all_at.dataframe if str(table.key).startswith("merchant_overview_")
         )
-        assert {"GIFT TEST MERCHANT", "TAX TEST MERCHANT"} <= set(
-            all_overview["Merchant"]
-        )
+        assert {"GIFT TEST MERCHANT", "TAX TEST MERCHANT"} <= set(all_overview["Merchant"])
         assert _metric_values(all_at)[0] == ("Total spending", "$48,323", "")
 
 
 @pytest.mark.uses_real_dates
 class TestBudgetSmoke:
-
     def test_runs_without_exception(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         at = _make_app(
             "7_Budget.py",
@@ -1693,11 +1598,7 @@ class TestBudgetSmoke:
         assert at.multiselect(key="budget_exclude_categories").value == []
         assert len(at.get("vega_lite_chart")) == 3
 
-        overview = next(
-            table
-            for table in at.dataframe
-            if str(table.key).startswith("budget_group_performance_")
-        )
+        overview = next(table for table in at.dataframe if str(table.key).startswith("budget_group_performance_"))
         assert list(overview.value.columns) == [
             "Entity",
             "Status",
@@ -1778,7 +1679,8 @@ class TestBudgetSmoke:
         }
 
     def test_empty_transaction_data_has_clear_state(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         bundle = make_full_dataset()
         bundle[0].scrubbed_df = bundle[0].scrubbed_df.iloc[0:0].copy()
@@ -1792,17 +1694,15 @@ class TestBudgetSmoke:
         )
 
         assert not at.exception
-        assert [message.value for message in at.info] == [
-            "No transaction data is available."
-        ]
+        assert [message.value for message in at.info] == ["No transaction data is available."]
         assert not at.metric
 
 
 @pytest.mark.uses_real_dates
 class TestTopTransactionsSmoke:
-
     def test_runs_without_exception(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         at = _make_app(
             "8_Top_Transactions.py",
@@ -1813,10 +1713,7 @@ class TestTopTransactionsSmoke:
         )
         assert not at.exception
         assert at.header[0].value == "Transactions"
-        assert [
-            (control.label, control.value, control.options)
-            for control in at.segmented_control
-        ] == [
+        assert [(control.label, control.value, control.options) for control in at.segmented_control] == [
             ("Time frame", "1Y", ["3M", "6M", "1Y", "2Y", "All"]),
             ("Type", "All", ["All", "Expenses", "Income", "Transfers"]),
             (
@@ -1869,7 +1766,8 @@ class TestTopTransactionsSmoke:
         assert transactions["Amount"].abs().is_monotonic_decreasing
 
     def test_top_ten_selection_updates_metrics(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         at = _make_app(
             "8_Top_Transactions.py",
@@ -1887,7 +1785,8 @@ class TestTopTransactionsSmoke:
         ]
 
     def test_one_off_focus_returns_only_single_occurrence_merchants(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         at = _make_app(
             "8_Top_Transactions.py",
@@ -1903,7 +1802,8 @@ class TestTopTransactionsSmoke:
         assert transactions["Flags"].str.contains("One-off").all()
 
     def test_type_and_search_filters_scope_every_result(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         transfers = _make_app(
             "8_Top_Transactions.py",
@@ -1926,13 +1826,18 @@ class TestTopTransactionsSmoke:
             searched,
             {"Description", "Merchant", "Amount"},
         )
-        assert searched_rows["Description"].str.contains(
-            "market basket",
-            case=False,
-        ).all()
+        assert (
+            searched_rows["Description"]
+            .str.contains(
+                "market basket",
+                case=False,
+            )
+            .all()
+        )
 
     def test_empty_search_has_clear_state(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         at = _make_app(
             "8_Top_Transactions.py",
@@ -1942,15 +1847,14 @@ class TestTopTransactionsSmoke:
         )
 
         assert not at.exception
-        assert [message.value for message in at.info] == [
-            "No transactions match this view."
-        ]
+        assert [message.value for message in at.info] == ["No transactions match this view."]
         assert not at.metric
         assert not at.get("vega_lite_chart")
         assert not at.dataframe
 
     def test_maximum_amount_limits_every_result(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         at = _make_app(
             "8_Top_Transactions.py",
@@ -1966,7 +1870,8 @@ class TestTopTransactionsSmoke:
         assert timeline_spec["layer"][1]["encoding"]["y"]["field"] == "Amount"
 
     def test_empty_transaction_data_has_clear_state(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         bundle = make_full_dataset()
         bundle[0].scrubbed_df = bundle[0].scrubbed_df.iloc[0:0].copy()
@@ -1977,9 +1882,7 @@ class TestTopTransactionsSmoke:
         )
 
         assert not at.exception
-        assert [message.value for message in at.info] == [
-            "No transactions are available."
-        ]
+        assert [message.value for message in at.info] == ["No transactions are available."]
         assert not at.segmented_control
         assert not at.metric
         assert not at.dataframe
@@ -1987,9 +1890,9 @@ class TestTopTransactionsSmoke:
 
 @pytest.mark.uses_real_dates
 class TestFinancialIndependenceSmoke:
-
     def test_runs_without_exception(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         at = _make_app(
             "9_Financial_Independence.py",
@@ -2015,9 +1918,7 @@ class TestFinancialIndependenceSmoke:
         assert at.multiselect(key="fi_include_accounts").value
         assert at.selectbox(key="fi_spending_lookback").value == 12
         assert [
-            (widget.label, widget.value)
-            for widget in at.number_input
-            if str(widget.key).startswith("fi_scenario_")
+            (widget.label, widget.value) for widget in at.number_input if str(widget.key).startswith("fi_scenario_")
         ] == [
             ("Investable assets", 382_200.0),
             ("Annual spending", 33_323.0),
@@ -2040,7 +1941,8 @@ class TestFinancialIndependenceSmoke:
         assert sensitivity["layer"][1]["mark"]["type"] == "text"
 
     def test_return_rate_scenario_updates_fi_metrics(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         at = _make_app(
             "9_Financial_Independence.py",
@@ -2082,7 +1984,8 @@ class TestFinancialIndependenceSmoke:
         assert at.number_input(key="fi_scenario_spending").value == 50_000.0
 
     def test_empty_source_data_has_clear_state(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         bundle = make_full_dataset()
         bundle[0].scrubbed_df = bundle[0].scrubbed_df.iloc[0:0].copy()
@@ -2104,9 +2007,9 @@ class TestFinancialIndependenceSmoke:
 
 @pytest.mark.uses_real_dates
 class TestDataHealthSmoke:
-
     def test_runs_without_exception(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         at = _make_app(
             "10_Data_Health.py",
@@ -2152,7 +2055,8 @@ class TestDataHealthSmoke:
         assert any("No findings for this check" in success.value for success in passed.success)
 
     def test_empty_source_data_has_clear_state(
-        self, make_full_dataset: FullDatasetFactory,
+        self,
+        make_full_dataset: FullDatasetFactory,
     ) -> None:
         bundle = make_full_dataset()
         bundle[0].scrubbed_df = bundle[0].scrubbed_df.iloc[0:0].copy()
@@ -2167,7 +2071,5 @@ class TestDataHealthSmoke:
         )
 
         assert not at.exception
-        assert [message.value for message in at.info] == [
-            "No transaction or balance data is available."
-        ]
+        assert [message.value for message in at.info] == ["No transaction or balance data is available."]
         assert not at.metric

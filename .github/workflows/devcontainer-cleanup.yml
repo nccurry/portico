@@ -1,0 +1,34 @@
+name: Clean up development images
+
+on:
+  pull_request:
+    types: [closed]
+  workflow_dispatch:
+    inputs:
+      pull_request_number:
+        description: Pull request number to clean up
+        required: true
+        type: string
+
+permissions:
+  packages: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Delete pull request image versions
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
+          PACKAGE: portico-devcontainer
+          PR_NUMBER: ${{ github.event.pull_request.number || inputs.pull_request_number }}
+        run: |
+          versions=$(gh api --paginate "/users/$OWNER/packages/container/$PACKAGE/versions?per_page=100" \
+            --jq ".[] | select(any(.metadata.container.tags[]?; startswith(\"pr-$PR_NUMBER-\"))) | .id" || true)
+          while read -r version_id; do
+            if [[ -n "$version_id" ]]; then
+              gh api --method DELETE "/users/$OWNER/packages/container/$PACKAGE/versions/$version_id"
+            fi
+          done <<< "$versions"
