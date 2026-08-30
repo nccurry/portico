@@ -28,9 +28,14 @@
 
 ---
 
-Portico turns a Tiller workbook into focused views for income, spending,
+Portico turns a Google Sheets workbook into focused views for income, spending,
 subscriptions, budgets, net worth, financial independence, and data health. It is
 read-only: the app analyzes your sheets but does not change them.
+
+Portico works with any Google Sheets workbook that has the required tabs and
+columns. Its data model follows the
+[Tiller Foundation Template](https://help.tiller.com/en/articles/3250724-what-is-the-tiller-foundation-template),
+which is the recommended starting point.
 
 The repository includes synthetic data, so you can explore every dashboard
 without a Tiller account or Google Sheet.
@@ -88,9 +93,11 @@ are ready to connect a Tiller workbook.
 
 ## Live Google Sheets
 
-Google Sheets is the only supported live data source. The app reads four
-link-readable Tiller tabs: Transactions, Balance History, Categories, and
-Accounts. No service account is required.
+Google Sheets is the only supported live data source. You can use any workbook
+that has compatible Transactions, Balance History, Categories, and Accounts
+tabs. Portico follows the
+[Tiller Foundation Template](https://help.tiller.com/en/articles/3250724-what-is-the-tiller-foundation-template)
+and works best with that layout. No service account is required.
 
 ```console
 cp .streamlit/secrets.example.toml .streamlit/secrets.toml
@@ -99,9 +106,11 @@ docker compose --profile live run --rm --no-deps live python -m scripts.doctor
 docker compose --profile live up --build live
 ```
 
-Add each tab URL, including its numeric `gid`, before running the doctor. Anyone
-with a link-readable sheet URL may be able to read that sheet, so treat the URLs
-as private and never commit `.streamlit/secrets.toml`.
+Add each tab URL, including its numeric `gid`, before running the doctor. If you
+use another workbook layout, match the required columns in the
+[data schema](docs/data-schema.md). Anyone with a link-readable sheet URL may be
+able to read that sheet. Treat the URLs as private, and never commit
+`.streamlit/secrets.toml`.
 
 See [the quick start](docs/quickstart.md), [Linux deployment guide](docs/deployment.md),
 [configuration reference](docs/configuration.md), and [data schema](docs/data-schema.md).
@@ -137,12 +146,22 @@ support direct execution on Linux when the file is executable.
 
 ### Task
 
-Task provides short names for the same uv commands. Bootstrap the pinned local
-tools first:
+Task provides short names for the same uv commands. The bootstrap script installs
+the pinned Task, uv, Python, and development dependencies inside the repository.
+
+On Linux, run:
 
 ```console
 sh scripts/bootstrap.sh
 ```
+
+On Windows, run:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/bootstrap.ps1
+```
+
+You do not need a system Python, uv, Task, or mise installation for this path.
 
 The main local checks are:
 
