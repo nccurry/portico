@@ -362,7 +362,7 @@ jobs:
           cache-from: type=gha,scope=production-${{ matrix.slug }}
           cache-to: type=gha,mode=max,scope=production-${{ matrix.slug }}
       - name: Smoke-test production image
-        run: python scripts/smoke_container.py --image=portico:ci-${{ matrix.slug }} --skip-build
+        run: python -m scripts.smoke_container --image=portico:ci-${{ matrix.slug }} --skip-build
 
   ci:
     if: always()

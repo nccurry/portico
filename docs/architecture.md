@@ -145,7 +145,7 @@ net-worth page. Files in `pages` provide the remaining dashboards.
 source values. The container entry point starts `Home.py` with safe server
 flags.
 
-`scripts/weekly-discord-summary.py` starts the headless Discord notifier. The
+`scripts/weekly_discord_summary.py` starts the headless Discord notifier. The
 notifier does not start Streamlit or require a browser session.
 
 `scripts/container_entrypoint.py` starts Streamlit and owns the optional

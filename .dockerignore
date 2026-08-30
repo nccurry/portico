@@ -22,4 +22,4 @@ tests
 scripts/*
 !scripts/container_entrypoint.py
 !scripts/doctor.py
-!scripts/weekly-discord-summary.py
+!scripts/weekly_discord_summary.py

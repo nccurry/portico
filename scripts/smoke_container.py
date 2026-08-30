@@ -1,3 +1,8 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.14.6,<3.15"
+# dependencies = []
+# ///
 """Build and health-test the Portico demo container."""
 
 from __future__ import annotations

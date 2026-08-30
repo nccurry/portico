@@ -95,7 +95,7 @@ jobs:
           cache-from: type=gha,scope=release-amd64
           cache-to: type=gha,mode=max,scope=release-amd64
       - name: Smoke-test release candidate
-        run: python scripts/smoke_container.py --image=portico:release-smoke --skip-build
+        run: python -m scripts.smoke_container --image=portico:release-smoke --skip-build
 
   publish:
     needs: smoke-test

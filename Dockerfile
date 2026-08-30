@@ -49,7 +49,7 @@ COPY --chown=portico:portico config/defaults.toml config/defaults.toml
 COPY --chown=portico:portico demo/ demo/
 COPY --chown=portico:portico pages/ pages/
 COPY --chown=portico:portico src/ src/
-COPY --chown=portico:portico scripts/container_entrypoint.py scripts/doctor.py scripts/weekly-discord-summary.py scripts/
+COPY --chown=portico:portico scripts/container_entrypoint.py scripts/doctor.py scripts/weekly_discord_summary.py scripts/
 
 USER 1000:1000
 

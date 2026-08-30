@@ -7,6 +7,10 @@ pyproject_path="$repo_root/pyproject.toml"
 bin_dir="$repo_root/.tools/bin"
 uv_bin="$bin_dir/uv"
 
+: "${UV_PYTHON_INSTALL_DIR:=$repo_root/.tools/python}"
+: "${UV_CACHE_DIR:=$repo_root/.local/uv-cache}"
+export UV_PYTHON_INSTALL_DIR UV_CACHE_DIR
+
 get_bootstrap_version() {
     name="$1"
     version=$(sed -n "s/^[[:space:]]*$name[[:space:]]*=[[:space:]]*\"\([^\"]*\)\".*/\1/p" "$pyproject_path" | head -n 1)
@@ -102,4 +106,4 @@ install_uv "$uv_version"
 "$uv_bin" --version
 
 echo "[SETUP] Ensuring Python $python_version"
-"$uv_bin" python install "$python_version"
+"$uv_bin" python install --no-bin "$python_version"

@@ -9,6 +9,13 @@ $PyprojectPath = Join-Path $RepoRoot "pyproject.toml"
 $BinDir = Join-Path $RepoRoot ".tools\bin"
 $UvExe = Join-Path $BinDir "uv.exe"
 
+if ([string]::IsNullOrWhiteSpace($env:UV_PYTHON_INSTALL_DIR)) {
+    $env:UV_PYTHON_INSTALL_DIR = Join-Path $RepoRoot ".tools\python"
+}
+if ([string]::IsNullOrWhiteSpace($env:UV_CACHE_DIR)) {
+    $env:UV_CACHE_DIR = Join-Path $RepoRoot ".local\uv-cache"
+}
+
 function Get-BootstrapVersion {
     param([string]$Name)
 
@@ -102,5 +109,5 @@ Install-Uv -Version $UvVersion
 Assert-NativeSuccess -Command "uv --version" -ExitCode $LASTEXITCODE
 
 Write-Host "[SETUP] Ensuring Python $PythonVersion"
-& $UvExe python install $PythonVersion
+& $UvExe python install --no-bin --no-registry $PythonVersion
 Assert-NativeSuccess -Command "uv python install" -ExitCode $LASTEXITCODE
