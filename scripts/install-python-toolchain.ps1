@@ -1,3 +1,4 @@
+# Install the pinned uv and Python toolchain inside the repository.
 [CmdletBinding()]
 param()
 
