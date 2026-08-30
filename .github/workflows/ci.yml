@@ -22,6 +22,24 @@ defaults:
     shell: bash
 
 jobs:
+  native-bootstrap:
+    name: Bootstrap (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Bootstrap Linux development environment
+        if: runner.os == 'Linux'
+        run: sh scripts/bootstrap.sh
+      - name: Bootstrap Windows development environment
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/bootstrap.ps1
+
   select-devcontainer:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -336,12 +354,13 @@ jobs:
 
   ci:
     if: always()
-    needs: [privacy, lint, unit-tests, integration-tests, docs-and-scripts, coverage, production-container]
+    needs: [native-bootstrap, privacy, lint, unit-tests, integration-tests, docs-and-scripts, coverage, production-container]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Require every CI lane
         env:
+          BOOTSTRAP: ${{ needs.native-bootstrap.result }}
           PRIVACY: ${{ needs.privacy.result }}
           LINT: ${{ needs.lint.result }}
           UNIT: ${{ needs.unit-tests.result }}
@@ -350,7 +369,7 @@ jobs:
           COVERAGE: ${{ needs.coverage.result }}
           CONTAINER: ${{ needs.production-container.result }}
         run: |
-          for result in "$PRIVACY" "$LINT" "$UNIT" "$INTEGRATION" "$DOCS" "$COVERAGE" "$CONTAINER"; do
+          for result in "$BOOTSTRAP" "$PRIVACY" "$LINT" "$UNIT" "$INTEGRATION" "$DOCS" "$COVERAGE" "$CONTAINER"; do
             test "$result" = "success"
           done
 
