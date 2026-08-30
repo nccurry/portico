@@ -28,8 +28,10 @@ python_version=$(read_version python)
 uv_version=$(read_version uv)
 task_version=$(read_version task)
 
-if [ "$(python -c 'import platform; print(platform.python_version())')" != "$python_version" ]; then
-    echo "The development image Python version does not match pyproject.toml" >&2
+actual_python_version=$(python -c 'import platform; print(platform.python_version())')
+if ! python -c 'import sys; expected = tuple(map(int, sys.argv[1].split("."))); actual = tuple(map(int, sys.argv[2].split("."))); raise SystemExit(actual[:2] != expected[:2] or actual < expected)' \
+    "$python_version" "$actual_python_version"; then
+    echo "The development image requires Python $python_version or newer in the same minor release; found $actual_python_version" >&2
     exit 1
 fi
 
