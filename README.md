@@ -68,13 +68,18 @@ financial records.
 
 ## Try the demo
 
-Install Docker Engine and Docker Compose version 2. Then clone the repository and
-start the demo:
+Install Docker Engine. Then clone the repository and start the demo:
 
 ```console
 git clone https://github.com/nccurry/portico.git
 cd portico
-docker compose --profile demo up --build demo
+docker build --tag portico:local .
+docker run --rm --init --name portico \
+  --read-only --tmpfs /tmp:size=64m,mode=1777 \
+  --cap-drop ALL --security-opt no-new-privileges:true \
+  --env PORTICO_DATA_SOURCE=demo \
+  --publish 127.0.0.1:8501:8501 \
+  portico:local
 ```
 
 Open <http://127.0.0.1:8501>. The demo accepts connections only from the local
@@ -127,8 +132,12 @@ Never commit `.streamlit/secrets.toml`. Git ignores this file by default.
 Build the image and check the workbook:
 
 ```console
-docker compose build live
-docker compose --profile live run --rm --no-deps live python -m scripts.doctor
+docker build --tag portico:local .
+docker run --rm \
+  --env PORTICO_DATA_SOURCE=google_sheets \
+  --mount "type=bind,source=$(pwd)/config,target=/app/config,readonly" \
+  --mount "type=bind,source=$(pwd)/.streamlit/secrets.toml,target=/app/.streamlit/secrets.toml,readonly" \
+  portico:local python -m scripts.doctor
 ```
 
 The check reads each sheet and validates its basic structure. It does not print
@@ -137,7 +146,17 @@ sheet URLs or financial rows.
 Start Portico:
 
 ```console
-docker compose --profile live up --build --detach live
+cp .env.example .env
+docker volume create portico-state
+docker run --detach --init --name portico --restart unless-stopped \
+  --read-only --tmpfs /tmp:size=64m,mode=1777 \
+  --cap-drop ALL --security-opt no-new-privileges:true \
+  --env-file .env \
+  --mount "type=bind,source=$(pwd)/config,target=/app/config,readonly" \
+  --mount "type=bind,source=$(pwd)/.streamlit/secrets.toml,target=/app/.streamlit/secrets.toml,readonly" \
+  --mount "type=volume,source=portico-state,target=/app/.local" \
+  --publish 127.0.0.1:8501:8501 \
+  portico:local
 ```
 
 Open <http://127.0.0.1:8501>.
@@ -191,53 +210,60 @@ uses a read-only filesystem, and includes a health check.
 Show service and health status:
 
 ```console
-docker compose --profile live ps
+docker ps --filter name=^/portico$
+docker inspect portico --format '{{.State.Health.Status}}'
 ```
 
 Follow the logs:
 
 ```console
-docker compose --profile live logs --follow live
+docker logs --follow portico
 ```
 
-Stop the containers:
+Stop and remove the container:
 
 ```console
-docker compose --profile demo --profile live down
+docker stop portico
+docker rm portico
 ```
 
 Update Portico:
 
 ```console
 git pull --ff-only
-docker compose --profile live up --build --detach live
+docker build --tag portico:local .
+docker stop portico
+docker rm portico
+# Run the same docker run command from the setup section.
 ```
 
-Portico stores no application data in the container. The update keeps the
-secrets and local configuration files on the host.
+Portico stores configuration and secrets on the host. The `portico-state`
+volume records successful Discord delivery periods so an update does not send a
+duplicate report.
 
 ### Network access
 
 The default address is `127.0.0.1:8501`. Only the Linux host can connect to this
 address.
 
-To use a different host port, set `PORT`:
+To use a different host port, change the left side of `--publish`:
 
 ```console
-PORT=8601 docker compose --profile live up --detach live
+--publish 127.0.0.1:8601:8501
 ```
 
-To accept connections from a trusted local network, set `HOST_ADDRESS`:
+To accept connections from a trusted local network, change the address:
 
 ```console
-HOST_ADDRESS=0.0.0.0 docker compose --profile live up --detach live
+--publish 0.0.0.0:8501:8501
 ```
 
 Portico has no login screen. Do not forward its port to the public internet. A
 public deployment requires an authenticated TLS reverse proxy.
 
-Copy `.env.example` to `.env` to keep the host address, port, and timezone
-settings between commands.
+Copy `.env.example` to `.env` to keep the application timezone and Discord
+schedule between container runs. The host address and port stay in the
+`--publish` argument.
 
 ## Configuration
 
@@ -261,8 +287,9 @@ These environment variables change the main application settings:
 | --- | --- |
 | `PORTICO_CONFIG_PATH` | Select a different local TOML file. |
 | `PORTICO_DATA_SOURCE` | Select `google_sheets` or `demo`. |
-
-Compose also reads `HOST_ADDRESS`, `PORT`, `TZ`, and `PORTICO_IMAGE`.
+| `PORTICO_DISCORD_ENABLED` | Set to `true` to enable scheduled Discord summaries. The default is `false`. |
+| `PORTICO_DISCORD_CRON` | Set the five-field cron schedule. The default is `0 9 * * 0` (Sunday at 9:00 AM). |
+| `TZ` | Set the IANA timezone used by the Discord schedule, such as `America/Chicago`. |
 
 Keep household category names, account names, and merchant aliases in
 `config/local.toml`. Keep Google Sheets and Discord URLs in
@@ -306,32 +333,32 @@ Treat the webhook URL as a password.
 
 ### Preview and test the message
 
-Build the notifier and check its configuration:
+The notifier runs inside the same container as the dashboard. Check its
+configuration, Google Sheets access, selected categories, webhook, and timezone:
 
 ```console
-docker compose build notifier
-docker compose --profile notifier run --rm notifier check
+docker exec portico python scripts/weekly-discord-summary.py check
 ```
 
 Preview the report without contacting Discord:
 
 ```console
-docker compose --profile notifier run --rm notifier preview
+docker exec portico python scripts/weekly-discord-summary.py preview
 ```
 
 Send a test message that contains no financial data:
 
 ```console
-docker compose --profile notifier run --rm notifier test
+docker exec portico python scripts/weekly-discord-summary.py test
 ```
 
 Send the latest completed weekly report:
 
 ```console
-docker compose --profile notifier run --rm notifier send
+docker exec portico python scripts/weekly-discord-summary.py send
 ```
 
-The notifier stores sent periods in the `notifier-state` Docker volume. It skips
+The notifier stores sent periods in the `portico-state` Docker volume. It skips
 a period after a successful send.
 
 ### Example message
@@ -355,43 +382,29 @@ All expenses: $900.00
 Needs categorization: 4 transactions
 ```
 
-### Schedule the report with systemd
+### Enable the schedule
 
-The example [service](deploy/systemd/portico-discord-summary.service) and
-[timer](deploy/systemd/portico-discord-summary.timer) send the report each
-Sunday at 9:00 AM in the host timezone. A missed run starts after the host comes
-back online.
+Scheduled summaries are disabled by default. Set these values in `.env`:
 
-The unit expects the repository at `/opt/portico` and Docker at
-`/usr/bin/docker`. If your paths differ, edit `WorkingDirectory` or `ExecStart`
-in the service file. Keep `WorkingDirectory` unquoted.
-
-Set `TZ` in `.env` to the host timezone. Then build and check the notifier before
-you install the timer.
-
-Install and start the timer:
-
-```console
-sudo cp deploy/systemd/portico-discord-summary.service /etc/systemd/system/
-sudo cp deploy/systemd/portico-discord-summary.timer /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now portico-discord-summary.timer
+```dotenv
+TZ=America/Chicago
+PORTICO_DISCORD_ENABLED=true
+PORTICO_DISCORD_CRON=0 9 * * 0
 ```
 
-Show the next scheduled run:
+The cron value has five fields: minute, hour, day of month, month, and day of
+week. The example sends each Sunday at 9:00 AM in the `TZ` timezone.
+
+Restart the Portico container after changing `.env`. The container log shows
+the next scheduled delivery time:
 
 ```console
-systemctl list-timers portico-discord-summary.timer
+docker logs portico
 ```
 
-Read the logs from the last run:
-
-```console
-sudo journalctl -u portico-discord-summary.service
-```
-
-Change `OnCalendar` in the timer file to use another weekly time. Then run
-`sudo systemctl daemon-reload` and restart the timer.
+If the container is stopped at the scheduled time, that delivery is not run
+later. You can send it manually with the `docker exec` command above. Successful
+deliveries are recorded, so Portico does not send the same weekly period twice.
 
 ## Development
 

@@ -12,6 +12,9 @@ vars:
   LINT_PATHS: src/ pages/ tests/ scripts/ Home.py
   ADDRESS: '{{default "127.0.0.1" .ADDRESS}}'
   PORT: '{{default "8501" .PORT}}'
+  TIMEZONE: '{{default "Etc/UTC" .TZ}}'
+  DISCORD_ENABLED: '{{default "false" .PORTICO_DISCORD_ENABLED}}'
+  DISCORD_CRON: '{{default "0 9 * * 0" .PORTICO_DISCORD_CRON}}'
   PERIOD_END: '{{default "" .PERIOD_END}}'
   FORCE: '{{default "false" .FORCE}}'
   OUTPUT: '{{default "text" .OUTPUT}}'
@@ -326,23 +329,42 @@ tasks:
   container:demo:
     desc: "Build and run the demo container on localhost"
     cmds:
-      - docker compose --profile demo up --build demo
+      - task: container:build
+      - >-
+        docker run --rm --init --name portico
+        --read-only --tmpfs /tmp:size=64m,mode=1777
+        --cap-drop ALL --security-opt no-new-privileges:true
+        --env PORTICO_DATA_SOURCE=demo
+        --publish {{.ADDRESS}}:{{.PORT}}:8501
+        portico:local
 
   container:live:
     desc: "Build and run the live container on localhost"
     cmds:
-      - docker compose --profile live up --build live
+      - task: container:build
+      - >-
+        docker run --rm --init --name portico
+        --read-only --tmpfs /tmp:size=64m,mode=1777
+        --cap-drop ALL --security-opt no-new-privileges:true
+        --env PORTICO_DATA_SOURCE=google_sheets
+        --env TZ={{.TIMEZONE | quote}}
+        --env PORTICO_DISCORD_ENABLED={{.DISCORD_ENABLED | quote}}
+        --env PORTICO_DISCORD_CRON={{.DISCORD_CRON | quote}}
+        --mount "type=bind,source={{.ROOT_DIR}}/config,target=/app/config,readonly"
+        --mount "type=bind,source={{.ROOT_DIR}}/.streamlit/secrets.toml,target=/app/.streamlit/secrets.toml,readonly"
+        --mount "type=volume,source=portico-state,target=/app/.local"
+        --publish {{.ADDRESS}}:{{.PORT}}:8501
+        portico:local
 
   container:down:
-    desc: "Stop app containers"
+    desc: "Stop the Portico container"
     cmds:
-      - docker compose --profile demo --profile live down
+      - docker stop portico
 
   container:notifier:
-    desc: "Run one notifier command in a temporary container"
+    desc: "Run one notifier command in the Portico container"
     cmds:
-      - docker compose build notifier
-      - docker compose --profile notifier run --rm notifier {{.CLI_ARGS}}
+      - docker exec portico python scripts/weekly-discord-summary.py {{.CLI_ARGS}}
 
   # ========================================
   # Weekly Discord Summary

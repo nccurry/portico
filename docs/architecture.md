@@ -108,14 +108,15 @@ Container and CI use the same project files.
 ### Container-first deployment
 
 The production artifact is a Linux container image. The image runs as a
-non-root user and uses a read-only root filesystem. Docker Compose provides the
-demo, live, and notifier profiles.
+non-root user and uses a read-only root filesystem. One container runs the
+dashboard and, when enabled, the Discord schedule.
 
 The application publishes on `127.0.0.1` by default. A user can opt into trusted
 LAN access. Public access requires authentication and TLS outside Portico.
 
-The Discord notifier is a one-shot container command. A systemd timer can
-schedule that command. Scheduling stays outside the Python application.
+The Discord schedule is part of the container runtime. It is disabled by
+default and enabled with environment variables. This keeps deployment to one
+container without a host cron job, systemd unit, or second notifier container.
 
 ## Runtime design
 
@@ -141,10 +142,15 @@ Tiller workbook in Google Sheets     Synthetic CSV files
 net-worth page. Files in `pages` provide the remaining dashboards.
 
 `scripts/run_app.py` starts Streamlit with validated address, port, and data
-source values. The container starts `Home.py` directly with safe server flags.
+source values. The container entry point starts `Home.py` with safe server
+flags.
 
 `scripts/weekly-discord-summary.py` starts the headless Discord notifier. The
 notifier does not start Streamlit or require a browser session.
+
+`scripts/container_entrypoint.py` starts Streamlit and owns the optional
+Discord scheduler. Streamlit remains the main service. A notifier failure is
+logged and does not stop the dashboard.
 
 ### Data sources
 
@@ -165,9 +171,9 @@ Streamlit session state stores control selections for one browser session.
 Streamlit caches loaded data and deterministic calculations. This state is
 temporary and can be rebuilt from the configured source.
 
-The Discord notifier stores successful delivery periods in a Docker volume.
-This small state record prevents duplicate messages. It does not store financial
-rows.
+The running container stores successful Discord delivery periods in a Docker
+volume. This small state record prevents duplicate messages. It does not store
+financial rows.
 
 ### Loading and scrubbing
 
@@ -241,6 +247,11 @@ calculations are independent from Discord transport and message formatting.
 The notifier reuses the normal scrubbing functions. It uses direct CSV export
 requests because it runs without the Streamlit connection runtime.
 
+The container scheduler accepts a five-field cron expression and uses the `TZ`
+environment variable. The scheduler is disabled unless
+`PORTICO_DISCORD_ENABLED=true`. It calls the same notifier code as the manual
+command and relies on delivery state to prevent duplicates.
+
 ### Static demo gallery
 
 `scripts/build_pages_demo.py` builds a static gallery from the synthetic
@@ -266,12 +277,12 @@ Google Sheets connections, secrets, or private data.
 | `src/value_visibility.py` | Display masking for financial values |
 | `src/weekly_expenses.py` | Weekly expense report calculations |
 | `src/discord_notifier.py` | Discord configuration, transport, formatting, and state |
+| `scripts/container_entrypoint.py` | Container process and optional Discord schedule |
 | `scripts/` | Bootstrap, diagnostics, local commands, and build tools |
 | `config/` | Tracked defaults and the local override example |
 | `demo/data/` | Canonical synthetic workbook data |
 | `tests/unit/` | Direct behavior tests for functions and pages |
 | `tests/integration/` | Cross-sheet pipelines and Streamlit AppTest coverage |
-| `deploy/` | Host integration files such as systemd units |
 
 ## Testing rules
 

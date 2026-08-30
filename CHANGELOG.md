@@ -16,7 +16,7 @@ Portico uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - A synthetic demo with no financial records or Google Sheets connection.
 - Configurable analysis defaults with private local overrides.
 - A non-root Linux container with local-only network defaults.
-- A configurable weekly Discord expense summary with an optional systemd timer.
+- A configurable weekly Discord expense summary with an optional built-in schedule.
 - A shared development container, native bootstrap scripts, tests, and release checks.
 
 [Unreleased]: https://github.com/nccurry/portico/compare/v1.0.0...HEAD
