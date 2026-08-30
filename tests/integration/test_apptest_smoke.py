@@ -893,6 +893,19 @@ class TestIncomeAndSavingsSmoke:
 
 @pytest.mark.uses_real_dates
 class TestSpendingByCategorySmoke:
+    def test_time_frame_cannot_be_cleared(
+        self,
+        make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        at = _make_app(
+            "2_Spending_by_Category.py",
+            make_full_dataset,
+            ["src.spreadsheet.load_transactions_data"],
+        )
+
+        assert not at.exception
+        assert all(control.proto.required for control in at.segmented_control)
+
     def test_default_overview_and_detail(
         self,
         make_full_dataset: FullDatasetFactory,
