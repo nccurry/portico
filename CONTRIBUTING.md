@@ -33,10 +33,26 @@ uv run --locked pytest
 
 ### Task
 
-Run `sh scripts/bootstrap.sh` on Linux, or `scripts\bootstrap.ps1` in PowerShell.
-Then run `.tools/bin/task demo` on Linux, or `.\.tools\bin\task.exe demo` in
-PowerShell. The bootstrap installs the pinned local copies of uv, Task, and
-Python.
+The native bootstrap supports Linux and Windows development. It installs all
+tools inside the repository, so it does not change your system Python.
+
+On Linux, run:
+
+```console
+sh scripts/bootstrap.sh
+.tools/bin/task demo
+```
+
+On Windows, run:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/bootstrap.ps1
+.\.tools\bin\task.exe demo
+```
+
+The bootstrap installs the pinned Task binary first. Task then installs the
+pinned uv and Python versions, synchronizes `uv.lock`, and validates imports.
+You do not need mise for this workflow.
 
 Do not put financial records, Google Sheet URLs, webhook URLs, or credentials in commits, issues, screenshots, or logs.
 
@@ -59,3 +75,7 @@ commands cover repository privacy, documentation, the static demo, and the
 production container. In PowerShell, replace `.tools/bin/task` with
 `.\.tools\bin\task.exe`. Describe the user-visible result and the tests in the pull
 request. Use demo data for screenshots.
+
+CI runs the same Task commands in separate jobs inside the shared development
+container. Two small jobs validate the native bootstraps. CI also smoke-tests
+the production container on AMD64 and ARM64.

@@ -1,7 +1,9 @@
 # Google Sheets data schema
 
-Portico reads four Tiller tabs and ignores unknown columns. Column names are
-case-sensitive.
+Portico reads four Google Sheets tabs and ignores unknown columns. Column names
+are case-sensitive. The schema follows the
+[Tiller Foundation Template](https://help.tiller.com/en/articles/3250724-what-is-the-tiller-foundation-template),
+but the workbook does not need to come from Tiller.
 
 ## Transactions
 

@@ -22,6 +22,24 @@ defaults:
     shell: bash
 
 jobs:
+  native-bootstrap:
+    name: Bootstrap (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Bootstrap Linux development environment
+        if: runner.os == 'Linux'
+        run: sh scripts/bootstrap.sh
+      - name: Bootstrap Windows development environment
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/bootstrap.ps1
+
   select-devcontainer:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -32,7 +50,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
@@ -81,7 +99,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Verify development Feature lockfile
         run: |
@@ -142,6 +160,7 @@ jobs:
           fi
 
   privacy:
+    if: always() && needs.resolve-devcontainer.result == 'success'
     needs: resolve-devcontainer
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -155,12 +174,13 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: git config --global safe.directory "$GITHUB_WORKSPACE"
       - run: task dev:sync
       - run: task privacy:check
 
   lint:
+    if: always() && needs.resolve-devcontainer.result == 'success'
     needs: resolve-devcontainer
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -174,13 +194,14 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: task dev:sync
       - run: task dev:verify
       - run: task deps:check-lock
       - run: task lint
 
   unit-tests:
+    if: always() && needs.resolve-devcontainer.result == 'success'
     needs: resolve-devcontainer
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -194,7 +215,7 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: task dev:sync
       - run: task test:unit:coverage
       - name: Upload unit coverage data
@@ -207,6 +228,7 @@ jobs:
           retention-days: 3
 
   integration-tests:
+    if: always() && needs.resolve-devcontainer.result == 'success'
     needs: resolve-devcontainer
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -220,7 +242,7 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: task dev:sync
       - run: task test:integration:coverage
       - name: Upload integration coverage data
@@ -233,6 +255,7 @@ jobs:
           retention-days: 3
 
   docs-and-scripts:
+    if: always() && needs.resolve-devcontainer.result == 'success'
     needs: resolve-devcontainer
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -246,7 +269,7 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: git config --global safe.directory "$GITHUB_WORKSPACE"
       - run: task dev:sync
       - run: task docs:check
@@ -255,6 +278,11 @@ jobs:
         run: git diff --exit-code
 
   coverage:
+    if: >-
+      always() &&
+      needs.resolve-devcontainer.result == 'success' &&
+      needs.unit-tests.result == 'success' &&
+      needs.integration-tests.result == 'success'
     needs: [resolve-devcontainer, unit-tests, integration-tests]
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -268,7 +296,7 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: task dev:sync
       - name: Download unit coverage data
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -281,6 +309,8 @@ jobs:
           name: coverage-integration
           path: .coverage-data/integration
       - run: task coverage:combine
+        env:
+          COVERAGE_INPUTS: .coverage-data/unit .coverage-data/integration
       - run: task coverage:check-src
       - run: task coverage:check-total
       - run: task coverage:html
@@ -315,7 +345,7 @@ jobs:
           - platform: linux/arm64
             slug: arm64
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
       - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
       - name: Build production image
@@ -336,12 +366,13 @@ jobs:
 
   ci:
     if: always()
-    needs: [privacy, lint, unit-tests, integration-tests, docs-and-scripts, coverage, production-container]
+    needs: [native-bootstrap, privacy, lint, unit-tests, integration-tests, docs-and-scripts, coverage, production-container]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Require every CI lane
         env:
+          BOOTSTRAP: ${{ needs.native-bootstrap.result }}
           PRIVACY: ${{ needs.privacy.result }}
           LINT: ${{ needs.lint.result }}
           UNIT: ${{ needs.unit-tests.result }}
@@ -350,7 +381,7 @@ jobs:
           COVERAGE: ${{ needs.coverage.result }}
           CONTAINER: ${{ needs.production-container.result }}
         run: |
-          for result in "$PRIVACY" "$LINT" "$UNIT" "$INTEGRATION" "$DOCS" "$COVERAGE" "$CONTAINER"; do
+          for result in "$BOOTSTRAP" "$PRIVACY" "$LINT" "$UNIT" "$INTEGRATION" "$DOCS" "$COVERAGE" "$CONTAINER"; do
             test "$result" = "success"
           done
 

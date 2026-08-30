@@ -8,7 +8,7 @@ vars:
   LOCAL_TASK: '{{if eq OS "windows"}}.tools/bin/task.exe{{else}}.tools/bin/task{{end}}'
   UV: '{{default .LOCAL_UV .PORTICO_UV}}'
   TASK: '{{default .LOCAL_TASK .PORTICO_TASK}}'
-  COVERAGE_DIR: '{{default ".coverage-data" .COVERAGE_DIR}}'
+  COVERAGE_INPUTS: '{{default "." .COVERAGE_INPUTS}}'
   LINT_PATHS: src/ pages/ tests/ scripts/ Home.py
   ADDRESS: '{{default "127.0.0.1" .ADDRESS}}'
   PORT: '{{default "8501" .PORT}}'
@@ -27,7 +27,10 @@ tasks:
   setup:
     desc: "Set up the development environment"
     cmds:
-      - task: deps:install
+      - task: deps:python:install
+      - task: deps:sync
+      - task: setup:verify
+      - echo "[OK] Setup complete. Run 'task test' to run tests."
 
   dev:sync:
     desc: "Synchronize the locked development environment"
@@ -44,29 +47,12 @@ tasks:
     cmds:
       - task: deps:check
 
-  deps:install:
-    desc: "Install pinned tools, Python, and development dependencies"
-    cmds:
-      - task: deps:task:install
-      - task: deps:python:install
-      - task: deps:sync
-      - task: setup:verify
-      - echo "[OK] Setup complete. Run 'task test' to run tests."
-
   deps:install:runtime:
     desc: "Install pinned Python and runtime dependencies"
     cmds:
       - task: deps:python:install
       - task: deps:sync:runtime
       - task: setup:verify:runtime
-
-  deps:task:install:
-    desc: "Install the pinned Task runner locally"
-    cmds:
-      - cmd: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/bootstrap.ps1 -SkipSetup
-        platforms: [windows]
-      - cmd: sh scripts/bootstrap.sh --skip-setup
-        platforms: [linux, darwin]
 
   deps:python:install:
     desc: "Install pinned uv and Python locally"
@@ -206,7 +192,7 @@ tasks:
   coverage:combine:
     desc: "Combine unit and integration coverage data"
     cmds:
-      - '{{.UV}} run --locked --dev coverage combine {{.COVERAGE_DIR}}/unit {{.COVERAGE_DIR}}/integration'
+      - '{{.UV}} run --locked --dev coverage combine {{.COVERAGE_INPUTS}}'
 
   coverage:check-src:
     desc: "Enforce at least 90% src coverage"
