@@ -49,7 +49,7 @@ COPY --chown=portico:portico config/defaults.toml config/defaults.toml
 COPY --chown=portico:portico demo/ demo/
 COPY --chown=portico:portico pages/ pages/
 COPY --chown=portico:portico src/ src/
-COPY --chown=portico:portico scripts/doctor.py scripts/weekly-discord-summary.py scripts/
+COPY --chown=portico:portico scripts/container_entrypoint.py scripts/doctor.py scripts/weekly-discord-summary.py scripts/
 
 USER 1000:1000
 
@@ -58,4 +58,4 @@ EXPOSE 8501
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
     CMD ["python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8501/_stcore/health', timeout=3).read()"]
 
-CMD ["streamlit", "run", "Home.py", "--server.address=0.0.0.0", "--server.port=8501", "--server.headless=true", "--server.runOnSave=false", "--client.showErrorDetails=false", "--browser.gatherUsageStats=false"]
+CMD ["python", "-m", "scripts.container_entrypoint"]
