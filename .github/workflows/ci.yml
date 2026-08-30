@@ -96,17 +96,15 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push development image
-        uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca # v0.3
-        with:
-          imageName: ${{ env.DEVCONTAINER_IMAGE }}
-          imageTag: ${{ needs.select-devcontainer.outputs.tag }}
-          cacheFrom: ${{ env.DEVCONTAINER_IMAGE }}:main
-          push: never
-
-      - name: Push development image
         env:
           IMAGE_TAG: ${{ needs.select-devcontainer.outputs.tag }}
-        run: docker push "$DEVCONTAINER_IMAGE:$IMAGE_TAG"
+        run: |
+          npx --yes @devcontainers/cli@0.88.0 build \
+            --workspace-folder . \
+            --image-name "$DEVCONTAINER_IMAGE:$IMAGE_TAG" \
+            --cache-from "$DEVCONTAINER_IMAGE:main" \
+            --frozen-lockfile \
+            --push
 
       - name: Resolve immutable image digest
         id: digest
