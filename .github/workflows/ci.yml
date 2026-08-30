@@ -160,6 +160,7 @@ jobs:
           fi
 
   privacy:
+    if: always() && needs.resolve-devcontainer.result == 'success'
     needs: resolve-devcontainer
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -179,6 +180,7 @@ jobs:
       - run: task privacy:check
 
   lint:
+    if: always() && needs.resolve-devcontainer.result == 'success'
     needs: resolve-devcontainer
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -199,6 +201,7 @@ jobs:
       - run: task lint
 
   unit-tests:
+    if: always() && needs.resolve-devcontainer.result == 'success'
     needs: resolve-devcontainer
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -225,6 +228,7 @@ jobs:
           retention-days: 3
 
   integration-tests:
+    if: always() && needs.resolve-devcontainer.result == 'success'
     needs: resolve-devcontainer
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -251,6 +255,7 @@ jobs:
           retention-days: 3
 
   docs-and-scripts:
+    if: always() && needs.resolve-devcontainer.result == 'success'
     needs: resolve-devcontainer
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -273,6 +278,11 @@ jobs:
         run: git diff --exit-code
 
   coverage:
+    if: >-
+      always() &&
+      needs.resolve-devcontainer.result == 'success' &&
+      needs.unit-tests.result == 'success' &&
+      needs.integration-tests.result == 'success'
     needs: [resolve-devcontainer, unit-tests, integration-tests]
     runs-on: ubuntu-latest
     timeout-minutes: 10
