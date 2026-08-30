@@ -101,7 +101,12 @@ jobs:
           imageName: ${{ env.DEVCONTAINER_IMAGE }}
           imageTag: ${{ needs.select-devcontainer.outputs.tag }}
           cacheFrom: ${{ env.DEVCONTAINER_IMAGE }}:main
-          push: always
+          push: never
+
+      - name: Push development image
+        env:
+          IMAGE_TAG: ${{ needs.select-devcontainer.outputs.tag }}
+        run: docker push "$DEVCONTAINER_IMAGE:$IMAGE_TAG"
 
       - name: Resolve immutable image digest
         id: digest
