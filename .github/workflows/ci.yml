@@ -299,6 +299,8 @@ jobs:
           name: coverage-integration
           path: .coverage-data/integration
       - run: task coverage:combine
+        env:
+          COVERAGE_INPUTS: .coverage-data/unit .coverage-data/integration
       - run: task coverage:check-src
       - run: task coverage:check-total
       - run: task coverage:html
