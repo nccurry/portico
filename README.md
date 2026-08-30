@@ -337,25 +337,25 @@ The notifier runs inside the same container as the dashboard. Check its
 configuration, Google Sheets access, selected categories, webhook, and timezone:
 
 ```console
-docker exec portico python scripts/weekly-discord-summary.py check
+docker exec portico python -m scripts.weekly_discord_summary check
 ```
 
 Preview the report without contacting Discord:
 
 ```console
-docker exec portico python scripts/weekly-discord-summary.py preview
+docker exec portico python -m scripts.weekly_discord_summary preview
 ```
 
 Send a test message that contains no financial data:
 
 ```console
-docker exec portico python scripts/weekly-discord-summary.py test
+docker exec portico python -m scripts.weekly_discord_summary test
 ```
 
 Send the latest completed weekly report:
 
 ```console
-docker exec portico python scripts/weekly-discord-summary.py send
+docker exec portico python -m scripts.weekly_discord_summary send
 ```
 
 The notifier stores sent periods in the `portico-state` Docker volume. It skips

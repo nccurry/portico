@@ -8,6 +8,9 @@ vars:
   LOCAL_TASK: '{{if eq OS "windows"}}.tools/bin/task.exe{{else}}.tools/bin/task{{end}}'
   UV: '{{default .LOCAL_UV .PORTICO_UV}}'
   TASK: '{{default .LOCAL_TASK .PORTICO_TASK}}'
+  UV_PYTHON_DIR: '{{default ".tools/python" .UV_PYTHON_INSTALL_DIR}}'
+  UV_CACHE: '{{default ".local/uv-cache" .UV_CACHE_DIR}}'
+  PYTEST_TEMP: '{{default ".local/pytest-tmp" .PYTEST_TEMP}}'
   COVERAGE_INPUTS: '{{default "." .COVERAGE_INPUTS}}'
   LINT_PATHS: src/ pages/ tests/ scripts/ Home.py
   ADDRESS: '{{default "127.0.0.1" .ADDRESS}}'
@@ -21,6 +24,8 @@ vars:
 
 env:
   UV_PROJECT_ENVIRONMENT: '{{.VENV}}'
+  UV_PYTHON_INSTALL_DIR: '{{.UV_PYTHON_DIR}}'
+  UV_CACHE_DIR: '{{.UV_CACHE}}'
 
 tasks:
   # ========================================
@@ -134,15 +139,6 @@ tasks:
       - echo "Packages updated. Run 'task check' to verify nothing broke."
 
   # ========================================
-  # Fixtures
-  # ========================================
-
-  fixtures:generate:
-    desc: "Generate local anonymized fixtures (never committed)"
-    cmds:
-      - '{{.UV}} run --locked --dev python scripts/generate_test_fixtures.py'
-
-  # ========================================
   # Testing
   # ========================================
 
@@ -155,42 +151,42 @@ tasks:
   test:unit:
     desc: "Run unit tests"
     cmds:
-      - '{{.UV}} run --locked --dev pytest tests/unit'
+      - '{{.UV}} run --locked --dev pytest --basetemp={{.PYTEST_TEMP | quote}} tests/unit'
 
   test:integration:
     desc: "Run integration tests"
     cmds:
-      - '{{.UV}} run --locked --dev pytest tests/integration'
+      - '{{.UV}} run --locked --dev pytest --basetemp={{.PYTEST_TEMP | quote}} tests/integration'
 
   test:verbose:
     desc: "Run all tests with verbose output"
     cmds:
-      - '{{.UV}} run --locked --dev pytest -v'
+      - '{{.UV}} run --locked --dev pytest --basetemp={{.PYTEST_TEMP | quote}} -v'
 
   test:file:
     desc: "Run tests for a specific file (usage: task test:file -- test_spreadsheet.py)"
     cmds:
-      - '{{.UV}} run --locked --dev pytest tests/{{.CLI_ARGS}} -v'
+      - '{{.UV}} run --locked --dev pytest --basetemp={{.PYTEST_TEMP | quote}} tests/{{.CLI_ARGS}} -v'
 
   test:match:
     desc: "Run tests matching a pattern (usage: task test:match -- test_filter)"
     cmds:
-      - '{{.UV}} run --locked --dev pytest -k "{{.CLI_ARGS}}" -v'
+      - '{{.UV}} run --locked --dev pytest --basetemp={{.PYTEST_TEMP | quote}} -k "{{.CLI_ARGS}}" -v'
 
   test:coverage:
     desc: "Run all tests and record coverage"
     cmds:
-      - '{{.UV}} run --locked --dev pytest --cov=src --cov=pages --cov-branch --cov-report='
+      - '{{.UV}} run --locked --dev pytest --basetemp={{.PYTEST_TEMP | quote}} --cov=src --cov=pages --cov-branch --cov-report='
 
   test:unit:coverage:
     desc: "Run unit tests and write parallel coverage data"
     cmds:
-      - '{{.UV}} run --locked --dev coverage run --branch --parallel-mode --source=src,pages -m pytest tests/unit'
+      - '{{.UV}} run --locked --dev coverage run --branch --parallel-mode --source=src,pages -m pytest --basetemp={{.PYTEST_TEMP | quote}} tests/unit'
 
   test:integration:coverage:
     desc: "Run integration tests and write parallel coverage data"
     cmds:
-      - '{{.UV}} run --locked --dev coverage run --branch --parallel-mode --source=src,pages -m pytest tests/integration'
+      - '{{.UV}} run --locked --dev coverage run --branch --parallel-mode --source=src,pages -m pytest --basetemp={{.PYTEST_TEMP | quote}} tests/integration'
 
   coverage:combine:
     desc: "Combine unit and integration coverage data"
@@ -275,17 +271,17 @@ tasks:
   privacy:check:
     desc: "Check repository files for private data"
     cmds:
-      - '{{.UV}} run --locked --dev python scripts/check_repository_privacy.py'
+      - '{{.UV}} run --locked --dev python -m scripts.check_repository_privacy'
 
   docs:check:
     desc: "Validate documentation, assets, and standalone uv scripts"
     cmds:
-      - '{{.UV}} run --locked --dev python scripts/check_docs.py'
+      - '{{.UV}} run --locked --dev python -m scripts.check_docs'
 
   config:init:
     desc: "Create an ignored local configuration file"
     cmds:
-      - '{{.UV}} run --locked --dev python scripts/init_config.py'
+      - '{{.UV}} run --locked --dev python -m scripts.init_config'
 
   # ========================================
   # Run
@@ -314,7 +310,7 @@ tasks:
   pages:build:
     desc: "Build the GitHub Pages demo artifact"
     cmds:
-      - '{{.UV}} run --locked --dev python scripts/build_pages_demo.py'
+      - '{{.UV}} run --locked --dev python -m scripts.build_pages_demo'
 
   container:build:
     desc: "Build the local Linux container image"
@@ -324,7 +320,7 @@ tasks:
   container:smoke:
     desc: "Build and health-test the demo container"
     cmds:
-      - '{{.UV}} run --locked --dev python scripts/smoke_container.py {{.CLI_ARGS}}'
+      - '{{.UV}} run --locked --dev python -m scripts.smoke_container {{.CLI_ARGS}}'
 
   container:demo:
     desc: "Build and run the demo container on localhost"
@@ -364,7 +360,7 @@ tasks:
   container:notifier:
     desc: "Run one notifier command in the Portico container"
     cmds:
-      - docker exec portico python scripts/weekly-discord-summary.py {{.CLI_ARGS}}
+      - docker exec portico python -m scripts.weekly_discord_summary {{.CLI_ARGS}}
 
   # ========================================
   # Weekly Discord Summary
@@ -379,7 +375,7 @@ tasks:
   discord:check:run:
     internal: true
     cmds:
-      - '{{.PYTHON}} scripts/weekly-discord-summary.py check --output={{.OUTPUT | quote}}'
+      - '{{.PYTHON}} -m scripts.weekly_discord_summary check --output={{.OUTPUT | quote}}'
 
   discord:preview:
     desc: "Print the weekly expense summary without contacting Discord"
@@ -387,7 +383,7 @@ tasks:
       - sh: '{{.PYTHON}} --version'
         msg: "Runtime dependencies are missing. Run 'task discord:check'."
     cmds:
-      - '{{.PYTHON}} scripts/weekly-discord-summary.py preview --output={{.OUTPUT | quote}} {{if .PERIOD_END}}--period-end={{.PERIOD_END | quote}}{{end}}'
+      - '{{.PYTHON}} -m scripts.weekly_discord_summary preview --output={{.OUTPUT | quote}} {{if .PERIOD_END}}--period-end={{.PERIOD_END | quote}}{{end}}'
 
   discord:test:
     desc: "Send a Discord connection test without financial data"
@@ -395,7 +391,7 @@ tasks:
       - sh: '{{.PYTHON}} --version'
         msg: "Runtime dependencies are missing. Run 'task discord:check'."
     cmds:
-      - '{{.PYTHON}} scripts/weekly-discord-summary.py test --output={{.OUTPUT | quote}}'
+      - '{{.PYTHON}} -m scripts.weekly_discord_summary test --output={{.OUTPUT | quote}}'
 
   discord:send:
     desc: "Send the weekly expense summary now"
@@ -403,4 +399,4 @@ tasks:
       - sh: '{{.PYTHON}} --version'
         msg: "Runtime dependencies are missing. Run 'task discord:check'."
     cmds:
-      - '{{.PYTHON}} scripts/weekly-discord-summary.py send --output={{.OUTPUT | quote}} {{if .PERIOD_END}}--period-end={{.PERIOD_END | quote}}{{end}} {{if eq .FORCE "true"}}--force{{end}}'
+      - '{{.PYTHON}} -m scripts.weekly_discord_summary send --output={{.OUTPUT | quote}} {{if .PERIOD_END}}--period-end={{.PERIOD_END | quote}}{{end}} {{if eq .FORCE "true"}}--force{{end}}'

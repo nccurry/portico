@@ -1,3 +1,8 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.14.6,<3.15"
+# dependencies = []
+# ///
 """Validate local documentation links and standalone uv script headers."""
 
 from __future__ import annotations
@@ -14,8 +19,10 @@ MARKDOWN_LINK = re.compile(r"!?\[[^\]]*\]\((?:<([^>]+)>|([^\s)]+))(?:\s+[^)]*)?\
 HTML_LINK = re.compile(r"(?:href|src)=[\"']([^\"']+)[\"']", re.IGNORECASE)
 STANDALONE_SCRIPTS = (
     Path("scripts/build_pages_demo.py"),
+    Path("scripts/check_docs.py"),
     Path("scripts/check_repository_privacy.py"),
     Path("scripts/init_config.py"),
+    Path("scripts/smoke_container.py"),
 )
 UV_HEADER = (
     "#!/usr/bin/env -S uv run --script",
