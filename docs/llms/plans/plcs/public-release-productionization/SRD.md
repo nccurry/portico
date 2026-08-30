@@ -180,7 +180,7 @@ A contributor must find the setup, checks, contribution expectations, support bo
 | CI-003 | Review dependencies and licenses. | Automated dependency updates are enabled. A one-time pre-release review records incompatible dependency licenses or known critical advisories. |
 | CI-004 | Verify documentation and assets. | CI checks internal links, required community files, SVG parseability/accessibility metadata, README image paths, and `git diff --check`. |
 | REL-001 | Define versioning and changelog policy. | `CHANGELOG.md` is latest-first and human-oriented. The stable 1.x compatibility policy and breaking-change notation are documented. |
-| REL-002 | Provide a release verification command. | `task release:check` is non-interactive, runs required local gates once, emits a clear summary, and returns non-zero when any gate fails. |
+| REL-002 | Provide composable release verification commands. | Atomic Task commands cover linting, tests, coverage, privacy, documentation, demo builds, and container smoke tests. The release workflow runs the required commands explicitly and stops when any command fails. |
 | REL-003 | Automate GitHub and container releases from tags. | A `v*` tag workflow verifies the tag matches `pyproject.toml`, runs release gates, publishes the multi-architecture GHCR image, and creates a GitHub Release. It does not publish to PyPI. |
 | REL-004 | Ship `v1.0.0` as a stable public release. | Configuration keys, documented Task commands, Google Sheets schema expectations, and container invocation form a documented 1.x compatibility contract. Release notes state security boundaries, supported configuration, known limitations, and upgrade expectations. |
 

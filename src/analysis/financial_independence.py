@@ -76,9 +76,7 @@ def calculate_fi_metrics(
         elif annual_return >= net_withdrawal:
             runway = None
         else:
-            runway = math.log(
-                net_withdrawal / (net_withdrawal - portfolio_value * rate)
-            ) / math.log(1.0 + rate)
+            runway = math.log(net_withdrawal / (net_withdrawal - portfolio_value * rate)) / math.log(1.0 + rate)
 
     return FISummary(
         annual_return=annual_return,
@@ -145,12 +143,7 @@ def build_runway_sensitivity(
     """Return runway outcomes across nearby spending and return assumptions."""
     if return_rates is None:
         return_rates = tuple(
-            sorted(
-                {
-                    max(0.0, baseline_return_rate + change)
-                    for change in (-4.0, -2.0, 0.0, 2.0, 4.0)
-                }
-            )
+            sorted({max(0.0, baseline_return_rate + change) for change in (-4.0, -2.0, 0.0, 2.0, 4.0)})
         )
     rows: list[dict[str, float | str | bool]] = []
     for spending_change in spending_changes:
@@ -164,11 +157,7 @@ def build_runway_sensitivity(
             )["runway_years"]
             rows.append(
                 {
-                    "Spending_Change": (
-                        "Baseline"
-                        if spending_change == 0
-                        else f"{spending_change:+d}%"
-                    ),
+                    "Spending_Change": ("Baseline" if spending_change == 0 else f"{spending_change:+d}%"),
                     "Annual_Spending": scenario_spending,
                     "Return_Rate": return_rate,
                     "Is_Baseline_Return": return_rate == baseline_return_rate,

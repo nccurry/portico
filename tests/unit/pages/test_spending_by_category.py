@@ -48,12 +48,14 @@ def _transactions(rows: list[dict[str, object]]) -> pd.DataFrame:
 
 class TestBuildSpendingLedger:
     def test_keeps_only_expenses_inside_exclusive_month_window(self) -> None:
-        transactions = _transactions([
-            {"Month": "2023-12"},
-            {"Month": "2024-01"},
-            {"Month": "2024-02", "Type": "Income"},
-            {"Month": "2024-03"},
-        ])
+        transactions = _transactions(
+            [
+                {"Month": "2023-12"},
+                {"Month": "2024-01"},
+                {"Month": "2024-02", "Type": "Income"},
+                {"Month": "2024-03"},
+            ]
+        )
 
         ledger = build_spending_ledger(
             transactions,
@@ -66,10 +68,12 @@ class TestBuildSpendingLedger:
         assert ledger["Included"].tolist() == [True]
 
     def test_refunds_reduce_spending(self) -> None:
-        transactions = _transactions([
-            {"Amount": -200.0},
-            {"Amount": 50.0, "Full Description": "STORE REFUND"},
-        ])
+        transactions = _transactions(
+            [
+                {"Amount": -200.0},
+                {"Amount": 50.0, "Full Description": "STORE REFUND"},
+            ]
+        )
 
         ledger = build_spending_ledger(
             transactions,
@@ -82,13 +86,15 @@ class TestBuildSpendingLedger:
         assert ledger["Net_Spend"].sum() == pytest.approx(150.0)
 
     def test_records_every_matching_exclusion_reason(self) -> None:
-        transactions = _transactions([
-            {
-                "Amount": -4_000.0,
-                "Group": "Travel",
-                "Category": "Flights",
-            }
-        ])
+        transactions = _transactions(
+            [
+                {
+                    "Amount": -4_000.0,
+                    "Group": "Travel",
+                    "Category": "Flights",
+                }
+            ]
+        )
 
         ledger = build_spending_ledger(
             transactions,
@@ -109,10 +115,12 @@ class TestBuildSpendingLedger:
         ]
 
     def test_amount_equal_to_limit_remains_included(self) -> None:
-        transactions = _transactions([
-            {"Amount": -3_000.0},
-            {"Amount": -3_000.01},
-        ])
+        transactions = _transactions(
+            [
+                {"Amount": -3_000.0},
+                {"Amount": -3_000.01},
+            ]
+        )
 
         ledger = build_spending_ledger(
             transactions,
@@ -124,11 +132,13 @@ class TestBuildSpendingLedger:
         assert ledger["Included"].tolist() == [True, False]
 
     def test_include_filters_use_union_for_legacy_callers(self) -> None:
-        transactions = _transactions([
-            {"Group": "Travel", "Category": "Flights"},
-            {"Group": "Food", "Category": "Groceries"},
-            {"Group": "Food", "Category": "Dining"},
-        ])
+        transactions = _transactions(
+            [
+                {"Group": "Travel", "Category": "Flights"},
+                {"Group": "Food", "Category": "Groceries"},
+                {"Group": "Food", "Category": "Dining"},
+            ]
+        )
 
         ledger = build_spending_ledger(
             transactions,
@@ -154,20 +164,24 @@ class TestBuildSpendingLedger:
 class TestBuildSpendingOverview:
     def test_reconciles_group_totals_shares_changes_and_zero_months(self) -> None:
         current = build_spending_ledger(
-            _transactions([
-                {"Month": "2024-01", "Group": "Food", "Amount": -100.0},
-                {"Month": "2024-03", "Group": "Food", "Amount": -200.0},
-                {"Month": "2024-02", "Group": "Housing", "Amount": -500.0},
-            ]),
+            _transactions(
+                [
+                    {"Month": "2024-01", "Group": "Food", "Amount": -100.0},
+                    {"Month": "2024-03", "Group": "Food", "Amount": -200.0},
+                    {"Month": "2024-02", "Group": "Housing", "Amount": -500.0},
+                ]
+            ),
             _filters(),
             start_month="2024-01",
             end_month="2024-04",
         )
         comparison = build_spending_ledger(
-            _transactions([
-                {"Month": "2023-10", "Group": "Food", "Amount": -250.0},
-                {"Month": "2023-11", "Group": "Travel", "Amount": -300.0},
-            ]),
+            _transactions(
+                [
+                    {"Month": "2023-10", "Group": "Food", "Amount": -250.0},
+                    {"Month": "2023-11", "Group": "Travel", "Amount": -300.0},
+                ]
+            ),
             _filters(),
             start_month="2023-10",
             end_month="2024-01",
@@ -193,10 +207,12 @@ class TestBuildSpendingOverview:
 
     def test_category_overview_carries_authoritative_group(self) -> None:
         ledger = build_spending_ledger(
-            _transactions([
-                {"Category": "Groceries", "Group": "Food", "Amount": -100.0},
-                {"Category": "Rent", "Group": "Housing", "Amount": -500.0},
-            ]),
+            _transactions(
+                [
+                    {"Category": "Groceries", "Group": "Food", "Amount": -100.0},
+                    {"Category": "Rent", "Group": "Housing", "Amount": -500.0},
+                ]
+            ),
             _filters(),
             start_month="2024-01",
             end_month="2024-02",
@@ -274,10 +290,12 @@ class TestSpendingDetailAnalysis:
 
     def test_monthly_comparison_aligns_requested_months(self) -> None:
         current = build_spending_ledger(
-            _transactions([
-                {"Month": "2024-01", "Amount": -100.0},
-                {"Month": "2024-03", "Amount": -300.0},
-            ]),
+            _transactions(
+                [
+                    {"Month": "2024-01", "Amount": -100.0},
+                    {"Month": "2024-03", "Amount": -300.0},
+                ]
+            ),
             _filters(),
             start_month="2024-01",
             end_month="2024-04",
@@ -304,20 +322,22 @@ class TestSpendingDetailAnalysis:
 
     def test_merchant_breakdown_reconciles_refunds(self) -> None:
         ledger = build_spending_ledger(
-            _transactions([
-                {
-                    "Amount": -200.0,
-                    "Full Description": "POS PURCHASE KROGER #1234 STORE",
-                },
-                {
-                    "Amount": 50.0,
-                    "Full Description": "KROGER #1234 STORE REFUND",
-                },
-                {
-                    "Amount": -25.0,
-                    "Full Description": "COFFEE SHOP 4567",
-                },
-            ]),
+            _transactions(
+                [
+                    {
+                        "Amount": -200.0,
+                        "Full Description": "POS PURCHASE KROGER #1234 STORE",
+                    },
+                    {
+                        "Amount": 50.0,
+                        "Full Description": "KROGER #1234 STORE REFUND",
+                    },
+                    {
+                        "Amount": -25.0,
+                        "Full Description": "COFFEE SHOP 4567",
+                    },
+                ]
+            ),
             _filters(),
             start_month="2024-01",
             end_month="2024-02",
@@ -353,8 +373,6 @@ class TestSpendingDetailAnalysis:
         assert merchants["Spending"].tolist() == pytest.approx([150.0])
 
     def test_empty_merchant_breakdown_has_exact_schema(self) -> None:
-        result = build_merchant_breakdown(
-            pd.DataFrame(columns=["Included", "Net_Spend", "Date"])
-        )
+        result = build_merchant_breakdown(pd.DataFrame(columns=["Included", "Net_Spend", "Date"]))
         assert result.empty
         assert result.columns.tolist() == MERCHANT_COLUMNS

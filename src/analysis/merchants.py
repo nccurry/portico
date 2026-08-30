@@ -51,12 +51,7 @@ _LONG_CODE_RE = re.compile(r"\b(?=[A-Z0-9]*\d)[A-Z0-9]{8,}\b")
 
 def _is_missing_description(value: object) -> bool:
     """Return whether a scalar transaction description is missing."""
-    return (
-        value is None
-        or value is pd.NA
-        or value is pd.NaT
-        or (isinstance(value, float) and pd.isna(value))
-    )
+    return value is None or value is pd.NA or value is pd.NaT or (isinstance(value, float) and pd.isna(value))
 
 
 def _clean_merchant_text(value: object) -> str:
@@ -94,9 +89,7 @@ def build_merchant_aliases(config: Mapping[str, object]) -> dict[str, str]:
                 raise ValueError(f"Merchant aliases for {canonical} cannot be blank")
             existing = aliases.get(pattern)
             if existing is not None and existing != canonical:
-                raise ValueError(
-                    f"Merchant alias {pattern!r} maps to both {existing} and {canonical}"
-                )
+                raise ValueError(f"Merchant alias {pattern!r} maps to both {existing} and {canonical}")
             aliases[pattern] = canonical
     return aliases
 
@@ -146,10 +139,7 @@ def normalize_merchant_name(
 
     aliases = aliases or {}
     normalized_aliases = sorted(
-        (
-            (_clean_merchant_text(pattern), str(replacement).strip().upper())
-            for pattern, replacement in aliases.items()
-        ),
+        ((_clean_merchant_text(pattern), str(replacement).strip().upper()) for pattern, replacement in aliases.items()),
         key=lambda item: (-len(item[0]), item[0]),
     )
     for pattern, replacement in normalized_aliases:
@@ -225,24 +215,12 @@ def build_merchant_overview(
         monthly_trends[merchant] = values.astype(float).tolist()
     total_spending = float(grouped["Spending"].sum())
     month_count = len(months)
-    grouped["Share"] = (
-        grouped["Spending"].div(total_spending).mul(100)
-        if total_spending
-        else 0.0
-    )
-    grouped["Average_Monthly"] = (
-        grouped["Spending"].div(month_count) if month_count else 0.0
-    )
-    grouped["Comparison_Spending"] = (
-        grouped["Merchant"].map(comparison_spending).fillna(0.0)
-    )
+    grouped["Share"] = grouped["Spending"].div(total_spending).mul(100) if total_spending else 0.0
+    grouped["Average_Monthly"] = grouped["Spending"].div(month_count) if month_count else 0.0
+    grouped["Comparison_Spending"] = grouped["Merchant"].map(comparison_spending).fillna(0.0)
     grouped["Change"] = grouped["Spending"] - grouped["Comparison_Spending"]
-    grouped["Change_Pct"] = grouped["Change"].div(
-        grouped["Comparison_Spending"].abs().replace(0, pd.NA)
-    ).mul(100)
-    grouped["Average_Transaction"] = grouped["Spending"].div(
-        grouped["Transactions"]
-    )
+    grouped["Change_Pct"] = grouped["Change"].div(grouped["Comparison_Spending"].abs().replace(0, pd.NA)).mul(100)
+    grouped["Average_Transaction"] = grouped["Spending"].div(grouped["Transactions"])
     grouped["Monthly_Trend"] = grouped["Merchant"].map(monthly_trends)
     return grouped[MERCHANT_OVERVIEW_COLUMNS].sort_values(
         ["Spending", "Merchant"],
@@ -265,9 +243,7 @@ def summarize_merchant_period(
             repeat_spending_share=0.0,
         )
     total = float(overview["Spending"].sum())
-    repeat_total = float(
-        overview.loc[overview["Transactions"] >= 2, "Spending"].sum()
-    )
+    repeat_total = float(overview.loc[overview["Transactions"] >= 2, "Spending"].sum())
     return MerchantPeriodSummary(
         total_spending=total,
         average_monthly_spending=total / num_months if num_months else 0.0,
@@ -289,22 +265,12 @@ def build_merchant_monthly_comparison(
     comparison = _included(comparison_ledger)
     current = current[current["Merchant"].astype(str) == merchant]
     comparison = comparison[comparison["Merchant"].astype(str) == merchant]
-    current_spending = (
-        current.groupby("Month")["Net_Spend"]
-        .sum()
-        .reindex(list(current_months), fill_value=0.0)
-    )
+    current_spending = current.groupby("Month")["Net_Spend"].sum().reindex(list(current_months), fill_value=0.0)
     comparison_spending = (
-        comparison.groupby("Month")["Net_Spend"]
-        .sum()
-        .reindex(list(comparison_months), fill_value=0.0)
+        comparison.groupby("Month")["Net_Spend"].sum().reindex(list(comparison_months), fill_value=0.0)
     )
-    current_counts = current.groupby("Month").size().reindex(
-        list(current_months), fill_value=0
-    )
-    comparison_counts = comparison.groupby("Month").size().reindex(
-        list(comparison_months), fill_value=0
-    )
+    current_counts = current.groupby("Month").size().reindex(list(current_months), fill_value=0)
+    comparison_counts = comparison.groupby("Month").size().reindex(list(comparison_months), fill_value=0)
     rows = [
         {
             "Month_Index": index,
@@ -312,17 +278,11 @@ def build_merchant_monthly_comparison(
             "Comparison_Month": comparison_month,
             "Month_Label": pd.Period(current_month, freq="M").strftime("%b %Y"),
             "Current_Spending": float(current_spending.loc[current_month]),
-            "Comparison_Spending": float(
-                comparison_spending.loc[comparison_month]
-            ),
+            "Comparison_Spending": float(comparison_spending.loc[comparison_month]),
             "Current_Transactions": int(current_counts.loc[current_month]),
-            "Comparison_Transactions": int(
-                comparison_counts.loc[comparison_month]
-            ),
+            "Comparison_Transactions": int(comparison_counts.loc[comparison_month]),
         }
-        for index, (current_month, comparison_month) in enumerate(
-            zip(current_months, comparison_months, strict=True)
-        )
+        for index, (current_month, comparison_month) in enumerate(zip(current_months, comparison_months, strict=True))
     ]
     return pd.DataFrame(rows, columns=MERCHANT_MONTHLY_COLUMNS)
 
@@ -347,9 +307,7 @@ def build_merchant_dimension_breakdown(
         .rename(columns={dimension: "Entity"})
     )
     total = float(grouped["Spending"].sum())
-    grouped["Share"] = (
-        grouped["Spending"].div(total).mul(100) if total else 0.0
-    )
+    grouped["Share"] = grouped["Spending"].div(total).mul(100) if total else 0.0
     return grouped[MERCHANT_BREAKDOWN_COLUMNS].sort_values(
         ["Spending", "Entity"],
         ascending=[False, True],

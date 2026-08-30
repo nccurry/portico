@@ -42,9 +42,9 @@ def find_uncategorized_transactions(transactions_df: pd.DataFrame) -> pd.DataFra
 
     category_missing = transactions_df["Category"].isna() | (transactions_df["Category"].astype(str).str.strip() == "")
     group_missing = (
-        transactions_df["Group"].isna() |
-        (transactions_df["Group"].astype(str).str.strip() == "") |
-        (transactions_df["Group"] == "Uncategorized")
+        transactions_df["Group"].isna()
+        | (transactions_df["Group"].astype(str).str.strip() == "")
+        | (transactions_df["Group"] == "Uncategorized")
     )
     type_missing = transactions_df["Type"].isna() | (transactions_df["Type"].astype(str).str.strip() == "")
     return transactions_df[category_missing | group_missing | type_missing].copy()
@@ -63,9 +63,7 @@ def find_incomplete_transactions(transactions_df: pd.DataFrame) -> pd.DataFrame:
         elif column in {"Date", "Amount"}:
             column_missing = transactions_df[column].isna()
         else:
-            column_missing = transactions_df[column].isna() | (
-                transactions_df[column].astype(str).str.strip() == ""
-            )
+            column_missing = transactions_df[column].isna() | (transactions_df[column].astype(str).str.strip() == "")
         missing |= column_missing
         reasons.append(column_missing.map({True: column, False: ""}))
 
@@ -108,9 +106,7 @@ def find_missing_account_mappings(balance_history_df: pd.DataFrame) -> pd.DataFr
         if column not in latest.columns:
             column_missing = pd.Series(True, index=latest.index)
         else:
-            column_missing = latest[column].isna() | (
-                latest[column].astype(str).str.strip() == ""
-            )
+            column_missing = latest[column].isna() | (latest[column].astype(str).str.strip() == "")
             if column == "Class":
                 column_missing |= ~latest[column].isin(["Asset", "Liability"])
         missing |= column_missing
@@ -152,14 +148,24 @@ def _latest_account_rows(balance_history_df: pd.DataFrame) -> pd.DataFrame:
     if "Time" in balance_history_df.columns:
         sort_cols.append("Time")
     latest = balance_history_df.sort_values(sort_cols).copy()
-    accounts = latest.get(
-        "Account",
-        pd.Series("", index=latest.index, dtype="string"),
-    ).fillna("").astype(str).str.strip()
-    account_ids = latest.get(
-        "Account ID",
-        pd.Series("", index=latest.index, dtype="string"),
-    ).fillna("").astype(str).str.strip()
+    accounts = (
+        latest.get(
+            "Account",
+            pd.Series("", index=latest.index, dtype="string"),
+        )
+        .fillna("")
+        .astype(str)
+        .str.strip()
+    )
+    account_ids = (
+        latest.get(
+            "Account ID",
+            pd.Series("", index=latest.index, dtype="string"),
+        )
+        .fillna("")
+        .astype(str)
+        .str.strip()
+    )
     fallback = "account:" + accounts
     row_fallback = pd.Series(
         "row:" + latest.index.astype(str),

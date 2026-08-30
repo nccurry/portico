@@ -1,4 +1,5 @@
 """Tests for budget functionality: CategoriesSpreadsheet budget parsing and budget vs actual."""
+
 from unittest.mock import patch
 
 import pandas as pd
@@ -13,8 +14,8 @@ from src.analysis import budget as _mod
 # CategoriesSpreadsheet.scrub() — budget parsing
 # ---------------------------------------------------------------------------
 
-class TestCategoriesBudgetParsing:
 
+class TestCategoriesBudgetParsing:
     def _make(self, raw_df: pd.DataFrame) -> CategoriesSpreadsheet:
         with patch.object(Spreadsheet, "load", lambda self: setattr(self, "raw_df", raw_df)):
             return CategoriesSpreadsheet()
@@ -39,28 +40,26 @@ class TestCategoriesBudgetParsing:
     def test_budget_values_correct(self, raw_categories_with_budget_df: pd.DataFrame) -> None:
         cs = self._make(raw_categories_with_budget_df)
         # Groceries has $500 budget for all months
-        groceries_jan = cs.budget_df[
-            (cs.budget_df["Category"] == "Groceries") & (cs.budget_df["Month"] == "2023-01")
-        ]
+        groceries_jan = cs.budget_df[(cs.budget_df["Category"] == "Groceries") & (cs.budget_df["Month"] == "2023-01")]
         assert groceries_jan.iloc[0]["Budget"] == pytest.approx(500)
 
     def test_different_budget_per_month(self, raw_categories_with_budget_df: pd.DataFrame) -> None:
         cs = self._make(raw_categories_with_budget_df)
         # Restaurants: $200 most months but $250 in March
-        rest_mar = cs.budget_df[
-            (cs.budget_df["Category"] == "Restaurants") & (cs.budget_df["Month"] == "2023-03")
-        ]
+        rest_mar = cs.budget_df[(cs.budget_df["Category"] == "Restaurants") & (cs.budget_df["Month"] == "2023-03")]
         assert rest_mar.iloc[0]["Budget"] == pytest.approx(250)
 
     def test_same_month_number_in_multiple_years_is_preserved(self) -> None:
-        raw = pd.DataFrame({
-            "Category": ["Groceries"],
-            "Group": ["Food"],
-            "Type": ["Expense"],
-            "Hide From Reports": [""],
-            pd.Timestamp("2023-01-01"): [500],
-            pd.Timestamp("2024-01-01"): [600],
-        })
+        raw = pd.DataFrame(
+            {
+                "Category": ["Groceries"],
+                "Group": ["Food"],
+                "Type": ["Expense"],
+                "Hide From Reports": [""],
+                pd.Timestamp("2023-01-01"): [500],
+                pd.Timestamp("2024-01-01"): [600],
+            }
+        )
         cs = self._make(raw)
         groceries = cs.budget_df[cs.budget_df["Category"] == "Groceries"]
         assert groceries.set_index("Month")["Budget"].to_dict() == {
@@ -69,27 +68,29 @@ class TestCategoriesBudgetParsing:
         }
 
     def test_nan_budget_becomes_zero(self) -> None:
-        raw = pd.DataFrame({
-            "Category": ["Groceries"],
-            "Group": ["Food"],
-            "Type": ["Expense"],
-            "Hide From Reports": [""],
-            pd.Timestamp("2023-01-01"): [None],
-            pd.Timestamp("2023-02-01"): [500],
-        })
+        raw = pd.DataFrame(
+            {
+                "Category": ["Groceries"],
+                "Group": ["Food"],
+                "Type": ["Expense"],
+                "Hide From Reports": [""],
+                pd.Timestamp("2023-01-01"): [None],
+                pd.Timestamp("2023-02-01"): [500],
+            }
+        )
         cs = self._make(raw)
-        jan = cs.budget_df[
-            (cs.budget_df["Category"] == "Groceries") & (cs.budget_df["Month"] == "2023-01")
-        ]
+        jan = cs.budget_df[(cs.budget_df["Category"] == "Groceries") & (cs.budget_df["Month"] == "2023-01")]
         assert jan.iloc[0]["Budget"] == pytest.approx(0)
 
     def test_no_date_columns_produces_empty_budget_df(self) -> None:
-        raw = pd.DataFrame({
-            "Category": ["Groceries"],
-            "Group": ["Food"],
-            "Type": ["Expense"],
-            "Hide From Reports": [""],
-        })
+        raw = pd.DataFrame(
+            {
+                "Category": ["Groceries"],
+                "Group": ["Food"],
+                "Type": ["Expense"],
+                "Hide From Reports": [""],
+            }
+        )
         cs = self._make(raw)
         assert cs.budget_df.empty
         assert set(cs.budget_df.columns) == {"Category", "Month", "Budget", "Group", "Type"}
@@ -109,14 +110,22 @@ class TestCategoriesBudgetParsing:
 
 class TestDefaultBudgetGroups:
     def test_uses_positive_expense_budgets_for_selected_month(self) -> None:
-        budgets = pd.DataFrame([
-            {"Category": "Shopping", "Group": "Shopping", "Type": "Expense", "Month": "2026-08", "Budget": 2500},
-            {"Category": "Groceries", "Group": "Food", "Type": "Expense", "Month": "2026-08", "Budget": 2000},
-            {"Category": "Travel", "Group": "Travel", "Type": "Expense", "Month": "2026-08", "Budget": 0},
-            {"Category": "Streaming", "Group": "Entertainment", "Type": "Expense", "Month": "2026-08", "Budget": 50},
-            {"Category": "Paycheck", "Group": "Income", "Type": "Income", "Month": "2026-08", "Budget": 100},
-            {"Category": "Travel", "Group": "Travel", "Type": "Expense", "Month": "2026-09", "Budget": 1000},
-        ])
+        budgets = pd.DataFrame(
+            [
+                {"Category": "Shopping", "Group": "Shopping", "Type": "Expense", "Month": "2026-08", "Budget": 2500},
+                {"Category": "Groceries", "Group": "Food", "Type": "Expense", "Month": "2026-08", "Budget": 2000},
+                {"Category": "Travel", "Group": "Travel", "Type": "Expense", "Month": "2026-08", "Budget": 0},
+                {
+                    "Category": "Streaming",
+                    "Group": "Entertainment",
+                    "Type": "Expense",
+                    "Month": "2026-08",
+                    "Budget": 50,
+                },
+                {"Category": "Paycheck", "Group": "Income", "Type": "Income", "Month": "2026-08", "Budget": 100},
+                {"Category": "Travel", "Group": "Travel", "Type": "Expense", "Month": "2026-09", "Budget": 1000},
+            ]
+        )
         available = ["Shopping", "Food", "Travel", "Entertainment", "Income"]
 
         assert _mod.get_default_budget_groups(budgets, "2026-08", available) == [
@@ -127,15 +136,16 @@ class TestDefaultBudgetGroups:
         assert _mod.get_default_budget_groups(budgets, "2026-09", available) == ["Travel"]
 
     def test_no_positive_budget_returns_no_defaults(self) -> None:
-        budgets = pd.DataFrame([
-            {"Category": "Travel", "Group": "Travel", "Type": "Expense", "Month": "2026-08", "Budget": 0},
-        ])
+        budgets = pd.DataFrame(
+            [
+                {"Category": "Travel", "Group": "Travel", "Type": "Expense", "Month": "2026-08", "Budget": 0},
+            ]
+        )
         assert _mod.get_default_budget_groups(budgets, "2026-08", ["Travel"]) == []
         assert _mod.get_default_budget_groups(budgets, "2026-09", ["Travel"]) == []
 
 
 class TestBudgetPulseAnalysis:
-
     @pytest.fixture
     def filters(self) -> BudgetFilters:
         return {
@@ -149,29 +159,31 @@ class TestBudgetPulseAnalysis:
     def budgets(self) -> pd.DataFrame:
         rows = []
         for month in ["2024-01", "2024-02", "2024-03", "2024-04"]:
-            rows.extend([
-                {
-                    "Category": "Groceries",
-                    "Group": "Food",
-                    "Type": "Expense",
-                    "Month": month,
-                    "Budget": 100.0,
-                },
-                {
-                    "Category": "Dining",
-                    "Group": "Food",
-                    "Type": "Expense",
-                    "Month": month,
-                    "Budget": 50.0,
-                },
-                {
-                    "Category": "Shopping",
-                    "Group": "Shopping",
-                    "Type": "Expense",
-                    "Month": month,
-                    "Budget": 200.0,
-                },
-            ])
+            rows.extend(
+                [
+                    {
+                        "Category": "Groceries",
+                        "Group": "Food",
+                        "Type": "Expense",
+                        "Month": month,
+                        "Budget": 100.0,
+                    },
+                    {
+                        "Category": "Dining",
+                        "Group": "Food",
+                        "Type": "Expense",
+                        "Month": month,
+                        "Budget": 50.0,
+                    },
+                    {
+                        "Category": "Shopping",
+                        "Group": "Shopping",
+                        "Type": "Expense",
+                        "Month": month,
+                        "Budget": 200.0,
+                    },
+                ]
+            )
         return pd.DataFrame(rows)
 
     @pytest.fixture
@@ -221,9 +233,7 @@ class TestBudgetPulseAnalysis:
         assert food.loc["2024-01", "Tracked_Spent"] == pytest.approx(80.0)
         assert food.loc["2024-01", "Outside_Plan"] == pytest.approx(20.0)
         assert food.loc["2024-03", "Spent"] == pytest.approx(0.0)
-        shopping = history[
-            history["Entity"].eq("Shopping") & history["Month"].eq("2024-04")
-        ].iloc[0]
+        shopping = history[history["Entity"].eq("Shopping") & history["Month"].eq("2024-04")].iloc[0]
         assert shopping["Spent"] == pytest.approx(40.0)
 
     def test_performance_uses_median_and_trailing_budget_hit_rate(
@@ -240,9 +250,7 @@ class TestBudgetPulseAnalysis:
             ["Food", "Shopping"],
             lookback_months=3,
         )
-        performance = _mod.build_budget_performance(history, "2024-04").set_index(
-            "Entity"
-        )
+        performance = _mod.build_budget_performance(history, "2024-04").set_index("Entity")
 
         assert performance.loc["Food", "Typical_Spend"] == pytest.approx(100.0)
         assert performance.loc["Food", "Vs_Typical"] == pytest.approx(10.0)
@@ -291,9 +299,7 @@ class TestBudgetPulseAnalysis:
             dimension="Category",
             lookback_months=3,
         )
-        performance = _mod.build_budget_performance(history, "2024-04").set_index(
-            "Entity"
-        )
+        performance = _mod.build_budget_performance(history, "2024-04").set_index("Entity")
 
         assert set(performance.index) == {"Coffee", "Dining", "Groceries"}
         assert performance.loc["Coffee", "Budget"] == pytest.approx(0.0)

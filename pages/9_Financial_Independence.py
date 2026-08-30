@@ -207,11 +207,7 @@ def _render_scenario_controls(
 def _render_metrics(summary: FISummary) -> None:
     runway = summary["runway_years"]
     runway_value = "Sustainable" if runway is None else mask_value(f"{runway:.1f} years")
-    runway_delta = (
-        "Portfolio does not deplete"
-        if runway is None
-        else f"Until portfolio reaches {mask_value('$0')}"
-    )
+    runway_delta = "Portfolio does not deplete" if runway is None else f"Until portfolio reaches {mask_value('$0')}"
     gap = summary["annual_surplus"]
     gap_delta = "Annual surplus" if gap >= 0 else "Annual shortfall"
     fi_gap = summary["fi_gap"]
@@ -329,14 +325,8 @@ def _create_funding_chart(summary: FISummary) -> alt.Chart:
 def _create_sensitivity_chart(sensitivity: pd.DataFrame) -> alt.LayerChart:
     order = ["+20%", "+10%", "Baseline", "-10%", "-20%"]
     hidden = values_hidden()
-    return_axis = (
-        alt.Axis(labelExpr=f"'{MASKED_VALUE}'")
-        if hidden
-        else alt.Axis(labelExpr="datum.label + '%'")
-    )
-    spending_axis = (
-        alt.Axis(labelExpr=f"'{MASKED_VALUE}'") if hidden else alt.Undefined
-    )
+    return_axis = alt.Axis(labelExpr=f"'{MASKED_VALUE}'") if hidden else alt.Axis(labelExpr="datum.label + '%'")
+    spending_axis = alt.Axis(labelExpr=f"'{MASKED_VALUE}'") if hidden else alt.Undefined
     tooltip = [
         alt.Tooltip("Annual_Spending:Q", title="Annual spending", format="$,.0f"),
         alt.Tooltip("Return_Rate:Q", title="Real return", format=".1f"),

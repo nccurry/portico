@@ -108,7 +108,37 @@ See [the quick start](docs/quickstart.md), [Linux deployment guide](docs/deploym
 
 ## Development
 
-Bootstrap the source environment before development:
+### Dev Container
+
+The recommended setup is the repository's Dev Container. Open the repository in
+VS Code and choose **Dev Containers: Reopen in Container**. The container installs
+the pinned Python, uv, Task, Docker CLI, Buildx, and development dependencies.
+When setup finishes, run:
+
+```console
+task demo
+```
+
+### uv
+
+You can also use uv directly without Task:
+
+```console
+uv sync --locked --dev
+uv run --locked ruff check .
+uv run --locked mypy
+uv run --locked pytest
+uv run --locked python -m scripts.run_app --data-source=demo
+```
+
+The small standalone utilities in `scripts` that contain inline uv metadata run
+through `uv run --script` on any supported platform. Their uv shebangs also
+support direct execution on Linux when the file is executable.
+
+### Task
+
+Task provides short names for the same uv commands. Bootstrap the pinned local
+tools first:
 
 ```console
 sh scripts/bootstrap.sh
@@ -120,6 +150,7 @@ The main local checks are:
 .tools/bin/task privacy:check
 .tools/bin/task lint
 .tools/bin/task test
+.tools/bin/task docs:check
 ```
 
 Use `.tools/bin/task demo` for a source-based demo. Use

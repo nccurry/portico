@@ -3,6 +3,7 @@
 Exercises the complete data flow: CSV → Spreadsheet.scrub() → pure helpers →
 computed results, verifying cross-sheet joins, column schemas, and data integrity.
 """
+
 import pandas as pd
 import pytest
 
@@ -15,6 +16,7 @@ from tests.custom_types import FullDatasetFactory, SpreadsheetBundle
 # Fixture: unpack the four spreadsheets once per class
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
 def full_dataset(
     make_full_dataset: FullDatasetFactory,
@@ -26,16 +28,26 @@ def full_dataset(
 # Transactions pipeline
 # ---------------------------------------------------------------------------
 
-class TestTransactionsPipeline:
 
+class TestTransactionsPipeline:
     def test_scrubbed_df_not_empty(self, full_dataset: SpreadsheetBundle) -> None:
         txns, _bal, _cats, _accts = full_dataset
         assert not txns.scrubbed_df.empty
 
     def test_required_columns_present(self, full_dataset: SpreadsheetBundle) -> None:
         txns, _bal, _cats, _accts = full_dataset
-        expected = {"Date", "Amount", "Category", "Group", "Type", "Account",
-                    "Month", "Full Description", "Institution", "Account #"}
+        expected = {
+            "Date",
+            "Amount",
+            "Category",
+            "Group",
+            "Type",
+            "Account",
+            "Month",
+            "Full Description",
+            "Institution",
+            "Account #",
+        }
         assert expected.issubset(set(txns.scrubbed_df.columns))
 
     def test_dates_are_utc_aware(self, full_dataset: SpreadsheetBundle) -> None:
@@ -80,8 +92,8 @@ class TestTransactionsPipeline:
 # Balance history pipeline
 # ---------------------------------------------------------------------------
 
-class TestBalancePipeline:
 
+class TestBalancePipeline:
     def test_scrubbed_df_not_empty(self, full_dataset: SpreadsheetBundle) -> None:
         _txns, bal, _cats, _accts = full_dataset
         assert not bal.scrubbed_df.empty
@@ -108,8 +120,8 @@ class TestBalancePipeline:
 # Categories / budget pipeline
 # ---------------------------------------------------------------------------
 
-class TestCategoriesPipeline:
 
+class TestCategoriesPipeline:
     def test_scrubbed_df_not_empty(self, full_dataset: SpreadsheetBundle) -> None:
         _txns, _bal, cats, _accts = full_dataset
         assert not cats.scrubbed_df.empty
@@ -134,8 +146,8 @@ class TestCategoriesPipeline:
 # Cross-sheet join integrity
 # ---------------------------------------------------------------------------
 
-class TestCrossSheetJoins:
 
+class TestCrossSheetJoins:
     def test_transaction_groups_overlap_with_categories(self, full_dataset: SpreadsheetBundle) -> None:
         txns, _bal, cats, _accts = full_dataset
         cat_groups = set(cats.scrubbed_df["Group"].dropna().unique())
