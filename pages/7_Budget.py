@@ -32,7 +32,7 @@ from src.config import get_settings
 from src.custom_types import BudgetFilters, ColumnConfig
 from src.filters import render_budget_filters
 from src.page_helpers import render_data_refresh_controls
-from src.reporting_periods import latest_data_timestamp
+from src.reporting_periods import latest_data_timestamp, reporting_anchor, rolling_month_window
 from src.spreadsheet import load_categories_data, load_transactions_data
 from src.value_visibility import mask_value, value_safe_altair_chart, value_safe_dataframe
 
@@ -77,9 +77,13 @@ def _month_progress(
 ) -> tuple[float, pd.Timestamp | None]:
     dates = pd.to_datetime(transactions["Date"], errors="coerce", utc=True)
     valid = transactions.assign(_Date=dates).dropna(subset=["_Date"])
-    if valid.empty:
+    latest = None if valid.empty else cast(pd.Timestamp, valid["_Date"].max())
+    anchor = reporting_anchor()
+    if anchor.strftime("%Y-%m") == selected_month:
+        days = calendar.monthrange(anchor.year, anchor.month)[1]
+        return anchor.day / days, latest
+    if latest is None:
         return 1.0, None
-    latest = cast(pd.Timestamp, valid["_Date"].max())
     if latest.strftime("%Y-%m") != selected_month:
         return 1.0, latest
     days = calendar.monthrange(latest.year, latest.month)[1]
@@ -509,7 +513,11 @@ def main() -> None:
     if latest is not None:
         st.caption(f"Spending through {latest.strftime('%B %d, %Y').replace(' 0', ' ')}")
 
-    months = sorted(transactions_df["Month"].dropna().astype(str).unique(), reverse=True)
+    current_month = rolling_month_window(1)[1]
+    months = sorted(
+        {*transactions_df["Month"].dropna().astype(str).unique(), current_month},
+        reverse=True,
+    )
     if not months:
         st.info("No monthly transaction data is available.")
         return

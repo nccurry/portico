@@ -1,5 +1,6 @@
 """Tests for budget functionality: CategoriesSpreadsheet budget parsing and budget vs actual."""
 
+from importlib import import_module
 from unittest.mock import patch
 
 import pandas as pd
@@ -8,6 +9,9 @@ import pytest
 from src.custom_types import BudgetFilters
 from src.spreadsheet import Spreadsheet, CategoriesSpreadsheet
 from src.analysis import budget as _mod
+
+
+budget_page = import_module("pages.7_Budget")
 
 
 # ---------------------------------------------------------------------------
@@ -146,6 +150,19 @@ class TestDefaultBudgetGroups:
 
 
 class TestBudgetPulseAnalysis:
+    def test_current_month_progress_uses_today_when_transactions_are_older(self) -> None:
+        transactions = pd.DataFrame({"Date": [pd.Timestamp("2026-03-20", tz="UTC")]})
+
+        with patch.object(
+            budget_page,
+            "reporting_anchor",
+            return_value=pd.Timestamp("2026-04-15", tz="UTC"),
+        ):
+            progress, latest = budget_page._month_progress(transactions, "2026-04")
+
+        assert progress == pytest.approx(0.5)
+        assert latest == pd.Timestamp("2026-03-20", tz="UTC")
+
     @pytest.fixture
     def filters(self) -> BudgetFilters:
         return {

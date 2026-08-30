@@ -166,6 +166,7 @@ def build_subscription_history(
     subscription_categories: list[str],
     *,
     lifecycles: pd.DataFrame | None = None,
+    through_date: pd.Timestamp | None = None,
 ) -> pd.DataFrame:
     """Return monthly actual spend, rolling average, and active merchant count."""
     columns = ["Month", "Actual_Spend", "Rolling_Average", "Active_Merchants"]
@@ -179,7 +180,8 @@ def build_subscription_history(
 
     start_month = _month_start(known["Date"].min())
     latest_data_date = _latest_date(transactions)
-    end_month = _month_start(latest_data_date)
+    history_end_date = latest_data_date if through_date is None else max(latest_data_date, _as_utc(through_date))
+    end_month = _month_start(history_end_date)
     months = pd.date_range(start_month, end_month, freq="MS", tz="UTC")
     history = pd.DataFrame({"Month": months})
 
@@ -197,7 +199,7 @@ def build_subscription_history(
     for lifecycle in lifecycles.itertuples(index=False):
         active_until = cast(pd.Timestamp, lifecycle.Active_Until)
         episode_start = cast(pd.Timestamp, lifecycle.Episode_Start)
-        coverage_end = min(active_until, latest_data_date)
+        coverage_end = min(active_until, history_end_date)
         if coverage_end < episode_start:
             continue
         covered_months = pd.date_range(
@@ -411,6 +413,14 @@ def _eligible_candidate_expenses(
 def _latest_date(transactions: pd.DataFrame) -> pd.Timestamp:
     """Return the latest UTC transaction date."""
     return pd.Timestamp(pd.to_datetime(transactions["Date"], utc=True).max())
+
+
+def _as_utc(value: pd.Timestamp) -> pd.Timestamp:
+    """Return a timestamp normalized to UTC."""
+    timestamp = pd.Timestamp(value)
+    if timestamp.tzinfo is None:
+        return timestamp.tz_localize("UTC")
+    return timestamp.tz_convert("UTC")
 
 
 def _build_inventory_row(
