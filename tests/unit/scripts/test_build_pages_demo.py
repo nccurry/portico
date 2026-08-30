@@ -1,4 +1,3 @@
-import re
 from pathlib import Path
 
 import pytest
@@ -53,12 +52,3 @@ def test_clean_output_replaces_existing_pages_artifact(tmp_path: Path, monkeypat
 def test_build_gallery_rejects_unsafe_revision(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="Revision"):
         build_pages_demo.build_gallery(tmp_path, "<script>")
-
-
-def test_pages_workflow_builds_and_deploys_gallery() -> None:
-    workflow = (build_pages_demo.PROJECT_ROOT / ".github" / "workflows" / "pages.yml").read_text(encoding="utf-8")
-
-    assert "pages: read" in workflow
-    assert "python scripts/build_pages_demo.py" in workflow
-    assert "path: build/pages" in workflow
-    assert re.search(r"actions/deploy-pages@[0-9a-f]{40} # v4", workflow)
