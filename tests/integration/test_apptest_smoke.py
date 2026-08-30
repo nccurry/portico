@@ -10,6 +10,7 @@ Requires the committed synthetic files under ``demo/data``.
 import json
 import re
 from collections.abc import Callable, Mapping
+from pathlib import Path
 from unittest.mock import patch
 
 import pandas as pd
@@ -24,7 +25,7 @@ from tests.custom_types import FullDatasetFactory, SpreadsheetBundle
 # Shared factory
 # ---------------------------------------------------------------------------
 
-_PAGE_DIR = "pages"
+_PAGE_DIR = Path(__file__).resolve().parents[2] / "pages"
 _MASKED_VALUE = "XXXXXXXX"
 _SENSITIVE_TEXT = re.compile(
     r"\$\s*\d|\b\d[\d,]*(?:\.\d+)?%|\b\d[\d,]*(?:\.\d+)?\s+"
@@ -254,7 +255,7 @@ def _make_app(
         c.start()
 
     try:
-        at = AppTest.from_file(f"{_PAGE_DIR}/{page_file}", default_timeout=30)
+        at = AppTest.from_file(_PAGE_DIR / page_file, default_timeout=30)
         at.run()
         if interact is not None:
             interact(at)
@@ -269,7 +270,7 @@ def _make_app(
 def _make_home_app_from_balance(balances: object) -> AppTest:
     """Run Home with an explicitly supplied balance spreadsheet."""
     with patch("src.spreadsheet.load_balance_history_data", return_value=balances):
-        return AppTest.from_file(f"{_PAGE_DIR}/../Home.py", default_timeout=30).run()
+        return AppTest.from_file(_PAGE_DIR / "../Home.py", default_timeout=30).run()
 
 
 def _dataset_with_one_off_travel(
