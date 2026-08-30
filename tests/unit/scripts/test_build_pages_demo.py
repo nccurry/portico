@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 import pytest
@@ -60,4 +61,4 @@ def test_pages_workflow_builds_and_deploys_gallery() -> None:
     assert "pages: read" in workflow
     assert "python scripts/build_pages_demo.py" in workflow
     assert "path: build/pages" in workflow
-    assert "actions/deploy-pages@v4" in workflow
+    assert re.search(r"actions/deploy-pages@[0-9a-f]{40} # v4", workflow)

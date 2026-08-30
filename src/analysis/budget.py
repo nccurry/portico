@@ -73,98 +73,61 @@ def build_budget_history(
 
     observed_months = pd.concat(
         [
-            budget_df.loc[
-                budget_df["Group"].isin(effective_groups), "Month"
-            ],
-            transactions_df.loc[
-                transactions_df["Group"].isin(effective_groups), "Month"
-            ],
+            budget_df.loc[budget_df["Group"].isin(effective_groups), "Month"],
+            transactions_df.loc[transactions_df["Group"].isin(effective_groups), "Month"],
         ],
         ignore_index=True,
     ).dropna()
     observed_periods = [
-        period
-        for period in pd.PeriodIndex(observed_months.astype(str), freq="M")
-        if period <= selected_period
+        period for period in pd.PeriodIndex(observed_months.astype(str), freq="M") if period <= selected_period
     ]
     requested_start = selected_period - lookback_months
-    history_start = (
-        max(requested_start, min(observed_periods))
-        if observed_periods
-        else selected_period
-    )
+    history_start = max(requested_start, min(observed_periods)) if observed_periods else selected_period
     periods = pd.period_range(start=history_start, end=selected_period, freq="M")
     months = periods.astype(str).tolist()
 
     budgets = _budget_rows(budget_df, months, filters, effective_groups).copy()
-    budgets["Budget"] = pd.to_numeric(
-        budgets["Budget"], errors="coerce"
-    ).fillna(0.0)
+    budgets["Budget"] = pd.to_numeric(budgets["Budget"], errors="coerce").fillna(0.0)
     budgets["Entity"] = budgets[dimension].astype(str)
-    budget_totals = (
-        budgets.groupby(["Month", "Entity"], dropna=False)["Budget"]
-        .sum()
-        .reset_index()
-    )
+    budget_totals = budgets.groupby(["Month", "Entity"], dropna=False)["Budget"].sum().reset_index()
     tracked_categories = budgets.loc[
         budgets["Budget"] > 0,
         ["Month", "Category"],
     ].drop_duplicates()
     tracked_categories["Tracked"] = True
 
-    transactions = transactions_df[
-        transactions_df["Month"].isin(months)
-    ].copy()
+    transactions = transactions_df[transactions_df["Month"].isin(months)].copy()
     transactions = apply_transaction_filters(transactions, filters)
     transactions = transactions[
-        transactions["Type"].eq("Expense")
-        & transactions["Group"].isin(effective_groups)
+        transactions["Type"].eq("Expense") & transactions["Group"].isin(effective_groups)
     ].copy()
     transactions["Entity"] = transactions[dimension].astype(str)
-    transactions["Net_Spend"] = -pd.to_numeric(
-        transactions["Amount"], errors="coerce"
-    ).fillna(0.0)
+    transactions["Net_Spend"] = -pd.to_numeric(transactions["Amount"], errors="coerce").fillna(0.0)
     transactions = transactions.merge(
         tracked_categories,
         on=["Month", "Category"],
         how="left",
     )
     is_tracked = transactions["Tracked"].fillna(False).astype(bool)
-    transactions["Tracked_Spent"] = transactions["Net_Spend"].where(
-        is_tracked, 0.0
-    )
-    transactions["Outside_Plan"] = transactions["Net_Spend"].where(
-        ~is_tracked, 0.0
-    )
+    transactions["Tracked_Spent"] = transactions["Net_Spend"].where(is_tracked, 0.0)
+    transactions["Outside_Plan"] = transactions["Net_Spend"].where(~is_tracked, 0.0)
     actuals = (
-        transactions.groupby(["Month", "Entity"], dropna=False)[
-            ["Tracked_Spent", "Outside_Plan"]
-        ]
-        .sum()
-        .reset_index()
+        transactions.groupby(["Month", "Entity"], dropna=False)[["Tracked_Spent", "Outside_Plan"]].sum().reset_index()
     )
 
     if dimension == "Group":
         entities = effective_groups
     else:
-        current_budget_entities = budgets.loc[
-            budgets["Month"].eq(month_str), "Entity"
-        ]
-        current_spending_entities = transactions.loc[
-            transactions["Month"].eq(month_str), "Entity"
-        ]
-        entities = sorted(
-            set(current_budget_entities) | set(current_spending_entities)
-        )
+        current_budget_entities = budgets.loc[budgets["Month"].eq(month_str), "Entity"]
+        current_spending_entities = transactions.loc[transactions["Month"].eq(month_str), "Entity"]
+        entities = sorted(set(current_budget_entities) | set(current_spending_entities))
     if not entities:
         return pd.DataFrame(columns=BUDGET_HISTORY_COLUMNS)
 
-    grid = pd.MultiIndex.from_product(
-        [months, entities], names=["Month", "Entity"]
-    ).to_frame(index=False)
-    history = grid.merge(
-        budget_totals, on=["Month", "Entity"], how="left"
-    ).merge(actuals, on=["Month", "Entity"], how="left")
+    grid = pd.MultiIndex.from_product([months, entities], names=["Month", "Entity"]).to_frame(index=False)
+    history = grid.merge(budget_totals, on=["Month", "Entity"], how="left").merge(
+        actuals, on=["Month", "Entity"], how="left"
+    )
     numeric_columns = ["Budget", "Tracked_Spent", "Outside_Plan"]
     history[numeric_columns] = history[numeric_columns].fillna(0.0).astype(float)
     history["Spent"] = history["Tracked_Spent"] + history["Outside_Plan"]
@@ -188,11 +151,7 @@ def build_budget_performance(
         budgeted = entity_history[entity_history["Budget"] > 0]
         months_budgeted = len(budgeted)
         months_within = int((budgeted["Spent"] <= budgeted["Budget"]).sum())
-        typical = (
-            float(entity_history["Spent"].median())
-            if not entity_history.empty
-            else 0.0
-        )
+        typical = float(entity_history["Spent"].median()) if not entity_history.empty else 0.0
         budget = float(cast(float, row.Budget))
         spent = float(cast(float, row.Spent))
         records.append(
@@ -209,11 +168,7 @@ def build_budget_performance(
                 "Budget_Variance": spent - budget,
                 "Months_Within_Budget": months_within,
                 "Months_Budgeted": months_budgeted,
-                "Success_Rate": (
-                    months_within / months_budgeted * 100
-                    if months_budgeted
-                    else float("nan")
-                ),
+                "Success_Rate": (months_within / months_budgeted * 100 if months_budgeted else float("nan")),
                 "Trend": [*entity_history["Spent"].tolist(), spent],
             }
         )
@@ -235,11 +190,7 @@ def summarize_budget_history(
     tracked = float(current["Tracked_Spent"].sum())
     outside = float(current["Outside_Plan"].sum())
     spent = tracked + outside
-    typical = (
-        float(prior.groupby("Month")["Spent"].sum().median())
-        if not prior.empty
-        else 0.0
-    )
+    typical = float(prior.groupby("Month")["Spent"].sum().median()) if not prior.empty else 0.0
     return {
         "budget": budget,
         "tracked_spent": tracked,
@@ -316,13 +267,7 @@ def _group_budget_comparison(
         groups=groups,
         ytd=ytd,
     )
-    actuals = (
-        transactions.groupby("Group")["Amount"]
-        .sum()
-        .abs()
-        .reset_index()
-        .rename(columns={"Amount": "Spent"})
-    )
+    actuals = transactions.groupby("Group")["Amount"].sum().abs().reset_index().rename(columns={"Amount": "Spent"})
 
     selected_groups = pd.DataFrame({"Group": list(groups)})
     result = selected_groups.merge(budgets, on="Group", how="left").merge(actuals, on="Group", how="left")

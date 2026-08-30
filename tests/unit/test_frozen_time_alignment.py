@@ -4,6 +4,7 @@ If freezegun ever returns a naive datetime against UTC fixtures, the page
 integration tests collapse with 'Cannot compare tz-naive and tz-aware'. This
 file is the canary.
 """
+
 import pandas as pd
 import pytest
 
@@ -12,6 +13,7 @@ from tests.fixtures.streamlit_runtime import _passthrough_decorator
 
 def test_streamlit_cache_passthrough_preserves_decorated_function() -> None:
     """The cache stand-in supports direct and configured decorator forms."""
+
     def add(left: int, right: int) -> int:
         return left + right
 

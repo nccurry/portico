@@ -4,6 +4,7 @@ These exercise ``src.spreadsheet.calculate_net_worth_summary`` directly, which
 is the function ``Home.configure_page`` delegates to. That keeps the page
 file a thin orchestrator and gives the tests a stable, importable target.
 """
+
 import pandas as pd
 import pytest
 
@@ -44,14 +45,18 @@ class TestNetWorthCalculation:
         for df in accounts.values():
             assert set(df.columns) == {"Account", "Balance"}
 
-    def test_single_asset_group(self, make_balance_spreadsheet: BalanceSpreadsheetFactory, scrubbed_balance_df: pd.DataFrame) -> None:
+    def test_single_asset_group(
+        self, make_balance_spreadsheet: BalanceSpreadsheetFactory, scrubbed_balance_df: pd.DataFrame
+    ) -> None:
         """Only asset accounts - net worth equals total balance."""
         df = scrubbed_balance_df[scrubbed_balance_df["Class"] == "Asset"].copy()
         bs = make_balance_spreadsheet(df)
         summary = calculate_net_worth_summary(bs)
         assert summary["total_net_worth"] == pytest.approx(5500.0)
 
-    def test_single_liability_group(self, make_balance_spreadsheet: BalanceSpreadsheetFactory, scrubbed_balance_df: pd.DataFrame) -> None:
+    def test_single_liability_group(
+        self, make_balance_spreadsheet: BalanceSpreadsheetFactory, scrubbed_balance_df: pd.DataFrame
+    ) -> None:
         """Only liability accounts - net worth is negative."""
         df = scrubbed_balance_df[scrubbed_balance_df["Class"] == "Liability"].copy()
         bs = make_balance_spreadsheet(df)
@@ -67,12 +72,29 @@ class TestNetWorthCalculation:
         assert summary["group_balances"] == {}
         assert summary["group_accounts"] == {}
 
-    def test_multiple_asset_groups(self, make_balance_spreadsheet: BalanceSpreadsheetFactory, scrubbed_balance_df: pd.DataFrame) -> None:
+    def test_multiple_asset_groups(
+        self, make_balance_spreadsheet: BalanceSpreadsheetFactory, scrubbed_balance_df: pd.DataFrame
+    ) -> None:
         """Multiple asset groups sum correctly."""
         new_rows = [
-            (_ts("2024-04-01"), _ts("2024-04-01 10:00:00"), "Savings", "9999", "acct-003", "bal-009",
-             "Bank of America", 10000.00, "2024-04", "14", "Depository", "Asset", "Active",
-             _ts("2023-01-01"), "Savings", None),
+            (
+                _ts("2024-04-01"),
+                _ts("2024-04-01 10:00:00"),
+                "Savings",
+                "9999",
+                "acct-003",
+                "bal-009",
+                "Bank of America",
+                10000.00,
+                "2024-04",
+                "14",
+                "Depository",
+                "Asset",
+                "Active",
+                _ts("2023-01-01"),
+                "Savings",
+                None,
+            ),
         ]
         extra_df = pd.DataFrame(new_rows, columns=BALANCE_HISTORY_SCRUBBED_COLUMNS)
         df = pd.concat([scrubbed_balance_df, extra_df], ignore_index=True)
@@ -81,7 +103,9 @@ class TestNetWorthCalculation:
         summary = calculate_net_worth_summary(bs)
         assert summary["total_net_worth"] == pytest.approx(13900.0)
 
-    def test_skips_blank_and_nan_groups(self, make_balance_spreadsheet: BalanceSpreadsheetFactory, scrubbed_balance_df: pd.DataFrame) -> None:
+    def test_skips_blank_and_nan_groups(
+        self, make_balance_spreadsheet: BalanceSpreadsheetFactory, scrubbed_balance_df: pd.DataFrame
+    ) -> None:
         """Groups that are blank or NaN are excluded (mirrors Home.py filtering)."""
         df = scrubbed_balance_df.copy()
         blank_row = df.iloc[[0]].copy()
@@ -99,12 +123,42 @@ class TestNetWorthCalculation:
         """A group whose balances sum to zero still appears in the summary."""
         df = pd.DataFrame(
             [
-                (_ts("2024-03-01"), _ts("2024-03-01 09:00:00"), "Acct-A", "1111", "id-a", "bal-a",
-                 "Bank", 500.0, "2024-03", "09", "Depository", "Asset", "Active",
-                 _ts("2023-01-01"), "ZeroGroup", None),
-                (_ts("2024-03-01"), _ts("2024-03-01 10:00:00"), "Acct-B", "2222", "id-b", "bal-b",
-                 "Bank", -500.0, "2024-03", "09", "Depository", "Asset", "Active",
-                 _ts("2023-01-01"), "ZeroGroup", None),
+                (
+                    _ts("2024-03-01"),
+                    _ts("2024-03-01 09:00:00"),
+                    "Acct-A",
+                    "1111",
+                    "id-a",
+                    "bal-a",
+                    "Bank",
+                    500.0,
+                    "2024-03",
+                    "09",
+                    "Depository",
+                    "Asset",
+                    "Active",
+                    _ts("2023-01-01"),
+                    "ZeroGroup",
+                    None,
+                ),
+                (
+                    _ts("2024-03-01"),
+                    _ts("2024-03-01 10:00:00"),
+                    "Acct-B",
+                    "2222",
+                    "id-b",
+                    "bal-b",
+                    "Bank",
+                    -500.0,
+                    "2024-03",
+                    "09",
+                    "Depository",
+                    "Asset",
+                    "Active",
+                    _ts("2023-01-01"),
+                    "ZeroGroup",
+                    None,
+                ),
             ],
             columns=BALANCE_HISTORY_SCRUBBED_COLUMNS,
         )
@@ -118,12 +172,42 @@ class TestNetWorthCalculation:
         """group_accounts has one row per account within a group."""
         df = pd.DataFrame(
             [
-                (_ts("2024-03-01"), _ts("2024-03-01 09:00:00"), "Checking-1", "1111", "id-1", "bal-1",
-                 "Bank", 1000.0, "2024-03", "09", "Depository", "Asset", "Active",
-                 _ts("2023-01-01"), "Banking", None),
-                (_ts("2024-03-01"), _ts("2024-03-01 10:00:00"), "Checking-2", "2222", "id-2", "bal-2",
-                 "Bank", 2000.0, "2024-03", "09", "Depository", "Asset", "Active",
-                 _ts("2023-01-01"), "Banking", None),
+                (
+                    _ts("2024-03-01"),
+                    _ts("2024-03-01 09:00:00"),
+                    "Checking-1",
+                    "1111",
+                    "id-1",
+                    "bal-1",
+                    "Bank",
+                    1000.0,
+                    "2024-03",
+                    "09",
+                    "Depository",
+                    "Asset",
+                    "Active",
+                    _ts("2023-01-01"),
+                    "Banking",
+                    None,
+                ),
+                (
+                    _ts("2024-03-01"),
+                    _ts("2024-03-01 10:00:00"),
+                    "Checking-2",
+                    "2222",
+                    "id-2",
+                    "bal-2",
+                    "Bank",
+                    2000.0,
+                    "2024-03",
+                    "09",
+                    "Depository",
+                    "Asset",
+                    "Active",
+                    _ts("2023-01-01"),
+                    "Banking",
+                    None,
+                ),
             ],
             columns=BALANCE_HISTORY_SCRUBBED_COLUMNS,
         )
@@ -138,12 +222,42 @@ class TestNetWorthCalculation:
         """A group with both asset and liability accounts signs each individually."""
         df = pd.DataFrame(
             [
-                (_ts("2024-03-01"), _ts("2024-03-01 09:00:00"), "Brokerage", "1111", "id-1", "bal-1",
-                 "Bank", 10000.0, "2024-03", "09", "Investment", "Asset", "Active",
-                 _ts("2023-01-01"), "Investing", None),
-                (_ts("2024-03-01"), _ts("2024-03-01 10:00:00"), "Margin Loan", "2222", "id-2", "bal-2",
-                 "Bank", 3000.0, "2024-03", "09", "Loan", "Liability", "Active",
-                 _ts("2023-01-01"), "Investing", None),
+                (
+                    _ts("2024-03-01"),
+                    _ts("2024-03-01 09:00:00"),
+                    "Brokerage",
+                    "1111",
+                    "id-1",
+                    "bal-1",
+                    "Bank",
+                    10000.0,
+                    "2024-03",
+                    "09",
+                    "Investment",
+                    "Asset",
+                    "Active",
+                    _ts("2023-01-01"),
+                    "Investing",
+                    None,
+                ),
+                (
+                    _ts("2024-03-01"),
+                    _ts("2024-03-01 10:00:00"),
+                    "Margin Loan",
+                    "2222",
+                    "id-2",
+                    "bal-2",
+                    "Bank",
+                    3000.0,
+                    "2024-03",
+                    "09",
+                    "Loan",
+                    "Liability",
+                    "Active",
+                    _ts("2023-01-01"),
+                    "Investing",
+                    None,
+                ),
             ],
             columns=BALANCE_HISTORY_SCRUBBED_COLUMNS,
         )
@@ -171,15 +285,60 @@ class TestNetWorthCalculation:
         """When liabilities outnumber assets, dominant class is Liability."""
         df = pd.DataFrame(
             [
-                (_ts("2024-03-01"), _ts("2024-03-01 09:00:00"), "Asset-Acct", "1111", "id-1", "bal-1",
-                 "Bank", 5000.0, "2024-03", "09", "Investment", "Asset", "Active",
-                 _ts("2023-01-01"), "Mixed", None),
-                (_ts("2024-03-01"), _ts("2024-03-01 10:00:00"), "Loan-A", "2222", "id-2", "bal-2",
-                 "Bank", 2000.0, "2024-03", "09", "Loan", "Liability", "Active",
-                 _ts("2023-01-01"), "Mixed", None),
-                (_ts("2024-03-01"), _ts("2024-03-01 11:00:00"), "Loan-B", "3333", "id-3", "bal-3",
-                 "Bank", 1000.0, "2024-03", "09", "Loan", "Liability", "Active",
-                 _ts("2023-01-01"), "Mixed", None),
+                (
+                    _ts("2024-03-01"),
+                    _ts("2024-03-01 09:00:00"),
+                    "Asset-Acct",
+                    "1111",
+                    "id-1",
+                    "bal-1",
+                    "Bank",
+                    5000.0,
+                    "2024-03",
+                    "09",
+                    "Investment",
+                    "Asset",
+                    "Active",
+                    _ts("2023-01-01"),
+                    "Mixed",
+                    None,
+                ),
+                (
+                    _ts("2024-03-01"),
+                    _ts("2024-03-01 10:00:00"),
+                    "Loan-A",
+                    "2222",
+                    "id-2",
+                    "bal-2",
+                    "Bank",
+                    2000.0,
+                    "2024-03",
+                    "09",
+                    "Loan",
+                    "Liability",
+                    "Active",
+                    _ts("2023-01-01"),
+                    "Mixed",
+                    None,
+                ),
+                (
+                    _ts("2024-03-01"),
+                    _ts("2024-03-01 11:00:00"),
+                    "Loan-B",
+                    "3333",
+                    "id-3",
+                    "bal-3",
+                    "Bank",
+                    1000.0,
+                    "2024-03",
+                    "09",
+                    "Loan",
+                    "Liability",
+                    "Active",
+                    _ts("2023-01-01"),
+                    "Mixed",
+                    None,
+                ),
             ],
             columns=BALANCE_HISTORY_SCRUBBED_COLUMNS,
         )

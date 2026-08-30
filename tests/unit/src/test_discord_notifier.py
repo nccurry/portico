@@ -265,9 +265,7 @@ def test_preview_json_is_machine_readable(capsys: pytest.CaptureFixture[str]) ->
         patch("src.discord_notifier.load_config", return_value=sample_config()),
         patch("src.discord_notifier.build_report", return_value=sample_report()),
     ):
-        exit_code = main(
-            ["preview", "--period-end", "2026-08-01", "--output", "json"]
-        )
+        exit_code = main(["preview", "--period-end", "2026-08-01", "--output", "json"])
 
     output = json.loads(capsys.readouterr().out)
     assert exit_code == 0

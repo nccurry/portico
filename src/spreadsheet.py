@@ -1,4 +1,5 @@
 """Classes for interacting with Google Sheets spreadsheets."""
+
 import datetime
 from abc import ABCMeta, abstractmethod
 from typing import ClassVar, TypedDict, override
@@ -15,6 +16,8 @@ from src.scrubbing import (
     scrub_transactions,
     validate_required_columns as validate_required_columns,
 )
+
+
 def validate_min_columns(
     df: pd.DataFrame,
     min_columns: int,
@@ -42,6 +45,7 @@ class NetWorthSummary(TypedDict):
 
 class Spreadsheet(metaclass=ABCMeta):
     """Class used to interact with Spreadsheet data in Google Sheets"""
+
     # Friendly name for this spreadsheet (must match the connection name in secrets.toml)
     name: ClassVar[str]
 
@@ -121,7 +125,6 @@ class AccountsSpreadsheet(Spreadsheet):
         self.scrubbed_df = df
 
 
-
 class TransactionsSpreadsheet(Spreadsheet):
     """Individual transactions from the Transactions sheet, with filtering and aggregation helpers."""
 
@@ -133,9 +136,7 @@ class TransactionsSpreadsheet(Spreadsheet):
         categories = load_categories_data()
         self.scrubbed_df = scrub_transactions(self.raw_df, categories.scrubbed_df)
 
-    def get_total_months(
-            self
-    ) -> int:
+    def get_total_months(self) -> int:
         """Return the total amount of months in the data set as an int"""
         oldest_date = self.scrubbed_df["Date"].min()
         latest_date = self.scrubbed_df["Date"].max()
@@ -143,30 +144,21 @@ class TransactionsSpreadsheet(Spreadsheet):
 
         return total_months
 
-    def get_groups(
-            self
-    ) -> list[str]:
+    def get_groups(self) -> list[str]:
         """Return the unique list of account group names"""
         return list(self.scrubbed_df.sort_values("Group")["Group"].unique())
 
     def get_all_categories(self) -> list[str]:
         """Return sorted unique categories, excluding NaN and blank strings."""
-        return sorted(
-            str(c) for c in self.scrubbed_df["Category"].unique()
-            if pd.notna(c) and str(c).strip()
-        )
+        return sorted(str(c) for c in self.scrubbed_df["Category"].unique() if pd.notna(c) and str(c).strip())
 
     def get_all_groups(self) -> list[str]:
         """Return sorted unique groups, excluding NaN, blanks, and Transfer."""
         return sorted(
-            str(g) for g in self.scrubbed_df["Group"].unique()
-            if pd.notna(g) and str(g).strip() and g != "Transfer"
+            str(g) for g in self.scrubbed_df["Group"].unique() if pd.notna(g) and str(g).strip() and g != "Transfer"
         )
 
-    def get_group_categories(
-        self,
-        group: str
-    ) -> list[str]:
+    def get_group_categories(self, group: str) -> list[str]:
         """Return all unique category names from a given group"""
         df = self.scrubbed_df.copy()
         df = df[df["Group"] == group]
@@ -174,17 +166,17 @@ class TransactionsSpreadsheet(Spreadsheet):
         return list(df["Category"].unique())
 
     def filter_transactions(
-            self,
-            include_categories: list[str] | None = None,
-            ignore_categories: list[str] | None = None,
-            include_groups: list[str] | None = None,
-            ignore_groups: list[str] | None = None,
-            include_types: list[str] | None = None,
-            ignore_types: list[str] | None = None,
-            start_date: datetime.datetime | None = None,
-            end_date: datetime.datetime | None = None,
-            filtered_columns: list[str] | None = None,
-            group_by_column: str | None = None,
+        self,
+        include_categories: list[str] | None = None,
+        ignore_categories: list[str] | None = None,
+        include_groups: list[str] | None = None,
+        ignore_groups: list[str] | None = None,
+        include_types: list[str] | None = None,
+        ignore_types: list[str] | None = None,
+        start_date: datetime.datetime | None = None,
+        end_date: datetime.datetime | None = None,
+        filtered_columns: list[str] | None = None,
+        group_by_column: str | None = None,
     ) -> pd.DataFrame:
         """Filter transactions based on various attributes. Optionally group by a given column"""
         if include_categories is None:
@@ -230,16 +222,16 @@ class TransactionsSpreadsheet(Spreadsheet):
         return df
 
     def get_amount_by_group(
-            self,
-            include_categories: list[str] | None = None,
-            ignore_categories: list[str] | None = None,
-            include_groups: list[str] | None = None,
-            ignore_groups: list[str] | None = None,
-            include_types: list[str] | None = None,
-            ignore_types: list[str] | None = None,
-            start_date: datetime.datetime | None = None,
-            end_date: datetime.datetime | None = None,
-            invert_amount: bool = False
+        self,
+        include_categories: list[str] | None = None,
+        ignore_categories: list[str] | None = None,
+        include_groups: list[str] | None = None,
+        ignore_groups: list[str] | None = None,
+        include_types: list[str] | None = None,
+        ignore_types: list[str] | None = None,
+        start_date: datetime.datetime | None = None,
+        end_date: datetime.datetime | None = None,
+        invert_amount: bool = False,
     ) -> pd.DataFrame:
         """Get the total spending per group over a specified period"""
         df = self.filter_transactions(
@@ -260,13 +252,13 @@ class TransactionsSpreadsheet(Spreadsheet):
         return df.groupby("Group").sum(numeric_only=True)
 
     def get_amount_by_group_category(
-            self,
-            group: str,
-            include_categories: list[str] | None = None,
-            ignore_categories: list[str] | None = None,
-            start_date: datetime.datetime | None = None,
-            end_date: datetime.datetime | None = None,
-            invert_amount: bool = False,
+        self,
+        group: str,
+        include_categories: list[str] | None = None,
+        ignore_categories: list[str] | None = None,
+        start_date: datetime.datetime | None = None,
+        end_date: datetime.datetime | None = None,
+        invert_amount: bool = False,
     ) -> pd.DataFrame:
         """Get the total group spending per categories over a specified period"""
         df = self.filter_transactions(
@@ -284,12 +276,12 @@ class TransactionsSpreadsheet(Spreadsheet):
         return df.groupby("Category").sum(numeric_only=True)
 
     def _get_monthly_amounts(
-            self,
-            column: str,
-            value: str,
-            start_date: datetime.datetime | None = None,
-            end_date: datetime.datetime | None = None,
-            invert_amount: bool = False
+        self,
+        column: str,
+        value: str,
+        start_date: datetime.datetime | None = None,
+        end_date: datetime.datetime | None = None,
+        invert_amount: bool = False,
     ) -> pd.DataFrame:
         """Get the total monthly transaction amount filtered by a column value"""
         df = self.scrubbed_df.copy()
@@ -310,51 +302,36 @@ class TransactionsSpreadsheet(Spreadsheet):
         return df.groupby("Month").sum(numeric_only=True)
 
     def get_monthly_amounts_by_category(
-            self,
-            category: str,
-            start_date: datetime.datetime | None = None,
-            end_date: datetime.datetime | None = None,
-            invert_amount: bool = False
+        self,
+        category: str,
+        start_date: datetime.datetime | None = None,
+        end_date: datetime.datetime | None = None,
+        invert_amount: bool = False,
     ) -> pd.DataFrame:
         """Get the total monthly transaction amount by a specified category"""
         return self._get_monthly_amounts("Category", category, start_date, end_date, invert_amount)
 
     def get_monthly_amounts_by_group(
-            self,
-            group: str,
-            start_date: datetime.datetime | None = None,
-            end_date: datetime.datetime | None = None,
-            invert_amount: bool = False
+        self,
+        group: str,
+        start_date: datetime.datetime | None = None,
+        end_date: datetime.datetime | None = None,
+        invert_amount: bool = False,
     ) -> pd.DataFrame:
         """Get the total monthly transaction amount by a specified group"""
         return self._get_monthly_amounts("Group", group, start_date, end_date, invert_amount)
 
     def get_transactions_by_category(
-            self,
-            category: str,
-            start_date: datetime.datetime | None = None,
-            end_date: datetime.datetime | None = None
+        self, category: str, start_date: datetime.datetime | None = None, end_date: datetime.datetime | None = None
     ) -> pd.DataFrame:
         """Get all transactions for a specific category"""
-        return self.filter_transactions(
-            include_categories=[category],
-            start_date=start_date,
-            end_date=end_date
-        )
+        return self.filter_transactions(include_categories=[category], start_date=start_date, end_date=end_date)
 
     def get_transactions_by_group(
-            self,
-            group: str,
-            start_date: datetime.datetime | None = None,
-            end_date: datetime.datetime | None = None
+        self, group: str, start_date: datetime.datetime | None = None, end_date: datetime.datetime | None = None
     ) -> pd.DataFrame:
         """Get all transactions for a specific group"""
-        return self.filter_transactions(
-            include_groups=[group],
-            start_date=start_date,
-            end_date=end_date
-        )
-
+        return self.filter_transactions(include_groups=[group], start_date=start_date, end_date=end_date)
 
 
 class BalanceHistorySpreadsheet(Spreadsheet):
@@ -369,21 +346,21 @@ class BalanceHistorySpreadsheet(Spreadsheet):
         validate_required_columns(df, BALANCE_HISTORY_REQUIRED_COLUMNS, "Balance History")
 
         # Drop empty column
-        df = df.drop("Unnamed: 0", axis=1, errors='ignore')
+        df = df.drop("Unnamed: 0", axis=1, errors="ignore")
 
         # Recast Amount column as float
-        df["Balance"] = df["Balance"].replace(r'[\$,]', '', regex=True).astype(float)
+        df["Balance"] = df["Balance"].replace(r"[\$,]", "", regex=True).astype(float)
 
         # Recast dates as datetime (utc=True handles mixed timezones)
-        df["Date"] = pd.to_datetime(df["Date"], format='mixed', utc=True)
-        df["Time"] = pd.to_datetime(df["Time"], format='mixed', utc=True)
-        df["Month"] = pd.to_datetime(df["Month"], format='mixed', utc=True)
-        df["Week"] = pd.to_datetime(df["Week"], format='mixed', utc=True)
-        df["Date Added"] = pd.to_datetime(df["Date Added"], format='mixed', utc=True)
+        df["Date"] = pd.to_datetime(df["Date"], format="mixed", utc=True)
+        df["Time"] = pd.to_datetime(df["Time"], format="mixed", utc=True)
+        df["Month"] = pd.to_datetime(df["Month"], format="mixed", utc=True)
+        df["Week"] = pd.to_datetime(df["Week"], format="mixed", utc=True)
+        df["Date Added"] = pd.to_datetime(df["Date Added"], format="mixed", utc=True)
 
         # Use better strings for Month and Week columns
-        df["Month"] = df["Month"].dt.strftime('%Y-%m')
-        df["Week"] = df["Week"].dt.strftime('%U')
+        df["Month"] = df["Month"].dt.strftime("%Y-%m")
+        df["Week"] = df["Week"].dt.strftime("%U")
 
         # Join with Accounts to populate Group and Hide.
         # The Accounts sheet uses a composite key: "Account - Account # (XXXX)"
@@ -392,10 +369,7 @@ class BalanceHistorySpreadsheet(Spreadsheet):
         df = df.drop(columns=["Group", "Hide"], errors="ignore")
         acct_num = df["Account #"].fillna("").astype(str)
         acct_id_suffix = df["Account ID"].astype(str).str[-4:].str.upper()
-        df["_account_key"] = (
-            df["Account"].astype(str) + " - " + acct_num +
-            " (" + acct_id_suffix + ")"
-        ).str.lower()
+        df["_account_key"] = (df["Account"].astype(str) + " - " + acct_num + " (" + acct_id_suffix + ")").str.lower()
         accounts = load_accounts_data()
         accounts_df = accounts.scrubbed_df.copy()
         accounts_df["_account_key"] = accounts_df["Account"].str.lower()
@@ -409,25 +383,18 @@ class BalanceHistorySpreadsheet(Spreadsheet):
 
         self.scrubbed_df = df
 
-    def get_groups(
-            self
-    ) -> list[str]:
+    def get_groups(self) -> list[str]:
         """Return the unique list of account group names"""
         return list(self.scrubbed_df.sort_values("Group")["Group"].unique())
 
     def get_latest_balance_by_group(
-            self,
-            group: str,
-            end_date: datetime.datetime | None = None
+        self, group: str, end_date: datetime.datetime | None = None
     ) -> tuple[pd.DataFrame, float]:
         """Summarize balance information by balance_history group"""
         return get_latest_balance_by_group(self.scrubbed_df, group, end_date)
 
     def get_balance_history_by_group(
-            self,
-            group: str,
-            start_date: datetime.datetime | None = None,
-            end_date: datetime.datetime | None = None
+        self, group: str, start_date: datetime.datetime | None = None, end_date: datetime.datetime | None = None
     ) -> pd.Series:
         """Get the balance history for all accounts under a single group"""
         df = self.scrubbed_df.copy()
@@ -457,19 +424,19 @@ class BalanceHistorySpreadsheet(Spreadsheet):
         return pivot.sum(axis=1).rename("Balance")
 
     def get_portfolio_value(
-            self,
-            account_names: list[str],
-            as_of: datetime.datetime | None = None,
+        self,
+        account_names: list[str],
+        as_of: datetime.datetime | None = None,
     ) -> tuple[pd.DataFrame, float]:
         """Return per-account latest balances and signed total for *account_names*."""
         return get_portfolio_value(self.scrubbed_df, account_names, as_of)
 
     def get_balance_history_by_account_id(
-            self,
-            account_id: str,
-            start_date: datetime.datetime,
-            end_date: datetime.datetime,
-            columns: list[str] | None = None,
+        self,
+        account_id: str,
+        start_date: datetime.datetime,
+        end_date: datetime.datetime,
+        columns: list[str] | None = None,
     ) -> pd.DataFrame:
         """Get the balance history for a specific account, filtered by date range."""
         if columns is None:
@@ -647,14 +614,10 @@ def calculate_net_worth_summary(
         signed_total = 0.0
         dominant_class = "Asset"
         if not df_latest.empty:
-            multiplier = df_latest["Class"].map(
-                {"Liability": -1, "Asset": 1}
-            ).fillna(1)
+            multiplier = df_latest["Class"].map({"Liability": -1, "Asset": 1}).fillna(1)
             signed_total = float((df_latest["Balance"] * multiplier).sum())
             liability_count = (df_latest["Class"] == "Liability").sum()
-            dominant_class = (
-                "Liability" if liability_count > len(df_latest) / 2 else "Asset"
-            )
+            dominant_class = "Liability" if liability_count > len(df_latest) / 2 else "Asset"
 
         group_classes[group] = dominant_class
         total_net_worth += signed_total
@@ -685,35 +648,22 @@ def calculate_group_sparkline(
         return pd.DataFrame()
 
     # Sort by account and date
-    df_group = df_group.sort_values(['Account ID', 'Date'])
+    df_group = df_group.sort_values(["Account ID", "Date"])
 
     # For each account, get the last balance for each week
     # Set Date as index for resampling
-    df_group_indexed = df_group.set_index('Date')
+    df_group_indexed = df_group.set_index("Date")
 
     # Group by Account ID and resample to weekly, taking last balance.
     # Unstack into account columns, then forward-fill so weeks where an account
     # has no data carry the last known balance. This prevents partial sums when
     # only some accounts report in a given week.
-    weekly = (
-        df_group_indexed
-        .groupby('Account ID')['Balance']
-        .resample('W')
-        .last()
-        .unstack('Account ID')
-        .ffill()
-    )
-    balances_by_date = (
-        weekly
-        .sum(axis=1)
-        .reset_index()
-        .rename(columns={'index': 'Date', 0: 'Balance'})
-    )
+    weekly = df_group_indexed.groupby("Account ID")["Balance"].resample("W").last().unstack("Account ID").ffill()
+    balances_by_date = weekly.sum(axis=1).reset_index().rename(columns={"index": "Date", 0: "Balance"})
 
     # Filter to date range
     balances_by_date = balances_by_date[
-        (balances_by_date['Date'] >= start_date) &
-        (balances_by_date['Date'] <= end_date)
+        (balances_by_date["Date"] >= start_date) & (balances_by_date["Date"] <= end_date)
     ]
 
     return balances_by_date
@@ -732,36 +682,23 @@ def calculate_net_worth_sparkline(
     df_all_copy = df_all.copy()
 
     # Add signed balance (assets positive, liabilities negative)
-    df_all_copy['Multiplier'] = df_all_copy['Class'].map({'Liability': -1, 'Asset': 1}).fillna(1)
-    df_all_copy['SignedBalance'] = df_all_copy['Balance'] * df_all_copy['Multiplier']
+    df_all_copy["Multiplier"] = df_all_copy["Class"].map({"Liability": -1, "Asset": 1}).fillna(1)
+    df_all_copy["SignedBalance"] = df_all_copy["Balance"] * df_all_copy["Multiplier"]
 
     # Sort by account and date
-    df_all_copy = df_all_copy.sort_values(['Account ID', 'Date'])
+    df_all_copy = df_all_copy.sort_values(["Account ID", "Date"])
 
     # Set Date as index for resampling
-    df_indexed = df_all_copy.set_index('Date')
+    df_indexed = df_all_copy.set_index("Date")
 
     # For each account, get the last balance for each week, then sum across accounts.
     # Unstack and forward-fill so weeks without data carry the last known balance.
-    weekly = (
-        df_indexed
-        .groupby('Account ID')['SignedBalance']
-        .resample('W')
-        .last()
-        .unstack('Account ID')
-        .ffill()
-    )
-    net_worth_by_date = (
-        weekly
-        .sum(axis=1)
-        .reset_index()
-        .rename(columns={'index': 'Date', 0: 'NetWorth'})
-    )
+    weekly = df_indexed.groupby("Account ID")["SignedBalance"].resample("W").last().unstack("Account ID").ffill()
+    net_worth_by_date = weekly.sum(axis=1).reset_index().rename(columns={"index": "Date", 0: "NetWorth"})
 
     # Filter to date range
     net_worth_by_date = net_worth_by_date[
-        (net_worth_by_date['Date'] >= start_date) &
-        (net_worth_by_date['Date'] <= end_date)
+        (net_worth_by_date["Date"] >= start_date) & (net_worth_by_date["Date"] <= end_date)
     ]
 
     return net_worth_by_date

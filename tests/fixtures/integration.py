@@ -1,4 +1,5 @@
 """Integration-test fixture data and full pipeline factories."""
+
 from pathlib import Path
 from unittest.mock import patch
 
@@ -12,18 +13,19 @@ from tests.custom_types import FullDatasetFactory, SpreadsheetBundle
 # Fixtures moved from test_aggregation_integrity.py
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
 def passthrough_filters() -> IncomeExpenseFilters:
     """Passthrough filters for aggregation integrity tests."""
     return {
-        'exclude_groups': [],
-        'exclude_income_categories': [],
-        'exclude_expense_categories': [],
-        'filter_large_income': False,
-        'income_threshold': 999999,
-        'filter_large_expenses': False,
-        'expense_threshold': 999999,
-        'target_rate': 20,
+        "exclude_groups": [],
+        "exclude_income_categories": [],
+        "exclude_expense_categories": [],
+        "filter_large_income": False,
+        "income_threshold": 999999,
+        "filter_large_expenses": False,
+        "expense_threshold": 999999,
+        "target_rate": 20,
     }
 
 
@@ -31,8 +33,8 @@ def passthrough_filters() -> IncomeExpenseFilters:
 def full_date_range() -> tuple[pd.Timestamp, pd.Timestamp]:
     """Full year date range for aggregation tests."""
     return (
-        pd.Timestamp('2024-01-01', tz='UTC'),
-        pd.Timestamp('2024-12-31', tz='UTC'),
+        pd.Timestamp("2024-01-01", tz="UTC"),
+        pd.Timestamp("2024-12-31", tz="UTC"),
     )
 
 
@@ -130,6 +132,7 @@ def make_full_dataset(
 
     def _factory() -> SpreadsheetBundle:
         """Build all four spreadsheets through the real scrub pipeline."""
+
         def _load(self: Spreadsheet) -> None:
             self.raw_df = raw_by_name[self.name].copy()
 

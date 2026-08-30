@@ -19,6 +19,8 @@ service-account*.json
 .idea
 *.xlsx
 .coverage
+.coverage.*
+.coverage-data/
 __pycache__/
 .pytest_cache/
 .pytest-tmp*/

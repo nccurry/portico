@@ -132,17 +132,11 @@ def validate_selected_categories(categories: tuple[str, ...], metadata: pd.DataF
     category_types = metadata.set_index("Category")["Type"]
     for position, category in enumerate(categories, start=1):
         if not category or category != category.strip():
-            raise WeeklyExpenseError(
-                f"Discord expense category {position} must be a non-empty exact Category value."
-            )
+            raise WeeklyExpenseError(f"Discord expense category {position} must be a non-empty exact Category value.")
         if category not in category_types.index:
-            raise WeeklyExpenseError(
-                f"Discord expense category {position} was not found in the Categories sheet."
-            )
+            raise WeeklyExpenseError(f"Discord expense category {position} was not found in the Categories sheet.")
         if category_types.loc[category] != "Expense":
-            raise WeeklyExpenseError(
-                f"Discord expense category {position} must have Type set to Expense."
-            )
+            raise WeeklyExpenseError(f"Discord expense category {position} must have Type set to Expense.")
 
 
 def calculate_weekly_report(
@@ -157,9 +151,7 @@ def calculate_weekly_report(
     expense_rows = transactions[transactions["Type"] == "Expense"].copy()
     transaction_dates = expense_rows["Date"].dt.date
     current = expense_rows[transaction_dates.between(period.start, period.end)]
-    comparison = expense_rows[
-        transaction_dates.between(period.comparison_start, period.comparison_end)
-    ]
+    comparison = expense_rows[transaction_dates.between(period.comparison_start, period.comparison_end)]
     rolling = expense_rows[transaction_dates.between(period.rolling_start, period.end)]
     previous_rolling = expense_rows[
         transaction_dates.between(period.previous_rolling_start, period.previous_rolling_end)
@@ -186,9 +178,7 @@ def calculate_weekly_report(
     selected_comparison = comparison[comparison["Category"].isin(categories)]
     average_selected_total = _average_weekly_spending(selected_comparison)
     rolling_selected_total = _spending(rolling[rolling["Category"].isin(categories)])
-    previous_rolling_selected_total = _spending(
-        previous_rolling[previous_rolling["Category"].isin(categories)]
-    )
+    previous_rolling_selected_total = _spending(previous_rolling[previous_rolling["Category"].isin(categories)])
 
     return WeeklyExpenseReport(
         period=period,
@@ -217,14 +207,10 @@ def _top_vendors(rows: pd.DataFrame) -> tuple[VendorTotal, ...]:
     if rows.empty:
         return ()
 
-    vendors = rows.assign(
-        Vendor=rows["Full Description"].map(normalize_merchant_name)
-    )
+    vendors = rows.assign(Vendor=rows["Full Description"].map(normalize_merchant_name))
     totals = vendors.groupby("Vendor", as_index=False)["Amount"].sum()
     totals["Amount"] = -totals["Amount"]
-    totals = totals[totals["Amount"] > 0].sort_values(
-        ["Amount", "Vendor"], ascending=[False, True]
-    )
+    totals = totals[totals["Amount"] > 0].sort_values(["Amount", "Vendor"], ascending=[False, True])
     return tuple(
         VendorTotal(name=str(row.Vendor), amount=_money(float(row.Amount)))
         for row in totals.head(TOP_VENDOR_COUNT).itertuples(index=False)
