@@ -966,6 +966,26 @@ def test_history_counts_merchants_through_lifecycle_active_boundaries() -> None:
     assert history["Active_Merchants"].tolist() == [1, 1, 2, 2, 1]
 
 
+def test_history_can_include_an_incomplete_month_after_latest_transaction() -> None:
+    transactions = _merchant_rows(
+        "MONTHLY SERVICE",
+        ["2026-01-01", "2026-02-01", "2026-03-01"],
+        [-10.0] * 3,
+    )
+    inventory = build_subscription_inventory(transactions, [SUBSCRIPTION_CATEGORY])
+
+    history = build_subscription_history(
+        transactions,
+        inventory,
+        [SUBSCRIPTION_CATEGORY],
+        through_date=pd.Timestamp("2026-04-15", tz="UTC"),
+    )
+
+    assert history["Month"].tolist() == list(pd.date_range("2026-01-01", "2026-04-01", freq="MS", tz="UTC"))
+    assert history["Actual_Spend"].tolist() == pytest.approx([10.0, 10.0, 10.0, 0.0])
+    assert history["Active_Merchants"].tolist() == [1, 1, 1, 1]
+
+
 def test_history_counts_pending_subscription_through_full_inactive_boundary() -> None:
     pending = _merchant_rows("NEW SERVICE", ["2026-01-01"], [-20.0])
     transactions = _with_latest_date(pending, "2026-04-02")

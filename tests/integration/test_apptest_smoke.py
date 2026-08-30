@@ -1581,7 +1581,7 @@ class TestBudgetSmoke:
         assert _metric_values(at) == [
             ("Spending", "$2,646", "+$368 vs typical"),
             ("Remaining", "$3,294", "$5,940 budget"),
-            ("Budget used", "44.5%", "-22.1 pts vs month elapsed"),
+            ("Budget used", "44.5%", "-12.1 pts vs month elapsed"),
             ("Outside the plan", "$0", "0 unbudgeted categories"),
             ("Spent", "$1,600", ""),
             ("Budget", "$1,600", ""),

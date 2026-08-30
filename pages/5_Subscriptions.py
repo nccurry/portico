@@ -18,6 +18,7 @@ from src.analysis.subscriptions import (
 from src.config import get_settings
 from src.custom_types import SubscriptionSummary
 from src.page_helpers import get_transaction_column_config, render_data_refresh_controls
+from src.reporting_periods import reporting_anchor
 from src.spreadsheet import TransactionsSpreadsheet, load_transactions_data
 from src.value_visibility import mask_value, value_safe_altair_chart, value_safe_dataframe
 
@@ -515,6 +516,7 @@ def _analyze_subscription_data(
     subscription_categories: tuple[str, ...],
     discovery_exclusions: tuple[str, ...],
     discovery_confidence: int,
+    history_through: pd.Timestamp,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, SubscriptionSummary]:
     """Build all subscription views once for a stable set of inputs."""
     categories = list(subscription_categories)
@@ -531,6 +533,7 @@ def _analyze_subscription_data(
         inventory,
         categories,
         lifecycles=lifecycles,
+        through_date=history_through,
     )
     summary = summarize_subscriptions(inventory, transactions, categories)
     return inventory, lifecycles, candidates, history, summary
@@ -590,11 +593,13 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
             step=5,
         )
 
+    history_through = reporting_anchor()
     inventory, lifecycles, candidates, history, summary = _analyze_subscription_data(
         transactions,
         tuple(subscription_categories),
         tuple(discovery_exclusions),
         discovery_confidence,
+        history_through,
     )
 
     annual_change = summary["annual_change_pct"]
@@ -687,7 +692,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
         )
         visible_history = filter_subscription_history(history, str(lookback))
         range_start = _as_utc(pd.Timestamp(visible_history["Month"].min()))
-        range_end = _as_utc(latest_data_date)
+        range_end = _as_utc(history_through)
         visible_lifecycles = prepare_lifecycle_timeline(
             lifecycles,
             range_start=range_start,
