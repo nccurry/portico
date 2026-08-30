@@ -22,6 +22,17 @@ function Get-BootstrapVersion {
     throw "Missing $Name version in $PyprojectPath"
 }
 
+function Assert-NativeSuccess {
+    param(
+        [string]$Command,
+        [int]$ExitCode
+    )
+
+    if ($ExitCode -ne 0) {
+        throw "$Command failed with exit code $ExitCode"
+    }
+}
+
 function Test-UvVersion {
     param([string]$Version)
 
@@ -88,6 +99,8 @@ $UvVersion = Get-BootstrapVersion "uv"
 
 Install-Uv -Version $UvVersion
 & $UvExe --version
+Assert-NativeSuccess -Command "uv --version" -ExitCode $LASTEXITCODE
 
 Write-Host "[SETUP] Ensuring Python $PythonVersion"
 & $UvExe python install $PythonVersion
+Assert-NativeSuccess -Command "uv python install" -ExitCode $LASTEXITCODE

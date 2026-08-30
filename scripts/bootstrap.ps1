@@ -1,7 +1,5 @@
 [CmdletBinding(PositionalBinding = $false)]
 param(
-    [switch]$SkipSetup,
-
     [Parameter(ValueFromRemainingArguments = $true)]
     [string[]]$TaskArgs
 )
@@ -25,6 +23,17 @@ function Get-BootstrapVersion {
     }
 
     throw "Missing $Name version in $PyprojectPath"
+}
+
+function Assert-NativeSuccess {
+    param(
+        [string]$Command,
+        [int]$ExitCode
+    )
+
+    if ($ExitCode -ne 0) {
+        throw "$Command failed with exit code $ExitCode"
+    }
 }
 
 function Test-TaskVersion {
@@ -86,19 +95,20 @@ function Install-Task {
 $TaskVersion = Get-BootstrapVersion "task"
 Install-Task -Version $TaskVersion
 & $TaskExe --version
+Assert-NativeSuccess -Command "task --version" -ExitCode $LASTEXITCODE
 
-if (-not $SkipSetup) {
-    $TaskArgs = @($TaskArgs | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
-    if ($TaskArgs.Count -eq 0) {
-        $TaskArgs = @("setup")
-    }
-
-    Push-Location $RepoRoot
-    try {
-        & $TaskExe @TaskArgs
-        exit $LASTEXITCODE
-    }
-    finally {
-        Pop-Location
-    }
+$TaskArgs = @($TaskArgs | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+if ($TaskArgs.Count -eq 0) {
+    $TaskArgs = @("setup")
 }
+
+Push-Location $RepoRoot
+try {
+    & $TaskExe @TaskArgs
+    $exitCode = $LASTEXITCODE
+}
+finally {
+    Pop-Location
+}
+
+exit $exitCode

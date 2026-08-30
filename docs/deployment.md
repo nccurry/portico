@@ -51,6 +51,9 @@ cp .streamlit/secrets.example.toml .streamlit/secrets.toml
 chmod 600 .streamlit/secrets.toml
 ```
 
+The workbook can use the Tiller Foundation Template or another compatible
+layout. See the [quick start](quickstart.md) and [data schema](data-schema.md).
+
 Validate the workbook:
 
 ```console
@@ -121,6 +124,5 @@ See [discord-notifier.md](discord-notifier.md) for commands and state behavior.
 Docker examines `http://127.0.0.1:8501/_stcore/health` inside the container. This
 endpoint does not return financial data.
 
-The image uses Docker Official Python and supports the architectures provided by
-that base image. Automated `linux/amd64` and `linux/arm64` release builds are part
-of the release-automation phase.
+The image uses Docker Official Python. CI builds and smoke-tests `linux/amd64`
+and `linux/arm64`. A version tag publishes both architectures to GHCR.
