@@ -35,7 +35,7 @@ def tracked_markdown_files(root: Path) -> tuple[Path, ...]:
         capture_output=True,
         text=True,
     )
-    return tuple(root / line for line in result.stdout.splitlines() if line)
+    return tuple(root / line for line in result.stdout.splitlines() if line and (root / line).is_file())
 
 
 def local_targets(document: Path) -> tuple[str, ...]:

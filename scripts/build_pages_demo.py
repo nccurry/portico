@@ -59,7 +59,7 @@ def build_gallery(output: Path, revision: str) -> None:
     images = output / "images"
     images.mkdir()
     for name in SCREENSHOTS:
-        shutil.copy2(PROJECT_ROOT / "docs" / "images" / name, images / name)
+        shutil.copy2(PROJECT_ROOT / "assets" / "screenshots" / name, images / name)
     (output / ".nojekyll").touch()
 
 

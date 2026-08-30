@@ -1,32 +1,23 @@
 # Changelog
 
-This project records notable changes in this file.
+This file records notable changes to Portico.
 
-The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+Portico uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Changed
-
-- Renamed the application from Tiller Streamlit to Portico.
-- Renamed the application environment variables from `TILLER_*` to `PORTICO_*`.
-- Renamed the container image to `ghcr.io/nccurry/portico`.
-- Simplified native setup so each bootstrap installs Task once before Task installs the Python toolchain.
+## [1.0.0] - 2026-08-30
 
 ### Added
 
-- Apache-2.0 licensing and public project metadata.
-- Validated public configuration with ignored local overrides.
-- A synthetic demo mode and configuration doctor.
-- A non-root Linux container with demo and live Compose profiles.
-- Localhost network defaults and an explicit trusted-LAN command.
-- Original Portico branding and a five-screen synthetic demo gallery.
-- A GitHub Pages workflow for the static demo gallery.
-- A shared development container and atomic CI jobs for linting, tests, coverage, privacy, documentation, and container smoke tests.
-- Native Linux and Windows bootstrap checks in CI.
-
-### Removed
-
-- Device-specific system service installers and notifier scheduling.
+- Read-only dashboards for income, spending, budgets, subscriptions, net worth, financial independence, and data health.
+- Google Sheets support based on the Tiller Foundation Template.
+- A synthetic demo with no financial records or Google Sheets connection.
+- Configurable analysis defaults with private local overrides.
+- A non-root Linux container with local-only network defaults.
+- A configurable weekly Discord expense summary with an optional systemd timer.
+- A shared development container, native bootstrap scripts, tests, and release checks.
 
 [Unreleased]: https://github.com/nccurry/portico/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/nccurry/portico/releases/tag/v1.0.0

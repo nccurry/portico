@@ -1,0 +1,13 @@
+[Unit]
+Description=Send the Portico weekly Discord summary
+Wants=network-online.target
+After=network-online.target docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/portico
+Environment=COMPOSE_ANSI=never
+ExecStart=/usr/bin/docker compose --profile notifier run --rm --no-tty notifier send
+TimeoutStartSec=10min
+UMask=0077

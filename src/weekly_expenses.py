@@ -118,7 +118,7 @@ def completed_week(today: dt.date, period_end: dt.date | None = None) -> ReportP
 
 
 def validate_selected_categories(categories: tuple[str, ...], metadata: pd.DataFrame) -> None:
-    """Check that configured categories are unique Tiller expense categories."""
+    """Check that configured categories are unique expense categories."""
     if not categories:
         raise WeeklyExpenseError("Configure at least one Discord expense category.")
 
@@ -193,7 +193,7 @@ def calculate_weekly_report(
 
 
 def _spending(rows: pd.DataFrame) -> float:
-    """Convert Tiller's signed expense amounts into net positive spending."""
+    """Convert signed expense amounts into net positive spending."""
     return _money(-float(rows["Amount"].sum()))
 
 

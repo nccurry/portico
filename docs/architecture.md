@@ -1,0 +1,368 @@
+# Portico architecture
+
+## Purpose
+
+Portico gives one person a clear view of personal finances stored in Tiller.
+It turns familiar spreadsheet data into focused reports without changing the
+source workbook.
+
+The application values clear answers over a large feature count. A user must be
+able to trace a displayed number back to its source rows and selected filters.
+The code must remain small enough for one maintainer to understand and operate.
+
+Portico uses useful defaults from the maintainer's workflow. The defaults stay
+anonymous, visible, and configurable. A new user can start with the demo or a
+standard Tiller workbook.
+
+## Product principles
+
+### Tiller-based
+
+The Tiller Foundation Template is the canonical data model. Portico expects the
+Transactions, Balance History, Categories, and Accounts tabs from that model.
+
+Compatible Google Sheets workbooks also work. They must provide the same tabs,
+columns, value meanings, and amount signs. Portico is not a general spreadsheet
+analysis platform or a source-plugin framework.
+
+If a column or financial rule is unclear, Tiller remains the reference. A new
+feature must preserve compatibility with normal Tiller data before it supports
+a custom workbook shape.
+
+### Read-only
+
+Portico reads financial data and never writes it back to Google Sheets. It does
+not edit transactions, categories, budgets, or account balances.
+
+Read-only behavior keeps ownership clear. Tiller and Google Sheets own the
+records. Portico owns analysis and presentation.
+
+### Personal and private
+
+Portico is a self-hosted personal application. It has no user accounts, shared
+workspaces, or login screen. Localhost is the default network boundary.
+
+The project does not aim to become a hosted financial service. Features that
+require multiple users, public access, or shared data need a separate design and
+security review.
+
+### Clear before clever
+
+Financial calculations must be easy to read and inspect. Direct Pandas
+operations and small Python functions are better than a general framework.
+
+An abstraction must remove real duplication or protect a real boundary. The
+project does not add factories, registries, adapters, or interfaces for possible
+future use.
+
+### Useful with no private data
+
+The committed demo data is synthetic. It supports every page, integration
+tests, screenshots, and the static gallery.
+
+No test, screenshot, issue, or example can contain personal financial records.
+If a feature changes the data contract, the demo must continue to work.
+
+## Technology choices
+
+### Streamlit-based user interface
+
+Streamlit owns navigation, page state, controls, caching, and rendering. Altair
+owns charts. Pandas DataFrames carry tabular data between the loading,
+calculation, and presentation layers.
+
+Portico does not use a separate browser application or API server. A feature
+belongs in the current Streamlit application unless the framework cannot support
+the required behavior.
+
+Streamlit page files can contain layout, controls, formatting, and chart
+construction. Financial rules and reusable calculations belong in `src`.
+
+### Typed Python
+
+The project uses modern Python with strict mypy checks. Public functions have
+parameter and return annotations. Dataclasses describe validated configuration
+and state. TypedDict classes describe stable summary and filter shapes.
+
+DataFrame column types remain a runtime contract because Pandas does not enforce
+them statically. Loading and scrubbing code validates required columns and
+normalizes values before analysis.
+
+New code must not bypass type errors with broad `Any` values or unexplained
+casts. If a third-party library type is incomplete, a narrow cast is valid at
+that boundary.
+
+### uv-native development
+
+`pyproject.toml` defines Python, project dependencies, development dependencies,
+and tool settings. `uv.lock` records the complete dependency set.
+
+uv is the package and Python environment manager. Direct `uv` commands are a
+supported development path. Task provides short command names but does not own
+dependency resolution.
+
+The bootstrap scripts install the pinned Task binary. Task then installs the
+pinned uv and Python versions and synchronizes the locked environment. The Dev
+Container and CI use the same project files.
+
+### Container-first deployment
+
+The production artifact is a Linux container image. The image runs as a
+non-root user and uses a read-only root filesystem. Docker Compose provides the
+demo, live, and notifier profiles.
+
+The application publishes on `127.0.0.1` by default. A user can opt into trusted
+LAN access. Public access requires authentication and TLS outside Portico.
+
+The Discord notifier is a one-shot container command. A systemd timer can
+schedule that command. Scheduling stays outside the Python application.
+
+## Runtime design
+
+The main data flow is:
+
+```text
+Tiller workbook in Google Sheets     Synthetic CSV files
+                 \                    /
+                  load, validate, and scrub
+                              |
+                    normalized DataFrames
+                              |
+                   filters and calculations
+                              |
+                typed summaries and result tables
+                              |
+              Streamlit pages, Altair charts, and tables
+```
+
+### Entry points
+
+`Home.py` configures Streamlit, builds navigation, and renders the accounts and
+net-worth page. Files in `pages` provide the remaining dashboards.
+
+`scripts/run_app.py` starts Streamlit with validated address, port, and data
+source values. The container starts `Home.py` directly with safe server flags.
+
+`scripts/weekly-discord-summary.py` starts the headless Discord notifier. The
+notifier does not start Streamlit or require a browser session.
+
+### Data sources
+
+Live mode uses `st-gsheets-connection` and the URLs in
+`.streamlit/secrets.toml`. Demo mode reads the committed CSV files in
+`demo/data`.
+
+Both modes create the same spreadsheet classes and normalized DataFrames. Pages
+and calculations must not contain separate demo behavior. The shared demo banner
+is the only intended presentation difference.
+
+### State and caching
+
+Portico has no application database. Google Sheets remains the source of truth
+for live financial data. Demo CSV files are the source of truth for demo mode.
+
+Streamlit session state stores control selections for one browser session.
+Streamlit caches loaded data and deterministic calculations. This state is
+temporary and can be rebuilt from the configured source.
+
+The Discord notifier stores successful delivery periods in a Docker volume.
+This small state record prevents duplicate messages. It does not store financial
+rows.
+
+### Loading and scrubbing
+
+`src/spreadsheet.py` owns the four spreadsheet objects and their cached loaders.
+Each object keeps the raw DataFrame and the scrubbed DataFrame.
+
+`src/scrubbing.py` validates and normalizes Transactions and Categories data.
+The spreadsheet classes normalize Accounts and Balance History data. Cross-sheet
+joins add category metadata to transactions and account metadata to balances.
+
+Scrubbing is the trust boundary. Later code can rely on canonical dates, numeric
+amounts, groups, types, and visibility fields. Unknown or missing required data
+must stop with a clear error near this boundary.
+
+Streamlit caches loaded spreadsheet objects for five minutes. The refresh
+control clears the Streamlit data and resource caches.
+
+### Configuration and secrets
+
+`config/defaults.toml` contains tracked behavior defaults. An ignored
+`config/local.toml` can override household-specific values. Narrow environment
+variables select the data source and configuration path.
+
+`src/config.py` merges these sources, rejects unknown keys, validates ranges,
+and returns frozen typed settings. New settings need a safe tracked default and
+runtime validation.
+
+Google Sheets URLs and Discord webhook URLs are secrets. They belong in the
+ignored `.streamlit/secrets.toml` file. They never belong in tracked
+configuration, logs, fixtures, or error messages.
+
+### Filters and calculations
+
+`src/filters.py` owns shared Streamlit filter controls and transaction filter
+application. Page-specific controls stay in their page modules.
+
+`src/analysis` owns report calculations for budgets, spending, income,
+subscriptions, merchants, net worth, data health, and financial independence.
+These modules return DataFrames or typed summaries instead of rendered UI.
+
+Some existing calculations still accept spreadsheet wrappers or read settings
+directly. If explicit inputs make a function easier to test, new calculation
+code accepts DataFrames and typed values.
+
+### Pages and presentation
+
+Each page follows the same general flow:
+
+1. Load the required spreadsheet objects.
+2. Render controls and build typed filter values.
+3. Call calculation functions.
+4. Render metrics, charts, tables, and transaction details.
+5. Handle empty results with a clear message.
+
+Pages can cache expensive deterministic calculations with `st.cache_data`.
+Cached functions must return the same result for the same input values.
+
+`src/value_visibility.py` masks values in metrics, tables, and chart axes. This
+feature protects a screen from casual viewing. It is not encryption or access
+control.
+
+### Discord notifier
+
+`src/discord_notifier.py` loads notifier configuration, reads the required
+Google Sheets tabs, formats Discord embeds, sends webhooks, and records delivery
+state.
+
+`src/weekly_expenses.py` owns the weekly expense calculations. Those
+calculations are independent from Discord transport and message formatting.
+
+The notifier reuses the normal scrubbing functions. It uses direct CSV export
+requests because it runs without the Streamlit connection runtime.
+
+### Static demo gallery
+
+`scripts/build_pages_demo.py` builds a static gallery from the synthetic
+screenshots. GitHub Pages serves this gallery but does not run the Streamlit
+server or production container.
+
+The gallery is a preview, not a second application runtime. It must not contain
+Google Sheets connections, secrets, or private data.
+
+## Source ownership
+
+| Path | Responsibility |
+| --- | --- |
+| `Home.py` | Application shell, navigation, and home page |
+| `pages/` | Streamlit page layout, controls, and charts |
+| `src/analysis/` | Financial and data-quality calculations |
+| `src/spreadsheet.py` | Sheet loading, spreadsheet objects, and cached loaders |
+| `src/scrubbing.py` | Required columns and normalized data contracts |
+| `src/config.py` | Typed configuration loading and validation |
+| `src/custom_types.py` | Shared TypedDict classes and type aliases |
+| `src/filters.py` | Shared filters and filter controls |
+| `src/page_helpers.py` | Small shared Streamlit presentation helpers |
+| `src/value_visibility.py` | Display masking for financial values |
+| `src/weekly_expenses.py` | Weekly expense report calculations |
+| `src/discord_notifier.py` | Discord configuration, transport, formatting, and state |
+| `scripts/` | Bootstrap, diagnostics, local commands, and build tools |
+| `config/` | Tracked defaults and the local override example |
+| `demo/data/` | Canonical synthetic workbook data |
+| `tests/unit/` | Direct behavior tests for functions and pages |
+| `tests/integration/` | Cross-sheet pipelines and Streamlit AppTest coverage |
+| `deploy/` | Host integration files such as systemd units |
+
+## Testing rules
+
+Financial correctness is the highest testing priority. Move calculations into
+small functions with explicit inputs and outputs before adding complex page
+code.
+
+No test suite can guarantee correctness or test every possible value. Portico
+requires strong evidence through direct tests of each important input class and
+exact output.
+
+A calculation test set must cover the cases that apply:
+
+- Normal values
+- Empty data
+- Zero values
+- Positive and negative amounts
+- Date and period boundaries
+- Missing or invalid input
+- Filters and exclusions
+- Ties, duplicates, refunds, and uncategorized rows
+- A known regression case for each fixed defect
+
+Tests must assert financial totals, rows, columns, types, and error behavior.
+Snapshot-only tests are not enough for financial calculations.
+
+Unit tests isolate small calculations and presentation helpers. Integration
+tests run the four synthetic sheets through the real scrub and join pipeline.
+Streamlit AppTest tests load every page and exercise important control states.
+
+The synthetic fixture date is fixed. Date-sensitive tests use that reference
+date instead of the current clock. Tests also isolate local configuration so a
+maintainer's private settings cannot change results.
+
+CI enforces strict typing, linting, unit tests, integration tests, documentation
+checks, privacy checks, and container smoke tests. Coverage must be at least 90% for
+`src` and 80% for `src` and `pages` combined. Local Task commands call the same
+underlying tools.
+
+## Security and privacy rules
+
+Portico handles sensitive financial data even though it is a personal project.
+The design uses a small and clear security boundary:
+
+- The application is read-only.
+- The default network address is loopback.
+- Secrets stay in ignored files and read-only container mounts.
+- The production container runs as a non-root user.
+- The container root filesystem is read-only.
+- Demo data and screenshots are synthetic.
+- The privacy scanner rejects common secret and private-data patterns.
+- Error messages do not print financial rows or secret URLs.
+
+The Hide values control does not replace these rules. It changes presentation
+only.
+
+## Non-goals
+
+Portico does not aim to provide:
+
+- Direct bank connections
+- Transaction or budget editing
+- Google Sheets writeback
+- A database that copies the workbook
+- Multiple users or household accounts
+- A public hosted service
+- A source-plugin framework
+- A separate frontend and backend
+- Corporate identity, service-account, or role-management systems
+
+A proposal that adds one of these capabilities changes the product boundary. It
+needs an explicit architecture decision before implementation.
+
+## Rules for future changes
+
+These rules define a feature that fits Portico:
+
+1. It answers a clear personal-finance question from Tiller data.
+2. It keeps Google Sheets read-only.
+3. It works with the synthetic demo data.
+4. It puts financial rules in typed, testable Python functions.
+5. It keeps Streamlit code focused on controls and presentation.
+6. It validates new data or configuration at the boundary.
+7. It covers normal, empty, boundary, invalid, and regression cases.
+8. It preserves value hiding for displayed financial values.
+9. It does not expose secrets, financial rows, or private URLs.
+10. It reuses a suitable existing dependency or pattern.
+11. It adds only abstractions required by current code.
+12. It updates the README, demo, and this document for each public behavior change.
+
+When two designs work, choose the design with fewer moving parts. Prefer a small
+function over a new class. Prefer an explicit call over a registry. Prefer a
+validated setting over a hidden constant. Prefer a direct test over a large
+mock.

@@ -1,0 +1,10 @@
+[Unit]
+Description=Send the Portico weekly Discord summary each Sunday
+
+[Timer]
+OnCalendar=Sun *-*-* 09:00:00
+Persistent=true
+Unit=portico-discord-summary.service
+
+[Install]
+WantedBy=timers.target
