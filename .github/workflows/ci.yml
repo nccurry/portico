@@ -156,6 +156,7 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - run: git config --global safe.directory "$GITHUB_WORKSPACE"
       - run: task dev:sync
       - run: task privacy:check
 
@@ -246,6 +247,7 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - run: git config --global safe.directory "$GITHUB_WORKSPACE"
       - run: task dev:sync
       - run: task docs:check
       - run: task pages:build
