@@ -95,10 +95,7 @@ def build_spending_ledger(
     positive ``Net_Spend`` values; positive expense refunds reduce spending.
     """
     ledger = transactions[transactions["Type"] == "Expense"].copy()
-    ledger = ledger[
-        (ledger["Month"].astype(str) >= start_month)
-        & (ledger["Month"].astype(str) < end_month)
-    ].copy()
+    ledger = ledger[(ledger["Month"].astype(str) >= start_month) & (ledger["Month"].astype(str) < end_month)].copy()
 
     if ledger.empty:
         ledger["Included"] = pd.Series(dtype="bool")
@@ -147,9 +144,7 @@ def _group_for_category(ledgers: Sequence[pd.DataFrame]) -> dict[str, str]:
     if pairs.empty:
         return {}
     return {
-        str(category): str(
-            values.mode().iloc[0] if not values.mode().empty else values.iloc[0]
-        )
+        str(category): str(values.mode().iloc[0] if not values.mode().empty else values.iloc[0])
         for category, values in pairs.groupby("Category")["Group"]
     }
 
@@ -175,11 +170,7 @@ def build_spending_overview(
 
     current_counts = current.groupby(dimension).size()
     month_index = list(months)
-    monthly = (
-        current.groupby([dimension, "Month"])["Net_Spend"]
-        .sum()
-        .unstack(fill_value=0)
-    )
+    monthly = current.groupby([dimension, "Month"])["Net_Spend"].sum().unstack(fill_value=0)
     monthly = monthly.reindex(
         index=entities,
         columns=month_index,
@@ -195,31 +186,24 @@ def build_spending_overview(
         spending = float(current_totals.get(entity_value, 0.0))
         comparison_spending = float(comparison_totals.get(entity_value, 0.0))
         change = spending - comparison_spending
-        rows.append({
-            "Entity": entity,
-            "Group": category_groups.get(entity, "") if dimension == "Category" else "",
-            "Spending": spending,
-            "Share": spending / total_spending * 100 if total_spending else 0.0,
-            "Average_Monthly": spending / month_count if month_count else 0.0,
-            "Comparison_Spending": comparison_spending,
-            "Change": change,
-            "Change_Pct": (
-                change / abs(comparison_spending) * 100
-                if comparison_spending
-                else None
-            ),
-            "Transactions": int(current_counts.get(entity_value, 0)),
-            "Monthly_Trend": [
-                float(value) for value in monthly.loc[entity_value].tolist()
-            ],
-        })
-    return (
-        pd.DataFrame(rows, columns=OVERVIEW_COLUMNS)
-        .sort_values(
-            ["Spending", "Entity"],
-            ascending=[False, True],
-            ignore_index=True,
+        rows.append(
+            {
+                "Entity": entity,
+                "Group": category_groups.get(entity, "") if dimension == "Category" else "",
+                "Spending": spending,
+                "Share": spending / total_spending * 100 if total_spending else 0.0,
+                "Average_Monthly": spending / month_count if month_count else 0.0,
+                "Comparison_Spending": comparison_spending,
+                "Change": change,
+                "Change_Pct": (change / abs(comparison_spending) * 100 if comparison_spending else None),
+                "Transactions": int(current_counts.get(entity_value, 0)),
+                "Monthly_Trend": [float(value) for value in monthly.loc[entity_value].tolist()],
+            }
         )
+    return pd.DataFrame(rows, columns=OVERVIEW_COLUMNS).sort_values(
+        ["Spending", "Entity"],
+        ascending=[False, True],
+        ignore_index=True,
     )
 
 
@@ -233,9 +217,7 @@ def summarize_spending(
     current = _included(current_ledger)
     comparison = _included(comparison_ledger)
     total = float(current["Net_Spend"].sum()) if not current.empty else 0.0
-    comparison_total = (
-        float(comparison["Net_Spend"].sum()) if not comparison.empty else 0.0
-    )
+    comparison_total = float(comparison["Net_Spend"].sum()) if not comparison.empty else 0.0
     change = total - comparison_total
     return SpendingSummary(
         total_spending=total,
@@ -262,16 +244,8 @@ def build_entity_monthly_comparison(
     comparison = _included(comparison_ledger)
     current = current[current[dimension].astype(str) == entity]
     comparison = comparison[comparison[dimension].astype(str) == entity]
-    current_values = (
-        current.groupby("Month")["Net_Spend"]
-        .sum()
-        .reindex(list(current_months), fill_value=0.0)
-    )
-    comparison_values = (
-        comparison.groupby("Month")["Net_Spend"]
-        .sum()
-        .reindex(list(comparison_months), fill_value=0.0)
-    )
+    current_values = current.groupby("Month")["Net_Spend"].sum().reindex(list(current_months), fill_value=0.0)
+    comparison_values = comparison.groupby("Month")["Net_Spend"].sum().reindex(list(comparison_months), fill_value=0.0)
     rows = [
         {
             "Month": current_month,
@@ -318,12 +292,8 @@ def build_merchant_breakdown(
         .reset_index()
     )
     total = float(grouped["Spending"].sum())
-    grouped["Share"] = (
-        grouped["Spending"].div(total).mul(100) if total else 0.0
-    )
-    grouped["Average_Transaction"] = grouped["Spending"].div(
-        grouped["Transactions"]
-    )
+    grouped["Share"] = grouped["Spending"].div(total).mul(100) if total else 0.0
+    grouped["Average_Transaction"] = grouped["Spending"].div(grouped["Transactions"])
     return grouped[MERCHANT_COLUMNS].sort_values(
         ["Spending", "Merchant"],
         ascending=[False, True],

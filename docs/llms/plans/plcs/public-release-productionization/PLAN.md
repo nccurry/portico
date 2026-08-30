@@ -295,7 +295,7 @@ Make source and container releases repeatable with a small set of useful checks.
 1. Organize CI into Linux gates for lint, type checks, tests, coverage, privacy, demo smoke, and documentation links.
 2. Build and smoke-test the container on pull requests.
 3. Add dependency update automation with grouped lockfile updates.
-4. Add `task release:check` for required files, version/changelog consistency, tests, privacy, docs links, and a demo-container smoke test.
+4. Keep release checks as atomic Task commands and have the release workflow compose the exact checks it needs.
 5. Perform one dependency advisory/license review and one full-history secret scan before changing repository visibility.
 6. Add a `vX.Y.Z` tag workflow that verifies the tag/version, reruns release checks, publishes `linux/amd64` and `linux/arm64` images to GHCR, and creates a GitHub Release from curated notes.
 7. Tag images with the exact version, major/minor aliases, and `latest` for stable releases.
@@ -307,7 +307,7 @@ Make source and container releases repeatable with a small set of useful checks.
 - Validate workflow syntax and run local equivalents.
 - Test tag/version comparison logic.
 - Build and smoke-test both container architectures.
-- Run `task release:check` from a clean worktree.
+- Run the documented lint, test, coverage, privacy, documentation, demo-build, and container-smoke tasks from a clean worktree.
 - A valid tag produces matching source and multi-architecture container releases.
 - No SBOM, signing, provenance service, or continuous enterprise scanner is required for v1.
 
@@ -324,7 +324,7 @@ Verify the complete public experience and publish the stable first release.
 ### Work items
 
 1. Freeze scope and move completed changelog entries into `1.0.0`.
-2. Run `task release:check` from a clean worktree.
+2. Run the documented atomic release checks from a clean worktree.
 3. Complete the one-time repository-history secret scan and dependency/license review.
 4. Start the demo and live containers from a clean Linux host.
 5. Run `task doctor` against demo mode, one valid live workbook, and intentionally malformed configuration.
@@ -369,7 +369,7 @@ Verify the complete public experience and publish the stable first release.
 | Docs/assets | 1 and 5 onward | Link checks and manual image provenance review |
 | Hosted demo | 6 onward | Static artifact build, canonical asset checks, source revision validation, and deployed URL review |
 | Architectures | 4 and 8 | Multi-architecture image plus clean-Linux-host container smoke |
-| Release | 7–8 | `task release:check` and tag/version/changelog/image verification |
+| Release | 7–8 | Atomic Task checks plus tag/version/changelog/image verification |
 
 ## Recommended execution order
 

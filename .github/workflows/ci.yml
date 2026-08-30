@@ -5,31 +5,400 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DEVCONTAINER_IMAGE: ghcr.io/nccurry/portico-devcontainer
+
+defaults:
+  run:
+    shell: bash
 
 jobs:
-  lint-and-test:
+  select-devcontainer:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      changed: ${{ steps.select.outputs.changed }}
+      image: ${{ steps.select.outputs.image }}
+      tag: ${{ steps.select.outputs.tag }}
 
     steps:
-      - uses: actions/checkout@v6
-
-      - name: Cache tools, Python, and venv
-        uses: actions/cache@v6
+      - name: Checkout repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
+          fetch-depth: 0
+
+      - name: Select development image
+        id: select
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          changed=false
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            changed=true
+          elif [[ "$EVENT_NAME" == "pull_request" ]]; then
+            if ! git diff --quiet "$BASE_SHA...$HEAD_SHA" -- .devcontainer pyproject.toml uv.lock; then
+              changed=true
+            fi
+          elif [[ -z "$BEFORE_SHA" || "$BEFORE_SHA" =~ ^0+$ ]]; then
+            changed=true
+          elif ! git diff --quiet "$BEFORE_SHA" "$HEAD_SHA" -- .devcontainer pyproject.toml uv.lock; then
+            changed=true
+          fi
+
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            tag="pr-${PR_NUMBER}-${HEAD_SHA}"
+          else
+            tag="sha-${HEAD_SHA}"
+          fi
+
+          echo "changed=$changed" >> "$GITHUB_OUTPUT"
+          echo "image=$DEVCONTAINER_IMAGE:main" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+  build-devcontainer:
+    if: needs.select-devcontainer.outputs.changed == 'true'
+    needs: select-devcontainer
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.digest.outputs.image }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Verify development Feature lockfile
+        run: |
+          npx --yes @devcontainers/cli@0.88.0 upgrade --workspace-folder .
+          git diff --exit-code -- .devcontainer/devcontainer-lock.json
+
+      - name: Log in to GHCR
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push development image
+        env:
+          IMAGE_TAG: ${{ needs.select-devcontainer.outputs.tag }}
+        run: |
+          npx --yes @devcontainers/cli@0.88.0 build \
+            --workspace-folder . \
+            --image-name "$DEVCONTAINER_IMAGE:$IMAGE_TAG" \
+            --cache-from "$DEVCONTAINER_IMAGE:main" \
+            --frozen-lockfile \
+            --push
+
+      - name: Resolve immutable image digest
+        id: digest
+        env:
+          IMAGE_TAG: ${{ needs.select-devcontainer.outputs.tag }}
+        run: |
+          digest=$(docker buildx imagetools inspect "$DEVCONTAINER_IMAGE:$IMAGE_TAG" --format '{{json .Manifest.Digest}}' | tr -d '"')
+          test -n "$digest"
+          echo "image=$DEVCONTAINER_IMAGE@$digest" >> "$GITHUB_OUTPUT"
+
+  resolve-devcontainer:
+    if: >-
+      always() &&
+      needs.select-devcontainer.result == 'success' &&
+      (needs.build-devcontainer.result == 'success' || needs.build-devcontainer.result == 'skipped')
+    needs: [select-devcontainer, build-devcontainer]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      image: ${{ steps.resolve.outputs.image }}
+
+    steps:
+      - name: Resolve image for source checks
+        id: resolve
+        env:
+          CHANGED: ${{ needs.select-devcontainer.outputs.changed }}
+          DEFAULT_IMAGE: ${{ needs.select-devcontainer.outputs.image }}
+          BUILT_IMAGE: ${{ needs.build-devcontainer.outputs.image }}
+        run: |
+          if [[ "$CHANGED" == "true" ]]; then
+            test -n "$BUILT_IMAGE"
+            echo "image=$BUILT_IMAGE" >> "$GITHUB_OUTPUT"
+          else
+            echo "image=$DEFAULT_IMAGE" >> "$GITHUB_OUTPUT"
+          fi
+
+  privacy:
+    needs: resolve-devcontainer
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: read
+    container:
+      image: ${{ needs.resolve-devcontainer.outputs.image }}
+      options: --user 0
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - run: git config --global safe.directory "$GITHUB_WORKSPACE"
+      - run: task dev:sync
+      - run: task privacy:check
+
+  lint:
+    needs: resolve-devcontainer
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: read
+    container:
+      image: ${{ needs.resolve-devcontainer.outputs.image }}
+      options: --user 0
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - run: task dev:sync
+      - run: task dev:verify
+      - run: task deps:check-lock
+      - run: task lint
+
+  unit-tests:
+    needs: resolve-devcontainer
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: read
+    container:
+      image: ${{ needs.resolve-devcontainer.outputs.image }}
+      options: --user 0
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - run: task dev:sync
+      - run: task test:unit:coverage
+      - name: Upload unit coverage data
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage-unit
+          path: .coverage.*
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 3
+
+  integration-tests:
+    needs: resolve-devcontainer
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+    container:
+      image: ${{ needs.resolve-devcontainer.outputs.image }}
+      options: --user 0
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - run: task dev:sync
+      - run: task test:integration:coverage
+      - name: Upload integration coverage data
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage-integration
+          path: .coverage.*
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 3
+
+  docs-and-scripts:
+    needs: resolve-devcontainer
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: read
+    container:
+      image: ${{ needs.resolve-devcontainer.outputs.image }}
+      options: --user 0
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - run: git config --global safe.directory "$GITHUB_WORKSPACE"
+      - run: task dev:sync
+      - run: task docs:check
+      - run: task pages:build
+      - name: Check for tracked changes
+        run: git diff --exit-code
+
+  coverage:
+    needs: [resolve-devcontainer, unit-tests, integration-tests]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: read
+    container:
+      image: ${{ needs.resolve-devcontainer.outputs.image }}
+      options: --user 0
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - run: task dev:sync
+      - name: Download unit coverage data
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: coverage-unit
+          path: .coverage-data/unit
+      - name: Download integration coverage data
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: coverage-integration
+          path: .coverage-data/integration
+      - run: task coverage:combine
+      - run: task coverage:check-src
+      - run: task coverage:check-total
+      - run: task coverage:html
+      - run: task coverage:xml
+      - name: Add coverage summary
+        run: |
+          echo '```text' >> "$GITHUB_STEP_SUMMARY"
+          task coverage:summary >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload coverage report
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage-report
           path: |
-            .tools
-            .venv
-            ~/.cache/uv
-          key: bootstrap-${{ runner.os }}-${{ hashFiles('pyproject.toml', 'uv.lock', 'scripts/bootstrap.sh') }}
+            build/coverage
+            build/coverage.xml
+          if-no-files-found: error
+          retention-days: 7
 
-      - name: Bootstrap environment
-        run: sh scripts/bootstrap.sh
+  production-container:
+    name: Production container (${{ matrix.platform }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            slug: amd64
+          - platform: linux/arm64
+            slug: arm64
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
+      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+      - name: Build production image
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          load: true
+          push: false
+          tags: portico:ci-${{ matrix.slug }}
+          build-args: |
+            VERSION=ci
+            REVISION=${{ github.sha }}
+          cache-from: type=gha,scope=production-${{ matrix.slug }}
+          cache-to: type=gha,mode=max,scope=production-${{ matrix.slug }}
+      - name: Smoke-test production image
+        run: python scripts/smoke_container.py --image=portico:ci-${{ matrix.slug }} --skip-build
 
-      - name: Lint (ruff + mypy)
-        run: .tools/bin/task lint
+  ci:
+    if: always()
+    needs: [privacy, lint, unit-tests, integration-tests, docs-and-scripts, coverage, production-container]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require every CI lane
+        env:
+          PRIVACY: ${{ needs.privacy.result }}
+          LINT: ${{ needs.lint.result }}
+          UNIT: ${{ needs.unit-tests.result }}
+          INTEGRATION: ${{ needs.integration-tests.result }}
+          DOCS: ${{ needs.docs-and-scripts.result }}
+          COVERAGE: ${{ needs.coverage.result }}
+          CONTAINER: ${{ needs.production-container.result }}
+        run: |
+          for result in "$PRIVACY" "$LINT" "$UNIT" "$INTEGRATION" "$DOCS" "$COVERAGE" "$CONTAINER"; do
+            test "$result" = "success"
+          done
 
-      - name: Test with coverage (src/ >= 90%)
-        run: .tools/bin/task test:coverage:src
+  promote-devcontainer:
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      needs.select-devcontainer.outputs.changed == 'true' &&
+      needs.ci.result == 'success'
+    needs: [select-devcontainer, build-devcontainer, ci]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+      - name: Promote tested image to main
+        env:
+          TESTED_IMAGE: ${{ needs.build-devcontainer.outputs.image }}
+        run: docker buildx imagetools create --tag "$DEVCONTAINER_IMAGE:main" "$TESTED_IMAGE"
 
-      - name: Test with coverage (combined >= 80%)
-        run: .tools/bin/task test:coverage
+  cleanup-pr-devcontainer:
+    if: >-
+      always() &&
+      github.event_name == 'pull_request' &&
+      needs.select-devcontainer.outputs.changed == 'true' &&
+      needs.build-devcontainer.result == 'success'
+    needs: [select-devcontainer, build-devcontainer, ci]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      packages: write
+    steps:
+      - name: Delete temporary pull request image
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
+          PACKAGE: portico-devcontainer
+          TAG: ${{ needs.select-devcontainer.outputs.tag }}
+        run: |
+          version_id=$(gh api --paginate "/users/$OWNER/packages/container/$PACKAGE/versions?per_page=100" \
+            --jq ".[] | select(.metadata.container.tags[]? == \"$TAG\") | .id" | head -n 1)
+          if [[ -n "$version_id" ]]; then
+            gh api --method DELETE "/users/$OWNER/packages/container/$PACKAGE/versions/$version_id"
+          fi

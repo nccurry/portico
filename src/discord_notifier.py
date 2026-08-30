@@ -79,9 +79,7 @@ def load_config(path: Path = DEFAULT_SECRETS_PATH) -> NotifierConfig:
     if len(set(category_values)) != len(category_values):
         raise NotifierError("notifications.discord.categories must not contain duplicates.")
     if any(not item or item != item.strip() for item in category_values):
-        raise NotifierError(
-            "Each notifications.discord.categories item must be a non-empty exact Category value."
-        )
+        raise NotifierError("Each notifications.discord.categories item must be a non-empty exact Category value.")
 
     config = NotifierConfig(
         transactions_url=_string(transactions, "spreadsheet", "connections.transactions"),
@@ -110,9 +108,7 @@ def read_google_sheet(sheet_url: str, label: str) -> pd.DataFrame:
         with urlopen(request, timeout=HTTP_TIMEOUT_SECONDS) as response:
             return pd.read_csv(response)
     except (HTTPError, URLError, OSError, ValueError) as error:
-        raise NotifierError(
-            f"Failed to read the {label} sheet. Check link access and the configured gid."
-        ) from error
+        raise NotifierError(f"Failed to read the {label} sheet. Check link access and the configured gid.") from error
 
 
 def load_report_data(config: NotifierConfig) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -166,13 +162,11 @@ def report_payload(report: WeeklyExpenseReport) -> dict[str, Any]:
     category_lines = []
     for item in report.categories:
         summary = (
-            f"**{_escape_markdown(item.name)}** — **{_currency(item.amount)}** · "
-            f"{_usual_change_text(item.change)}"
+            f"**{_escape_markdown(item.name)}** — **{_currency(item.amount)}** · {_usual_change_text(item.change)}"
         )
         if item.top_vendors:
             vendors = " · ".join(
-                f"{_escape_markdown(vendor.name)} {_currency(vendor.amount)}"
-                for vendor in item.top_vendors
+                f"{_escape_markdown(vendor.name)} {_currency(vendor.amount)}" for vendor in item.top_vendors
             )
             summary = f"{summary}\nTop vendors: {vendors}"
         category_lines.append(summary)
@@ -211,8 +205,7 @@ def report_payload(report: WeeklyExpenseReport) -> dict[str, Any]:
                     {
                         "name": "Watched total",
                         "value": (
-                            f"**{_currency(report.selected_total)}** · "
-                            f"{_usual_change_text(report.selected_change)}"
+                            f"**{_currency(report.selected_total)}** · {_usual_change_text(report.selected_change)}"
                         ),
                         "inline": True,
                     },
@@ -274,10 +267,7 @@ def report_as_dict(report: WeeklyExpenseReport) -> dict[str, Any]:
                 "rolling_amount": item.rolling_amount,
                 "previous_rolling_amount": item.previous_rolling_amount,
                 "rolling_change": item.rolling_change,
-                "top_vendors": [
-                    {"name": vendor.name, "amount": vendor.amount}
-                    for vendor in item.top_vendors
-                ],
+                "top_vendors": [{"name": vendor.name, "amount": vendor.amount} for vendor in item.top_vendors],
             }
             for item in report.categories
         ],
@@ -539,21 +529,13 @@ def _preview_text(report: WeeklyExpenseReport) -> str:
         "",
     ]
     for item in report.categories:
-        lines.append(
-            f"{item.name}: {_currency(item.amount)} ({_usual_change_text(item.change)})"
-        )
+        lines.append(f"{item.name}: {_currency(item.amount)} ({_usual_change_text(item.change)})")
         if item.top_vendors:
-            vendors = ", ".join(
-                f"{vendor.name} {_currency(vendor.amount)}"
-                for vendor in item.top_vendors
-            )
+            vendors = ", ".join(f"{vendor.name} {_currency(vendor.amount)}" for vendor in item.top_vendors)
             lines.append(f"  Top vendors: {vendors}")
     lines.extend(["", "4-week watched spending"])
     for item in report.categories:
-        lines.append(
-            f"{item.name}: {_currency(item.rolling_amount)} "
-            f"({_rolling_change_text(item.rolling_change)})"
-        )
+        lines.append(f"{item.name}: {_currency(item.rolling_amount)} ({_rolling_change_text(item.rolling_change)})")
     lines.extend(
         [
             (
@@ -561,10 +543,7 @@ def _preview_text(report: WeeklyExpenseReport) -> str:
                 f"({_rolling_change_text(report.rolling_selected_change)})"
             ),
             "",
-            (
-                f"Watched total: {_currency(report.selected_total)} "
-                f"({_usual_change_text(report.selected_change)})"
-            ),
+            (f"Watched total: {_currency(report.selected_total)} ({_usual_change_text(report.selected_change)})"),
             f"All expenses: {_currency(report.all_expenses_total)}",
             f"Needs categorization: {_uncategorized_text(report.uncategorized_count)}",
             (

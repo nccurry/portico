@@ -73,7 +73,7 @@ def scrub_categories(raw_df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     for column in df.columns[4:]:
         try:
             month = pd.to_datetime(column)
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
             continue
         cleaned = df[column].astype(str).str.replace(r"[$,]", "", regex=True)
         budget_frames.append(

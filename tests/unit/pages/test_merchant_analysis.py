@@ -1,4 +1,5 @@
 """Tests for merchant enrichment and analysis."""
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -18,75 +19,73 @@ from tests._helpers import _make_merchant_df
 
 
 class TestExtractMerchantName:
-
     def test_first_word(self) -> None:
-        assert extract_merchant_name('KROGER #1234 STORE', 'first_word') == 'KROGER'
+        assert extract_merchant_name("KROGER #1234 STORE", "first_word") == "KROGER"
 
     def test_first_two(self) -> None:
-        assert extract_merchant_name('KROGER #1234 STORE', 'first_two') == 'KROGER #1234'
+        assert extract_merchant_name("KROGER #1234 STORE", "first_two") == "KROGER #1234"
 
     def test_first_three(self) -> None:
-        assert extract_merchant_name('KROGER #1234 STORE', 'first_three') == 'KROGER #1234 STORE'
+        assert extract_merchant_name("KROGER #1234 STORE", "first_three") == "KROGER #1234 STORE"
 
     def test_nan_returns_unknown(self) -> None:
-        assert extract_merchant_name(np.nan, 'first_word') == 'Unknown'
+        assert extract_merchant_name(np.nan, "first_word") == "Unknown"
 
     def test_empty_returns_unknown(self) -> None:
-        assert extract_merchant_name('', 'first_word') == 'Unknown'
+        assert extract_merchant_name("", "first_word") == "Unknown"
 
     def test_whitespace_only_returns_unknown(self) -> None:
-        assert extract_merchant_name('   ', 'first_word') == 'Unknown'
+        assert extract_merchant_name("   ", "first_word") == "Unknown"
 
     def test_unknown_method_falls_back_to_first_word(self) -> None:
         """Invalid method argument falls through to first_word extraction."""
-        assert extract_merchant_name('ACME STORE', 'gibberish_method') == 'ACME'
+        assert extract_merchant_name("ACME STORE", "gibberish_method") == "ACME"
 
     def test_single_word_first_two_returns_single(self) -> None:
         """first_two on a single-word description returns that single word."""
-        assert extract_merchant_name('AMAZON', 'first_two') == 'AMAZON'
+        assert extract_merchant_name("AMAZON", "first_two") == "AMAZON"
 
     def test_single_word_first_three_returns_single(self) -> None:
         """first_three on a single-word description returns that single word."""
-        assert extract_merchant_name('AMAZON', 'first_three') == 'AMAZON'
+        assert extract_merchant_name("AMAZON", "first_three") == "AMAZON"
 
     def test_none_returns_unknown(self) -> None:
         """None (not just NaN) is handled by the pd.isna check."""
-        assert extract_merchant_name(None, 'first_word') == 'Unknown'
+        assert extract_merchant_name(None, "first_word") == "Unknown"
 
     def test_integer_input_coerced_to_string(self) -> None:
         """Non-string, non-NaN input (like an int) is coerced to string and split."""
         # str(12345) = "12345" → single "word" → returns "12345"
-        assert extract_merchant_name(12345, 'first_word') == '12345'
+        assert extract_merchant_name(12345, "first_word") == "12345"
 
     def test_leading_trailing_whitespace_ignored(self) -> None:
         """split() ignores leading/trailing whitespace."""
-        assert extract_merchant_name('   AMAZON   ORDER   ', 'first_two') == 'AMAZON ORDER'
+        assert extract_merchant_name("   AMAZON   ORDER   ", "first_two") == "AMAZON ORDER"
 
     def test_multiple_internal_spaces_collapsed_by_split(self) -> None:
         """str.split() collapses runs of whitespace."""
-        assert extract_merchant_name('UBER    *TRIP    NYC', 'first_three') == 'UBER *TRIP NYC'
+        assert extract_merchant_name("UBER    *TRIP    NYC", "first_three") == "UBER *TRIP NYC"
 
     def test_normalized_removes_payment_noise_and_ids(self) -> None:
         assert normalize_merchant_name("POS PURCHASE KROGER #1234 STORE") == "KROGER STORE"
 
 
 class TestEnrichWithMerchant:
-
     def test_adds_merchant_column(self) -> None:
         df = _make_merchant_df()
-        enriched = enrich_with_merchant(df, 'first_word')
-        assert 'Merchant' in enriched.columns
-        assert 'KROGER' in enriched['Merchant'].values
+        enriched = enrich_with_merchant(df, "first_word")
+        assert "Merchant" in enriched.columns
+        assert "KROGER" in enriched["Merchant"].values
 
     def test_does_not_mutate_input(self) -> None:
         df = _make_merchant_df()
-        _ = enrich_with_merchant(df, 'first_word')
-        assert 'Merchant' not in df.columns
+        _ = enrich_with_merchant(df, "first_word")
+        assert "Merchant" not in df.columns
 
     def test_first_two_method(self) -> None:
         df = _make_merchant_df()
-        enriched = enrich_with_merchant(df, 'first_two')
-        assert 'KROGER #1234' in enriched['Merchant'].values
+        enriched = enrich_with_merchant(df, "first_two")
+        assert "KROGER #1234" in enriched["Merchant"].values
 
     def test_aliases_combine_description_variants(self) -> None:
         transactions = pd.DataFrame(
@@ -115,7 +114,6 @@ class TestEnrichWithMerchant:
 
 
 class TestMerchantAliases:
-
     def test_builds_normalized_rules_from_strings_and_lists(self) -> None:
         assert build_merchant_aliases(
             {
@@ -136,10 +134,7 @@ class TestMerchantAliases:
             }
         )
 
-        assert (
-            normalize_merchant_name("AMAZON PRIME MEMBERSHIP", aliases=aliases)
-            == "AMAZON PRIME"
-        )
+        assert normalize_merchant_name("AMAZON PRIME MEMBERSHIP", aliases=aliases) == "AMAZON PRIME"
 
     def test_conflicting_patterns_are_rejected(self) -> None:
         with pytest.raises(ValueError, match="maps to both AMAZON and AWS"):
@@ -160,9 +155,7 @@ class TestMerchantAliases:
             {"Amazon": ["POS PURCHASE"]},
         ],
     )
-    def test_invalid_alias_configuration_is_rejected(
-        self, config: dict[str, object]
-    ) -> None:
+    def test_invalid_alias_configuration_is_rejected(self, config: dict[str, object]) -> None:
         with pytest.raises(ValueError):
             build_merchant_aliases(config)
 
@@ -206,7 +199,6 @@ def _merchant_ledger(*, comparison: bool = False) -> pd.DataFrame:
 
 
 class TestMerchantPeriodAnalysis:
-
     def test_overview_reconciles_refunds_exclusions_and_comparison(self) -> None:
         overview = build_merchant_overview(
             _merchant_ledger(),
@@ -256,15 +248,9 @@ class TestMerchantPeriodAnalysis:
         assert result["Month_Label"].tolist() == ["Jan 2025", "Feb 2025", "Mar 2025"]
 
     def test_breakdowns_reconcile_to_selected_merchant(self) -> None:
-        category = build_merchant_dimension_breakdown(
-            _merchant_ledger(), merchant="MARKET", dimension="Category"
-        )
-        account = build_merchant_dimension_breakdown(
-            _merchant_ledger(), merchant="MARKET", dimension="Account"
-        )
-        descriptions = build_merchant_description_breakdown(
-            _merchant_ledger(), merchant="MARKET"
-        )
+        category = build_merchant_dimension_breakdown(_merchant_ledger(), merchant="MARKET", dimension="Category")
+        account = build_merchant_dimension_breakdown(_merchant_ledger(), merchant="MARKET", dimension="Account")
+        descriptions = build_merchant_description_breakdown(_merchant_ledger(), merchant="MARKET")
 
         assert category.to_dict("records") == [
             {
@@ -283,9 +269,7 @@ class TestMerchantPeriodAnalysis:
 
     def test_invalid_breakdown_dimension_is_rejected(self) -> None:
         with pytest.raises(ValueError, match="Unsupported merchant breakdown"):
-            build_merchant_dimension_breakdown(
-                _merchant_ledger(), merchant="MARKET", dimension="Institution"
-            )
+            build_merchant_dimension_breakdown(_merchant_ledger(), merchant="MARKET", dimension="Institution")
 
     def test_empty_outputs_keep_stable_schemas(self) -> None:
         empty = _merchant_ledger().iloc[0:0]
@@ -302,9 +286,7 @@ class TestMerchantPeriodAnalysis:
             current_months=["2025-01"],
             comparison_months=["2024-01"],
         )
-        breakdown = build_merchant_dimension_breakdown(
-            empty, merchant="MARKET", dimension="Category"
-        )
+        breakdown = build_merchant_dimension_breakdown(empty, merchant="MARKET", dimension="Category")
         descriptions = build_merchant_description_breakdown(empty, merchant="MARKET")
 
         assert overview.columns.tolist() == [

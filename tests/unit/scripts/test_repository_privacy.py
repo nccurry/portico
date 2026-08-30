@@ -23,6 +23,8 @@ def test_discord_webhook_pattern_allows_documentation_placeholder() -> None:
 
 def test_absolute_user_path_pattern_allows_portico_container_user() -> None:
     assert not sensitive_text_patterns()["absolute user path"].search("/home/portico")
+    assert not sensitive_text_patterns()["absolute user path"].search("/home/vscode")
+    assert not sensitive_text_patterns()["absolute user path"].search("/users/$OWNER/packages")
 
 
 def test_absolute_user_path_pattern_rejects_personal_user() -> None:

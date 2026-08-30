@@ -3,6 +3,7 @@
 Math assertions reference closed-form expected values (inlined in comments next
 to each assertion), so each test doubles as executable specification.
 """
+
 import math
 import pandas as pd
 import pytest
@@ -252,6 +253,7 @@ class TestProjectPortfolio:
         assert year_one["Spending"] == 20_000.0
         assert year_one["Balance"] == 90_000.0
 
+
 class TestCalculateAvgMonthlySpending:
     """Verify spending math and filter reuse via apply_transaction_filters."""
 
@@ -308,12 +310,14 @@ class TestCalculateAvgMonthlySpending:
 
     def test_monthly_totals_aggregate_multiple_rows(self) -> None:
         # Two expenses in the same month aggregate to a single row.
-        df = pd.DataFrame({
-            "Date": pd.to_datetime(["2024-01-05", "2024-01-20", "2024-02-10"], utc=True),
-            "Amount": [-100, -250, -500],
-            "Type": ["Expense"] * 3,
-            "Month": ["2024-01", "2024-01", "2024-02"],
-        })
+        df = pd.DataFrame(
+            {
+                "Date": pd.to_datetime(["2024-01-05", "2024-01-20", "2024-02-10"], utc=True),
+                "Amount": [-100, -250, -500],
+                "Type": ["Expense"] * 3,
+                "Month": ["2024-01", "2024-01", "2024-02"],
+            }
+        )
         avg, totals = calculate_avg_monthly_spending(df, "2024-01", "2024-02")
         # Jan = 350, Feb = 500, avg = 425
         assert avg == pytest.approx(425.0)
@@ -356,10 +360,9 @@ class TestRunwaySensitivity:
             "Baseline",
             "+10%",
         }
-        sustainable = sensitivity[
-            sensitivity["Spending_Change"].eq("-10%")
-            & sensitivity["Return_Rate"].eq(5.0)
-        ].iloc[0]
+        sustainable = sensitivity[sensitivity["Spending_Change"].eq("-10%") & sensitivity["Return_Rate"].eq(5.0)].iloc[
+            0
+        ]
         assert sustainable["Runway_Label"] == "Sustainable"
         assert sustainable["Runway_Years"] == 100.0
 
@@ -372,9 +375,7 @@ class TestRunwaySensitivity:
         )
 
         assert set(sensitivity["Return_Rate"]) == {3.0, 5.0, 7.0, 9.0, 11.0}
-        assert sensitivity.loc[
-            sensitivity["Is_Baseline_Return"], "Return_Rate"
-        ].unique().tolist() == [7.0]
+        assert sensitivity.loc[sensitivity["Is_Baseline_Return"], "Return_Rate"].unique().tolist() == [7.0]
 
     def test_zero_baseline_does_not_duplicate_return_scenarios(self) -> None:
         sensitivity = build_runway_sensitivity(

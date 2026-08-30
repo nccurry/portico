@@ -41,14 +41,10 @@ def build_transaction_inventory(
 ) -> pd.DataFrame:
     """Return transactions annotated for filtering and anomaly exploration."""
     inventory = transactions.copy()
-    inventory["Date"] = pd.to_datetime(
-        inventory["Date"], errors="coerce", utc=True
-    )
+    inventory["Date"] = pd.to_datetime(inventory["Date"], errors="coerce", utc=True)
     inventory["Amount"] = pd.to_numeric(inventory["Amount"], errors="coerce")
     inventory = inventory.dropna(subset=["Date", "Amount"])
-    inventory = inventory[
-        inventory["Date"].between(_as_utc(start_date), _as_utc(end_date))
-    ].copy()
+    inventory = inventory[inventory["Date"].between(_as_utc(start_date), _as_utc(end_date))].copy()
 
     if transaction_types:
         inventory = inventory[inventory["Type"].isin(transaction_types)]
@@ -82,14 +78,8 @@ def build_transaction_inventory(
     robust_threshold = mad * 1.4826 * 3.0
     flat_threshold = (median * 0.5).clip(lower=25.0)
     threshold = robust_threshold.where(mad.gt(0), flat_threshold)
-    inventory["Is_Unusual"] = (
-        inventory["Occurrences"].ge(3)
-        & deviation.gt(0)
-        & deviation.ge(threshold)
-    )
-    inventory["Is_Reversal"] = (
-        inventory["Type"].eq("Expense") & inventory["Amount"].gt(0)
-    ) | (
+    inventory["Is_Unusual"] = inventory["Occurrences"].ge(3) & deviation.gt(0) & deviation.ge(threshold)
+    inventory["Is_Reversal"] = (inventory["Type"].eq("Expense") & inventory["Amount"].gt(0)) | (
         inventory["Type"].eq("Income") & inventory["Amount"].lt(0)
     )
 
@@ -114,11 +104,15 @@ def build_transaction_inventory(
         ]
         matches = pd.Series(False, index=inventory.index)
         for column in searchable:
-            matches |= inventory[column].astype(str).str.contains(
-                query,
-                case=False,
-                na=False,
-                regex=False,
+            matches |= (
+                inventory[column]
+                .astype(str)
+                .str.contains(
+                    query,
+                    case=False,
+                    na=False,
+                    regex=False,
+                )
             )
         inventory = inventory[matches].copy()
 
@@ -210,7 +204,11 @@ def build_transaction_breakdown(
     grouped["Entity"] = grouped["Entity"].fillna("Unspecified").astype(str)
     total = float(grouped["Magnitude"].sum())
     grouped["Share"] = grouped["Magnitude"].div(total).mul(100) if total else 0.0
-    return grouped[columns].sort_values(
-        ["Magnitude", "Entity"],
-        ascending=[False, True],
-    ).reset_index(drop=True)
+    return (
+        grouped[columns]
+        .sort_values(
+            ["Magnitude", "Entity"],
+            ascending=[False, True],
+        )
+        .reset_index(drop=True)
+    )

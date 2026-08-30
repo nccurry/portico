@@ -1,4 +1,5 @@
 """Spreadsheet object factory fixtures."""
+
 from unittest.mock import patch
 
 import pandas as pd
@@ -13,6 +14,7 @@ from tests.custom_types import (
 
 # 9. make_transactions_spreadsheet  (factory fixture)
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def make_transactions_spreadsheet(
@@ -34,8 +36,7 @@ def make_transactions_spreadsheet(
             df = scrubbed_transactions_df
 
         with patch.object(Spreadsheet, "load", lambda self: None):
-            with patch.object(TransactionsSpreadsheet, "scrub",
-                              lambda self: setattr(self, "scrubbed_df", df)):
+            with patch.object(TransactionsSpreadsheet, "scrub", lambda self: setattr(self, "scrubbed_df", df)):
                 return TransactionsSpreadsheet()
 
     return _factory
@@ -44,6 +45,7 @@ def make_transactions_spreadsheet(
 # ---------------------------------------------------------------------------
 # 10. make_balance_spreadsheet  (factory fixture)
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def make_balance_spreadsheet(
@@ -65,8 +67,7 @@ def make_balance_spreadsheet(
             df = scrubbed_balance_df
 
         with patch.object(Spreadsheet, "load", lambda self: None):
-            with patch.object(BalanceHistorySpreadsheet, "scrub",
-                              lambda self: setattr(self, "scrubbed_df", df)):
+            with patch.object(BalanceHistorySpreadsheet, "scrub", lambda self: setattr(self, "scrubbed_df", df)):
                 return BalanceHistorySpreadsheet()
 
     return _factory
@@ -76,6 +77,7 @@ def make_balance_spreadsheet(
 
 # 12. make_categories_spreadsheet  (factory fixture)
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def make_categories_spreadsheet(
@@ -98,9 +100,7 @@ def make_categories_spreadsheet(
             if budget_df is not None:
                 self.budget_df = budget_df
             else:
-                self.budget_df = pd.DataFrame(
-                    columns=["Category", "Month", "Budget", "Group", "Type"]
-                )
+                self.budget_df = pd.DataFrame(columns=["Category", "Month", "Budget", "Group", "Type"])
 
         with patch.object(Spreadsheet, "load", lambda self: None):
             with patch.object(CategoriesSpreadsheet, "scrub", _scrub):

@@ -2,6 +2,7 @@
 
 Consolidated from individual test modules to enforce typing via ruff ANN rules.
 """
+
 from datetime import date, datetime
 from typing import cast
 
@@ -51,74 +52,85 @@ def _balance_df(rows: list[DataFrameRow]) -> pd.DataFrame:
 def _make_df(rows: list[DataFrameRow]) -> pd.DataFrame:
     """Build a transaction DataFrame from a list of dicts with sensible defaults."""
     defaults: DataFrameRow = {
-        'Type': 'Expense',
-        'Category': 'Groceries',
-        'Group': 'Food',
-        'Account': 'Checking',
-        'Month': '2024-01',
-        'Full Description': 'STORE PURCHASE',
-        'Institution': 'Bank',
-        'Account #': '1234',
+        "Type": "Expense",
+        "Category": "Groceries",
+        "Group": "Food",
+        "Account": "Checking",
+        "Month": "2024-01",
+        "Full Description": "STORE PURCHASE",
+        "Institution": "Bank",
+        "Account #": "1234",
     }
     for row in rows:
         for k, v in defaults.items():
             row.setdefault(k, v)
-        row['Date'] = pd.Timestamp(
-            cast(str | float | date | datetime, row['Date']),
-            tz='UTC',
+        row["Date"] = pd.Timestamp(
+            cast(str | float | date | datetime, row["Date"]),
+            tz="UTC",
         )
     return pd.DataFrame(rows)
 
 
 def _make_merchant_df() -> pd.DataFrame:
     """Build a transaction DataFrame with multiple merchants and types."""
-    return pd.DataFrame({
-        'Date': pd.to_datetime([
-            '2024-01-05', '2024-01-10', '2024-01-15',
-            '2024-01-20', '2024-02-01', '2024-02-10',
-            '2024-03-01',
-        ], utc=True),
-        'Amount': [3000, -50, -75, -200, -60, -80, -30],
-        'Type': ['Income', 'Expense', 'Expense', 'Expense', 'Expense', 'Expense', 'Expense'],
-        'Category': ['Salary', 'Groceries', 'Groceries', 'Dining', 'Groceries', 'Dining', 'Coffee'],
-        'Group': ['Income', 'Food', 'Food', 'Food', 'Food', 'Food', 'Food'],
-        'Account': ['Checking'] * 7,
-        'Month': ['2024-01', '2024-01', '2024-01', '2024-01', '2024-02', '2024-02', '2024-03'],
-        'Full Description': [
-            'EMPLOYER PAYROLL',
-            'KROGER #1234 STORE',
-            'KROGER #5678 STORE',
-            'CHIPOTLE RESTAURANT',
-            'KROGER #1234 STORE',
-            'CHIPOTLE RESTAURANT',
-            'STARBUCKS COFFEE',
-        ],
-        'Institution': ['Bank'] * 7,
-        'Account #': ['1234'] * 7,
-    })
+    return pd.DataFrame(
+        {
+            "Date": pd.to_datetime(
+                [
+                    "2024-01-05",
+                    "2024-01-10",
+                    "2024-01-15",
+                    "2024-01-20",
+                    "2024-02-01",
+                    "2024-02-10",
+                    "2024-03-01",
+                ],
+                utc=True,
+            ),
+            "Amount": [3000, -50, -75, -200, -60, -80, -30],
+            "Type": ["Income", "Expense", "Expense", "Expense", "Expense", "Expense", "Expense"],
+            "Category": ["Salary", "Groceries", "Groceries", "Dining", "Groceries", "Dining", "Coffee"],
+            "Group": ["Income", "Food", "Food", "Food", "Food", "Food", "Food"],
+            "Account": ["Checking"] * 7,
+            "Month": ["2024-01", "2024-01", "2024-01", "2024-01", "2024-02", "2024-02", "2024-03"],
+            "Full Description": [
+                "EMPLOYER PAYROLL",
+                "KROGER #1234 STORE",
+                "KROGER #5678 STORE",
+                "CHIPOTLE RESTAURANT",
+                "KROGER #1234 STORE",
+                "CHIPOTLE RESTAURANT",
+                "STARBUCKS COFFEE",
+            ],
+            "Institution": ["Bank"] * 7,
+            "Account #": ["1234"] * 7,
+        }
+    )
 
 
 def _make_recurring_df(
-    merchant: str = 'NETFLIX MONTHLY',
+    merchant: str = "NETFLIX MONTHLY",
     amount: float = -15.99,
-    category: str = 'Entertainment',
-    start: str = '2024-01-15',
+    category: str = "Entertainment",
+    start: str = "2024-01-15",
     months: int = 6,
 ) -> pd.DataFrame:
     """Build a DataFrame with monthly recurring charges for a single merchant."""
-    dates = pd.date_range(start=start, periods=months, freq='MS', tz='UTC') + pd.Timedelta(days=14)
-    return pd.DataFrame({
-        'Date': dates,
-        'Amount': [amount] * months,
-        'Type': ['Expense'] * months,
-        'Category': [category] * months,
-        'Group': ['Entertainment'] * months,
-        'Account': ['Checking'] * months,
-        'Month': [d.strftime('%Y-%m') for d in dates],
-        'Full Description': [merchant] * months,
-        'Institution': ['Bank'] * months,
-        'Account #': ['1234'] * months,
-    })
+    dates = pd.date_range(start=start, periods=months, freq="MS", tz="UTC") + pd.Timedelta(days=14)
+    return pd.DataFrame(
+        {
+            "Date": dates,
+            "Amount": [amount] * months,
+            "Type": ["Expense"] * months,
+            "Category": [category] * months,
+            "Group": ["Entertainment"] * months,
+            "Account": ["Checking"] * months,
+            "Month": [d.strftime("%Y-%m") for d in dates],
+            "Full Description": [merchant] * months,
+            "Institution": ["Bank"] * months,
+            "Account #": ["1234"] * months,
+        }
+    )
 
 
 def _make_row(
@@ -152,4 +164,3 @@ def _make_row(
 def _df_from_rows(*rows: DataFrameRow) -> pd.DataFrame:
     """Build a DataFrame from individual row dicts."""
     return pd.DataFrame(list(rows))
-

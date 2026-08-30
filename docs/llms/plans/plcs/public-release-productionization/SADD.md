@@ -144,7 +144,7 @@ Keep Task as the public command index:
 | `task container:build` | Build the local production image without secrets. |
 | `task container:demo` | Run demo mode from the image and publish only to host loopback. |
 | `task container:run` | Run live mode with read-only secrets and a writable state mount. |
-| `task release:check` | Run the bounded release gate without prompts. |
+| Atomic lint, test, coverage, privacy, docs, demo-build, and container tasks | Give local development and release automation the same non-interactive building blocks. |
 
 Commands that mutate local files must fail instead of overwriting. No public command should require an interactive prompt in CI.
 

@@ -2,16 +2,22 @@
 version: '3'
 
 vars:
-  VENV: .venv
+  VENV: '{{default ".venv" .PORTICO_VENV}}'
   PYTHON: '{{if eq OS "windows"}}{{.VENV}}/Scripts/python.exe{{else}}{{.VENV}}/bin/python{{end}}'
-  UV: '{{if eq OS "windows"}}.tools/bin/uv.exe{{else}}.tools/bin/uv{{end}}'
-  TASK: '{{if eq OS "windows"}}.tools/bin/task.exe{{else}}.tools/bin/task{{end}}'
+  LOCAL_UV: '{{if eq OS "windows"}}.tools/bin/uv.exe{{else}}.tools/bin/uv{{end}}'
+  LOCAL_TASK: '{{if eq OS "windows"}}.tools/bin/task.exe{{else}}.tools/bin/task{{end}}'
+  UV: '{{default .LOCAL_UV .PORTICO_UV}}'
+  TASK: '{{default .LOCAL_TASK .PORTICO_TASK}}'
+  COVERAGE_DIR: '{{default ".coverage-data" .COVERAGE_DIR}}'
   LINT_PATHS: src/ pages/ tests/ scripts/ Home.py
   ADDRESS: '{{default "127.0.0.1" .ADDRESS}}'
   PORT: '{{default "8501" .PORT}}'
   PERIOD_END: '{{default "" .PERIOD_END}}'
   FORCE: '{{default "false" .FORCE}}'
   OUTPUT: '{{default "text" .OUTPUT}}'
+
+env:
+  UV_PROJECT_ENVIRONMENT: '{{.VENV}}'
 
 tasks:
   # ========================================
@@ -22,6 +28,16 @@ tasks:
     desc: "Set up the development environment"
     cmds:
       - task: deps:install
+
+  dev:sync:
+    desc: "Synchronize the locked development environment"
+    cmds:
+      - task: deps:sync
+
+  dev:verify:
+    desc: "Verify the development toolchain and imports"
+    cmds:
+      - task: setup:verify
 
   deps:
     desc: "Report project dependency status"
@@ -103,7 +119,17 @@ tasks:
     desc: "Check dependency metadata and package updates"
     aliases: [pkg:check]
     cmds:
+      - task: deps:check-lock
+      - task: deps:outdated
+
+  deps:check-lock:
+    desc: "Check that uv.lock matches pyproject.toml"
+    cmds:
       - '{{.UV}} lock --check'
+
+  deps:outdated:
+    desc: "List outdated project dependencies"
+    cmds:
       - '{{.UV}} pip list --outdated --python {{.PYTHON}}'
 
   deps:update:
@@ -134,7 +160,8 @@ tasks:
   test:
     desc: "Run all tests"
     cmds:
-      - '{{.UV}} run --locked --dev pytest'
+      - task: test:unit
+      - task: test:integration
 
   test:unit:
     desc: "Run unit tests"
@@ -162,38 +189,89 @@ tasks:
       - '{{.UV}} run --locked --dev pytest -k "{{.CLI_ARGS}}" -v'
 
   test:coverage:
-    desc: "Run tests with coverage report"
+    desc: "Run all tests and record coverage"
     cmds:
-      - '{{.UV}} run --locked --dev pytest --cov=src --cov=pages --cov-branch --cov-report=term-missing --cov-fail-under=80'
+      - '{{.UV}} run --locked --dev pytest --cov=src --cov=pages --cov-branch --cov-report='
 
-  test:coverage:src:
-    desc: "Run tests with src/ coverage gate (>=90%)"
+  test:unit:coverage:
+    desc: "Run unit tests and write parallel coverage data"
     cmds:
-      - '{{.UV}} run --locked --dev pytest --cov=src --cov-branch --cov-report=term-missing --cov-fail-under=90'
+      - '{{.UV}} run --locked --dev coverage run --branch --parallel-mode --source=src,pages -m pytest tests/unit'
+
+  test:integration:coverage:
+    desc: "Run integration tests and write parallel coverage data"
+    cmds:
+      - '{{.UV}} run --locked --dev coverage run --branch --parallel-mode --source=src,pages -m pytest tests/integration'
+
+  coverage:combine:
+    desc: "Combine unit and integration coverage data"
+    cmds:
+      - '{{.UV}} run --locked --dev coverage combine {{.COVERAGE_DIR}}/unit {{.COVERAGE_DIR}}/integration'
+
+  coverage:check-src:
+    desc: "Enforce at least 90% src coverage"
+    cmds:
+      - '{{.UV}} run --locked --dev coverage report --include="src/*" --show-missing --fail-under=90'
+
+  coverage:check-total:
+    desc: "Enforce at least 80% combined src and pages coverage"
+    cmds:
+      - '{{.UV}} run --locked --dev coverage report --show-missing --fail-under=80'
+
+  coverage:summary:
+    desc: "Print the combined coverage summary"
+    cmds:
+      - '{{.UV}} run --locked --dev coverage report --show-missing'
+
+  coverage:html:
+    desc: "Build the HTML coverage report"
+    cmds:
+      - '{{.UV}} run --locked --dev coverage html --directory build/coverage'
+
+  coverage:xml:
+    desc: "Build the XML coverage report"
+    cmds:
+      - '{{.UV}} run --locked --dev coverage xml -o build/coverage.xml'
 
   # ========================================
   # Linting
   # ========================================
 
   lint:
-    desc: "Run ruff and mypy"
+    desc: "Run all static checks"
     cmds:
       - task: lint:shell
-      - '{{.UV}} run --locked --dev ruff check {{.LINT_PATHS}}'
-      - '{{.UV}} run --locked --dev mypy'
+      - task: lint:python
+      - task: lint:format
+      - task: lint:types
 
   lint:shell:
-    internal: true
+    desc: "Check shell script syntax"
     platforms: [linux, darwin]
     cmds:
-      - sh -n scripts/bootstrap.sh scripts/install-python-toolchain.sh
+      - sh -n .devcontainer/install-tools.sh scripts/bootstrap.sh scripts/install-python-toolchain.sh
+
+  lint:python:
+    desc: "Run Ruff lint checks"
+    cmds:
+      - '{{.UV}} run --locked --dev ruff check {{.LINT_PATHS}}'
+
+  lint:format:
+    desc: "Check Python formatting"
+    cmds:
+      - '{{.UV}} run --locked --dev ruff format --check {{.LINT_PATHS}}'
+
+  lint:types:
+    desc: "Run mypy"
+    cmds:
+      - '{{.UV}} run --locked --dev mypy'
 
   format:
-    desc: "Apply safe lint fixes, then run mypy"
+    desc: "Apply safe Python lint and formatting fixes"
     aliases: [lint:fix]
     cmds:
       - '{{.UV}} run --locked --dev ruff check --fix {{.LINT_PATHS}}'
-      - '{{.UV}} run --locked --dev mypy'
+      - '{{.UV}} run --locked --dev ruff format {{.LINT_PATHS}}'
 
   # ========================================
   # All Checks
@@ -202,7 +280,6 @@ tasks:
   check:
     desc: "Run lint and tests"
     cmds:
-      - task: privacy:check
       - task: lint
       - task: test
 
@@ -210,6 +287,11 @@ tasks:
     desc: "Check repository files for private data"
     cmds:
       - '{{.UV}} run --locked --dev python scripts/check_repository_privacy.py'
+
+  docs:check:
+    desc: "Validate documentation, assets, and standalone uv scripts"
+    cmds:
+      - '{{.UV}} run --locked --dev python scripts/check_docs.py'
 
   config:init:
     desc: "Create an ignored local configuration file"
@@ -249,6 +331,11 @@ tasks:
     desc: "Build the local Linux container image"
     cmds:
       - docker build --tag portico:local .
+
+  container:smoke:
+    desc: "Build and health-test the demo container"
+    cmds:
+      - '{{.UV}} run --locked --dev python scripts/smoke_container.py {{.CLI_ARGS}}'
 
   container:demo:
     desc: "Build and run the demo container on localhost"

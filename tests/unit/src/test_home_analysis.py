@@ -17,12 +17,42 @@ from tests._helpers import _balance_df
 
 
 def test_net_worth_history_signs_and_carries_each_account_forward() -> None:
-    balances = _balance_df([
-        {"Date": "2024-01-01", "Account": "Checking", "Account ID": "asset", "Balance": 100, "Class": "Asset", "Group": "Cash"},
-        {"Date": "2024-01-10", "Account": "Checking", "Account ID": "asset", "Balance": 120, "Class": "Asset", "Group": "Cash"},
-        {"Date": "2024-01-01", "Account": "Card", "Account ID": "debt", "Balance": 50, "Class": "Liability", "Group": "Credit"},
-        {"Date": "2024-01-18", "Account": "Card", "Account ID": "debt", "Balance": 40, "Class": "Liability", "Group": "Credit"},
-    ])
+    balances = _balance_df(
+        [
+            {
+                "Date": "2024-01-01",
+                "Account": "Checking",
+                "Account ID": "asset",
+                "Balance": 100,
+                "Class": "Asset",
+                "Group": "Cash",
+            },
+            {
+                "Date": "2024-01-10",
+                "Account": "Checking",
+                "Account ID": "asset",
+                "Balance": 120,
+                "Class": "Asset",
+                "Group": "Cash",
+            },
+            {
+                "Date": "2024-01-01",
+                "Account": "Card",
+                "Account ID": "debt",
+                "Balance": 50,
+                "Class": "Liability",
+                "Group": "Credit",
+            },
+            {
+                "Date": "2024-01-18",
+                "Account": "Card",
+                "Account ID": "debt",
+                "Balance": 40,
+                "Class": "Liability",
+                "Group": "Credit",
+            },
+        ]
+    )
 
     history = build_net_worth_history(
         balances,
@@ -31,19 +61,44 @@ def test_net_worth_history_signs_and_carries_each_account_forward() -> None:
     )
 
     assert list(history.columns) == NET_WORTH_COLUMNS
-    assert history["Date"].tolist() == list(pd.to_datetime([
-        "2024-01-01", "2024-01-07", "2024-01-14", "2024-01-21", "2024-01-22",
-    ], utc=True))
+    assert history["Date"].tolist() == list(
+        pd.to_datetime(
+            [
+                "2024-01-01",
+                "2024-01-07",
+                "2024-01-14",
+                "2024-01-21",
+                "2024-01-22",
+            ],
+            utc=True,
+        )
+    )
     assert history["Assets"].tolist() == pytest.approx([100, 100, 120, 120, 120])
     assert history["Liabilities"].tolist() == pytest.approx([-50, -50, -50, -40, -40])
     assert history["Net_Worth"].tolist() == pytest.approx([50, 50, 70, 80, 80])
 
 
 def test_net_worth_history_does_not_backfill_a_new_account() -> None:
-    balances = _balance_df([
-        {"Date": "2024-01-01", "Account": "Checking", "Account ID": "existing", "Balance": 100, "Class": "Asset", "Group": "Cash"},
-        {"Date": "2024-01-16", "Account": "Savings", "Account ID": "new", "Balance": 25, "Class": "Asset", "Group": "Cash"},
-    ])
+    balances = _balance_df(
+        [
+            {
+                "Date": "2024-01-01",
+                "Account": "Checking",
+                "Account ID": "existing",
+                "Balance": 100,
+                "Class": "Asset",
+                "Group": "Cash",
+            },
+            {
+                "Date": "2024-01-16",
+                "Account": "Savings",
+                "Account ID": "new",
+                "Balance": 25,
+                "Class": "Asset",
+                "Group": "Cash",
+            },
+        ]
+    )
 
     history = build_net_worth_history(
         balances,
@@ -55,10 +110,26 @@ def test_net_worth_history_does_not_backfill_a_new_account() -> None:
 
 
 def test_net_worth_history_clips_a_pre_history_start() -> None:
-    balances = _balance_df([
-        {"Date": "2024-01-10", "Account": "Checking", "Account ID": "asset", "Balance": 100, "Class": "Asset", "Group": "Cash"},
-        {"Date": "2024-01-20", "Account": "Checking", "Account ID": "asset", "Balance": 120, "Class": "Asset", "Group": "Cash"},
-    ])
+    balances = _balance_df(
+        [
+            {
+                "Date": "2024-01-10",
+                "Account": "Checking",
+                "Account ID": "asset",
+                "Balance": 100,
+                "Class": "Asset",
+                "Group": "Cash",
+            },
+            {
+                "Date": "2024-01-20",
+                "Account": "Checking",
+                "Account ID": "asset",
+                "Balance": 120,
+                "Class": "Asset",
+                "Group": "Cash",
+            },
+        ]
+    )
 
     history = build_net_worth_history(
         balances,
@@ -66,26 +137,106 @@ def test_net_worth_history_clips_a_pre_history_start() -> None:
         pd.Timestamp("2024-01-22", tz="UTC"),
     )
 
-    assert history["Date"].tolist() == list(pd.to_datetime([
-        "2024-01-10", "2024-01-14", "2024-01-21", "2024-01-22",
-    ], utc=True))
+    assert history["Date"].tolist() == list(
+        pd.to_datetime(
+            [
+                "2024-01-10",
+                "2024-01-14",
+                "2024-01-21",
+                "2024-01-22",
+            ],
+            utc=True,
+        )
+    )
     assert history["Assets"].tolist() == pytest.approx([100, 100, 120, 120])
     assert (history["Net_Worth"] != 0).all()
 
 
 def test_balance_group_inventory_signs_changes_and_mixed_groups() -> None:
-    balances = _balance_df([
-        {"Date": "2024-01-01", "Account": "Checking", "Account ID": "cash", "Balance": 100, "Class": "Asset", "Group": "Cash"},
-        {"Date": "2024-01-20", "Account": "Checking", "Account ID": "cash", "Balance": 150, "Class": "Asset", "Group": "Cash"},
-        {"Date": "2024-01-01", "Account": "Card", "Account ID": "card", "Balance": 200, "Class": "Liability", "Group": "Credit"},
-        {"Date": "2024-01-20", "Account": "Card", "Account ID": "card", "Balance": 150, "Class": "Liability", "Group": "Credit"},
-        {"Date": "2024-01-01", "Account": "Brokerage", "Account ID": "brokerage", "Balance": 500, "Class": "Asset", "Group": "Investing"},
-        {"Date": "2024-01-20", "Account": "Brokerage", "Account ID": "brokerage", "Balance": 600, "Class": "Asset", "Group": "Investing"},
-        {"Date": "2024-01-01", "Account": "Margin", "Account ID": "margin", "Balance": 200, "Class": "Liability", "Group": "Investing"},
-        {"Date": "2024-01-20", "Account": "Margin", "Account ID": "margin", "Balance": 250, "Class": "Liability", "Group": "Investing"},
-        {"Date": "2024-01-20", "Account": "New", "Account ID": "new", "Balance": 75, "Class": "Asset", "Group": "New assets"},
-        {"Date": "2024-01-20", "Account": "Ignored", "Account ID": "blank", "Balance": 1, "Class": "Asset", "Group": ""},
-    ])
+    balances = _balance_df(
+        [
+            {
+                "Date": "2024-01-01",
+                "Account": "Checking",
+                "Account ID": "cash",
+                "Balance": 100,
+                "Class": "Asset",
+                "Group": "Cash",
+            },
+            {
+                "Date": "2024-01-20",
+                "Account": "Checking",
+                "Account ID": "cash",
+                "Balance": 150,
+                "Class": "Asset",
+                "Group": "Cash",
+            },
+            {
+                "Date": "2024-01-01",
+                "Account": "Card",
+                "Account ID": "card",
+                "Balance": 200,
+                "Class": "Liability",
+                "Group": "Credit",
+            },
+            {
+                "Date": "2024-01-20",
+                "Account": "Card",
+                "Account ID": "card",
+                "Balance": 150,
+                "Class": "Liability",
+                "Group": "Credit",
+            },
+            {
+                "Date": "2024-01-01",
+                "Account": "Brokerage",
+                "Account ID": "brokerage",
+                "Balance": 500,
+                "Class": "Asset",
+                "Group": "Investing",
+            },
+            {
+                "Date": "2024-01-20",
+                "Account": "Brokerage",
+                "Account ID": "brokerage",
+                "Balance": 600,
+                "Class": "Asset",
+                "Group": "Investing",
+            },
+            {
+                "Date": "2024-01-01",
+                "Account": "Margin",
+                "Account ID": "margin",
+                "Balance": 200,
+                "Class": "Liability",
+                "Group": "Investing",
+            },
+            {
+                "Date": "2024-01-20",
+                "Account": "Margin",
+                "Account ID": "margin",
+                "Balance": 250,
+                "Class": "Liability",
+                "Group": "Investing",
+            },
+            {
+                "Date": "2024-01-20",
+                "Account": "New",
+                "Account ID": "new",
+                "Balance": 75,
+                "Class": "Asset",
+                "Group": "New assets",
+            },
+            {
+                "Date": "2024-01-20",
+                "Account": "Ignored",
+                "Account ID": "blank",
+                "Balance": 1,
+                "Class": "Asset",
+                "Group": "",
+            },
+        ]
+    )
 
     inventory = build_balance_group_inventory(
         balances,
@@ -118,11 +269,34 @@ def test_balance_group_inventory_signs_changes_and_mixed_groups() -> None:
 
 
 def test_group_inventory_uses_first_observation_as_pre_history_baseline() -> None:
-    balances = _balance_df([
-        {"Date": "2024-01-10", "Account": "Checking", "Account ID": "existing", "Balance": 100, "Class": "Asset", "Group": "Cash"},
-        {"Date": "2024-01-20", "Account": "Checking", "Account ID": "existing", "Balance": 120, "Class": "Asset", "Group": "Cash"},
-        {"Date": "2024-01-20", "Account": "Savings", "Account ID": "new", "Balance": 25, "Class": "Asset", "Group": "Cash"},
-    ])
+    balances = _balance_df(
+        [
+            {
+                "Date": "2024-01-10",
+                "Account": "Checking",
+                "Account ID": "existing",
+                "Balance": 100,
+                "Class": "Asset",
+                "Group": "Cash",
+            },
+            {
+                "Date": "2024-01-20",
+                "Account": "Checking",
+                "Account ID": "existing",
+                "Balance": 120,
+                "Class": "Asset",
+                "Group": "Cash",
+            },
+            {
+                "Date": "2024-01-20",
+                "Account": "Savings",
+                "Account ID": "new",
+                "Balance": 25,
+                "Class": "Asset",
+                "Group": "Cash",
+            },
+        ]
+    )
 
     inventory = build_balance_group_inventory(
         balances,
@@ -136,24 +310,26 @@ def test_group_inventory_uses_first_observation_as_pre_history_baseline() -> Non
 
 
 def test_group_inventory_uses_current_group_for_opening_balance_and_trend() -> None:
-    balances = _balance_df([
-        {
-            "Date": "2024-01-01",
-            "Account": "Brokerage",
-            "Account ID": "brokerage",
-            "Balance": 100,
-            "Class": "Asset",
-            "Group": "Cash",
-        },
-        {
-            "Date": "2024-01-20",
-            "Account": "Brokerage",
-            "Account ID": "brokerage",
-            "Balance": 120,
-            "Class": "Asset",
-            "Group": "Investments",
-        },
-    ])
+    balances = _balance_df(
+        [
+            {
+                "Date": "2024-01-01",
+                "Account": "Brokerage",
+                "Account ID": "brokerage",
+                "Balance": 100,
+                "Class": "Asset",
+                "Group": "Cash",
+            },
+            {
+                "Date": "2024-01-20",
+                "Account": "Brokerage",
+                "Account ID": "brokerage",
+                "Balance": 120,
+                "Class": "Asset",
+                "Group": "Investments",
+            },
+        ]
+    )
 
     groups = build_balance_group_inventory(
         balances,
@@ -171,30 +347,30 @@ def test_group_inventory_uses_current_group_for_opening_balance_and_trend() -> N
     trend = cast(list[float], groups.loc["Investments", "Trend"])
     assert trend[0] == pytest.approx(100)
     assert trend[-1] == pytest.approx(120)
-    assert accounts["Period_Change"].sum() == pytest.approx(
-        groups.loc["Investments", "Period_Change"]
-    )
+    assert accounts["Period_Change"].sum() == pytest.approx(groups.loc["Investments", "Period_Change"])
 
 
 def test_balance_analysis_preserves_credit_and_overdraft_signs() -> None:
-    balances = _balance_df([
-        {
-            "Date": "2024-01-01",
-            "Account": "Overdrawn checking",
-            "Account ID": "overdraft",
-            "Balance": -25,
-            "Class": "Asset",
-            "Group": "Cash",
-        },
-        {
-            "Date": "2024-01-01",
-            "Account": "Card credit",
-            "Account ID": "credit",
-            "Balance": -10,
-            "Class": "Liability",
-            "Group": "Credit",
-        },
-    ])
+    balances = _balance_df(
+        [
+            {
+                "Date": "2024-01-01",
+                "Account": "Overdrawn checking",
+                "Account ID": "overdraft",
+                "Balance": -25,
+                "Class": "Asset",
+                "Group": "Cash",
+            },
+            {
+                "Date": "2024-01-01",
+                "Account": "Card credit",
+                "Account ID": "credit",
+                "Balance": -10,
+                "Class": "Liability",
+                "Group": "Credit",
+            },
+        ]
+    )
 
     history = build_net_worth_history(
         balances,
@@ -229,15 +405,87 @@ def test_balance_analysis_empty_inputs_have_stable_schemas() -> None:
 
 
 def test_account_inventory_calculates_asset_liability_and_new_account_changes() -> None:
-    balances = _balance_df([
-        {"Date": "2024-01-01", "Time": "2024-01-01 09:00", "Account": "Checking", "Account ID": "cash", "Institution": "Bank", "Type": "Depository", "Balance": 100, "Class": "Asset", "Group": "Cash"},
-        {"Date": "2024-01-20", "Time": "2024-01-20 08:00", "Account": "Checking", "Account ID": "cash", "Institution": "Bank", "Type": "Depository", "Balance": 100, "Class": "Asset", "Group": "Cash"},
-        {"Date": "2024-01-20", "Time": "2024-01-20 09:00", "Account": "Checking", "Account ID": "cash", "Institution": "Bank", "Type": "Depository", "Balance": 125, "Class": "Asset", "Group": "Cash"},
-        {"Date": "2024-01-01", "Time": "2024-01-01 09:00", "Account": "Card", "Account ID": "card", "Institution": "Issuer", "Type": "Credit", "Balance": 100, "Class": "Liability", "Group": "Credit"},
-        {"Date": "2024-01-19", "Time": "2024-01-19 09:00", "Account": "Card", "Account ID": "card", "Institution": "Issuer", "Type": "Credit", "Balance": 80, "Class": "Liability", "Group": "Credit"},
-        {"Date": "2024-01-15", "Time": "2024-01-15 09:00", "Account": "New savings", "Account ID": "new", "Institution": "Bank", "Type": "Depository", "Balance": 50, "Class": "Asset", "Group": "Cash"},
-        {"Date": "2024-01-19", "Time": "2024-01-19 09:00", "Account": "Ignored", "Account ID": "blank", "Institution": "Bank", "Type": "Depository", "Balance": 10, "Class": "Asset", "Group": ""},
-    ])
+    balances = _balance_df(
+        [
+            {
+                "Date": "2024-01-01",
+                "Time": "2024-01-01 09:00",
+                "Account": "Checking",
+                "Account ID": "cash",
+                "Institution": "Bank",
+                "Type": "Depository",
+                "Balance": 100,
+                "Class": "Asset",
+                "Group": "Cash",
+            },
+            {
+                "Date": "2024-01-20",
+                "Time": "2024-01-20 08:00",
+                "Account": "Checking",
+                "Account ID": "cash",
+                "Institution": "Bank",
+                "Type": "Depository",
+                "Balance": 100,
+                "Class": "Asset",
+                "Group": "Cash",
+            },
+            {
+                "Date": "2024-01-20",
+                "Time": "2024-01-20 09:00",
+                "Account": "Checking",
+                "Account ID": "cash",
+                "Institution": "Bank",
+                "Type": "Depository",
+                "Balance": 125,
+                "Class": "Asset",
+                "Group": "Cash",
+            },
+            {
+                "Date": "2024-01-01",
+                "Time": "2024-01-01 09:00",
+                "Account": "Card",
+                "Account ID": "card",
+                "Institution": "Issuer",
+                "Type": "Credit",
+                "Balance": 100,
+                "Class": "Liability",
+                "Group": "Credit",
+            },
+            {
+                "Date": "2024-01-19",
+                "Time": "2024-01-19 09:00",
+                "Account": "Card",
+                "Account ID": "card",
+                "Institution": "Issuer",
+                "Type": "Credit",
+                "Balance": 80,
+                "Class": "Liability",
+                "Group": "Credit",
+            },
+            {
+                "Date": "2024-01-15",
+                "Time": "2024-01-15 09:00",
+                "Account": "New savings",
+                "Account ID": "new",
+                "Institution": "Bank",
+                "Type": "Depository",
+                "Balance": 50,
+                "Class": "Asset",
+                "Group": "Cash",
+            },
+            {
+                "Date": "2024-01-19",
+                "Time": "2024-01-19 09:00",
+                "Account": "Ignored",
+                "Account ID": "blank",
+                "Institution": "Bank",
+                "Type": "Depository",
+                "Balance": 10,
+                "Class": "Asset",
+                "Group": "",
+            },
+        ]
+    )
 
     inventory = build_account_inventory(
         balances,

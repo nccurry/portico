@@ -1,3 +1,8 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.14.6,<3.15"
+# dependencies = []
+# ///
 """Reject private data in files that can be committed to the repository."""
 
 from __future__ import annotations
@@ -11,9 +16,7 @@ from pathlib import Path
 
 def repository_files() -> list[Path]:
     """Return tracked and untracked files, excluding ignored local files."""
-    output = subprocess.check_output(
-        ["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"]
-    )
+    output = subprocess.check_output(["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"])
     return [Path(item.decode()) for item in output.split(b"\0") if item]
 
 
@@ -50,10 +53,10 @@ def sensitive_text_patterns() -> dict[str, re.Pattern[str]]:
     """Return patterns for private text that must not be committed."""
     unix_home = "/" + "home" + "/"
     mac_home = "/" + "Users" + "/"
-    placeholder_user = r"(?!(?:example|portico|tester|tiller|user)(?:[/\s\"']|$))"
+    placeholder_user = r"(?!(?:example|portico|tester|tiller|user|vscode)(?:[/\s\"']|$))"
     return {
         "absolute user path": re.compile(
-            r"(?i)(?:[A-Z]:[\\/]Users[\\/][^\\/\s]+|"
+            r"(?:(?i:[A-Z]:[\\/]Users[\\/])[^\\/\s]+|"
             + re.escape(unix_home)
             + placeholder_user
             + r"[^/\s]+|"
@@ -71,17 +74,13 @@ def sensitive_text_patterns() -> dict[str, re.Pattern[str]]:
             r"|sk-" + r"[A-Za-z0-9_-]{20,}|xox[baprs]-[A-Za-z0-9-]{10,}"
             r"|AKIA[0-9A-Z]{16})\b"
         ),
-        "Discord webhook token": re.compile(
-            r"(?i)discord(?:app)?\.com/api/webhooks/[0-9]{5,}/[A-Za-z0-9._-]{20,}"
-        ),
+        "Discord webhook token": re.compile(r"(?i)discord(?:app)?\.com/api/webhooks/[0-9]{5,}/[A-Za-z0-9._-]{20,}"),
         "Google Sheet document ID": re.compile(
             "docs.google.com/"
             + r"spreadsheets/d/[A-Za-z0-9_-]{20,}"
             + r"|SPREADSHEET_ID\s*=\s*[\"']?[A-Za-z0-9_-]{20,}"
         ),
-        "internal corporate domain": re.compile(
-            r"(?i)\b(?:nvi" + r"dia\.com|pinlight-" + r"software)\b"
-        ),
+        "internal corporate domain": re.compile(r"(?i)\b(?:nvi" + r"dia\.com|pinlight-" + r"software)\b"),
     }
 
 
@@ -94,7 +93,7 @@ def main() -> int:
             continue
         try:
             text = path.read_text(encoding="utf-8")
-        except (OSError, UnicodeDecodeError):
+        except OSError, UnicodeDecodeError:
             continue
         if populated_notebook(path, text):
             violations.append(f"{path}: notebook contains saved outputs")

@@ -1,4 +1,5 @@
 """Streamlit test isolation and date-freezing fixtures."""
+
 from collections.abc import Generator
 from collections.abc import Callable
 from datetime import tzinfo
@@ -32,6 +33,7 @@ def _passthrough_decorator(*args: object, **kwargs: object) -> object:
 # 1. disable_streamlit  (autouse)
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture(autouse=True)
 def disable_streamlit() -> Generator[None]:
     """Neuter Streamlit decorators and helpers so tests never touch a running app."""
@@ -42,8 +44,10 @@ def disable_streamlit() -> Generator[None]:
     ):
         yield
 
+
 # freezegun integration -- pin time for tests marked @pytest.mark.uses_real_dates
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture(autouse=True)
 def frozen_time(
