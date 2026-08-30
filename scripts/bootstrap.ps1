@@ -1,3 +1,4 @@
+# Install the pinned Task binary and run the requested Task command.
 [CmdletBinding(PositionalBinding = $false)]
 param(
     [Parameter(ValueFromRemainingArguments = $true)]

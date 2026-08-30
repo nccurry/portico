@@ -1,4 +1,5 @@
 #!/usr/bin/env sh
+# Install the pinned Task binary and run the requested Task command.
 set -eu
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)

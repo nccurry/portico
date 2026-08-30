@@ -1,4 +1,5 @@
 #!/usr/bin/env sh
+# Install the pinned uv and Python toolchain inside the repository.
 set -eu
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
