@@ -30,8 +30,8 @@ LABEL org.opencontainers.image.title="Portico" \
       org.opencontainers.image.revision="${REVISION}" \
       org.opencontainers.image.licenses="Apache-2.0"
 
-RUN groupadd --gid 10001 portico \
-    && useradd --uid 10001 --gid portico --create-home --home-dir /home/portico portico \
+RUN groupadd --gid 1000 portico \
+    && useradd --uid 1000 --gid portico --create-home --home-dir /home/portico portico \
     && mkdir -p /app/.local \
     && chown portico:portico /app/.local
 
@@ -51,7 +51,7 @@ COPY --chown=portico:portico pages/ pages/
 COPY --chown=portico:portico src/ src/
 COPY --chown=portico:portico scripts/doctor.py scripts/weekly-discord-summary.py scripts/
 
-USER 10001:10001
+USER 1000:1000
 
 EXPOSE 8501
 

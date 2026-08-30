@@ -112,6 +112,10 @@ cp .streamlit/secrets.example.toml .streamlit/secrets.toml
 chmod 600 .streamlit/secrets.toml
 ```
 
+The container runs as Linux user and group ID `1000`, which matches the first
+normal user on most Linux systems. The file must be owned by that user so the
+container can read it without making it public to other host users.
+
 Open `.streamlit/secrets.toml`. Replace each example URL with the full URL for
 the matching tab. Each URL must use `https://docs.google.com` and include the
 numeric `gid` for that tab.
