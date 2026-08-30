@@ -11,14 +11,19 @@ docker compose --profile demo up --build demo
 
 Open <http://127.0.0.1:8501>. Stop the server with `Ctrl+C`.
 
-## Connect a Tiller workbook
+## Connect a Google Sheets workbook
 
-The app supports four Google Sheets tabs:
+You can use any Google Sheets workbook that has four compatible tabs:
 
 - Transactions
 - Balance History
 - Categories
 - Accounts
+
+Portico follows the
+[Tiller Foundation Template](https://help.tiller.com/en/articles/3250724-what-is-the-tiller-foundation-template).
+Use that template for the simplest setup. A different workbook also works when
+its tab columns match the [data schema](data-schema.md).
 
 Make each tab readable through its link. Copy the secrets template:
 
