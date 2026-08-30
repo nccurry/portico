@@ -27,7 +27,10 @@ tasks:
   setup:
     desc: "Set up the development environment"
     cmds:
-      - task: deps:install
+      - task: deps:python:install
+      - task: deps:sync
+      - task: setup:verify
+      - echo "[OK] Setup complete. Run 'task test' to run tests."
 
   dev:sync:
     desc: "Synchronize the locked development environment"
@@ -44,29 +47,12 @@ tasks:
     cmds:
       - task: deps:check
 
-  deps:install:
-    desc: "Install pinned tools, Python, and development dependencies"
-    cmds:
-      - task: deps:task:install
-      - task: deps:python:install
-      - task: deps:sync
-      - task: setup:verify
-      - echo "[OK] Setup complete. Run 'task test' to run tests."
-
   deps:install:runtime:
     desc: "Install pinned Python and runtime dependencies"
     cmds:
       - task: deps:python:install
       - task: deps:sync:runtime
       - task: setup:verify:runtime
-
-  deps:task:install:
-    desc: "Install the pinned Task runner locally"
-    cmds:
-      - cmd: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/bootstrap.ps1 -SkipSetup
-        platforms: [windows]
-      - cmd: sh scripts/bootstrap.sh --skip-setup
-        platforms: [linux, darwin]
 
   deps:python:install:
     desc: "Install pinned uv and Python locally"

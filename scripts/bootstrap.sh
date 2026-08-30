@@ -1,12 +1,6 @@
 #!/usr/bin/env sh
 set -eu
 
-skip_setup=false
-if [ "${1:-}" = "--skip-setup" ]; then
-    skip_setup=true
-    shift
-fi
-
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 repo_root=$(CDPATH= cd -- "$script_dir/.." && pwd)
 pyproject_path="$repo_root/pyproject.toml"
@@ -98,10 +92,8 @@ detect_task_archive
 install_task "$task_version"
 "$task_bin" --version
 
-if [ "$skip_setup" = false ]; then
-    cd "$repo_root"
-    if [ "$#" -eq 0 ]; then
-        set -- setup
-    fi
-    "$task_bin" "$@"
+cd "$repo_root"
+if [ "$#" -eq 0 ]; then
+    set -- setup
 fi
+"$task_bin" "$@"
