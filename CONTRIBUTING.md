@@ -2,6 +2,8 @@
 
 Thank you for improving Portico.
 
+Follow the [Code of Conduct](CODE_OF_CONDUCT.md) in all project spaces.
+
 ## Prepare the repository
 
 1. Fork and clone the repository.
@@ -58,7 +60,8 @@ Do not put financial records, Google Sheet URLs, webhook URLs, or credentials in
 
 ## Make a change
 
-Keep each change focused. Add tests for changed behavior. Update the documentation when you change commands, configuration, or visible behavior.
+Keep each change focused. Add tests for changed behavior. Update the README when
+you change commands, configuration, or visible behavior.
 
 Run these commands before you open a pull request:
 
@@ -79,3 +82,20 @@ request. Use demo data for screenshots.
 CI runs the same Task commands in separate jobs inside the shared development
 container. Two small jobs validate the native bootstraps. CI also smoke-tests
 the production container on AMD64 and ARM64.
+
+## Prepare a release
+
+Portico uses Semantic Versioning. Complete these steps from a clean worktree:
+
+1. Create a release branch from `main`.
+2. Update the version in `pyproject.toml`.
+3. Move the Unreleased changelog entries into a dated version section.
+4. Run `task privacy:check`, `task lint`, `task test`, and `task docs:check`.
+5. Merge the release change into `main`.
+
+To publish, create and push an annotated `vX.Y.Z` tag. The tag must match the
+version in `pyproject.toml`. The release workflow checks the source, builds the
+multi-platform container, and publishes it to GHCR.
+
+Do not reuse or move a published version tag. Publish a patch version for a
+release correction.

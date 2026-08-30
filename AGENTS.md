@@ -1,5 +1,10 @@
 # Portico Project Instructions
 
+## Architecture
+
+Read `docs/architecture.md` before you design or implement a feature. Keep new
+work aligned with the product boundaries and design rules in that document.
+
 ## Expertise
 
 You are an expert Python developer with experience building data applications using Streamlit and Pandas. Always write idiomatic Python code using modern Python features.

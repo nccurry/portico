@@ -121,7 +121,7 @@ def load_report_data(config: NotifierConfig) -> tuple[pd.DataFrame, pd.DataFrame
     except SpreadsheetSchemaError as error:
         raise NotifierError(str(error)) from error
     except (TypeError, ValueError) as error:
-        raise NotifierError("A configured sheet contains invalid Tiller data.") from error
+        raise NotifierError("A configured sheet contains invalid spreadsheet data.") from error
     return transactions, metadata
 
 

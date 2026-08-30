@@ -20,9 +20,9 @@ def test_build_gallery_uses_canonical_screenshots(tmp_path: Path) -> None:
     assert (output / ".nojekyll").is_file()
     for name in build_pages_demo.SCREENSHOTS:
         assert f"images/{name}" in index
-        assert f"docs/images/{name}" in readme
+        assert f"assets/screenshots/{name}" in readme
         assert (output / "images" / name).read_bytes() == (
-            build_pages_demo.PROJECT_ROOT / "docs" / "images" / name
+            build_pages_demo.PROJECT_ROOT / "assets" / "screenshots" / name
         ).read_bytes()
 
 
