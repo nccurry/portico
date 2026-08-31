@@ -58,7 +58,7 @@ future use.
 ### Useful with no private data
 
 The committed demo data is synthetic. It supports every page, integration
-tests, screenshots, and the static gallery.
+tests, and screenshots.
 
 No test, screenshot, issue, or example can contain personal financial records.
 If a feature changes the data contract, the demo must continue to work.
@@ -141,12 +141,8 @@ Tiller workbook in Google Sheets     Synthetic CSV files
 `Home.py` configures Streamlit, builds navigation, and renders the accounts and
 net-worth page. Files in `pages` provide the remaining dashboards.
 
-`scripts/run_app.py` starts Streamlit with validated address, port, and data
-source values. The container entry point starts `Home.py` with safe server
-flags.
-
-`scripts/weekly_discord_summary.py` starts the headless Discord notifier. The
-notifier does not start Streamlit or require a browser session.
+Local Task commands start Streamlit directly. `src/discord_notifier.py` is also
+the command-line entry point for the headless Discord notifier.
 
 `scripts/container_entrypoint.py` starts Streamlit and owns the optional
 Discord scheduler. Streamlit remains the main service. A notifier failure is
@@ -263,15 +259,6 @@ environment variable. The scheduler is disabled unless
 `PORTICO_DISCORD_ENABLED=true`. It calls the same notifier code as the manual
 command and relies on delivery state to prevent duplicates.
 
-### Static demo gallery
-
-`scripts/build_pages_demo.py` builds a static gallery from the synthetic
-screenshots. GitHub Pages serves this gallery but does not run the Streamlit
-server or production container.
-
-The gallery is a preview, not a second application runtime. It must not contain
-Google Sheets connections, secrets, or private data.
-
 ## Source ownership
 
 | Path | Responsibility |
@@ -290,7 +277,7 @@ Google Sheets connections, secrets, or private data.
 | `src/discord_notifier.py` | Discord configuration, transport, formatting, and state |
 | `scripts/container_entrypoint.py` | Container process and optional Discord schedule |
 | `scripts/` | Bootstrap, diagnostics, local commands, and build tools |
-| `config/` | Tracked defaults and the local override example |
+| `config/` | Tracked application defaults and ignored local overrides |
 | `demo/data/` | Canonical synthetic workbook data |
 | `tests/unit/` | Direct behavior tests for functions and pages |
 | `tests/integration/` | Cross-sheet pipelines and Streamlit AppTest coverage |
@@ -328,8 +315,8 @@ The synthetic fixture date is fixed. Date-sensitive tests use that reference
 date instead of the current clock. Tests also isolate local configuration so a
 maintainer's private settings cannot change results.
 
-CI enforces strict typing, linting, unit tests, integration tests, the static
-demo build, and container smoke tests. Coverage must be at least 90% for `src`
+CI enforces strict typing, linting, unit tests, integration tests, and container
+smoke tests. Coverage must be at least 90% for `src`
 and 80% for `src` and `pages` combined. Local Task commands call the same
 underlying tools.
 

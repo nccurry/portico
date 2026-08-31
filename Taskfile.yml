@@ -268,39 +268,35 @@ tasks:
       - task: lint
       - task: test
 
-  config:init:
-    desc: "Create an ignored local configuration file"
-    cmds:
-      - '{{.UV}} run --locked --dev python -m scripts.init_config'
-
   # ========================================
   # Run
   # ========================================
 
   run:
-    desc: "Run the Streamlit app on a validated address (localhost by default)"
+    desc: "Run the Streamlit app on localhost"
+    env:
+      PORTICO_DATA_SOURCE: google_sheets
     cmds:
-      - '{{.UV}} run --locked --dev python -m scripts.run_app --address={{.ADDRESS | quote}} --port={{.PORT | quote}}'
+      - '{{.UV}} run --locked --dev streamlit run Home.py --server.address={{.ADDRESS | quote}} --server.port={{.PORT | quote}}'
 
   demo:
     desc: "Run the app with synthetic demo data on localhost"
+    env:
+      PORTICO_DATA_SOURCE: demo
     cmds:
-      - '{{.UV}} run --locked --dev python -m scripts.run_app --address=127.0.0.1 --port={{.PORT | quote}} --data-source=demo'
+      - '{{.UV}} run --locked --dev streamlit run Home.py --server.address=127.0.0.1 --server.port={{.PORT | quote}}'
 
   run:lan:
     desc: "Run the app on all interfaces for a trusted network"
+    env:
+      PORTICO_DATA_SOURCE: google_sheets
     cmds:
-      - '{{.UV}} run --locked --dev python -m scripts.run_app --address=0.0.0.0 --port={{.PORT | quote}}'
+      - '{{.UV}} run --locked --dev streamlit run Home.py --server.address=0.0.0.0 --server.port={{.PORT | quote}}'
 
   doctor:
     desc: "Validate the configured data source"
     cmds:
       - '{{.UV}} run --locked --dev python -m scripts.doctor {{.CLI_ARGS}}'
-
-  pages:build:
-    desc: "Build the GitHub Pages demo artifact"
-    cmds:
-      - '{{.UV}} run --locked --dev python -m scripts.build_pages_demo'
 
   container:build:
     desc: "Build the local Linux container image"
@@ -350,7 +346,7 @@ tasks:
   container:notifier:
     desc: "Run one notifier command in the Portico container"
     cmds:
-      - docker exec portico python -m scripts.weekly_discord_summary {{.CLI_ARGS}}
+      - docker exec portico python -m src.discord_notifier {{.CLI_ARGS}}
 
   # ========================================
   # Weekly Discord Summary
@@ -365,7 +361,7 @@ tasks:
   discord:check:run:
     internal: true
     cmds:
-      - '{{.PYTHON}} -m scripts.weekly_discord_summary check --output={{.OUTPUT | quote}}'
+      - '{{.PYTHON}} -m src.discord_notifier check --output={{.OUTPUT | quote}}'
 
   discord:preview:
     desc: "Print the weekly expense summary without contacting Discord"
@@ -373,7 +369,7 @@ tasks:
       - sh: '{{.PYTHON}} --version'
         msg: "Runtime dependencies are missing. Run 'task discord:check'."
     cmds:
-      - '{{.PYTHON}} -m scripts.weekly_discord_summary preview --output={{.OUTPUT | quote}} {{if .PERIOD_END}}--period-end={{.PERIOD_END | quote}}{{end}}'
+      - '{{.PYTHON}} -m src.discord_notifier preview --output={{.OUTPUT | quote}} {{if .PERIOD_END}}--period-end={{.PERIOD_END | quote}}{{end}}'
 
   discord:test:
     desc: "Send a Discord connection test without financial data"
@@ -381,7 +377,7 @@ tasks:
       - sh: '{{.PYTHON}} --version'
         msg: "Runtime dependencies are missing. Run 'task discord:check'."
     cmds:
-      - '{{.PYTHON}} -m scripts.weekly_discord_summary test --output={{.OUTPUT | quote}}'
+      - '{{.PYTHON}} -m src.discord_notifier test --output={{.OUTPUT | quote}}'
 
   discord:send:
     desc: "Send the weekly expense summary now"
@@ -389,4 +385,4 @@ tasks:
       - sh: '{{.PYTHON}} --version'
         msg: "Runtime dependencies are missing. Run 'task discord:check'."
     cmds:
-      - '{{.PYTHON}} -m scripts.weekly_discord_summary send --output={{.OUTPUT | quote}} {{if .PERIOD_END}}--period-end={{.PERIOD_END | quote}}{{end}} {{if eq .FORCE "true"}}--force{{end}}'
+      - '{{.PYTHON}} -m src.discord_notifier send --output={{.OUTPUT | quote}} {{if .PERIOD_END}}--period-end={{.PERIOD_END | quote}}{{end}} {{if eq .FORCE "true"}}--force{{end}}'
