@@ -38,7 +38,6 @@ from src.value_visibility import mask_value, value_safe_altair_chart, value_safe
 
 
 SELECTED_GROUP_KEY = "budget_selected_group"
-LOOKBACK_MONTHS = 12
 
 
 def _format_currency(value: float, *, signed: bool = False) -> str:
@@ -377,7 +376,7 @@ def _render_group_detail(
             filters,
             [selected_group],
             dimension="Category",
-            lookback_months=LOOKBACK_MONTHS,
+            lookback_months=get_settings().budget.history_months,
         )
         categories = _add_status(
             build_budget_performance(category_history, selected_month),
@@ -582,7 +581,7 @@ def main() -> None:
         str(selected_month),
         filters,
         selected_groups,
-        lookback_months=LOOKBACK_MONTHS,
+        lookback_months=get_settings().budget.history_months,
     )
     group_performance = build_budget_performance(
         group_history,
@@ -604,7 +603,7 @@ def main() -> None:
         filters,
         selected_groups,
         dimension="Category",
-        lookback_months=LOOKBACK_MONTHS,
+        lookback_months=get_settings().budget.history_months,
     )
     category_performance = build_budget_performance(
         category_history,

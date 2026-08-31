@@ -275,8 +275,10 @@ schedule between container runs. The host address and port stay in the
 ## Configuration
 
 Tracked defaults live in [`config/defaults.toml`](config/defaults.toml). The
-defaults cover thresholds, report exclusions, subscription detection,
-financial-independence assumptions, and merchant aliases.
+defaults match the maintainer's Tiller setup, but contain no private account or
+transaction data. They cover report periods, calculation policies, thresholds,
+subscription detection, financial-independence assumptions, Discord summary
+windows, and merchant aliases.
 
 Create an ignored local override:
 
@@ -286,7 +288,71 @@ cp config/local.example.toml config/local.toml
 
 Edit only the values that differ from the defaults. Portico stops with an error
 for unknown keys, wrong types, unsafe paths, duplicate values, and values outside
-the supported ranges.
+the supported ranges. Restart Portico after changing a TOML file.
+
+### Dashboard settings
+
+These are the main settings most households may want to override:
+
+| Section | Setting | What it controls |
+| --- | --- | --- |
+| `reporting` | `lookback_months` | Calendar-month choices shown on income, spending, and merchant pages. Use 2–5 ascending values. |
+| `reporting` | `default_lookback_months` | Initially selected reporting period. It must appear in `lookback_months`. |
+| `spending` | `default_view` | Start spending and merchant pages in `discretionary` or `all` view. |
+| `spending` | `exclude_categories`, `exclude_groups` | What Portico removes from every Discretionary view, including year-over-year. |
+| `income_savings` | `default_view` | Start income and savings in `regular` or `actual` view. |
+| `income_savings` | `exclude_categories`, `exclude_groups` | One-off activity removed from the Regular calculation. |
+| `income_savings` | `target_rate` | Savings-rate target shown on the income page. |
+| `thresholds` | `expense`, `income` | Default limits offered by the large-transaction filters. |
+| `budget` | `history_months` | Months used for budget history and trailing results. |
+| `subscriptions` | `known_category_terms` | Text used to select the initial known-subscription categories. |
+| `subscriptions` | `minimum_confidence`, `stale_after_days` | Discovery cutoff and stale-data warning. |
+| `subscriptions` | `default_exclude_categories` | Categories selected by default in Additional discovery exclusions. |
+| `year_over_year` | `utility_group_terms`, `utility_category_terms` | Text used by the Utility bills preset. |
+| `data_health` | `stale_account_days` | Age at which an account balance is stale. |
+| `data_health` | `duplicate_require_same_*` | Initial duplicate-detection matching rules. |
+| `financial_independence` | Return, withdrawal, history, projection, account, and group settings | Initial FI assumptions and portfolio scope. |
+| `weekly_summary` | `average_weeks`, `rolling_weeks`, `top_merchant_count` | Discord comparison windows and merchant detail. |
+| `merchants.aliases` | Merchant name and description fragments | Combine several transaction descriptions under one merchant name. |
+
+The page controls remain editable. They let you try another view without
+changing the TOML file. Those choices last for the browser session only.
+
+### Configure a Docker deployment
+
+The setup command mounts the host `config` directory at `/app/config` in the
+container. Portico automatically reads `/app/config/defaults.toml` and then
+`/app/config/local.toml`.
+
+Create and edit the override on the Docker host:
+
+```console
+cp config/local.example.toml config/local.toml
+nano config/local.toml
+docker restart portico
+```
+
+The bind mount is read-only to Portico. Editing the host file is enough; do not
+edit files inside the container.
+
+To keep the override under another name, set its path inside the container:
+
+```console
+PORTICO_CONFIG_PATH=/app/config/household.toml
+```
+
+Add that line to `.env` and create `config/household.toml`. Environment
+variables are fixed when Docker creates the container, so remove the existing
+container and run the start command again:
+
+```console
+docker stop portico
+docker rm portico
+# Run the docker run command from "Start Portico" again.
+```
+
+The named `portico-state` volume remains available. The standard `--mount` in
+the start command makes the new configuration file available.
 
 These environment variables change the main application settings:
 
@@ -311,10 +377,14 @@ message follows.
 The report includes:
 
 - Spending for each selected category
-- The change from its eight-week average
-- The three largest vendors in each category
-- A comparison between the latest four weeks and the prior four weeks
+- The change from its trailing weekly average
+- The largest vendors in each category
+- A comparison between the latest group of weeks and the prior group
 - Total expenses and the number of uncategorized transactions
+
+The tracked defaults use an eight-week average, a four-week comparison, and
+three merchants per category. Change those values under `[weekly_summary]` in
+`config/local.toml`.
 
 ### Create the Discord webhook
 

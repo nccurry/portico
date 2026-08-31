@@ -10,10 +10,12 @@ import streamlit as st
 from src.analysis.year_over_year import (
     build_year_over_year_history,
     build_year_totals,
+    discretionary_categories,
     spending_entities,
-    spending_preset_categories,
     summarize_year_over_year,
+    utility_bill_categories,
 )
+from src.config import get_settings
 from src.constants import COLOR_NET_WORTH
 from src.custom_types import YearOverYearSummary
 from src.page_helpers import render_data_refresh_controls
@@ -276,7 +278,22 @@ def _preset_selection(
     view: str,
 ) -> list[str]:
     available = spending_entities(transactions, "Category")
-    defaults = spending_preset_categories(transactions, view)[:MAX_DEFAULT_PRESET_CATEGORIES]
+    settings = get_settings()
+    if view == "Utility bills":
+        defaults = utility_bill_categories(
+            transactions,
+            group_terms=settings.year_over_year.utility_group_terms,
+            category_terms=settings.year_over_year.utility_category_terms,
+        )
+    elif view == "Discretionary spending":
+        defaults = discretionary_categories(
+            transactions,
+            excluded_categories=settings.spending.exclude_categories,
+            excluded_groups=settings.spending.exclude_groups,
+        )
+    else:
+        raise ValueError(f"Unsupported year-over-year preset: {view}")
+    defaults = defaults[:MAX_DEFAULT_PRESET_CATEGORIES]
     key = f"year_over_year_{view.lower().replace(' ', '_')}_categories"
     st.session_state.setdefault(key, defaults)
     with st.popover(

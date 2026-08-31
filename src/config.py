@@ -16,7 +16,6 @@ from src.constants import FI_SPENDING_LOOKBACK_OPTIONS
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULTS_PATH = PROJECT_ROOT / "config" / "defaults.toml"
-LOCAL_PATH = PROJECT_ROOT / "config" / "local.toml"
 
 
 class ConfigError(ValueError):
@@ -37,6 +36,14 @@ class DataSettings:
 
 
 @dataclass(frozen=True)
+class ReportingSettings:
+    """Shared reporting-period choices."""
+
+    lookback_months: tuple[int, ...]
+    default_lookback_months: int
+
+
+@dataclass(frozen=True)
 class ThresholdSettings:
     """Transaction and duplicate-detection thresholds."""
 
@@ -50,6 +57,7 @@ class ThresholdSettings:
 class IncomeSavingsSettings:
     """Defaults for income and savings reports."""
 
+    default_view: str
     target_rate: int
     exclude_categories: tuple[str, ...]
     exclude_groups: tuple[str, ...]
@@ -59,6 +67,7 @@ class IncomeSavingsSettings:
 class SpendingSettings:
     """Defaults for discretionary-spending reports."""
 
+    default_view: str
     exclude_categories: tuple[str, ...]
     exclude_groups: tuple[str, ...]
 
@@ -67,9 +76,37 @@ class SpendingSettings:
 class SubscriptionSettings:
     """Defaults for subscription views and detection."""
 
+    known_category_terms: tuple[str, ...]
+    minimum_confidence: int
+    stale_after_days: int
     default_exclude_categories: tuple[str, ...]
     detection_excluded_categories: tuple[str, ...]
     detection_excluded_pattern: str
+
+
+@dataclass(frozen=True)
+class YearOverYearSettings:
+    """Defaults for the fixed year-over-year presets."""
+
+    utility_group_terms: tuple[str, ...]
+    utility_category_terms: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class BudgetSettings:
+    """Defaults for budget history."""
+
+    history_months: int
+
+
+@dataclass(frozen=True)
+class DataHealthSettings:
+    """Defaults for adjustable data-health checks."""
+
+    stale_account_days: int
+    duplicate_require_same_account: bool
+    duplicate_require_same_category: bool
+    duplicate_require_same_description: bool
 
 
 @dataclass(frozen=True)
@@ -85,6 +122,15 @@ class FinancialIndependenceSettings:
 
 
 @dataclass(frozen=True)
+class WeeklySummarySettings:
+    """Defaults for the scheduled Discord summary."""
+
+    average_weeks: int
+    rolling_weeks: int
+    top_merchant_count: int
+
+
+@dataclass(frozen=True)
 class MerchantSettings:
     """Local merchant-description aliases."""
 
@@ -96,23 +142,40 @@ class Settings:
     """Validated application settings."""
 
     data: DataSettings
+    reporting: ReportingSettings
     thresholds: ThresholdSettings
     income_savings: IncomeSavingsSettings
     spending: SpendingSettings
     subscriptions: SubscriptionSettings
+    year_over_year: YearOverYearSettings
+    budget: BudgetSettings
+    data_health: DataHealthSettings
     financial_independence: FinancialIndependenceSettings
+    weekly_summary: WeeklySummarySettings
     merchants: MerchantSettings
 
 
 _SECTION_KEYS = {
     "data": {"mode", "demo_directory"},
+    "reporting": {"lookback_months", "default_lookback_months"},
     "thresholds": {"expense", "income", "duplicate_minimum", "duplicate_days"},
-    "income_savings": {"target_rate", "exclude_categories", "exclude_groups"},
-    "spending": {"exclude_categories", "exclude_groups"},
+    "income_savings": {"default_view", "target_rate", "exclude_categories", "exclude_groups"},
+    "spending": {"default_view", "exclude_categories", "exclude_groups"},
     "subscriptions": {
+        "known_category_terms",
+        "minimum_confidence",
+        "stale_after_days",
         "default_exclude_categories",
         "detection_excluded_categories",
         "detection_excluded_pattern",
+    },
+    "year_over_year": {"utility_group_terms", "utility_category_terms"},
+    "budget": {"history_months"},
+    "data_health": {
+        "stale_account_days",
+        "duplicate_require_same_account",
+        "duplicate_require_same_category",
+        "duplicate_require_same_description",
     },
     "financial_independence": {
         "expected_return_rate",
@@ -122,6 +185,7 @@ _SECTION_KEYS = {
         "included_account_patterns",
         "included_groups",
     },
+    "weekly_summary": {"average_weeks", "rolling_weeks", "top_merchant_count"},
     "merchants": {"aliases"},
 }
 
@@ -188,11 +252,26 @@ def _number(section: Mapping[str, Any], key: str, minimum: float, maximum: float
     return result
 
 
+def _boolean(section: Mapping[str, Any], key: str) -> bool:
+    value = section.get(key)
+    if type(value) is not bool:
+        raise ConfigError(f"{key} must be true or false")
+    return value
+
+
 def _string(section: Mapping[str, Any], key: str) -> str:
     value = section.get(key)
     if not isinstance(value, str) or not value.strip():
         raise ConfigError(f"{key} must be a non-empty string")
     return value.strip()
+
+
+def _choice(section: Mapping[str, Any], key: str, choices: set[str]) -> str:
+    value = _string(section, key).casefold()
+    if value not in choices:
+        options = ", ".join(sorted(choices))
+        raise ConfigError(f"{key} must be one of: {options}")
+    return value
 
 
 def _strings(section: Mapping[str, Any], key: str) -> tuple[str, ...]:
@@ -203,6 +282,20 @@ def _strings(section: Mapping[str, Any], key: str) -> tuple[str, ...]:
     normalized = [item.casefold() for item in result]
     if len(normalized) != len(set(normalized)):
         raise ConfigError(f"{key} must not contain duplicates")
+    return result
+
+
+def _integers(section: Mapping[str, Any], key: str, minimum: int, maximum: int) -> tuple[int, ...]:
+    value = section.get(key)
+    if not isinstance(value, list) or not value or any(type(item) is not int for item in value):
+        raise ConfigError(f"{key} must be a non-empty array of integers")
+    result = tuple(value)
+    if any(not minimum <= item <= maximum for item in result):
+        raise ConfigError(f"{key} values must be between {minimum} and {maximum}")
+    if len(result) != len(set(result)):
+        raise ConfigError(f"{key} must not contain duplicates")
+    if tuple(sorted(result)) != result:
+        raise ConfigError(f"{key} must be in ascending order")
     return result
 
 
@@ -236,15 +329,33 @@ def _merchant_aliases(section: Mapping[str, Any]) -> tuple[tuple[str, tuple[str,
 def _build_settings(document: Mapping[str, Any], project_root: Path) -> Settings:
     _validate_keys(document)
     data = document["data"]
+    reporting = document["reporting"]
     thresholds = document["thresholds"]
     income_savings = document["income_savings"]
     spending = document["spending"]
     subscriptions = document["subscriptions"]
+    year_over_year = document["year_over_year"]
+    budget = document["budget"]
+    data_health = document["data_health"]
     financial_independence = document["financial_independence"]
+    weekly_summary = document["weekly_summary"]
     merchants = document["merchants"]
     assert all(
         isinstance(section, Mapping)
-        for section in (data, thresholds, income_savings, spending, subscriptions, financial_independence, merchants)
+        for section in (
+            data,
+            reporting,
+            thresholds,
+            income_savings,
+            spending,
+            subscriptions,
+            year_over_year,
+            budget,
+            data_health,
+            financial_independence,
+            weekly_summary,
+            merchants,
+        )
     )
 
     mode = _string(data, "mode")
@@ -259,9 +370,19 @@ def _build_settings(document: Mapping[str, Any], project_root: Path) -> Settings
     if spending_lookback_months not in FI_SPENDING_LOOKBACK_OPTIONS:
         options = ", ".join(str(value) for value in FI_SPENDING_LOOKBACK_OPTIONS)
         raise ConfigError(f"spending_lookback_months must be one of: {options}")
+    lookback_months = _integers(reporting, "lookback_months", 1, 120)
+    if not 2 <= len(lookback_months) <= 5:
+        raise ConfigError("lookback_months must contain between 2 and 5 values")
+    default_lookback_months = _integer(reporting, "default_lookback_months", 1, 120)
+    if default_lookback_months not in lookback_months:
+        raise ConfigError("default_lookback_months must be included in lookback_months")
 
     return Settings(
         data=DataSettings(mode=mode, demo_directory=_demo_directory(data, project_root)),
+        reporting=ReportingSettings(
+            lookback_months=lookback_months,
+            default_lookback_months=default_lookback_months,
+        ),
         thresholds=ThresholdSettings(
             expense=_integer(thresholds, "expense", 1_000, 100_000),
             income=_integer(thresholds, "income", 5_000, 100_000),
@@ -269,18 +390,34 @@ def _build_settings(document: Mapping[str, Any], project_root: Path) -> Settings
             duplicate_days=_integer(thresholds, "duplicate_days", 0, 7),
         ),
         income_savings=IncomeSavingsSettings(
+            default_view=_choice(income_savings, "default_view", {"regular", "actual"}),
             target_rate=_integer(income_savings, "target_rate", 0, 100),
             exclude_categories=_strings(income_savings, "exclude_categories"),
             exclude_groups=_strings(income_savings, "exclude_groups"),
         ),
         spending=SpendingSettings(
+            default_view=_choice(spending, "default_view", {"all", "discretionary"}),
             exclude_categories=_strings(spending, "exclude_categories"),
             exclude_groups=_strings(spending, "exclude_groups"),
         ),
         subscriptions=SubscriptionSettings(
+            known_category_terms=_strings(subscriptions, "known_category_terms"),
+            minimum_confidence=_integer(subscriptions, "minimum_confidence", 70, 100),
+            stale_after_days=_integer(subscriptions, "stale_after_days", 1, 365),
             default_exclude_categories=_strings(subscriptions, "default_exclude_categories"),
             detection_excluded_categories=_strings(subscriptions, "detection_excluded_categories"),
             detection_excluded_pattern=pattern,
+        ),
+        year_over_year=YearOverYearSettings(
+            utility_group_terms=_strings(year_over_year, "utility_group_terms"),
+            utility_category_terms=_strings(year_over_year, "utility_category_terms"),
+        ),
+        budget=BudgetSettings(history_months=_integer(budget, "history_months", 1, 120)),
+        data_health=DataHealthSettings(
+            stale_account_days=_integer(data_health, "stale_account_days", 1, 365),
+            duplicate_require_same_account=_boolean(data_health, "duplicate_require_same_account"),
+            duplicate_require_same_category=_boolean(data_health, "duplicate_require_same_category"),
+            duplicate_require_same_description=_boolean(data_health, "duplicate_require_same_description"),
         ),
         financial_independence=FinancialIndependenceSettings(
             expected_return_rate=_number(financial_independence, "expected_return_rate", 0, 20),
@@ -289,6 +426,11 @@ def _build_settings(document: Mapping[str, Any], project_root: Path) -> Settings
             projection_years=_integer(financial_independence, "projection_years", 1, 100),
             included_account_patterns=_strings(financial_independence, "included_account_patterns"),
             included_groups=_strings(financial_independence, "included_groups"),
+        ),
+        weekly_summary=WeeklySummarySettings(
+            average_weeks=_integer(weekly_summary, "average_weeks", 1, 52),
+            rolling_weeks=_integer(weekly_summary, "rolling_weeks", 1, 52),
+            top_merchant_count=_integer(weekly_summary, "top_merchant_count", 1, 20),
         ),
         merchants=MerchantSettings(aliases=_merchant_aliases(merchants)),
     )
@@ -306,9 +448,10 @@ def load_settings(
     document = _read_toml(defaults_path)
 
     configured_local = environment.get("PORTICO_CONFIG_PATH")
-    selected_local = (
-        Path(configured_local) if configured_local else local_path or project_root / "config" / "local.toml"
-    )
+    configured_path = Path(configured_local) if configured_local else None
+    if configured_path is not None and not configured_path.is_absolute():
+        configured_path = project_root / configured_path
+    selected_local = configured_path or local_path or project_root / "config" / "local.toml"
     if selected_local.exists():
         document = _merge(document, _read_toml(selected_local))
     elif configured_local:

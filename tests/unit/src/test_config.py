@@ -7,19 +7,49 @@ from src.config import ConfigError, load_settings
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DEFAULTS = PROJECT_ROOT / "config" / "defaults.toml"
+LOCAL_EXAMPLE = PROJECT_ROOT / "config" / "local.example.toml"
 
 
 def test_defaults_match_the_public_application_profile(tmp_path: Path) -> None:
     settings = load_settings(defaults_path=DEFAULTS, local_path=tmp_path / "missing.toml", environ={})
 
     assert settings.data.mode == "google_sheets"
+    assert settings.reporting.lookback_months == (3, 6, 12, 24)
+    assert settings.reporting.default_lookback_months == 12
     assert settings.thresholds.expense == 3000
+    assert settings.income_savings.default_view == "regular"
+    assert settings.spending.default_view == "discretionary"
+    assert settings.subscriptions.known_category_terms == ("subscription",)
+    assert settings.subscriptions.minimum_confidence == 80
+    assert settings.subscriptions.stale_after_days == 45
+    assert settings.year_over_year.utility_group_terms == ("bill",)
+    assert "electric" in settings.year_over_year.utility_category_terms
+    assert settings.budget.history_months == 12
+    assert settings.data_health.stale_account_days == 7
+    assert settings.data_health.duplicate_require_same_account
+    assert not settings.data_health.duplicate_require_same_category
+    assert settings.data_health.duplicate_require_same_description
+    assert settings.weekly_summary.average_weeks == 8
+    assert settings.weekly_summary.rolling_weeks == 4
+    assert settings.weekly_summary.top_merchant_count == 3
     assert settings.income_savings.target_rate == 20
     assert settings.financial_independence.included_groups == (
         "Savings",
         "Investments",
         "Retirement",
     )
+
+
+def test_local_example_does_not_change_defaults(tmp_path: Path) -> None:
+    defaults = load_settings(
+        defaults_path=DEFAULTS,
+        local_path=tmp_path / "missing.toml",
+        environ={},
+        project_root=PROJECT_ROOT,
+    )
+    example = load_settings(defaults_path=DEFAULTS, local_path=LOCAL_EXAMPLE, environ={}, project_root=PROJECT_ROOT)
+
+    assert example == defaults
 
 
 def test_local_file_and_environment_override_defaults(tmp_path: Path) -> None:
@@ -35,6 +65,42 @@ def test_local_file_and_environment_override_defaults(tmp_path: Path) -> None:
 
     assert settings.data.is_demo
     assert settings.thresholds.expense == 1250
+
+
+def test_household_report_defaults_can_be_overridden(tmp_path: Path) -> None:
+    local = tmp_path / "local.toml"
+    local.write_text(
+        """
+[reporting]
+lookback_months = [1, 3, 18]
+default_lookback_months = 3
+[spending]
+default_view = "all"
+[budget]
+history_months = 18
+[data_health]
+stale_account_days = 30
+[subscriptions]
+minimum_confidence = 90
+[weekly_summary]
+average_weeks = 12
+rolling_weeks = 6
+top_merchant_count = 5
+""".strip(),
+        encoding="utf-8",
+    )
+
+    settings = load_settings(defaults_path=DEFAULTS, local_path=local, environ={}, project_root=PROJECT_ROOT)
+
+    assert settings.reporting.lookback_months == (1, 3, 18)
+    assert settings.reporting.default_lookback_months == 3
+    assert settings.spending.default_view == "all"
+    assert settings.budget.history_months == 18
+    assert settings.data_health.stale_account_days == 30
+    assert settings.subscriptions.minimum_confidence == 90
+    assert settings.weekly_summary.average_weeks == 12
+    assert settings.weekly_summary.rolling_weeks == 6
+    assert settings.weekly_summary.top_merchant_count == 5
 
 
 def test_unknown_local_key_is_rejected(tmp_path: Path) -> None:
@@ -75,6 +141,34 @@ def test_unreadable_local_path_is_rejected(tmp_path: Path) -> None:
             "[financial_independence]\nwithdrawal_rate = 10.5\n",
             "withdrawal_rate must be between 0.5 and 10",
         ),
+        (
+            "[reporting]\nlookback_months = [12, 3]\n",
+            "lookback_months must be in ascending order",
+        ),
+        (
+            "[reporting]\ndefault_lookback_months = 5\n",
+            "default_lookback_months must be included in lookback_months",
+        ),
+        (
+            '[spending]\ndefault_view = "sometimes"\n',
+            "default_view must be one of: all, discretionary",
+        ),
+        (
+            "[subscriptions]\nminimum_confidence = 69\n",
+            "minimum_confidence must be between 70 and 100",
+        ),
+        (
+            "[budget]\nhistory_months = 0\n",
+            "history_months must be between 1 and 120",
+        ),
+        (
+            "[weekly_summary]\nrolling_weeks = 53\n",
+            "rolling_weeks must be between 1 and 52",
+        ),
+        (
+            "[data_health]\nduplicate_require_same_account = 1\n",
+            "duplicate_require_same_account must be true or false",
+        ),
     ],
 )
 def test_invalid_values_are_rejected(tmp_path: Path, document: str, message: str) -> None:
@@ -100,3 +194,17 @@ def test_explicit_missing_local_file_is_an_error() -> None:
             environ={"PORTICO_CONFIG_PATH": "missing-local.toml"},
             project_root=PROJECT_ROOT,
         )
+
+
+def test_relative_config_path_resolves_from_project_root(tmp_path: Path) -> None:
+    config_directory = tmp_path / "config"
+    config_directory.mkdir()
+    (config_directory / "household.toml").write_text("[thresholds]\nexpense = 1500\n", encoding="utf-8")
+
+    settings = load_settings(
+        defaults_path=DEFAULTS,
+        environ={"PORTICO_CONFIG_PATH": "config/household.toml"},
+        project_root=tmp_path,
+    )
+
+    assert settings.thresholds.expense == 1500

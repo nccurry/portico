@@ -17,15 +17,15 @@ from src.constants import (
     COLOR_PLACEHOLDER,
     COLOR_SAVINGS,
 )
+from src.config import get_settings
 from src.custom_types import SavingsSummary
 from src.filters import render_income_expense_filters
 from src.page_helpers import render_data_refresh_controls
-from src.reporting_periods import rolling_month_window
+from src.reporting_periods import month_lookback_options, rolling_month_window
 from src.spreadsheet import TransactionsSpreadsheet, load_transactions_data
 from src.value_visibility import mask_value, value_safe_altair_chart, value_safe_dataframe
 
 
-LOOKBACK_MONTHS = {"3M": 3, "6M": 6, "1Y": 12, "2Y": 24}
 CALCULATION_VIEWS = ["Regular", "Actual"]
 CASH_FLOW_SELECTION = "cash_month_pick"
 SAVINGS_RATE_SELECTION = "rate_month_pick"
@@ -575,7 +575,7 @@ def configure_page(
             view=calculation_view,
         )
 
-    lookback_months = LOOKBACK_MONTHS[lookback]
+    lookback_months = month_lookback_options(get_settings().reporting.lookback_months)[lookback]
     start_month, current_month = rolling_month_window(lookback_months)
     end_month = str(pd.Period(current_month, freq="M") + 1)
     ledger = build_income_expense_ledger(
@@ -670,11 +670,16 @@ def main() -> None:
     render_data_refresh_controls()
     st.title("Income and savings")
 
+    settings = get_settings()
+    lookback_options = month_lookback_options(settings.reporting.lookback_months)
+    default_lookback = next(
+        label for label, months in lookback_options.items() if months == settings.reporting.default_lookback_months
+    )
     with st.container(horizontal=True, vertical_alignment="bottom"):
         lookback = st.segmented_control(
             "Time frame",
-            options=list(LOOKBACK_MONTHS),
-            default="1Y",
+            options=list(lookback_options),
+            default=default_lookback,
             required=True,
             key="income_lookback",
             persist_state="page",
@@ -682,7 +687,7 @@ def main() -> None:
         calculation_view = st.segmented_control(
             "Calculation",
             options=CALCULATION_VIEWS,
-            default="Regular",
+            default=settings.income_savings.default_view.title(),
             required=True,
             key="income_calculation_view",
             help=(

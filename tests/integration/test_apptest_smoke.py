@@ -17,6 +17,7 @@ import pandas as pd
 import pytest
 from streamlit.testing.v1 import AppTest
 
+from src.config import clear_settings_cache
 from tests.custom_types import FullDatasetFactory, SpreadsheetBundle
 
 # Page modules are not imported directly; AppTest runs them from file.
@@ -599,6 +600,48 @@ class TestHomeSmoke:
 
 
 @pytest.mark.uses_real_dates
+class TestHouseholdConfiguration:
+    def test_household_config_changes_dashboard_defaults(
+        self,
+        make_full_dataset: FullDatasetFactory,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        local_config = tmp_path / "local.toml"
+        local_config.write_text(
+            """
+[reporting]
+lookback_months = [1, 3, 18]
+default_lookback_months = 3
+[income_savings]
+default_view = "actual"
+[spending]
+default_view = "all"
+""".strip(),
+            encoding="utf-8",
+        )
+        monkeypatch.setenv("PORTICO_CONFIG_PATH", str(local_config))
+        clear_settings_cache()
+
+        income = _make_app(
+            "1_Income_and_Savings.py",
+            make_full_dataset,
+            ["src.spreadsheet.load_transactions_data"],
+        )
+        spending = _make_app(
+            "2_Spending_by_Category.py",
+            make_full_dataset,
+            ["src.spreadsheet.load_transactions_data"],
+        )
+
+        income_lookback = income.segmented_control(key="income_lookback")
+        assert (income_lookback.value, income_lookback.options) == ("3M", ["1M", "3M", "18M"])
+        assert income.segmented_control(key="income_calculation_view").value == "Actual"
+        assert spending.segmented_control(key="spending_lookback").value == "3M"
+        assert spending.segmented_control(key="spending_view").value == "All spending"
+
+
+@pytest.mark.uses_real_dates
 class TestIncomeAndSavingsSmoke:
     def test_regular_view_renders_calculation_and_drilldown(
         self,
@@ -1168,7 +1211,14 @@ class TestYearOverYearSmoke:
 
         assert not at.exception
         selected = at.multiselect(key="year_over_year_discretionary_spending_categories").value
-        assert selected == ["Shopping", "Restaurants", "Streaming Subscription"]
+        assert selected == [
+            "Rent",
+            "Groceries",
+            "Shopping",
+            "Restaurants",
+            "Streaming Subscription",
+            "Cloud Subscription",
+        ]
         assert [subheader.value for subheader in at.subheader] == selected
         assert len(at.get("vega_lite_chart")) == len(selected)
         assert len(at.metric) == len(selected) * 3

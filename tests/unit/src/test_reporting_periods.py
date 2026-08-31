@@ -2,7 +2,11 @@
 
 import pytest
 
-from src.reporting_periods import rolling_month_window
+from src.reporting_periods import month_lookback_options, rolling_month_window
+
+
+def test_month_lookback_options_use_compact_labels() -> None:
+    assert month_lookback_options((1, 3, 12, 24)) == {"1M": 1, "3M": 3, "1Y": 12, "2Y": 24}
 
 
 @pytest.mark.uses_real_dates

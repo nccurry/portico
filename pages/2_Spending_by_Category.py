@@ -17,15 +17,15 @@ from src.analysis.spending import (
     summarize_spending,
 )
 from src.constants import COLOR_EXPENSE, COLOR_PLACEHOLDER
+from src.config import get_settings
 from src.custom_types import ColumnConfig, SpendingSummary
 from src.filters import render_spending_filters
 from src.page_helpers import configured_merchant_aliases, render_data_refresh_controls
-from src.reporting_periods import latest_data_timestamp, rolling_month_window
+from src.reporting_periods import latest_data_timestamp, month_lookback_options, rolling_month_window
 from src.spreadsheet import TransactionsSpreadsheet, load_transactions_data
 from src.value_visibility import mask_value, value_safe_altair_chart, value_safe_dataframe
 
 
-LOOKBACK_MONTHS = {"3M": 3, "6M": 6, "1Y": 12, "2Y": 24}
 SPENDING_VIEWS = ["All spending", "Discretionary"]
 COMPARISON_VIEWS = ["Previous period", "Last year"]
 BREAKDOWNS = ["Group", "Category"]
@@ -682,6 +682,12 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
 
     expense_categories = sorted(expenses["Category"].dropna().astype(str).unique())
     expense_groups = sorted(expenses["Group"].dropna().astype(str).unique())
+    settings = get_settings()
+    lookback_options = month_lookback_options(settings.reporting.lookback_months)
+    default_lookback = next(
+        label for label, months in lookback_options.items() if months == settings.reporting.default_lookback_months
+    )
+    default_view = "Discretionary" if settings.spending.default_view == "discretionary" else "All spending"
     controls = st.columns(
         [1.6, 1.6, 1.6, 2.25],
         vertical_alignment="bottom",
@@ -690,8 +696,8 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
     with controls[0]:
         lookback = st.segmented_control(
             "Time frame",
-            list(LOOKBACK_MONTHS),
-            default="1Y",
+            list(lookback_options),
+            default=default_lookback,
             required=True,
             key="spending_lookback",
             persist_state="page",
@@ -701,7 +707,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
         view = st.segmented_control(
             "View",
             SPENDING_VIEWS,
-            default="Discretionary",
+            default=default_view,
             required=True,
             key="spending_view",
             persist_state="page",
@@ -724,7 +730,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
             view=str(view),
         )
 
-    lookback_months = LOOKBACK_MONTHS[str(lookback)]
+    lookback_months = lookback_options[str(lookback)]
     (
         current_months,
         comparison_months,

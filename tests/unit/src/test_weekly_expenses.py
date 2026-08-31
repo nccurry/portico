@@ -128,6 +128,15 @@ def test_completed_week_uses_trailing_eight_completed_weeks() -> None:
     assert period.previous_rolling_end == dt.date(2026, 7, 4)
 
 
+def test_completed_week_accepts_configured_windows() -> None:
+    period = completed_week(dt.date(2026, 8, 2), average_weeks=12, rolling_weeks=6)
+
+    assert period.average_weeks == 12
+    assert period.rolling_weeks == 6
+    assert (period.comparison_end - period.comparison_start).days + 1 == 12 * 7
+    assert (period.end - period.rolling_start).days + 1 == 6 * 7
+
+
 def test_completed_week_does_not_include_current_saturday() -> None:
     period = completed_week(dt.date(2026, 8, 1))
 
@@ -263,6 +272,15 @@ def test_report_limits_vendors_to_top_three(category_metadata: pd.DataFrame) -> 
         ("BRAVO MARKET", 50.0),
         ("CHARLIE MARKET", 30.0),
     ]
+
+    limited = calculate_weekly_report(
+        transactions,
+        category_metadata,
+        ("Everyday Food",),
+        completed_week(dt.date(2026, 8, 2)),
+        top_merchant_count=1,
+    )
+    assert [(vendor.name, vendor.amount) for vendor in limited.categories[0].top_vendors] == [("ALPHA MARKET", 100.0)]
 
 
 def test_selected_average_uses_combined_unrounded_spending() -> None:
