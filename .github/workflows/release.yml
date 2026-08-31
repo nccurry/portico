@@ -68,7 +68,6 @@ jobs:
       - run: task test:coverage
       - run: task coverage:check-src
       - run: task coverage:check-total
-      - run: task pages:build
 
   smoke-test:
     needs: source-checks

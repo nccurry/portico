@@ -7,7 +7,6 @@ from src.config import ConfigError, load_settings
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DEFAULTS = PROJECT_ROOT / "config" / "defaults.toml"
-LOCAL_EXAMPLE = PROJECT_ROOT / "config" / "local.example.toml"
 
 
 def test_defaults_match_the_public_application_profile(tmp_path: Path) -> None:
@@ -38,18 +37,6 @@ def test_defaults_match_the_public_application_profile(tmp_path: Path) -> None:
         "Investments",
         "Retirement",
     )
-
-
-def test_local_example_does_not_change_defaults(tmp_path: Path) -> None:
-    defaults = load_settings(
-        defaults_path=DEFAULTS,
-        local_path=tmp_path / "missing.toml",
-        environ={},
-        project_root=PROJECT_ROOT,
-    )
-    example = load_settings(defaults_path=DEFAULTS, local_path=LOCAL_EXAMPLE, environ={}, project_root=PROJECT_ROOT)
-
-    assert example == defaults
 
 
 def test_local_file_and_environment_override_defaults(tmp_path: Path) -> None:

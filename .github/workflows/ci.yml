@@ -216,28 +216,6 @@ jobs:
           if-no-files-found: error
           retention-days: 3
 
-  pages-demo:
-    if: always() && needs.resolve-devcontainer.result == 'success'
-    needs: resolve-devcontainer
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: read
-      packages: read
-    container:
-      image: ${{ needs.resolve-devcontainer.outputs.image }}
-      options: --user 0
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - run: git config --global safe.directory "$GITHUB_WORKSPACE"
-      - run: task dev:sync
-      - run: task pages:build
-      - name: Check for tracked changes
-        run: git diff --exit-code
-
   coverage:
     if: >-
       always() &&
@@ -327,7 +305,7 @@ jobs:
 
   ci:
     if: always()
-    needs: [lint, unit-tests, integration-tests, pages-demo, coverage, production-container]
+    needs: [lint, unit-tests, integration-tests, coverage, production-container]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -336,11 +314,10 @@ jobs:
           LINT: ${{ needs.lint.result }}
           UNIT: ${{ needs.unit-tests.result }}
           INTEGRATION: ${{ needs.integration-tests.result }}
-          PAGES: ${{ needs.pages-demo.result }}
           COVERAGE: ${{ needs.coverage.result }}
           CONTAINER: ${{ needs.production-container.result }}
         run: |
-          for result in "$LINT" "$UNIT" "$INTEGRATION" "$PAGES" "$COVERAGE" "$CONTAINER"; do
+          for result in "$LINT" "$UNIT" "$INTEGRATION" "$COVERAGE" "$CONTAINER"; do
             test "$result" = "success"
           done
 

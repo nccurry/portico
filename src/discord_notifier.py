@@ -576,3 +576,7 @@ def _emit(data: Mapping[str, Any], output: str, text: str) -> None:
         print(json.dumps(data, sort_keys=True))
     else:
         print(text)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

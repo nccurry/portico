@@ -280,13 +280,8 @@ transaction data. They cover report periods, calculation policies, thresholds,
 subscription detection, financial-independence assumptions, Discord summary
 windows, and merchant aliases.
 
-Create an ignored local override:
-
-```console
-cp config/local.example.toml config/local.toml
-```
-
-Edit only the values that differ from the defaults. Portico stops with an error
+Create the ignored file `config/local.toml`. Add only the values that differ
+from the defaults. Portico stops with an error
 for unknown keys, wrong types, unsafe paths, duplicate values, and values outside
 the supported ranges. Restart Portico after changing a TOML file.
 
@@ -327,7 +322,7 @@ container. Portico automatically reads `/app/config/defaults.toml` and then
 Create and edit the override on the Docker host:
 
 ```console
-cp config/local.example.toml config/local.toml
+touch config/local.toml
 nano config/local.toml
 docker restart portico
 ```
@@ -414,25 +409,25 @@ The notifier runs inside the same container as the dashboard. Check its
 configuration, Google Sheets access, selected categories, webhook, and timezone:
 
 ```console
-docker exec portico python -m scripts.weekly_discord_summary check
+docker exec portico python -m src.discord_notifier check
 ```
 
 Preview the report without contacting Discord:
 
 ```console
-docker exec portico python -m scripts.weekly_discord_summary preview
+docker exec portico python -m src.discord_notifier preview
 ```
 
 Send a test message that contains no financial data:
 
 ```console
-docker exec portico python -m scripts.weekly_discord_summary test
+docker exec portico python -m src.discord_notifier test
 ```
 
 Send the latest completed weekly report:
 
 ```console
-docker exec portico python -m scripts.weekly_discord_summary send
+docker exec portico python -m src.discord_notifier send
 ```
 
 The notifier stores sent periods in the `portico-state` Docker volume. It skips
@@ -527,8 +522,11 @@ uv sync --locked --dev
 uv run --locked ruff check .
 uv run --locked mypy
 uv run --locked pytest
-uv run --locked python -m scripts.run_app --data-source=demo
 ```
+
+Set `PORTICO_DATA_SOURCE=demo` and run
+`uv run --locked streamlit run Home.py` to start the synthetic demo without
+Task. PowerShell uses `$env:PORTICO_DATA_SOURCE = "demo"`.
 
 ### Checks
 
@@ -536,7 +534,6 @@ Task provides short names for the same local checks that CI runs:
 
 ```console
 .tools/bin/task check
-.tools/bin/task pages:build
 .tools/bin/task container:smoke
 ```
 

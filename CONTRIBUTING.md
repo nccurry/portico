@@ -22,7 +22,19 @@ Install uv, then run:
 
 ```console
 uv sync --locked --dev
-uv run --locked python -m scripts.run_app --data-source=demo
+```
+
+On Linux, start the demo with:
+
+```console
+PORTICO_DATA_SOURCE=demo uv run --locked streamlit run Home.py
+```
+
+On Windows PowerShell, start it with:
+
+```powershell
+$env:PORTICO_DATA_SOURCE = "demo"
+uv run --locked streamlit run Home.py
 ```
 
 Lint and test without Task:
@@ -67,12 +79,11 @@ Run these commands before you open a pull request:
 
 ```console
 .tools/bin/task check
-.tools/bin/task pages:build
 .tools/bin/task container:smoke
 ```
 
-`check` runs linting and the unit and integration test suites. The other
-commands cover the static demo and the production container.
+`check` runs linting and the unit and integration test suites. The container
+command builds and checks the production image.
 In PowerShell, replace `.tools/bin/task` with
 `.\.tools\bin\task.exe`. Describe the user-visible result and the tests in the pull
 request. Use demo data for screenshots.
@@ -87,7 +98,7 @@ Portico uses Semantic Versioning. Complete these steps from a clean worktree:
 1. Create a release branch from `main`.
 2. Update the version in `pyproject.toml`.
 3. Move the Unreleased changelog entries into a dated version section.
-4. Run `task lint`, `task test`, and `task pages:build`.
+4. Run `task lint` and `task test`.
 5. Merge the release change into `main`.
 
 To publish, create and push an annotated `vX.Y.Z` tag. The tag must match the
