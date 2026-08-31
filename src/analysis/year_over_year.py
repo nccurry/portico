@@ -5,7 +5,6 @@ from typing import cast
 
 import pandas as pd
 
-from src.config import get_settings
 from src.custom_types import YearOverYearSummary
 
 
@@ -18,34 +17,6 @@ HISTORY_COLUMNS = [
     "Is_Current",
 ]
 TOTAL_COLUMNS = ["Year", "Spending_Through_Month", "Change", "Change_Pct"]
-UTILITY_CATEGORY_TERMS = (
-    "electric",
-    "gas",
-    "water",
-    "sewer",
-    "internet",
-    "phone",
-    "mobile",
-    "cable",
-    "trash",
-    "garbage",
-    "utility",
-)
-DISCRETIONARY_GROUP_TERMS = (
-    "entertainment",
-    "hobbies",
-    "recreation",
-    "shopping",
-)
-DISCRETIONARY_FOOD_TERMS = (
-    "restaurant",
-    "bar",
-    "dining",
-    "coffee",
-    "cafe",
-    "takeout",
-    "delivery",
-)
 
 
 def spending_entities(transactions: pd.DataFrame, dimension: str) -> list[str]:
@@ -57,30 +28,44 @@ def spending_entities(transactions: pd.DataFrame, dimension: str) -> list[str]:
     return sorted(value for value in values.unique() if value)
 
 
-def spending_preset_categories(
+def utility_bill_categories(
     transactions: pd.DataFrame,
-    preset: str,
+    *,
+    group_terms: tuple[str, ...],
+    category_terms: tuple[str, ...],
 ) -> list[str]:
-    """Return relevant preset categories ordered by total net spending."""
+    """Return utility categories ordered by total net spending."""
     expenses = transactions[transactions["Type"].eq("Expense")].copy()
     categories = expenses["Category"].fillna("").astype(str).str.strip()
     groups = expenses["Group"].fillna("").astype(str).str.strip()
-    category_lower = categories.str.lower()
-    group_lower = groups.str.lower()
+    normalized_group_terms = tuple(term.casefold() for term in group_terms)
+    normalized_category_terms = tuple(term.casefold() for term in category_terms)
+    mask = groups.str.casefold().apply(
+        lambda value: any(term in value for term in normalized_group_terms)
+    ) & categories.str.casefold().apply(lambda value: any(term in value for term in normalized_category_terms))
+    return _ordered_categories(expenses, categories, mask)
 
-    if preset == "Utility bills":
-        mask = group_lower.str.contains("bill") & category_lower.apply(
-            lambda value: any(term in value for term in UTILITY_CATEGORY_TERMS)
-        )
-    elif preset == "Discretionary spending":
-        mask = group_lower.apply(lambda value: any(term in value for term in DISCRETIONARY_GROUP_TERMS)) | (
-            group_lower.eq("food")
-            & category_lower.apply(lambda value: any(term in value for term in DISCRETIONARY_FOOD_TERMS))
-        )
-        excluded_categories = {category.casefold() for category in get_settings().spending.exclude_categories}
-        mask &= ~category_lower.isin(excluded_categories)
-    else:
-        raise ValueError(f"Unsupported year-over-year preset: {preset}")
+
+def discretionary_categories(
+    transactions: pd.DataFrame,
+    *,
+    excluded_categories: tuple[str, ...],
+    excluded_groups: tuple[str, ...],
+) -> list[str]:
+    """Return categories allowed by the discretionary spending policy."""
+    expenses = transactions[transactions["Type"].eq("Expense")].copy()
+    categories = expenses["Category"].fillna("").astype(str).str.strip()
+    groups = expenses["Group"].fillna("").astype(str).str.strip()
+    mask = ~categories.isin(excluded_categories) & ~groups.isin(excluded_groups) & groups.ne("Transfer")
+    return _ordered_categories(expenses, categories, mask)
+
+
+def _ordered_categories(
+    expenses: pd.DataFrame,
+    categories: pd.Series,
+    mask: pd.Series,
+) -> list[str]:
+    """Order eligible categories by total net spending."""
 
     eligible = mask & categories.ne("")
     selected = expenses.loc[eligible].copy()

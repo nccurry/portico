@@ -169,13 +169,15 @@ def _build_health_checks(
 
 def _render_settings() -> tuple[int, int, float, bool, bool, bool]:
     """Render compact controls for checks with adjustable thresholds."""
-    thresholds = get_settings().thresholds
+    settings = get_settings()
+    thresholds = settings.thresholds
+    defaults = settings.data_health
     with st.popover("Check settings", icon=":material/tune:", width="stretch"):
         stale_days = st.slider(
             "Stale account threshold",
             min_value=1,
-            max_value=60,
-            value=7,
+            max_value=365,
+            value=defaults.stale_account_days,
             step=1,
             key="data_health_stale_days",
             persist_state="page",
@@ -200,19 +202,19 @@ def _render_settings() -> tuple[int, int, float, bool, bool, bool]:
         )
         check_same_account = st.toggle(
             "Require the same account",
-            value=True,
+            value=defaults.duplicate_require_same_account,
             key="data_health_same_account",
             persist_state="page",
         )
         check_same_category = st.toggle(
             "Require the same category",
-            value=False,
+            value=defaults.duplicate_require_same_category,
             key="data_health_same_category",
             persist_state="page",
         )
         require_same_description = st.toggle(
             "Require the same description",
-            value=True,
+            value=defaults.duplicate_require_same_description,
             key="data_health_same_description",
             persist_state="page",
         )

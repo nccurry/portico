@@ -8,9 +8,10 @@ from src.analysis.year_over_year import (
     TOTAL_COLUMNS,
     build_year_over_year_history,
     build_year_totals,
+    discretionary_categories,
     spending_entities,
-    spending_preset_categories,
     summarize_year_over_year,
+    utility_bill_categories,
 )
 
 
@@ -54,13 +55,17 @@ def test_utility_bill_preset_uses_bill_group_and_utility_names() -> None:
         ]
     )
 
-    assert spending_preset_categories(transactions, "Utility bills") == [
+    assert utility_bill_categories(
+        transactions,
+        group_terms=("bill",),
+        category_terms=("electric", "water", "internet"),
+    ) == [
         "Electric",
         "Water Bill",
     ]
 
 
-def test_discretionary_preset_includes_lifestyle_groups_and_dining() -> None:
+def test_discretionary_preset_uses_shared_spending_exclusions() -> None:
     transactions = _transactions(
         [
             {"Category": "Video Games", "Group": "Entertainment", "Amount": -50.0},
@@ -68,6 +73,7 @@ def test_discretionary_preset_includes_lifestyle_groups_and_dining() -> None:
             {"Category": "Restaurants / Bars", "Group": "Food", "Amount": -150.0},
             {"Category": "Groceries", "Group": "Food", "Amount": -500.0},
             {"Category": "Flights", "Group": "Travel", "Amount": -1_000.0},
+            {"Category": "Credit Card Payment", "Group": "Transfer", "Amount": -1_500.0},
             {"Category": "Given Gift", "Group": "Shopping", "Amount": -2_000.0},
             {
                 "Category": "Tax Return Payment",
@@ -77,19 +83,16 @@ def test_discretionary_preset_includes_lifestyle_groups_and_dining() -> None:
         ]
     )
 
-    assert spending_preset_categories(
+    assert discretionary_categories(
         transactions,
-        "Discretionary spending",
+        excluded_categories=("Given Gift", "Tax Return Payment"),
+        excluded_groups=("Bills", "Travel"),
     ) == [
+        "Groceries",
         "Misc Shopping",
         "Restaurants / Bars",
         "Video Games",
     ]
-
-
-def test_spending_preset_categories_rejects_unknown_preset() -> None:
-    with pytest.raises(ValueError, match="Unsupported"):
-        spending_preset_categories(_transactions([{}]), "Everything")
 
 
 def test_history_zero_fills_covered_months_and_preserves_refunds() -> None:

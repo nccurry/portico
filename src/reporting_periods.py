@@ -5,6 +5,11 @@ from datetime import timedelta
 import pandas as pd
 
 
+def month_lookback_options(months: tuple[int, ...]) -> dict[str, int]:
+    """Return compact labels for configured calendar-month lookbacks."""
+    return {f"{value // 12}Y" if value % 12 == 0 else f"{value}M": value for value in months}
+
+
 def latest_data_timestamp(df: pd.DataFrame | None, column: str = "Date") -> pd.Timestamp | None:
     """Return the latest non-null timestamp in ``df[column]``."""
     if df is None or column not in df.columns or df.empty:

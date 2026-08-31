@@ -201,6 +201,17 @@ variables select the data source and configuration path.
 and returns frozen typed settings. New settings need a safe tracked default and
 runtime validation.
 
+Configuration owns household policy and initial control values. This includes
+report periods, discretionary and regular-report exclusions, budget history,
+subscription discovery, data-health thresholds, FI assumptions, weekly summary
+windows, and merchant aliases. The same named policy must mean the same thing
+on every page. In particular, every Discretionary view uses the exclusions in
+`[spending]`.
+
+Configuration does not own Tiller column meanings, financial formulas, Transfer
+handling, chart layout, colors, widget safety limits, or validation rules. Those
+are application behavior and stay in typed Python code.
+
 Google Sheets URLs and Discord webhook URLs are secrets. They belong in the
 ignored `.streamlit/secrets.toml` file. They never belong in tracked
 configuration, logs, fixtures, or error messages.

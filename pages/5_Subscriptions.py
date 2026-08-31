@@ -550,12 +550,16 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
         )
         return
 
+    settings = get_settings().subscriptions
     latest_data_date = pd.Timestamp(transactions["Date"].max())
     all_categories = transactions_spreadsheet.get_all_categories()
-    default_subscription_categories = [category for category in all_categories if "subscription" in category.lower()]
+    known_terms = tuple(term.casefold() for term in settings.known_category_terms)
+    default_subscription_categories = [
+        category for category in all_categories if any(term in category.casefold() for term in known_terms)
+    ]
     default_discovery_exclusions = [
         category
-        for category in get_settings().subscriptions.default_exclude_categories
+        for category in settings.default_exclude_categories
         if category in all_categories and not category.lower().endswith("bill")
     ]
 
@@ -566,7 +570,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
     )
     latest_utc = pd.to_datetime(latest_data_date, utc=True)
     days_stale = (pd.Timestamp.now(tz="UTC").normalize() - latest_utc.normalize()).days
-    if days_stale > 45:
+    if days_stale > settings.stale_after_days:
         st.warning(
             f"The newest transaction is {mask_value(str(days_stale))} days old. Statuses and forecasts may be stale.",
             icon=":material/history:",
@@ -589,8 +593,8 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
             "Minimum discovery confidence",
             min_value=70,
             max_value=100,
-            value=80,
-            step=5,
+            value=settings.minimum_confidence,
+            step=1,
         )
 
     history_through = reporting_anchor()

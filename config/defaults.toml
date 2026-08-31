@@ -2,6 +2,10 @@
 mode = "google_sheets"
 demo_directory = "demo/data"
 
+[reporting]
+lookback_months = [3, 6, 12, 24]
+default_lookback_months = 12
+
 [thresholds]
 expense = 3000
 income = 20000
@@ -9,6 +13,7 @@ duplicate_minimum = 10.0
 duplicate_days = 1
 
 [income_savings]
+default_view = "regular"
 target_rate = 20
 exclude_categories = [
     "Tax Return Refund",
@@ -28,10 +33,14 @@ exclude_categories = [
 exclude_groups = ["Travel", "Donations"]
 
 [spending]
+default_view = "discretionary"
 exclude_categories = ["Christmas", "Given Gift", "Tax Return Payment"]
 exclude_groups = ["Bills", "Income", "Donations", "Maintenance", "Travel"]
 
 [subscriptions]
+known_category_terms = ["subscription"]
+minimum_confidence = 80
+stale_after_days = 45
 default_exclude_categories = ["Automobile Fuel", "Fee", "Medical Bill", "Video Games"]
 detection_excluded_categories = [
     "Mortgage Payment",
@@ -49,6 +58,31 @@ detection_excluded_categories = [
 ]
 detection_excluded_pattern = "Mortgage|Loan|Investment|401k|HSA|RSU|ESPP"
 
+[year_over_year]
+utility_group_terms = ["bill"]
+utility_category_terms = [
+    "electric",
+    "gas",
+    "water",
+    "sewer",
+    "internet",
+    "phone",
+    "mobile",
+    "cable",
+    "trash",
+    "garbage",
+    "utility",
+]
+
+[budget]
+history_months = 12
+
+[data_health]
+stale_account_days = 7
+duplicate_require_same_account = true
+duplicate_require_same_category = false
+duplicate_require_same_description = true
+
 [financial_independence]
 expected_return_rate = 7.0
 withdrawal_rate = 4.0
@@ -56,5 +90,10 @@ spending_lookback_months = 12
 projection_years = 50
 included_account_patterns = []
 included_groups = ["Savings", "Investments", "Retirement"]
+
+[weekly_summary]
+average_weeks = 8
+rolling_weeks = 4
+top_merchant_count = 3
 
 [merchants.aliases]

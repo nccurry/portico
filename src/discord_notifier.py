@@ -21,11 +21,10 @@ from urllib.request import Request, urlopen
 
 import pandas as pd
 
+from src.config import get_settings
 from src.scrubbing import SpreadsheetSchemaError, scrub_categories, scrub_transactions
 from src.sheet_config import SheetConfigError, parse_sheet_location
 from src.weekly_expenses import (
-    AVERAGE_WEEKS,
-    ROLLING_WEEKS,
     ReportPeriod,
     WeeklyExpenseError,
     WeeklyExpenseReport,
@@ -159,6 +158,7 @@ def test_payload() -> dict[str, Any]:
 
 def report_payload(report: WeeklyExpenseReport) -> dict[str, Any]:
     """Return the Discord embed for a weekly expense report."""
+    rolling_weeks = report.period.rolling_weeks
     category_lines = []
     for item in report.categories:
         summary = (
@@ -177,13 +177,13 @@ def report_payload(report: WeeklyExpenseReport) -> dict[str, Any]:
     rolling_lines = [
         (
             f"**{_escape_markdown(item.name)}** — **{_currency(item.rolling_amount)}** · "
-            f"{_rolling_change_text(item.rolling_change)}"
+            f"{_rolling_change_text(item.rolling_change, rolling_weeks)}"
         )
         for item in report.categories
     ]
     rolling_lines.append(
         f"**Watched total** — **{_currency(report.rolling_selected_total)}** · "
-        f"{_rolling_change_text(report.rolling_selected_change)}"
+        f"{_rolling_change_text(report.rolling_selected_change, rolling_weeks)}"
     )
     rolling_value = "\n".join(rolling_lines)
     if len(rolling_value) > 1024:
@@ -210,7 +210,7 @@ def report_payload(report: WeeklyExpenseReport) -> dict[str, Any]:
                         "inline": True,
                     },
                     {
-                        "name": "4-week watched spending",
+                        "name": f"{rolling_weeks}-week watched spending",
                         "value": rolling_value,
                         "inline": False,
                     },
@@ -227,10 +227,10 @@ def report_payload(report: WeeklyExpenseReport) -> dict[str, Any]:
                 ],
                 "footer": {
                     "text": (
-                        f"Usual = {AVERAGE_WEEKS}-week average · "
+                        f"Usual = {period.average_weeks}-week average · "
                         f"{_date(period.comparison_start, include_year=True)} - "
                         f"{_date(period.comparison_end, include_year=True)} · "
-                        f"4-week view = {_date(period.rolling_start)} - {_date(period.end)} vs "
+                        f"{rolling_weeks}-week view = {_date(period.rolling_start)} - {_date(period.end)} vs "
                         f"{_date(period.previous_rolling_start)} - "
                         f"{_date(period.previous_rolling_end, include_year=True)}"
                     )
@@ -249,14 +249,14 @@ def report_as_dict(report: WeeklyExpenseReport) -> dict[str, Any]:
         "average_period": {
             "start": report.period.comparison_start.isoformat(),
             "end": report.period.comparison_end.isoformat(),
-            "weeks": AVERAGE_WEEKS,
+            "weeks": report.period.average_weeks,
         },
         "rolling_period": {
             "start": report.period.rolling_start.isoformat(),
             "end": report.period.end.isoformat(),
             "comparison_start": report.period.previous_rolling_start.isoformat(),
             "comparison_end": report.period.previous_rolling_end.isoformat(),
-            "weeks": ROLLING_WEEKS,
+            "weeks": report.period.rolling_weeks,
         },
         "categories": [
             {
@@ -341,7 +341,13 @@ def was_sent(period_end: dt.date, path: Path = DEFAULT_STATE_PATH) -> bool:
 def build_report(config: NotifierConfig, period: ReportPeriod) -> WeeklyExpenseReport:
     """Load source data and calculate one report."""
     transactions, metadata = load_report_data(config)
-    return calculate_weekly_report(transactions, metadata, config.categories, period)
+    return calculate_weekly_report(
+        transactions,
+        metadata,
+        config.categories,
+        period,
+        top_merchant_count=get_settings().weekly_summary.top_merchant_count,
+    )
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -404,7 +410,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
             return 0
 
-        period = completed_week(dt.date.today(), args.period_end)
+        summary_settings = get_settings().weekly_summary
+        period = completed_week(
+            dt.date.today(),
+            args.period_end,
+            average_weeks=summary_settings.average_weeks,
+            rolling_weeks=summary_settings.rolling_weeks,
+        )
         if args.command == "preview":
             report = build_report(config, period)
             _emit(report_as_dict(report), args.output, _preview_text(report))
@@ -505,12 +517,12 @@ def _usual_change_text(change: float) -> str:
     return "— right at usual"
 
 
-def _rolling_change_text(change: float) -> str:
+def _rolling_change_text(change: float, weeks: int) -> str:
     if change > 0:
-        return f"▲ {_currency(change)} more than prior 4 weeks"
+        return f"▲ {_currency(change)} more than prior {weeks} weeks"
     if change < 0:
-        return f"▼ {_currency(abs(change))} less than prior 4 weeks"
-    return "— same as prior 4 weeks"
+        return f"▼ {_currency(abs(change))} less than prior {weeks} weeks"
+    return f"— same as prior {weeks} weeks"
 
 
 def _date(value: dt.date, *, include_year: bool = False) -> str:
@@ -533,21 +545,24 @@ def _preview_text(report: WeeklyExpenseReport) -> str:
         if item.top_vendors:
             vendors = ", ".join(f"{vendor.name} {_currency(vendor.amount)}" for vendor in item.top_vendors)
             lines.append(f"  Top vendors: {vendors}")
-    lines.extend(["", "4-week watched spending"])
+    weeks = report.period.rolling_weeks
+    lines.extend(["", f"{weeks}-week watched spending"])
     for item in report.categories:
-        lines.append(f"{item.name}: {_currency(item.rolling_amount)} ({_rolling_change_text(item.rolling_change)})")
+        lines.append(
+            f"{item.name}: {_currency(item.rolling_amount)} ({_rolling_change_text(item.rolling_change, weeks)})"
+        )
     lines.extend(
         [
             (
-                f"4-week watched total: {_currency(report.rolling_selected_total)} "
-                f"({_rolling_change_text(report.rolling_selected_change)})"
+                f"{weeks}-week watched total: {_currency(report.rolling_selected_total)} "
+                f"({_rolling_change_text(report.rolling_selected_change, weeks)})"
             ),
             "",
             (f"Watched total: {_currency(report.selected_total)} ({_usual_change_text(report.selected_change)})"),
             f"All expenses: {_currency(report.all_expenses_total)}",
             f"Needs categorization: {_uncategorized_text(report.uncategorized_count)}",
             (
-                f"Usual = {AVERAGE_WEEKS}-week average, "
+                f"Usual = {report.period.average_weeks}-week average, "
                 f"{_date(report.period.comparison_start, include_year=True)} - "
                 f"{_date(report.period.comparison_end, include_year=True)}"
             ),

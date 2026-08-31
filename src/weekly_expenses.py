@@ -28,20 +28,22 @@ class ReportPeriod:
     end: dt.date
     comparison_start: dt.date
     comparison_end: dt.date
+    average_weeks: int = AVERAGE_WEEKS
+    rolling_weeks: int = ROLLING_WEEKS
 
     @property
     def rolling_start(self) -> dt.date:
-        """Return the start of the four weeks ending with this report."""
-        return self.end - dt.timedelta(days=(ROLLING_WEEKS * 7) - 1)
+        """Return the start of the rolling window ending with this report."""
+        return self.end - dt.timedelta(days=(self.rolling_weeks * 7) - 1)
 
     @property
     def previous_rolling_start(self) -> dt.date:
-        """Return the start of the preceding four-week comparison."""
-        return self.rolling_start - dt.timedelta(days=ROLLING_WEEKS * 7)
+        """Return the start of the preceding rolling window."""
+        return self.rolling_start - dt.timedelta(days=self.rolling_weeks * 7)
 
     @property
     def previous_rolling_end(self) -> dt.date:
-        """Return the end of the preceding four-week comparison."""
+        """Return the end of the preceding rolling window."""
         return self.rolling_start - dt.timedelta(days=1)
 
 
@@ -71,7 +73,7 @@ class CategoryTotal:
 
     @property
     def rolling_change(self) -> float:
-        """Return the dollar change from the preceding four weeks."""
+        """Return the dollar change from the preceding rolling window."""
         return _money(self.rolling_amount - self.previous_rolling_amount)
 
 
@@ -95,11 +97,17 @@ class WeeklyExpenseReport:
 
     @property
     def rolling_selected_change(self) -> float:
-        """Return the watched-total change from the preceding four weeks."""
+        """Return the watched-total change from the preceding rolling window."""
         return _money(self.rolling_selected_total - self.previous_rolling_selected_total)
 
 
-def completed_week(today: dt.date, period_end: dt.date | None = None) -> ReportPeriod:
+def completed_week(
+    today: dt.date,
+    period_end: dt.date | None = None,
+    *,
+    average_weeks: int = AVERAGE_WEEKS,
+    rolling_weeks: int = ROLLING_WEEKS,
+) -> ReportPeriod:
     """Return a completed week and its trailing average window."""
     if period_end is None:
         days_since_saturday = (today.weekday() - 5) % 7 or 7
@@ -113,8 +121,10 @@ def completed_week(today: dt.date, period_end: dt.date | None = None) -> ReportP
 
     start = end - dt.timedelta(days=6)
     comparison_end = start - dt.timedelta(days=1)
-    comparison_start = comparison_end - dt.timedelta(days=(AVERAGE_WEEKS * 7) - 1)
-    return ReportPeriod(start, end, comparison_start, comparison_end)
+    if average_weeks < 1 or rolling_weeks < 1:
+        raise WeeklyExpenseError("Weekly summary windows must be at least one week.")
+    comparison_start = comparison_end - dt.timedelta(days=(average_weeks * 7) - 1)
+    return ReportPeriod(start, end, comparison_start, comparison_end, average_weeks, rolling_weeks)
 
 
 def validate_selected_categories(categories: tuple[str, ...], metadata: pd.DataFrame) -> None:
@@ -144,8 +154,10 @@ def calculate_weekly_report(
     metadata: pd.DataFrame,
     categories: tuple[str, ...],
     period: ReportPeriod,
+    *,
+    top_merchant_count: int = TOP_VENDOR_COUNT,
 ) -> WeeklyExpenseReport:
-    """Calculate weekly spending, averages, and four-week comparisons."""
+    """Calculate weekly spending, averages, and rolling comparisons."""
     validate_selected_categories(categories, metadata)
 
     expense_rows = transactions[transactions["Type"] == "Expense"].copy()
@@ -167,16 +179,16 @@ def calculate_weekly_report(
             CategoryTotal(
                 name=category,
                 amount=_spending(current_rows),
-                average_amount=_average_weekly_spending(comparison_rows),
+                average_amount=_average_weekly_spending(comparison_rows, period.average_weeks),
                 rolling_amount=_spending(rolling_rows),
                 previous_rolling_amount=_spending(previous_rolling_rows),
-                top_vendors=_top_vendors(current_rows),
+                top_vendors=_top_vendors(current_rows, top_merchant_count),
             )
         )
     category_totals_tuple = tuple(category_totals)
     selected_total = _money(sum(item.amount for item in category_totals_tuple))
     selected_comparison = comparison[comparison["Category"].isin(categories)]
-    average_selected_total = _average_weekly_spending(selected_comparison)
+    average_selected_total = _average_weekly_spending(selected_comparison, period.average_weeks)
     rolling_selected_total = _spending(rolling[rolling["Category"].isin(categories)])
     previous_rolling_selected_total = _spending(previous_rolling[previous_rolling["Category"].isin(categories)])
 
@@ -197,12 +209,12 @@ def _spending(rows: pd.DataFrame) -> float:
     return _money(-float(rows["Amount"].sum()))
 
 
-def _average_weekly_spending(rows: pd.DataFrame) -> float:
-    """Return average spending across the fixed trailing week window."""
-    return _money(_spending(rows) / AVERAGE_WEEKS)
+def _average_weekly_spending(rows: pd.DataFrame, weeks: int) -> float:
+    """Return average spending across the trailing week window."""
+    return _money(_spending(rows) / weeks)
 
 
-def _top_vendors(rows: pd.DataFrame) -> tuple[VendorTotal, ...]:
+def _top_vendors(rows: pd.DataFrame, count: int) -> tuple[VendorTotal, ...]:
     """Return the largest positive net vendor totals for the current week."""
     if rows.empty:
         return ()
@@ -213,7 +225,7 @@ def _top_vendors(rows: pd.DataFrame) -> tuple[VendorTotal, ...]:
     totals = totals[totals["Amount"] > 0].sort_values(["Amount", "Vendor"], ascending=[False, True])
     return tuple(
         VendorTotal(name=str(row.Vendor), amount=_money(float(row.Amount)))
-        for row in totals.head(TOP_VENDOR_COUNT).itertuples(index=False)
+        for row in totals.head(count).itertuples(index=False)
     )
 
 
