@@ -918,7 +918,9 @@ class TestSpendingByCategorySmoke:
             ],
         )
         assert not at.exception
-        assert at.header[0].value == "Spending by Category"
+        assert at.title[0].value == "Spending by category"
+        toolbar_weights = [column.weight for column in at.columns[:4]]
+        assert toolbar_weights == pytest.approx([value / 7.05 for value in (1.6, 1.6, 1.6, 2.25)])
         assert [(control.label, control.value, control.options) for control in at.segmented_control] == [
             ("Time frame", "1Y", ["3M", "6M", "1Y", "2Y"]),
             ("View", "Discretionary", ["All spending", "Discretionary"]),
@@ -1116,7 +1118,7 @@ class TestYearOverYearSmoke:
             ],
         )
         assert not at.exception
-        assert at.header[0].value == "Year over year"
+        assert at.title[0].value == "Year over year"
         view = at.segmented_control(key="year_over_year_view")
         assert view.value == "Utility bills"
         assert view.options == [
@@ -1399,7 +1401,10 @@ class TestMerchantAnalysisSmoke:
             ],
         )
         assert not at.exception
-        assert at.header[0].value == "Spending by Merchant"
+        assert at.title[0].value == "Spending by merchant"
+        toolbar_weights = [column.weight for column in at.columns[:4]]
+        assert toolbar_weights == pytest.approx([value / 7.05 for value in (1.6, 1.6, 1.6, 2.25)])
+        assert all(control.proto.required for control in at.segmented_control)
         assert _metric_values(at) == [
             ("Total spending", "$31,883", ""),
             ("Average monthly", "$2,657", ""),
@@ -1605,7 +1610,7 @@ class TestBudgetSmoke:
             ("YTD remaining", "$7,996", ""),
             ("YTD used", "64.8%", ""),
         ]
-        assert at.header[0].value == "Budget"
+        assert at.title[0].value == "Budget"
         assert at.selectbox(key="budget_month").value == "2026-04"
         assert len(at.get("popover")) == 1
         assert at.multiselect(key="budget_exclude_groups").value == []
@@ -1726,7 +1731,7 @@ class TestTopTransactionsSmoke:
             ],
         )
         assert not at.exception
-        assert at.header[0].value == "Transactions"
+        assert at.title[0].value == "Transactions"
         assert [(control.label, control.value, control.options) for control in at.segmented_control] == [
             ("Time frame", "1Y", ["3M", "6M", "1Y", "2Y", "All"]),
             ("Type", "All", ["All", "Expenses", "Income", "Transfers"]),
@@ -1927,7 +1932,7 @@ class TestFinancialIndependenceSmoke:
             ),
             ("FI target", "$833,075", "$450,875 still needed"),
         ]
-        assert at.header[0].value == "Financial independence"
+        assert at.title[0].value == "Financial independence"
         assert len(at.get("popover")) == 1
         assert at.multiselect(key="fi_include_accounts").value
         assert at.selectbox(key="fi_spending_lookback").value == 12
@@ -2034,6 +2039,7 @@ class TestDataHealthSmoke:
             ],
         )
         assert not at.exception
+        assert at.title[0].value == "Data health"
         assert _metric_values(at) == [
             ("Needs attention", "0", ""),
             ("Review items", "3", ""),

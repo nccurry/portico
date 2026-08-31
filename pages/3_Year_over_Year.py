@@ -295,7 +295,7 @@ def _preset_selection(
 
 def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
     """Render curated or single-entity year-over-year comparisons."""
-    st.header("Year over year")
+    st.title("Year over year")
     transactions = transactions_spreadsheet.scrubbed_df.copy()
     expenses = transactions[transactions["Type"].eq("Expense")]
     if expenses.empty:

@@ -668,7 +668,7 @@ def _render_entity_detail(
 
 def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
     """Render the spending overview and selected-entity drill-down."""
-    st.header("Spending by Category")
+    st.title("Spending by category")
     transactions = transactions_spreadsheet.scrubbed_df.copy()
     expenses = transactions[transactions["Type"] == "Expense"]
     if expenses.empty:
@@ -682,7 +682,11 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
 
     expense_categories = sorted(expenses["Category"].dropna().astype(str).unique())
     expense_groups = sorted(expenses["Group"].dropna().astype(str).unique())
-    controls = st.columns([1.0, 1.4, 1.35, 2.25], vertical_alignment="bottom")
+    controls = st.columns(
+        [1.6, 1.6, 1.6, 2.25],
+        vertical_alignment="bottom",
+        wrap=False,
+    )
     with controls[0]:
         lookback = st.segmented_control(
             "Time frame",
@@ -691,6 +695,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
             required=True,
             key="spending_lookback",
             persist_state="page",
+            width="stretch",
         )
     with controls[1]:
         view = st.segmented_control(
@@ -700,6 +705,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
             required=True,
             key="spending_view",
             persist_state="page",
+            width="stretch",
         )
     with controls[2]:
         comparison = st.segmented_control(
@@ -709,6 +715,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
             required=True,
             key="spending_comparison",
             persist_state="page",
+            width="stretch",
         )
     with controls[3]:
         filters = render_spending_filters(

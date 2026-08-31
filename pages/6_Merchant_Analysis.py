@@ -415,7 +415,7 @@ def _render_merchant_detail(
 
 def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
     """Render merchant ranking and selected-merchant drill-down."""
-    st.header("Spending by Merchant")
+    st.title("Spending by merchant")
     try:
         merchant_aliases = configured_merchant_aliases()
     except ValueError as error:
@@ -434,30 +434,40 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
 
     expense_categories = sorted(expenses["Category"].dropna().astype(str).unique())
     expense_groups = sorted(expenses["Group"].dropna().astype(str).unique())
-    controls = st.columns([1.0, 1.4, 1.35, 2.25], vertical_alignment="bottom")
+    controls = st.columns(
+        [1.6, 1.6, 1.6, 2.25],
+        vertical_alignment="bottom",
+        wrap=False,
+    )
     with controls[0]:
         lookback = st.segmented_control(
             "Time frame",
             list(LOOKBACK_MONTHS),
             default="1Y",
+            required=True,
             key="merchant_lookback",
             persist_state="page",
+            width="stretch",
         )
     with controls[1]:
         view = st.segmented_control(
             "View",
             SPENDING_VIEWS,
             default="Discretionary",
+            required=True,
             key="merchant_view",
             persist_state="page",
+            width="stretch",
         )
     with controls[2]:
         comparison = st.segmented_control(
             "Compare with",
             COMPARISON_VIEWS,
             default="Previous period",
+            required=True,
             key="merchant_comparison",
             persist_state="page",
+            width="stretch",
         )
     with controls[3]:
         filters = render_spending_filters(
