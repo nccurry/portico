@@ -466,7 +466,6 @@ Task provides short names for the same local checks that CI runs:
 
 ```console
 .tools/bin/task check
-.tools/bin/task privacy:check
 .tools/bin/task docs:check
 .tools/bin/task pages:build
 .tools/bin/task container:smoke

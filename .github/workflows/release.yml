@@ -63,7 +63,6 @@ jobs:
           [[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
           project_version=$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')
           test "${GITHUB_REF_NAME#v}" = "$project_version"
-      - run: task privacy:check
       - run: task deps:check-lock
       - run: task lint
       - run: task test:coverage

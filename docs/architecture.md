@@ -318,9 +318,9 @@ date instead of the current clock. Tests also isolate local configuration so a
 maintainer's private settings cannot change results.
 
 CI enforces strict typing, linting, unit tests, integration tests, documentation
-checks, privacy checks, and container smoke tests. Coverage must be at least 90% for
-`src` and 80% for `src` and `pages` combined. Local Task commands call the same
-underlying tools.
+checks, and container smoke tests. Coverage must be at least 90% for `src` and
+80% for `src` and `pages` combined. Local Task commands call the same underlying
+tools.
 
 ## Security and privacy rules
 
@@ -333,7 +333,6 @@ The design uses a small and clear security boundary:
 - The production container runs as a non-root user.
 - The container root filesystem is read-only.
 - Demo data and screenshots are synthetic.
-- The privacy scanner rejects common secret and private-data patterns.
 - Error messages do not print financial rows or secret URLs.
 
 The Hide values control does not replace these rules. It changes presentation
