@@ -499,7 +499,7 @@ def main() -> None:
     """Render the monthly budget pulse and drill-down."""
     st.set_page_config(layout="wide")
     render_data_refresh_controls()
-    st.header("Budget")
+    st.title("Budget")
 
     transactions_spreadsheet = load_transactions_data()
     categories_spreadsheet = load_categories_data()

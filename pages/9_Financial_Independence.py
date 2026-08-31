@@ -446,7 +446,7 @@ def configure_page(
     transactions_spreadsheet: TransactionsSpreadsheet,
     balance_history_spreadsheet: BalanceHistorySpreadsheet,
 ) -> None:
-    st.header("Financial independence")
+    st.title("Financial independence")
 
     transactions_df = transactions_spreadsheet.scrubbed_df.copy()
     balances_df = balance_history_spreadsheet.scrubbed_df.copy()
@@ -465,7 +465,7 @@ def configure_page(
         )
 
     all_accounts = get_all_accounts(balances_df)
-    source_controls, _ = st.columns([1.25, 4], vertical_alignment="bottom")
+    _, source_controls = st.columns([4, 1.25], vertical_alignment="bottom")
     with source_controls:
         filters = render_fi_filters(
             all_accounts,

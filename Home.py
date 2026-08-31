@@ -42,12 +42,12 @@ ANALYZE_PAGE_SPECS = (
     ("pages/1_Income_and_Savings.py", "Income and savings", ":material/savings:"),
     (
         "pages/6_Merchant_Analysis.py",
-        "Spending by Merchant",
+        "Spending by merchant",
         ":material/storefront:",
     ),
     (
         "pages/2_Spending_by_Category.py",
-        "Spending by Category",
+        "Spending by category",
         ":material/category:",
     ),
     ("pages/3_Year_over_Year.py", "Year over year", ":material/compare_arrows:"),

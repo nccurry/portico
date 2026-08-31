@@ -187,7 +187,7 @@ def _render_transaction_table(transactions: pd.DataFrame) -> None:
 
 def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
     """Render the transaction filtering and inspection workbench."""
-    st.header("Transactions")
+    st.title("Transactions")
     transactions = transactions_spreadsheet.scrubbed_df.copy()
     if transactions.empty:
         st.info("No transactions are available.", icon=":material/receipt_long:")

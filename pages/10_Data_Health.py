@@ -411,7 +411,7 @@ def configure_page(
     balance_history_spreadsheet: BalanceHistorySpreadsheet,
 ) -> None:
     """Render prioritized data-quality findings for imported Tiller sheets."""
-    st.header("Data health")
+    st.title("Data health")
     transactions = transactions_spreadsheet.scrubbed_df.copy()
     balances = balance_history_spreadsheet.scrubbed_df.copy()
 
