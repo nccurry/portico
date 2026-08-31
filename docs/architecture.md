@@ -317,10 +317,10 @@ The synthetic fixture date is fixed. Date-sensitive tests use that reference
 date instead of the current clock. Tests also isolate local configuration so a
 maintainer's private settings cannot change results.
 
-CI enforces strict typing, linting, unit tests, integration tests, documentation
-checks, and container smoke tests. Coverage must be at least 90% for `src` and
-80% for `src` and `pages` combined. Local Task commands call the same underlying
-tools.
+CI enforces strict typing, linting, unit tests, integration tests, the static
+demo build, and container smoke tests. Coverage must be at least 90% for `src`
+and 80% for `src` and `pages` combined. Local Task commands call the same
+underlying tools.
 
 ## Security and privacy rules
 
