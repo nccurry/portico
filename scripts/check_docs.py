@@ -20,7 +20,6 @@ HTML_LINK = re.compile(r"(?:href|src)=[\"']([^\"']+)[\"']", re.IGNORECASE)
 STANDALONE_SCRIPTS = (
     Path("scripts/build_pages_demo.py"),
     Path("scripts/check_docs.py"),
-    Path("scripts/check_repository_privacy.py"),
     Path("scripts/init_config.py"),
     Path("scripts/smoke_container.py"),
 )

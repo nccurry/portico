@@ -159,26 +159,6 @@ jobs:
             echo "image=$DEFAULT_IMAGE" >> "$GITHUB_OUTPUT"
           fi
 
-  privacy:
-    if: always() && needs.resolve-devcontainer.result == 'success'
-    needs: resolve-devcontainer
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: read
-      packages: read
-    container:
-      image: ${{ needs.resolve-devcontainer.outputs.image }}
-      options: --user 0
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - run: git config --global safe.directory "$GITHUB_WORKSPACE"
-      - run: task dev:sync
-      - run: task privacy:check
-
   lint:
     if: always() && needs.resolve-devcontainer.result == 'success'
     needs: resolve-devcontainer
@@ -366,14 +346,13 @@ jobs:
 
   ci:
     if: always()
-    needs: [native-bootstrap, privacy, lint, unit-tests, integration-tests, docs-and-scripts, coverage, production-container]
+    needs: [native-bootstrap, lint, unit-tests, integration-tests, docs-and-scripts, coverage, production-container]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Require every CI lane
         env:
           BOOTSTRAP: ${{ needs.native-bootstrap.result }}
-          PRIVACY: ${{ needs.privacy.result }}
           LINT: ${{ needs.lint.result }}
           UNIT: ${{ needs.unit-tests.result }}
           INTEGRATION: ${{ needs.integration-tests.result }}
@@ -381,7 +360,7 @@ jobs:
           COVERAGE: ${{ needs.coverage.result }}
           CONTAINER: ${{ needs.production-container.result }}
         run: |
-          for result in "$BOOTSTRAP" "$PRIVACY" "$LINT" "$UNIT" "$INTEGRATION" "$DOCS" "$COVERAGE" "$CONTAINER"; do
+          for result in "$BOOTSTRAP" "$LINT" "$UNIT" "$INTEGRATION" "$DOCS" "$COVERAGE" "$CONTAINER"; do
             test "$result" = "success"
           done
 

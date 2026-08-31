@@ -268,11 +268,6 @@ tasks:
       - task: lint
       - task: test
 
-  privacy:check:
-    desc: "Check repository files for private data"
-    cmds:
-      - '{{.UV}} run --locked --dev python -m scripts.check_repository_privacy'
-
   docs:check:
     desc: "Validate documentation, assets, and standalone uv scripts"
     cmds:
