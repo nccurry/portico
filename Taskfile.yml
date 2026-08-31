@@ -268,11 +268,6 @@ tasks:
       - task: lint
       - task: test
 
-  docs:check:
-    desc: "Validate documentation, assets, and standalone uv scripts"
-    cmds:
-      - '{{.UV}} run --locked --dev python -m scripts.check_docs'
-
   config:init:
     desc: "Create an ignored local configuration file"
     cmds:

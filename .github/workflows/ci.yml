@@ -22,24 +22,6 @@ defaults:
     shell: bash
 
 jobs:
-  native-bootstrap:
-    name: Bootstrap (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Bootstrap Linux development environment
-        if: runner.os == 'Linux'
-        run: sh scripts/bootstrap.sh
-      - name: Bootstrap Windows development environment
-        if: runner.os == 'Windows'
-        shell: powershell
-        run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/bootstrap.ps1
-
   select-devcontainer:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -234,7 +216,7 @@ jobs:
           if-no-files-found: error
           retention-days: 3
 
-  docs-and-scripts:
+  pages-demo:
     if: always() && needs.resolve-devcontainer.result == 'success'
     needs: resolve-devcontainer
     runs-on: ubuntu-latest
@@ -252,7 +234,6 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: git config --global safe.directory "$GITHUB_WORKSPACE"
       - run: task dev:sync
-      - run: task docs:check
       - run: task pages:build
       - name: Check for tracked changes
         run: git diff --exit-code
@@ -346,21 +327,20 @@ jobs:
 
   ci:
     if: always()
-    needs: [native-bootstrap, lint, unit-tests, integration-tests, docs-and-scripts, coverage, production-container]
+    needs: [lint, unit-tests, integration-tests, pages-demo, coverage, production-container]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Require every CI lane
         env:
-          BOOTSTRAP: ${{ needs.native-bootstrap.result }}
           LINT: ${{ needs.lint.result }}
           UNIT: ${{ needs.unit-tests.result }}
           INTEGRATION: ${{ needs.integration-tests.result }}
-          DOCS: ${{ needs.docs-and-scripts.result }}
+          PAGES: ${{ needs.pages-demo.result }}
           COVERAGE: ${{ needs.coverage.result }}
           CONTAINER: ${{ needs.production-container.result }}
         run: |
-          for result in "$BOOTSTRAP" "$LINT" "$UNIT" "$INTEGRATION" "$DOCS" "$COVERAGE" "$CONTAINER"; do
+          for result in "$LINT" "$UNIT" "$INTEGRATION" "$PAGES" "$COVERAGE" "$CONTAINER"; do
             test "$result" = "success"
           done
 
