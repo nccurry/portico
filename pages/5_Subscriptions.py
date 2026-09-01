@@ -18,7 +18,7 @@ from src.analysis.subscriptions import (
 from src.config import get_settings
 from src.custom_types import SubscriptionSummary
 from src.page_helpers import get_transaction_column_config, render_data_refresh_controls
-from src.reporting_periods import reporting_anchor
+from src.reporting_periods import current_timestamp, reporting_anchor
 from src.spreadsheet import TransactionsSpreadsheet, load_transactions_data
 from src.value_visibility import mask_value, value_safe_altair_chart, value_safe_dataframe
 
@@ -569,7 +569,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
         "inactivity window passes; cadence and future charges are inferred from your transaction history."
     )
     latest_utc = pd.to_datetime(latest_data_date, utc=True)
-    days_stale = (pd.Timestamp.now(tz="UTC").normalize() - latest_utc.normalize()).days
+    days_stale = (current_timestamp().normalize() - latest_utc.normalize()).days
     if days_stale > settings.stale_after_days:
         st.warning(
             f"The newest transaction is {mask_value(str(days_stale))} days old. Statuses and forecasts may be stale.",

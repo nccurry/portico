@@ -4,6 +4,16 @@ from datetime import timedelta
 
 import pandas as pd
 
+from src.config import get_settings
+
+
+def current_timestamp() -> pd.Timestamp:
+    """Return the demo reference time or the current UTC time."""
+    settings = get_settings()
+    if settings.data.is_demo:
+        return pd.Timestamp(settings.data.demo_reference_date)
+    return pd.Timestamp.now(tz="UTC")
+
 
 def month_lookback_options(months: tuple[int, ...]) -> dict[str, int]:
     """Return compact labels for configured calendar-month lookbacks."""
@@ -45,7 +55,7 @@ def reporting_anchor(
         latest = latest_data_timestamp(df, column=column)
         if latest is not None:
             return latest
-    return pd.Timestamp.now(tz="UTC")
+    return current_timestamp()
 
 
 def calculate_date_range(

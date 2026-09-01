@@ -4,6 +4,8 @@ from typing import TypedDict
 
 import pandas as pd
 
+from src.reporting_periods import current_timestamp
+
 
 class DataHealthReport(TypedDict):
     """Collection of data-quality findings."""
@@ -24,7 +26,7 @@ def build_data_health_report(
 ) -> DataHealthReport:
     """Run data-quality checks across transactions, balances, and budgets."""
     if as_of is None:
-        as_of = _latest_timestamp(balance_history_df, "Date") or pd.Timestamp.now(tz="UTC")
+        as_of = _latest_timestamp(balance_history_df, "Date") or current_timestamp()
 
     return DataHealthReport(
         uncategorized_transactions=find_uncategorized_transactions(transactions_df),

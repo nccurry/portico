@@ -7,6 +7,7 @@ import re
 import tomllib
 from collections.abc import Mapping
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -27,6 +28,7 @@ class DataSettings:
 
     mode: str
     demo_directory: Path
+    demo_reference_date: datetime
 
     @property
     def is_demo(self) -> bool:
@@ -155,7 +157,7 @@ class Settings:
 
 
 _SECTION_KEYS = {
-    "data": {"mode", "demo_directory"},
+    "data": {"mode", "demo_directory", "demo_reference_date"},
     "reporting": {"lookback_months", "default_lookback_months"},
     "thresholds": {"expense", "income", "duplicate_minimum", "duplicate_days"},
     "income_savings": {"default_view", "target_rate", "exclude_categories", "exclude_groups"},
@@ -310,6 +312,17 @@ def _demo_directory(section: Mapping[str, Any], project_root: Path) -> Path:
     return resolved
 
 
+def _utc_datetime(section: Mapping[str, Any], key: str) -> datetime:
+    value = _string(section, key)
+    try:
+        timestamp = datetime.fromisoformat(value)
+    except ValueError as error:
+        raise ConfigError(f"{key} must be an ISO 8601 date and time") from error
+    if timestamp.tzinfo is None:
+        raise ConfigError(f"{key} must include a timezone")
+    return timestamp.astimezone(UTC)
+
+
 def _merchant_aliases(section: Mapping[str, Any]) -> tuple[tuple[str, tuple[str, ...]], ...]:
     aliases = section["aliases"]
     assert isinstance(aliases, Mapping)
@@ -377,7 +390,11 @@ def _build_settings(document: Mapping[str, Any], project_root: Path) -> Settings
         raise ConfigError("default_lookback_months must be included in lookback_months")
 
     return Settings(
-        data=DataSettings(mode=mode, demo_directory=_demo_directory(data, project_root)),
+        data=DataSettings(
+            mode=mode,
+            demo_directory=_demo_directory(data, project_root),
+            demo_reference_date=_utc_datetime(data, "demo_reference_date"),
+        ),
         reporting=ReportingSettings(
             lookback_months=lookback_months,
             default_lookback_months=default_lookback_months,

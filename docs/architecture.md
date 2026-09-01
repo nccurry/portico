@@ -173,7 +173,9 @@ difference.
 
 The browser demo starts native demo mode and packages `Home.py`, every page,
 the required source modules, settings, and the same CSV files. It has no
-browser-specific financial calculations.
+browser-specific financial calculations. Demo mode uses the configured
+`demo_reference_date` as its current time, so reports and loaded timestamps stay
+inside the synthetic data period.
 
 ### State and caching
 
@@ -293,6 +295,7 @@ command and relies on delivery state to prevent duplicates.
 | `src/weekly_expenses.py` | Weekly expense report calculations |
 | `src/discord_notifier.py` | Discord configuration, transport, formatting, and state |
 | `scripts/container_entrypoint.py` | Container process and optional Discord schedule |
+| `scripts/generate_demo_data.py` | Regenerates date-based synthetic demo CSV files |
 | `scripts/` | Bootstrap, diagnostics, local commands, and build tools |
 | `config/` | Tracked application defaults and ignored local overrides |
 | `demo/data/` | Canonical synthetic workbook data |
@@ -328,7 +331,7 @@ Unit tests isolate small calculations and presentation helpers. Integration
 tests run the four synthetic sheets through the real scrub and join pipeline.
 Streamlit AppTest tests load every page and exercise important control states.
 
-The synthetic fixture date is fixed. Date-sensitive tests use that reference
+The configured demo reference date is fixed. Date-sensitive tests use that
 date instead of the current clock. Tests also isolate local configuration so a
 maintainer's private settings cannot change results.
 

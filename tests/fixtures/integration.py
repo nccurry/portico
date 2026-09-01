@@ -6,6 +6,7 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
+from src.config import load_settings
 from src.custom_types import IncomeExpenseFilters
 from tests.custom_types import FullDatasetFactory, SpreadsheetBundle
 
@@ -52,6 +53,7 @@ def full_date_range() -> tuple[pd.Timestamp, pd.Timestamp]:
 # "why is this dataframe empty?" bugs.
 
 _FIXTURES_DIR = Path(__file__).resolve().parents[2] / "demo" / "data"
+_PROJECT_ROOT = _FIXTURES_DIR.parents[1]
 
 
 def _read_fixture_csv(name: str) -> pd.DataFrame:
@@ -87,13 +89,18 @@ def real_accounts_csv_df() -> pd.DataFrame:
 
 @pytest.fixture(scope="session")
 def reference_date() -> pd.Timestamp:
-    """ISO date stored with the committed synthetic fixtures.
+    """Return the configured date for the committed synthetic fixtures.
 
     Use with @pytest.mark.uses_real_dates to keep date-sensitive logic stable
     against the committed fixture.
     """
-    text = (_FIXTURES_DIR / "REFERENCE_DATE.txt").read_text(encoding="utf-8").strip()
-    return pd.Timestamp(text)
+    settings = load_settings(
+        defaults_path=_PROJECT_ROOT / "config" / "defaults.toml",
+        local_path=_PROJECT_ROOT / "tests" / "fixtures" / "missing.toml",
+        environ={},
+        project_root=_PROJECT_ROOT,
+    )
+    return pd.Timestamp(settings.data.demo_reference_date)
 
 
 @pytest.fixture

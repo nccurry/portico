@@ -114,6 +114,15 @@ class TestBalancePipeline:
         for cls in summary["group_classes"].values():
             assert cls in {"Asset", "Liability"}
 
+    def test_latest_balance_matches_demo_reference_date(
+        self,
+        full_dataset: SpreadsheetBundle,
+        reference_date: pd.Timestamp,
+    ) -> None:
+        """Keep demo reports inside the committed balance history."""
+        _txns, bal, _cats, _accts = full_dataset
+        assert bal.scrubbed_df["Date"].max() == reference_date
+
 
 # ---------------------------------------------------------------------------
 # Categories / budget pipeline
@@ -125,11 +134,11 @@ class TestCategoriesPipeline:
         _txns, _bal, cats, _accts = full_dataset
         assert not cats.scrubbed_df.empty
 
-    def test_budget_df_has_12_months(self, full_dataset: SpreadsheetBundle) -> None:
+    def test_budget_df_covers_synthetic_years(self, full_dataset: SpreadsheetBundle) -> None:
         _txns, _bal, cats, _accts = full_dataset
         if not cats.budget_df.empty:
             months = sorted(cats.budget_df["Month"].unique())
-            assert months == [f"2026-{month:02d}" for month in range(1, 13)]
+            assert months == [f"{year}-{month:02d}" for year in range(1992, 1996) for month in range(1, 13)]
 
     def test_budget_categories_appear_in_transactions(self, full_dataset: SpreadsheetBundle) -> None:
         txns, _bal, cats, _accts = full_dataset
