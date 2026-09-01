@@ -7,7 +7,6 @@ import pandas as pd
 
 from src.custom_types import YearOverYearSummary
 
-
 HISTORY_COLUMNS = [
     "Year",
     "Year_Label",

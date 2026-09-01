@@ -8,7 +8,6 @@ from scripts.doctor import EXIT_CHECK_FAILED, EXIT_OK, _sheet_locations, main, r
 from src.config import ConfigError, load_settings
 from src.sheet_config import SheetLocation
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DEFAULTS = PROJECT_ROOT / "config" / "defaults.toml"
 

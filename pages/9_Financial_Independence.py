@@ -13,6 +13,7 @@ from src.analysis.financial_independence import (
     get_accounts_in_groups,
     project_portfolio,
 )
+from src.config import get_settings
 from src.constants import (
     COLOR_ASSET,
     COLOR_EXPENSE,
@@ -21,7 +22,6 @@ from src.constants import (
     COLOR_PLACEHOLDER,
     COLOR_SAVINGS,
 )
-from src.config import get_settings
 from src.custom_types import FIFilters, FISummary, TransactionFilterOptions
 from src.filters import apply_transaction_filters, render_fi_filters
 from src.page_helpers import render_data_refresh_controls
@@ -41,7 +41,6 @@ from src.value_visibility import (
     value_safe_dataframe,
     values_hidden,
 )
-
 
 SCENARIO_KEYS = {
     "assets": "fi_scenario_assets",
@@ -521,23 +520,21 @@ def configure_page(
         value_safe_altair_chart(_create_projection_chart(projection), width="stretch")
 
     supporting = st.columns([1, 2])
-    with supporting[0]:
-        with st.container(border=True, height="stretch"):
-            st.subheader("Annual funding")
-            value_safe_altair_chart(_create_funding_chart(summary), width="stretch")
-    with supporting[1]:
-        with st.container(border=True, height="stretch"):
-            st.subheader("Runway sensitivity")
-            sensitivity = build_runway_sensitivity(
-                assets,
-                spending,
-                income,
-                baseline_return_rate=return_rate,
-            )
-            value_safe_altair_chart(
-                _create_sensitivity_chart(sensitivity),
-                width="stretch",
-            )
+    with supporting[0], st.container(border=True, height="stretch"):
+        st.subheader("Annual funding")
+        value_safe_altair_chart(_create_funding_chart(summary), width="stretch")
+    with supporting[1], st.container(border=True, height="stretch"):
+        st.subheader("Runway sensitivity")
+        sensitivity = build_runway_sensitivity(
+            assets,
+            spending,
+            income,
+            baseline_return_rate=return_rate,
+        )
+        value_safe_altair_chart(
+            _create_sensitivity_chart(sensitivity),
+            width="stretch",
+        )
 
     _render_source_details(
         accounts,

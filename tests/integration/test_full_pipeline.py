@@ -11,7 +11,6 @@ from src.filters import apply_transaction_filters, calculate_date_range
 from src.spreadsheet import calculate_net_worth_summary
 from tests.custom_types import FullDatasetFactory, SpreadsheetBundle
 
-
 # ---------------------------------------------------------------------------
 # Fixture: unpack the four spreadsheets once per class
 # ---------------------------------------------------------------------------

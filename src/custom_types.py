@@ -10,7 +10,6 @@ from typing import ReadOnly, TypedDict
 
 from streamlit.elements.lib.column_config_utils import ColumnConfigMappingInput
 
-
 type ColumnConfig = ColumnConfigMappingInput
 
 

@@ -9,7 +9,6 @@ import pytest
 from src.custom_types import IncomeExpenseFilters
 from tests.custom_types import FullDatasetFactory, SpreadsheetBundle
 
-
 # Fixtures moved from test_aggregation_integrity.py
 # ---------------------------------------------------------------------------
 

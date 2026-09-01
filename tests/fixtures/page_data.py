@@ -7,7 +7,6 @@ from src.custom_types import IncomeExpenseFilters, SpendingFilters, TransactionF
 from tests._helpers import _balance_df, _transactions_df
 from tests.custom_types import DataFrameRow
 
-
 # Fixtures moved from test_top_transactions.py
 # ---------------------------------------------------------------------------
 

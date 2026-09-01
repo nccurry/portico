@@ -12,7 +12,6 @@ from src.spreadsheet import (
     TransactionsSpreadsheet,
 )
 
-
 type DataFrameRow = dict[str, object]
 type SpreadsheetBundle = tuple[
     TransactionsSpreadsheet,

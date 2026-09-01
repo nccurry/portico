@@ -13,7 +13,6 @@ from typing import Any
 
 from src.constants import FI_SPENDING_LOOKBACK_OPTIONS
 
-
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULTS_PATH = PROJECT_ROOT / "config" / "defaults.toml"
 

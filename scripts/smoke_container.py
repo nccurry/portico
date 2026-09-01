@@ -13,8 +13,8 @@ import sys
 import time
 import uuid
 from collections.abc import Sequence
+from contextlib import suppress
 from urllib.request import urlopen
-
 
 DEFAULT_IMAGE = "portico:smoke"
 
@@ -112,16 +112,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     except (OSError, subprocess.CalledProcessError, TimeoutError, ValueError) as error:
         print(f"Container smoke test failed: {error}", file=sys.stderr)
         if container_attempted:
-            try:
+            with suppress(OSError):
                 subprocess.run(("docker", "logs", name), check=False)
-            except OSError:
-                pass
         return 1
     finally:
-        try:
+        with suppress(OSError):
             subprocess.run(("docker", "rm", "--force", name), check=False, capture_output=True)
-        except OSError:
-            pass
 
 
 if __name__ == "__main__":

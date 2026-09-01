@@ -7,7 +7,6 @@ import pandas as pd
 from src.analysis.merchants import normalize_merchant_name
 from src.custom_types import SpendingFilters, SpendingSummary
 
-
 OVERVIEW_COLUMNS = [
     "Entity",
     "Group",

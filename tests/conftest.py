@@ -8,7 +8,6 @@ from pytest import MonkeyPatch
 
 from src.config import clear_settings_cache
 
-
 pytest_plugins = [
     "tests.fixtures.streamlit_runtime",
     "tests.fixtures.dataframes",

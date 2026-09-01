@@ -25,7 +25,6 @@ from src.scrubbing import (
 )
 from src.sheet_config import SheetConfigError, SheetLocation, parse_sheet_location
 
-
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_SECRETS_PATH = PROJECT_ROOT / ".streamlit" / "secrets.toml"
 SHEET_NAMES = ("transactions", "balance_history", "categories", "accounts")

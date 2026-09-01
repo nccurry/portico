@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from dataclasses import replace
 import datetime as dt
-from email.message import Message
-from io import BytesIO, TextIOWrapper
 import json
 import os
-from pathlib import Path
 import sys
+from dataclasses import replace
+from email.message import Message
+from io import BytesIO, TextIOWrapper
+from pathlib import Path
 from unittest.mock import patch
 from urllib.error import HTTPError
 
@@ -24,8 +24,10 @@ from src.discord_notifier import (
     read_google_sheet,
     report_payload,
     save_delivery,
-    test_payload as build_test_payload,
     was_sent,
+)
+from src.discord_notifier import (
+    test_payload as build_test_payload,
 )
 from src.weekly_expenses import (
     CategoryTotal,

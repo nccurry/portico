@@ -5,17 +5,18 @@ to each assertion), so each test doubles as executable specification.
 """
 
 import math
+
 import pandas as pd
 import pytest
 
-from src.custom_types import TransactionFilterOptions
-from src.filters import apply_transaction_filters
 from src.analysis.financial_independence import (
     build_runway_sensitivity,
     calculate_avg_monthly_spending,
     calculate_fi_metrics,
     project_portfolio,
 )
+from src.custom_types import TransactionFilterOptions
+from src.filters import apply_transaction_filters
 
 
 class TestCalculateFiMetrics:

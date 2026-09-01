@@ -2,8 +2,8 @@
 
 import numpy as np
 
-from tests.custom_types import TransactionsSpreadsheetFactory
 from tests._helpers import _transactions_df
+from tests.custom_types import TransactionsSpreadsheetFactory
 
 
 class TestGetAllCategories:

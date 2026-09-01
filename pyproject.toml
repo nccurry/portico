@@ -55,7 +55,10 @@ select = [
     "RUF",             # ruff-specific
     "ANN",             # flake8-annotations: requires return types and arg annotations
     "PYI",             # stubs / typing best practices
-    "B006",            # mutable default arguments
+    "B",               # flake8-bugbear
+    "I",               # import ordering
+    "C4",              # comprehensions
+    "SIM",             # simpler control flow
 ]
 ignore = [
     "E501",            # line length handled by line-length

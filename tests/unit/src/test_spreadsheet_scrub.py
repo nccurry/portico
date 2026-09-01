@@ -23,7 +23,6 @@ from src.spreadsheet import (
     validate_required_columns,
 )
 
-
 # ===================================================================
 # TransactionsSpreadsheet.scrub()
 # ===================================================================

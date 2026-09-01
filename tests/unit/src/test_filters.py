@@ -17,7 +17,6 @@ from src.filters import (
 )
 from tests._helpers import _df_from_rows, _make_row
 
-
 # ---------------------------------------------------------------------------
 # calculate_date_range tests
 # ---------------------------------------------------------------------------

@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import datetime as dt
+from dataclasses import dataclass
 
 import pandas as pd
 
 from src.analysis.data_health import find_uncategorized_transactions
 from src.analysis.merchants import normalize_merchant_name
-
 
 AVERAGE_WEEKS = 8
 ROLLING_WEEKS = 4

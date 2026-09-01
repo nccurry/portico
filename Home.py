@@ -16,6 +16,7 @@ from src.analysis.home import (
     build_balance_group_inventory,
     build_net_worth_history,
 )
+from src.config import ConfigError, get_settings
 from src.constants import (
     COLOR_ASSET,
     COLOR_LIABILITY,
@@ -23,7 +24,6 @@ from src.constants import (
     SPARKLINE_LOOKBACK_DEFAULT,
     SPARKLINE_LOOKBACK_OPTIONS,
 )
-from src.config import ConfigError, get_settings
 from src.page_helpers import render_data_refresh_controls, render_demo_banner
 from src.reporting_periods import latest_data_timestamp, reporting_anchor
 from src.spreadsheet import (
@@ -36,7 +36,6 @@ from src.value_visibility import (
     mask_value,
     render_value_visibility_control,
 )
-
 
 ANALYZE_PAGE_SPECS = (
     ("pages/1_Income_and_Savings.py", "Income and savings", ":material/savings:"),
@@ -127,38 +126,40 @@ def _render_global_status(
     stale_count = len(find_stale_accounts(balances, as_of=balance_as_of)) if balance_as_of is not None else 0
     missing_mapping_count = len(find_missing_account_mappings(balances))
 
-    with st.container(border=True):
-        with st.container(
+    with (
+        st.container(border=True),
+        st.container(
             horizontal=True,
             horizontal_alignment="distribute",
             vertical_alignment="center",
             gap="small",
-        ):
-            st.caption(f"Latest balance update {_format_date(balance_as_of)}")
-            if stale_count:
-                st.badge(
-                    f"{mask_value(str(stale_count))} stale account{'s' if stale_count != 1 else ''}",
-                    icon=":material/history:",
-                    color="orange",
-                )
-            if missing_mapping_count:
-                st.badge(
-                    f"{mask_value(str(missing_mapping_count))} missing account "
-                    f"mapping{'s' if missing_mapping_count != 1 else ''}",
-                    icon=":material/account_tree:",
-                    color="orange",
-                )
-            if balance_as_of is not None and not stale_count and not missing_mapping_count:
-                st.badge(
-                    "Account data looks current",
-                    icon=":material/check_circle:",
-                    color="green",
-                )
-            st.page_link(
-                "pages/10_Data_Health.py",
-                label="Data health",
-                icon=":material/arrow_forward:",
+        ),
+    ):
+        st.caption(f"Latest balance update {_format_date(balance_as_of)}")
+        if stale_count:
+            st.badge(
+                f"{mask_value(str(stale_count))} stale account{'s' if stale_count != 1 else ''}",
+                icon=":material/history:",
+                color="orange",
             )
+        if missing_mapping_count:
+            st.badge(
+                f"{mask_value(str(missing_mapping_count))} missing account "
+                f"mapping{'s' if missing_mapping_count != 1 else ''}",
+                icon=":material/account_tree:",
+                color="orange",
+            )
+        if balance_as_of is not None and not stale_count and not missing_mapping_count:
+            st.badge(
+                "Account data looks current",
+                icon=":material/check_circle:",
+                color="green",
+            )
+        st.page_link(
+            "pages/10_Data_Health.py",
+            label="Data health",
+            icon=":material/arrow_forward:",
+        )
 
 
 def _period_label(

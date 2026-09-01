@@ -2,21 +2,20 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass
 import datetime as dt
 import logging
 import os
 import signal
 import subprocess
 import threading
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass
 from types import FrameType
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from croniter import croniter
 
 from src.discord_notifier import main as run_discord_notifier
-
 
 DEFAULT_DISCORD_CRON = "0 9 * * 0"
 DEFAULT_TIMEZONE = "Etc/UTC"

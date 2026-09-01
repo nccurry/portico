@@ -1,12 +1,11 @@
 """Merchant name cleanup and merchant-level spending analysis."""
 
-from collections.abc import Mapping, Sequence
 import re
+from collections.abc import Mapping, Sequence
 
 import pandas as pd
 
 from src.custom_types import MerchantPeriodSummary
-
 
 MERCHANT_OVERVIEW_COLUMNS = [
     "Merchant",

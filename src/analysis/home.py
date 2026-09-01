@@ -2,7 +2,6 @@
 
 import pandas as pd
 
-
 NET_WORTH_COLUMNS = ["Date", "Assets", "Liabilities", "Net_Worth"]
 BALANCE_GROUP_COLUMNS = [
     "Group",

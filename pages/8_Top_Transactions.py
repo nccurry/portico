@@ -26,7 +26,6 @@ from src.reporting_periods import latest_data_timestamp, reporting_anchor
 from src.spreadsheet import TransactionsSpreadsheet, load_transactions_data
 from src.value_visibility import mask_value, value_safe_altair_chart, value_safe_dataframe
 
-
 LOOKBACK_DAYS = {"3M": 90, "6M": 180, "1Y": 365, "2Y": 730, "All": None}
 TYPE_VIEWS = {
     "All": (),
@@ -237,63 +236,65 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
             key="top_transactions_search",
             persist_state="page",
         )
-    with filter_columns[1]:
-        with st.popover(
+    with (
+        filter_columns[1],
+        st.popover(
             "More filters",
             icon=":material/tune:",
             width="stretch",
-        ):
-            groups = st.multiselect(
-                "Groups",
-                all_groups,
-                placeholder="All groups",
-                key="top_transactions_groups",
-                persist_state="page",
-            )
-            categories = st.multiselect(
-                "Categories",
-                all_categories,
-                placeholder="All categories",
-                key="top_transactions_categories",
-                persist_state="page",
-            )
-            accounts = st.multiselect(
-                "Accounts",
-                all_accounts,
-                placeholder="All accounts",
-                key="top_transactions_accounts",
-                persist_state="page",
-            )
-            minimum_magnitude = float(
-                st.number_input(
-                    "Minimum amount",
-                    min_value=0.0,
-                    value=0.0,
-                    step=50.0,
-                    key="top_transactions_minimum",
-                    persist_state="page",
-                )
-            )
-            maximum_input = st.number_input(
-                "Maximum amount",
+        ),
+    ):
+        groups = st.multiselect(
+            "Groups",
+            all_groups,
+            placeholder="All groups",
+            key="top_transactions_groups",
+            persist_state="page",
+        )
+        categories = st.multiselect(
+            "Categories",
+            all_categories,
+            placeholder="All categories",
+            key="top_transactions_categories",
+            persist_state="page",
+        )
+        accounts = st.multiselect(
+            "Accounts",
+            all_accounts,
+            placeholder="All accounts",
+            key="top_transactions_accounts",
+            persist_state="page",
+        )
+        minimum_magnitude = float(
+            st.number_input(
+                "Minimum amount",
                 min_value=0.0,
-                value=None,
-                step=1_000.0,
-                placeholder="No maximum",
-                key="top_transactions_maximum",
+                value=0.0,
+                step=50.0,
+                key="top_transactions_minimum",
                 persist_state="page",
             )
-            largest_count = int(
-                st.number_input(
-                    "Largest result count",
-                    min_value=5,
-                    max_value=500,
-                    value=25,
-                    step=5,
-                    key="top_transactions_largest_count",
-                    persist_state="page",
-                )
+        )
+        maximum_input = st.number_input(
+            "Maximum amount",
+            min_value=0.0,
+            value=None,
+            step=1_000.0,
+            placeholder="No maximum",
+            key="top_transactions_maximum",
+            persist_state="page",
+        )
+        largest_count = int(
+            st.number_input(
+                "Largest result count",
+                min_value=5,
+                max_value=500,
+                value=25,
+                step=5,
+                key="top_transactions_largest_count",
+                persist_state="page",
             )
+        )
     maximum_magnitude = float(maximum_input) if maximum_input is not None else None
 
     selected_lookback = str(lookback) if lookback in LOOKBACK_DAYS else "1Y"
@@ -369,32 +370,30 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
         gap="large",
         vertical_alignment="top",
     )
-    with chart_column:
-        with st.container(border=True):
-            with st.container(
-                horizontal=True,
-                horizontal_alignment="distribute",
-                vertical_alignment="center",
-            ):
-                st.subheader("Transactions over time")
-                st.badge(
-                    f"Median {_format_currency(summary['median_magnitude'])}",
-                    color="gray",
-                )
-            value_safe_altair_chart(_create_transaction_chart(results), width="stretch")
-    with breakdown_column:
-        with st.container(border=True):
-            dimension = st.segmented_control(
-                "Summarize by",
-                list(BREAKDOWN_DIMENSIONS),
-                default="Group",
-                key="top_transactions_breakdown",
-                persist_state="page",
-                width="stretch",
+    with chart_column, st.container(border=True):
+        with st.container(
+            horizontal=True,
+            horizontal_alignment="distribute",
+            vertical_alignment="center",
+        ):
+            st.subheader("Transactions over time")
+            st.badge(
+                f"Median {_format_currency(summary['median_magnitude'])}",
+                color="gray",
             )
-            selected_dimension = str(dimension) if dimension in BREAKDOWN_DIMENSIONS else "Group"
-            breakdown = build_transaction_breakdown(results, selected_dimension)
-            value_safe_altair_chart(_create_breakdown_chart(breakdown), width="stretch")
+        value_safe_altair_chart(_create_transaction_chart(results), width="stretch")
+    with breakdown_column, st.container(border=True):
+        dimension = st.segmented_control(
+            "Summarize by",
+            list(BREAKDOWN_DIMENSIONS),
+            default="Group",
+            key="top_transactions_breakdown",
+            persist_state="page",
+            width="stretch",
+        )
+        selected_dimension = str(dimension) if dimension in BREAKDOWN_DIMENSIONS else "Group"
+        breakdown = build_transaction_breakdown(results, selected_dimension)
+        value_safe_altair_chart(_create_breakdown_chart(breakdown), width="stretch")
 
     _render_transaction_table(results)
 

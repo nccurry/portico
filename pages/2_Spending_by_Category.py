@@ -16,15 +16,14 @@ from src.analysis.spending import (
     build_spending_overview,
     summarize_spending,
 )
-from src.constants import COLOR_EXPENSE, COLOR_PLACEHOLDER
 from src.config import get_settings
+from src.constants import COLOR_EXPENSE, COLOR_PLACEHOLDER
 from src.custom_types import ColumnConfig, SpendingSummary
 from src.filters import render_spending_filters
 from src.page_helpers import configured_merchant_aliases, render_data_refresh_controls
 from src.reporting_periods import latest_data_timestamp, month_lookback_options, rolling_month_window
 from src.spreadsheet import TransactionsSpreadsheet, load_transactions_data
 from src.value_visibility import mask_value, value_safe_altair_chart, value_safe_dataframe
-
 
 SPENDING_VIEWS = ["All spending", "Discretionary"]
 COMPARISON_VIEWS = ["Previous period", "Last year"]
