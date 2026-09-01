@@ -76,7 +76,7 @@ def frozen_time(
         cls: type[pd.Timestamp],
         tz: str | tzinfo | None = None,
     ) -> pd.Timestamp:
-        """Return REFERENCE_DATE in the requested tz (or naive)."""
+        """Return the configured reference date in the requested tz (or naive)."""
         if tz is None:
             return frozen_utc.tz_convert("UTC").tz_localize(None)
         return frozen_utc.tz_convert(tz)

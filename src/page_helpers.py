@@ -4,6 +4,7 @@ import streamlit as st
 from src.analysis.merchants import build_merchant_aliases, extract_merchant_name
 from src.config import get_settings
 from src.custom_types import ColumnConfig
+from src.reporting_periods import current_timestamp
 from src.value_visibility import mask_value, value_safe_dataframe
 
 __all__ = [
@@ -82,7 +83,7 @@ def display_transactions_expander(
 def render_data_refresh_controls() -> None:
     """Render shared cache refresh controls in the sidebar."""
     if "data_last_refreshed" not in st.session_state:
-        st.session_state["data_last_refreshed"] = pd.Timestamp.now(tz="UTC")
+        st.session_state["data_last_refreshed"] = current_timestamp()
 
     with st.sidebar:
         loaded_at = pd.Timestamp(st.session_state["data_last_refreshed"])
@@ -95,5 +96,5 @@ def render_data_refresh_controls() -> None:
         ):
             st.cache_data.clear()
             st.cache_resource.clear()
-            st.session_state["data_last_refreshed"] = pd.Timestamp.now(tz="UTC")
+            st.session_state["data_last_refreshed"] = current_timestamp()
             st.rerun()

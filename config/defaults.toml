@@ -1,6 +1,7 @@
 [data]
 mode = "google_sheets"
 demo_directory = "demo/data"
+demo_reference_date = "1995-04-20T00:00:00+00:00"
 
 [reporting]
 lookback_months = [3, 6, 12, 24]

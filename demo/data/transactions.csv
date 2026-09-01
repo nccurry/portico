@@ -1,96 +1,240 @@
 Unnamed: 0,Date,Category,Amount,Account,Month,Week,Full Description,Institution,Account #,Date Added,Categorized Date
-0,05/15/2025,Salary,"$5,000.00",Checking-B,05/01/2025,05/12/2025,payroll deposit monthly,Aurora Bank,xxxx1001,05/15/2025,05/15/2025
-1,05/16/2025,Groceries,-$400.00,Checking-B,05/01/2025,05/12/2025,market basket staples,Aurora Bank,xxxx1001,05/16/2025,05/16/2025
-2,05/17/2025,Restaurants,-$150.00,Credit-H,05/01/2025,05/12/2025,corner cafe dinner,Harbor Card,xxxx2002,05/17/2025,05/17/2025
-3,05/18/2025,Electric,-$120.00,Checking-B,05/01/2025,05/12/2025,utility power bill,Aurora Bank,xxxx1001,05/18/2025,05/18/2025
-4,05/19/2025,Rent,"-$1,600.00",Checking-B,05/01/2025,05/19/2025,apartment rent payment,Aurora Bank,xxxx1001,05/19/2025,05/19/2025
-5,05/20/2025,Transfer,-$500.00,Checking-B,05/01/2025,05/19/2025,transfer to savings,Aurora Bank,xxxx1001,05/20/2025,05/20/2025
-6,06/15/2025,Salary,"$5,000.00",Checking-B,06/01/2025,06/09/2025,payroll deposit monthly,Aurora Bank,xxxx1001,06/15/2025,06/15/2025
-7,06/16/2025,Groceries,-$400.00,Checking-B,06/01/2025,06/16/2025,market basket staples,Aurora Bank,xxxx1001,06/16/2025,06/16/2025
-8,06/17/2025,Restaurants,-$150.00,Credit-H,06/01/2025,06/16/2025,corner cafe dinner,Harbor Card,xxxx2002,06/17/2025,06/17/2025
-9,06/18/2025,Electric,-$120.00,Checking-B,06/01/2025,06/16/2025,utility power bill,Aurora Bank,xxxx1001,06/18/2025,06/18/2025
-10,06/19/2025,Rent,"-$1,600.00",Checking-B,06/01/2025,06/16/2025,apartment rent payment,Aurora Bank,xxxx1001,06/19/2025,06/19/2025
-11,06/20/2025,Transfer,-$500.00,Checking-B,06/01/2025,06/16/2025,transfer to savings,Aurora Bank,xxxx1001,06/20/2025,06/20/2025
-12,07/15/2025,Salary,"$5,000.00",Checking-B,07/01/2025,07/14/2025,payroll deposit monthly,Aurora Bank,xxxx1001,07/15/2025,07/15/2025
-13,07/16/2025,Groceries,-$400.00,Checking-B,07/01/2025,07/14/2025,market basket staples,Aurora Bank,xxxx1001,07/16/2025,07/16/2025
-14,07/17/2025,Restaurants,-$150.00,Credit-H,07/01/2025,07/14/2025,corner cafe dinner,Harbor Card,xxxx2002,07/17/2025,07/17/2025
-15,07/18/2025,Electric,-$120.00,Checking-B,07/01/2025,07/14/2025,utility power bill,Aurora Bank,xxxx1001,07/18/2025,07/18/2025
-16,07/19/2025,Rent,"-$1,600.00",Checking-B,07/01/2025,07/14/2025,apartment rent payment,Aurora Bank,xxxx1001,07/19/2025,07/19/2025
-17,07/20/2025,Transfer,-$500.00,Checking-B,07/01/2025,07/14/2025,transfer to savings,Aurora Bank,xxxx1001,07/20/2025,07/20/2025
-18,08/15/2025,Salary,"$5,000.00",Checking-B,08/01/2025,08/11/2025,payroll deposit monthly,Aurora Bank,xxxx1001,08/15/2025,08/15/2025
-19,08/16/2025,Groceries,-$400.00,Checking-B,08/01/2025,08/11/2025,market basket staples,Aurora Bank,xxxx1001,08/16/2025,08/16/2025
-20,08/17/2025,Restaurants,-$150.00,Credit-H,08/01/2025,08/11/2025,corner cafe dinner,Harbor Card,xxxx2002,08/17/2025,08/17/2025
-21,08/18/2025,Electric,-$120.00,Checking-B,08/01/2025,08/18/2025,utility power bill,Aurora Bank,xxxx1001,08/18/2025,08/18/2025
-22,08/19/2025,Rent,"-$1,600.00",Checking-B,08/01/2025,08/18/2025,apartment rent payment,Aurora Bank,xxxx1001,08/19/2025,08/19/2025
-23,08/20/2025,Transfer,-$500.00,Checking-B,08/01/2025,08/18/2025,transfer to savings,Aurora Bank,xxxx1001,08/20/2025,08/20/2025
-24,09/15/2025,Salary,"$5,000.00",Checking-B,09/01/2025,09/15/2025,payroll deposit monthly,Aurora Bank,xxxx1001,09/15/2025,09/15/2025
-25,09/16/2025,Groceries,-$400.00,Checking-B,09/01/2025,09/15/2025,market basket staples,Aurora Bank,xxxx1001,09/16/2025,09/16/2025
-26,09/17/2025,Restaurants,-$150.00,Credit-H,09/01/2025,09/15/2025,corner cafe dinner,Harbor Card,xxxx2002,09/17/2025,09/17/2025
-27,09/18/2025,Electric,-$120.00,Checking-B,09/01/2025,09/15/2025,utility power bill,Aurora Bank,xxxx1001,09/18/2025,09/18/2025
-28,09/19/2025,Rent,"-$1,600.00",Checking-B,09/01/2025,09/15/2025,apartment rent payment,Aurora Bank,xxxx1001,09/19/2025,09/19/2025
-29,09/20/2025,Transfer,-$500.00,Checking-B,09/01/2025,09/15/2025,transfer to savings,Aurora Bank,xxxx1001,09/20/2025,09/20/2025
-30,10/15/2025,Salary,"$5,000.00",Checking-B,10/01/2025,10/13/2025,payroll deposit monthly,Aurora Bank,xxxx1001,10/15/2025,10/15/2025
-31,10/16/2025,Groceries,-$400.00,Checking-B,10/01/2025,10/13/2025,market basket staples,Aurora Bank,xxxx1001,10/16/2025,10/16/2025
-32,10/17/2025,Restaurants,-$150.00,Credit-H,10/01/2025,10/13/2025,corner cafe dinner,Harbor Card,xxxx2002,10/17/2025,10/17/2025
-33,10/18/2025,Electric,-$120.00,Checking-B,10/01/2025,10/13/2025,utility power bill,Aurora Bank,xxxx1001,10/18/2025,10/18/2025
-34,10/19/2025,Rent,"-$1,600.00",Checking-B,10/01/2025,10/13/2025,apartment rent payment,Aurora Bank,xxxx1001,10/19/2025,10/19/2025
-35,10/20/2025,Transfer,-$500.00,Checking-B,10/01/2025,10/20/2025,transfer to savings,Aurora Bank,xxxx1001,10/20/2025,10/20/2025
-36,11/15/2025,Salary,"$5,000.00",Checking-B,11/01/2025,11/10/2025,payroll deposit monthly,Aurora Bank,xxxx1001,11/15/2025,11/15/2025
-37,11/16/2025,Groceries,-$400.00,Checking-B,11/01/2025,11/10/2025,market basket staples,Aurora Bank,xxxx1001,11/16/2025,11/16/2025
-38,11/17/2025,Restaurants,-$150.00,Credit-H,11/01/2025,11/17/2025,corner cafe dinner,Harbor Card,xxxx2002,11/17/2025,11/17/2025
-39,11/18/2025,Electric,-$120.00,Checking-B,11/01/2025,11/17/2025,utility power bill,Aurora Bank,xxxx1001,11/18/2025,11/18/2025
-40,11/19/2025,Rent,"-$1,600.00",Checking-B,11/01/2025,11/17/2025,apartment rent payment,Aurora Bank,xxxx1001,11/19/2025,11/19/2025
-41,11/20/2025,Transfer,-$500.00,Checking-B,11/01/2025,11/17/2025,transfer to savings,Aurora Bank,xxxx1001,11/20/2025,11/20/2025
-42,12/15/2025,Salary,"$5,000.00",Checking-B,12/01/2025,12/15/2025,payroll deposit monthly,Aurora Bank,xxxx1001,12/15/2025,12/15/2025
-43,12/16/2025,Groceries,-$400.00,Checking-B,12/01/2025,12/15/2025,market basket staples,Aurora Bank,xxxx1001,12/16/2025,12/16/2025
-44,12/17/2025,Restaurants,-$150.00,Credit-H,12/01/2025,12/15/2025,corner cafe dinner,Harbor Card,xxxx2002,12/17/2025,12/17/2025
-45,12/18/2025,Electric,-$120.00,Checking-B,12/01/2025,12/15/2025,utility power bill,Aurora Bank,xxxx1001,12/18/2025,12/18/2025
-46,12/19/2025,Rent,"-$1,600.00",Checking-B,12/01/2025,12/15/2025,apartment rent payment,Aurora Bank,xxxx1001,12/19/2025,12/19/2025
-47,12/20/2025,Transfer,-$500.00,Checking-B,12/01/2025,12/15/2025,transfer to savings,Aurora Bank,xxxx1001,12/20/2025,12/20/2025
-48,01/15/2026,Salary,"$5,000.00",Checking-B,01/01/2026,01/12/2026,payroll deposit monthly,Aurora Bank,xxxx1001,01/15/2026,01/15/2026
-49,01/16/2026,Groceries,-$400.00,Checking-B,01/01/2026,01/12/2026,market basket staples,Aurora Bank,xxxx1001,01/16/2026,01/16/2026
-50,01/17/2026,Restaurants,-$150.00,Credit-H,01/01/2026,01/12/2026,corner cafe dinner,Harbor Card,xxxx2002,01/17/2026,01/17/2026
-51,01/18/2026,Electric,-$120.00,Checking-B,01/01/2026,01/12/2026,utility power bill,Aurora Bank,xxxx1001,01/18/2026,01/18/2026
-52,01/19/2026,Rent,"-$1,600.00",Checking-B,01/01/2026,01/19/2026,apartment rent payment,Aurora Bank,xxxx1001,01/19/2026,01/19/2026
-53,01/20/2026,Transfer,-$500.00,Checking-B,01/01/2026,01/19/2026,transfer to savings,Aurora Bank,xxxx1001,01/20/2026,01/20/2026
-54,02/15/2026,Salary,"$5,000.00",Checking-B,02/01/2026,02/09/2026,payroll deposit monthly,Aurora Bank,xxxx1001,02/15/2026,02/15/2026
-55,02/16/2026,Groceries,-$400.00,Checking-B,02/01/2026,02/16/2026,market basket staples,Aurora Bank,xxxx1001,02/16/2026,02/16/2026
-56,02/17/2026,Restaurants,-$150.00,Credit-H,02/01/2026,02/16/2026,corner cafe dinner,Harbor Card,xxxx2002,02/17/2026,02/17/2026
-57,02/18/2026,Electric,-$120.00,Checking-B,02/01/2026,02/16/2026,utility power bill,Aurora Bank,xxxx1001,02/18/2026,02/18/2026
-58,02/19/2026,Rent,"-$1,600.00",Checking-B,02/01/2026,02/16/2026,apartment rent payment,Aurora Bank,xxxx1001,02/19/2026,02/19/2026
-59,02/20/2026,Transfer,-$500.00,Checking-B,02/01/2026,02/16/2026,transfer to savings,Aurora Bank,xxxx1001,02/20/2026,02/20/2026
-60,03/15/2026,Salary,"$5,000.00",Checking-B,03/01/2026,03/09/2026,payroll deposit monthly,Aurora Bank,xxxx1001,03/15/2026,03/15/2026
-61,03/16/2026,Groceries,-$400.00,Checking-B,03/01/2026,03/16/2026,market basket staples,Aurora Bank,xxxx1001,03/16/2026,03/16/2026
-62,03/17/2026,Restaurants,-$150.00,Credit-H,03/01/2026,03/16/2026,corner cafe dinner,Harbor Card,xxxx2002,03/17/2026,03/17/2026
-63,03/18/2026,Electric,-$120.00,Checking-B,03/01/2026,03/16/2026,utility power bill,Aurora Bank,xxxx1001,03/18/2026,03/18/2026
-64,03/19/2026,Rent,"-$1,600.00",Checking-B,03/01/2026,03/16/2026,apartment rent payment,Aurora Bank,xxxx1001,03/19/2026,03/19/2026
-65,03/20/2026,Transfer,-$500.00,Checking-B,03/01/2026,03/16/2026,transfer to savings,Aurora Bank,xxxx1001,03/20/2026,03/20/2026
-66,04/15/2026,Salary,"$5,000.00",Checking-B,04/01/2026,04/13/2026,payroll deposit monthly,Aurora Bank,xxxx1001,04/15/2026,04/15/2026
-67,04/16/2026,Groceries,-$400.00,Checking-B,04/01/2026,04/13/2026,market basket staples,Aurora Bank,xxxx1001,04/16/2026,04/16/2026
-68,04/17/2026,Restaurants,-$150.00,Credit-H,04/01/2026,04/13/2026,corner cafe dinner,Harbor Card,xxxx2002,04/17/2026,04/17/2026
-69,04/18/2026,Electric,-$120.00,Checking-B,04/01/2026,04/13/2026,utility power bill,Aurora Bank,xxxx1001,04/18/2026,04/18/2026
-70,04/19/2026,Rent,"-$1,600.00",Checking-B,04/01/2026,04/13/2026,apartment rent payment,Aurora Bank,xxxx1001,04/19/2026,04/19/2026
-71,04/20/2026,Transfer,-$500.00,Checking-B,04/01/2026,04/20/2026,transfer to savings,Aurora Bank,xxxx1001,04/20/2026,04/20/2026
-72,02/07/2026,Restaurants,-$45.99,Checking-B,02/01/2026,02/02/2026,duplicate pair seed 1,Aurora Bank,xxxx1001,02/07/2026,02/07/2026
-73,02/07/2026,Restaurants,-$45.99,Checking-B,02/01/2026,02/02/2026,duplicate pair seed 1,Aurora Bank,xxxx1001,02/07/2026,02/07/2026
-74,12/12/2025,Restaurants,-$125.50,Checking-B,12/01/2025,12/08/2025,duplicate pair seed 2,Aurora Bank,xxxx1001,12/12/2025,12/12/2025
-75,12/12/2025,Restaurants,-$125.50,Checking-B,12/01/2025,12/08/2025,duplicate pair seed 2,Aurora Bank,xxxx1001,12/12/2025,12/12/2025
-76,10/05/2025,Restaurants,-$78.00,Checking-B,10/01/2025,09/29/2025,duplicate pair seed 3,Aurora Bank,xxxx1001,10/05/2025,10/05/2025
-77,10/05/2025,Restaurants,-$78.00,Checking-B,10/01/2025,09/29/2025,duplicate pair seed 3,Aurora Bank,xxxx1001,10/05/2025,10/05/2025
-78,11/17/2025,Streaming Subscription,-$15.99,Credit-H,11/01/2025,11/17/2025,verum streamus 00001,Harbor Card,xxxx2002,11/17/2025,11/17/2025
-79,12/17/2025,Streaming Subscription,-$15.99,Credit-H,12/01/2025,12/15/2025,verum streamus 00002,Harbor Card,xxxx2002,12/17/2025,12/17/2025
-80,01/17/2026,Streaming Subscription,-$15.99,Credit-H,01/01/2026,01/12/2026,verum streamus 00003,Harbor Card,xxxx2002,01/17/2026,01/17/2026
-81,02/17/2026,Streaming Subscription,-$15.99,Credit-H,02/01/2026,02/16/2026,verum streamus 00004,Harbor Card,xxxx2002,02/17/2026,02/17/2026
-82,03/17/2026,Streaming Subscription,-$15.99,Credit-H,03/01/2026,03/16/2026,verum streamus 00005,Harbor Card,xxxx2002,03/17/2026,03/17/2026
-83,04/17/2026,Streaming Subscription,-$15.99,Credit-H,04/01/2026,04/13/2026,verum streamus 00006,Harbor Card,xxxx2002,04/17/2026,04/17/2026
-84,12/17/2025,Cloud Subscription,-$9.99,Credit-H,12/01/2025,12/15/2025,nimbus cloudus 00001,Harbor Card,xxxx2002,12/17/2025,12/17/2025
-85,01/17/2026,Cloud Subscription,-$9.99,Credit-H,01/01/2026,01/12/2026,nimbus cloudus 00002,Harbor Card,xxxx2002,01/17/2026,01/17/2026
-86,02/17/2026,Cloud Subscription,-$9.99,Credit-H,02/01/2026,02/16/2026,nimbus cloudus 00003,Harbor Card,xxxx2002,02/17/2026,02/17/2026
-87,03/17/2026,Cloud Subscription,-$9.99,Credit-H,03/01/2026,03/16/2026,nimbus cloudus 00004,Harbor Card,xxxx2002,03/17/2026,03/17/2026
-88,04/17/2026,Cloud Subscription,-$9.99,Credit-H,04/01/2026,04/13/2026,nimbus cloudus 00005,Harbor Card,xxxx2002,04/17/2026,04/17/2026
-89,03/16/2026,Shopping,"-$2,500.00",Credit-H,03/01/2026,03/16/2026,magnum boxus 99000,Harbor Card,xxxx2002,03/16/2026,03/16/2026
-90,03/09/2026,Shopping,"-$2,500.00",Credit-H,03/01/2026,03/09/2026,magnum boxus 99001,Harbor Card,xxxx2002,03/09/2026,03/09/2026
-91,03/17/2025,Groceries,-$87.65,Checking-B,03/01/2025,03/17/2025,cross year staple,Aurora Bank,xxxx1001,03/17/2025,03/17/2025
-92,03/17/2026,Groceries,-$87.65,Checking-B,03/01/2026,03/16/2026,cross year staple,Aurora Bank,xxxx1001,03/17/2026,03/17/2026
-93,04/17/2026,Groceries,-$300.00,Checking-B,04/01/2026,04/13/2026,budget burn over,Aurora Bank,xxxx1001,04/17/2026,04/17/2026
-94,04/17/2026,Restaurants,-$50.00,Checking-B,04/01/2026,04/13/2026,budget burn under,Aurora Bank,xxxx1001,04/17/2026,04/17/2026
+0,05/15/1992,Salary,"$4,200.00",Checking-B,05/01/1992,05/11/1992,payroll deposit monthly,Aurora Bank,xxxx1001,05/15/1992,05/15/1992
+1,05/16/1992,Groceries,-$355.00,Checking-B,05/01/1992,05/11/1992,market basket staples,Aurora Bank,xxxx1001,05/16/1992,05/16/1992
+2,05/17/1992,Restaurants,-$135.00,Credit-H,05/01/1992,05/11/1992,corner cafe dinner,Harbor Card,xxxx2002,05/17/1992,05/17/1992
+3,05/18/1992,Electric,-$115.00,Checking-B,05/01/1992,05/18/1992,utility power bill,Aurora Bank,xxxx1001,05/18/1992,05/18/1992
+4,05/19/1992,Rent,"-$1,200.00",Checking-B,05/01/1992,05/18/1992,apartment rent payment,Aurora Bank,xxxx1001,05/19/1992,05/19/1992
+5,05/20/1992,Transfer,-$350.00,Checking-B,05/01/1992,05/18/1992,transfer to savings,Aurora Bank,xxxx1001,05/20/1992,05/20/1992
+6,06/15/1992,Salary,"$4,223.00",Checking-B,06/01/1992,06/15/1992,payroll deposit monthly,Aurora Bank,xxxx1001,06/15/1992,06/15/1992
+7,06/16/1992,Groceries,-$371.00,Checking-B,06/01/1992,06/15/1992,market basket staples,Aurora Bank,xxxx1001,06/16/1992,06/16/1992
+8,06/17/1992,Restaurants,-$150.00,Credit-H,06/01/1992,06/15/1992,corner cafe dinner,Harbor Card,xxxx2002,06/17/1992,06/17/1992
+9,06/18/1992,Electric,-$119.00,Checking-B,06/01/1992,06/15/1992,utility power bill,Aurora Bank,xxxx1001,06/18/1992,06/18/1992
+10,06/19/1992,Rent,"-$1,212.00",Checking-B,06/01/1992,06/15/1992,apartment rent payment,Aurora Bank,xxxx1001,06/19/1992,06/19/1992
+11,06/20/1992,Transfer,-$375.00,Checking-B,06/01/1992,06/15/1992,transfer to savings,Aurora Bank,xxxx1001,06/20/1992,06/20/1992
+12,07/15/1992,Salary,"$4,246.00",Checking-B,07/01/1992,07/13/1992,payroll deposit monthly,Aurora Bank,xxxx1001,07/15/1992,07/15/1992
+13,07/16/1992,Groceries,-$387.00,Checking-B,07/01/1992,07/13/1992,market basket staples,Aurora Bank,xxxx1001,07/16/1992,07/16/1992
+14,07/17/1992,Restaurants,-$165.00,Credit-H,07/01/1992,07/13/1992,corner cafe dinner,Harbor Card,xxxx2002,07/17/1992,07/17/1992
+15,07/18/1992,Electric,-$148.00,Checking-B,07/01/1992,07/13/1992,utility power bill,Aurora Bank,xxxx1001,07/18/1992,07/18/1992
+16,07/19/1992,Rent,"-$1,224.00",Checking-B,07/01/1992,07/13/1992,apartment rent payment,Aurora Bank,xxxx1001,07/19/1992,07/19/1992
+17,07/20/1992,Transfer,-$400.00,Checking-B,07/01/1992,07/20/1992,transfer to savings,Aurora Bank,xxxx1001,07/20/1992,07/20/1992
+18,08/15/1992,Salary,"$4,269.00",Checking-B,08/01/1992,08/10/1992,payroll deposit monthly,Aurora Bank,xxxx1001,08/15/1992,08/15/1992
+19,08/16/1992,Groceries,-$403.00,Checking-B,08/01/1992,08/10/1992,market basket staples,Aurora Bank,xxxx1001,08/16/1992,08/16/1992
+20,08/17/1992,Restaurants,-$180.00,Credit-H,08/01/1992,08/17/1992,corner cafe dinner,Harbor Card,xxxx2002,08/17/1992,08/17/1992
+21,08/18/1992,Electric,-$152.00,Checking-B,08/01/1992,08/17/1992,utility power bill,Aurora Bank,xxxx1001,08/18/1992,08/18/1992
+22,08/19/1992,Rent,"-$1,236.00",Checking-B,08/01/1992,08/17/1992,apartment rent payment,Aurora Bank,xxxx1001,08/19/1992,08/19/1992
+23,08/20/1992,Transfer,-$425.00,Checking-B,08/01/1992,08/17/1992,transfer to savings,Aurora Bank,xxxx1001,08/20/1992,08/20/1992
+24,09/15/1992,Salary,"$4,292.00",Checking-B,09/01/1992,09/14/1992,payroll deposit monthly,Aurora Bank,xxxx1001,09/15/1992,09/15/1992
+25,09/16/1992,Groceries,-$419.00,Checking-B,09/01/1992,09/14/1992,market basket staples,Aurora Bank,xxxx1001,09/16/1992,09/16/1992
+26,09/17/1992,Restaurants,-$195.00,Credit-H,09/01/1992,09/14/1992,corner cafe dinner,Harbor Card,xxxx2002,09/17/1992,09/17/1992
+27,09/18/1992,Electric,-$115.00,Checking-B,09/01/1992,09/14/1992,utility power bill,Aurora Bank,xxxx1001,09/18/1992,09/18/1992
+28,09/19/1992,Rent,"-$1,248.00",Checking-B,09/01/1992,09/14/1992,apartment rent payment,Aurora Bank,xxxx1001,09/19/1992,09/19/1992
+29,09/20/1992,Transfer,-$350.00,Checking-B,09/01/1992,09/14/1992,transfer to savings,Aurora Bank,xxxx1001,09/20/1992,09/20/1992
+30,10/15/1992,Salary,"$4,315.00",Checking-B,10/01/1992,10/12/1992,payroll deposit monthly,Aurora Bank,xxxx1001,10/15/1992,10/15/1992
+31,10/16/1992,Groceries,-$435.00,Checking-B,10/01/1992,10/12/1992,market basket staples,Aurora Bank,xxxx1001,10/16/1992,10/16/1992
+32,10/17/1992,Restaurants,-$165.00,Credit-H,10/01/1992,10/12/1992,corner cafe dinner,Harbor Card,xxxx2002,10/17/1992,10/17/1992
+33,10/18/1992,Electric,-$119.00,Checking-B,10/01/1992,10/12/1992,utility power bill,Aurora Bank,xxxx1001,10/18/1992,10/18/1992
+34,10/19/1992,Rent,"-$1,260.00",Checking-B,10/01/1992,10/19/1992,apartment rent payment,Aurora Bank,xxxx1001,10/19/1992,10/19/1992
+35,10/20/1992,Transfer,-$375.00,Checking-B,10/01/1992,10/19/1992,transfer to savings,Aurora Bank,xxxx1001,10/20/1992,10/20/1992
+36,11/15/1992,Salary,"$4,338.00",Checking-B,11/01/1992,11/09/1992,payroll deposit monthly,Aurora Bank,xxxx1001,11/15/1992,11/15/1992
+37,11/16/1992,Groceries,-$409.00,Checking-B,11/01/1992,11/16/1992,market basket staples,Aurora Bank,xxxx1001,11/16/1992,11/16/1992
+38,11/17/1992,Restaurants,-$180.00,Credit-H,11/01/1992,11/16/1992,corner cafe dinner,Harbor Card,xxxx2002,11/17/1992,11/17/1992
+39,11/18/1992,Electric,-$123.00,Checking-B,11/01/1992,11/16/1992,utility power bill,Aurora Bank,xxxx1001,11/18/1992,11/18/1992
+40,11/19/1992,Rent,"-$1,272.00",Checking-B,11/01/1992,11/16/1992,apartment rent payment,Aurora Bank,xxxx1001,11/19/1992,11/19/1992
+41,11/20/1992,Transfer,-$400.00,Checking-B,11/01/1992,11/16/1992,transfer to savings,Aurora Bank,xxxx1001,11/20/1992,11/20/1992
+42,12/15/1992,Salary,"$4,361.00",Checking-B,12/01/1992,12/14/1992,payroll deposit monthly,Aurora Bank,xxxx1001,12/15/1992,12/15/1992
+43,12/16/1992,Groceries,-$425.00,Checking-B,12/01/1992,12/14/1992,market basket staples,Aurora Bank,xxxx1001,12/16/1992,12/16/1992
+44,12/17/1992,Restaurants,-$195.00,Credit-H,12/01/1992,12/14/1992,corner cafe dinner,Harbor Card,xxxx2002,12/17/1992,12/17/1992
+45,12/18/1992,Electric,-$127.00,Checking-B,12/01/1992,12/14/1992,utility power bill,Aurora Bank,xxxx1001,12/18/1992,12/18/1992
+46,12/19/1992,Rent,"-$1,284.00",Checking-B,12/01/1992,12/14/1992,apartment rent payment,Aurora Bank,xxxx1001,12/19/1992,12/19/1992
+47,12/20/1992,Transfer,-$425.00,Checking-B,12/01/1992,12/14/1992,transfer to savings,Aurora Bank,xxxx1001,12/20/1992,12/20/1992
+48,01/15/1993,Salary,"$4,384.00",Checking-B,01/01/1993,01/11/1993,payroll deposit monthly,Aurora Bank,xxxx1001,01/15/1993,01/15/1993
+49,01/16/1993,Groceries,-$333.00,Checking-B,01/01/1993,01/11/1993,market basket staples,Aurora Bank,xxxx1001,01/16/1993,01/16/1993
+50,01/17/1993,Restaurants,-$138.00,Credit-H,01/01/1993,01/11/1993,corner cafe dinner,Harbor Card,xxxx2002,01/17/1993,01/17/1993
+51,01/18/1993,Electric,-$140.00,Checking-B,01/01/1993,01/18/1993,utility power bill,Aurora Bank,xxxx1001,01/18/1993,01/18/1993
+52,01/19/1993,Rent,"-$1,296.00",Checking-B,01/01/1993,01/18/1993,apartment rent payment,Aurora Bank,xxxx1001,01/19/1993,01/19/1993
+53,01/20/1993,Transfer,-$350.00,Checking-B,01/01/1993,01/18/1993,transfer to savings,Aurora Bank,xxxx1001,01/20/1993,01/20/1993
+54,02/15/1993,Salary,"$4,407.00",Checking-B,02/01/1993,02/15/1993,payroll deposit monthly,Aurora Bank,xxxx1001,02/15/1993,02/15/1993
+55,02/16/1993,Groceries,-$349.00,Checking-B,02/01/1993,02/15/1993,market basket staples,Aurora Bank,xxxx1001,02/16/1993,02/16/1993
+56,02/17/1993,Restaurants,-$153.00,Credit-H,02/01/1993,02/15/1993,corner cafe dinner,Harbor Card,xxxx2002,02/17/1993,02/17/1993
+57,02/18/1993,Electric,-$144.00,Checking-B,02/01/1993,02/15/1993,utility power bill,Aurora Bank,xxxx1001,02/18/1993,02/18/1993
+58,02/19/1993,Rent,"-$1,308.00",Checking-B,02/01/1993,02/15/1993,apartment rent payment,Aurora Bank,xxxx1001,02/19/1993,02/19/1993
+59,02/20/1993,Transfer,-$375.00,Checking-B,02/01/1993,02/15/1993,transfer to savings,Aurora Bank,xxxx1001,02/20/1993,02/20/1993
+60,03/15/1993,Salary,"$4,430.00",Checking-B,03/01/1993,03/15/1993,payroll deposit monthly,Aurora Bank,xxxx1001,03/15/1993,03/15/1993
+61,03/16/1993,Groceries,-$365.00,Checking-B,03/01/1993,03/15/1993,market basket staples,Aurora Bank,xxxx1001,03/16/1993,03/16/1993
+62,03/17/1993,Restaurants,-$123.00,Credit-H,03/01/1993,03/15/1993,corner cafe dinner,Harbor Card,xxxx2002,03/17/1993,03/17/1993
+63,03/18/1993,Electric,-$123.00,Checking-B,03/01/1993,03/15/1993,utility power bill,Aurora Bank,xxxx1001,03/18/1993,03/18/1993
+64,03/19/1993,Rent,"-$1,320.00",Checking-B,03/01/1993,03/15/1993,apartment rent payment,Aurora Bank,xxxx1001,03/19/1993,03/19/1993
+65,03/20/1993,Transfer,-$400.00,Checking-B,03/01/1993,03/15/1993,transfer to savings,Aurora Bank,xxxx1001,03/20/1993,03/20/1993
+66,04/15/1993,Salary,"$4,453.00",Checking-B,04/01/1993,04/12/1993,payroll deposit monthly,Aurora Bank,xxxx1001,04/15/1993,04/15/1993
+67,04/16/1993,Groceries,-$381.00,Checking-B,04/01/1993,04/12/1993,market basket staples,Aurora Bank,xxxx1001,04/16/1993,04/16/1993
+68,04/17/1993,Restaurants,-$138.00,Credit-H,04/01/1993,04/12/1993,corner cafe dinner,Harbor Card,xxxx2002,04/17/1993,04/17/1993
+69,04/18/1993,Electric,-$127.00,Checking-B,04/01/1993,04/12/1993,utility power bill,Aurora Bank,xxxx1001,04/18/1993,04/18/1993
+70,04/19/1993,Rent,"-$1,332.00",Checking-B,04/01/1993,04/19/1993,apartment rent payment,Aurora Bank,xxxx1001,04/19/1993,04/19/1993
+71,04/20/1993,Transfer,-$425.00,Checking-B,04/01/1993,04/19/1993,transfer to savings,Aurora Bank,xxxx1001,04/20/1993,04/20/1993
+72,05/15/1993,Salary,"$4,476.00",Checking-B,05/01/1993,05/10/1993,payroll deposit monthly,Aurora Bank,xxxx1001,05/15/1993,05/15/1993
+73,05/16/1993,Groceries,-$355.00,Checking-B,05/01/1993,05/10/1993,market basket staples,Aurora Bank,xxxx1001,05/16/1993,05/16/1993
+74,05/17/1993,Restaurants,-$153.00,Credit-H,05/01/1993,05/17/1993,corner cafe dinner,Harbor Card,xxxx2002,05/17/1993,05/17/1993
+75,05/18/1993,Electric,-$115.00,Checking-B,05/01/1993,05/17/1993,utility power bill,Aurora Bank,xxxx1001,05/18/1993,05/18/1993
+76,05/19/1993,Rent,"-$1,344.00",Checking-B,05/01/1993,05/17/1993,apartment rent payment,Aurora Bank,xxxx1001,05/19/1993,05/19/1993
+77,05/20/1993,Transfer,-$350.00,Checking-B,05/01/1993,05/17/1993,transfer to savings,Aurora Bank,xxxx1001,05/20/1993,05/20/1993
+78,06/15/1993,Salary,"$4,499.00",Checking-B,06/01/1993,06/14/1993,payroll deposit monthly,Aurora Bank,xxxx1001,06/15/1993,06/15/1993
+79,06/16/1993,Groceries,-$371.00,Checking-B,06/01/1993,06/14/1993,market basket staples,Aurora Bank,xxxx1001,06/16/1993,06/16/1993
+80,06/17/1993,Restaurants,-$168.00,Credit-H,06/01/1993,06/14/1993,corner cafe dinner,Harbor Card,xxxx2002,06/17/1993,06/17/1993
+81,06/18/1993,Electric,-$119.00,Checking-B,06/01/1993,06/14/1993,utility power bill,Aurora Bank,xxxx1001,06/18/1993,06/18/1993
+82,06/19/1993,Rent,"-$1,356.00",Checking-B,06/01/1993,06/14/1993,apartment rent payment,Aurora Bank,xxxx1001,06/19/1993,06/19/1993
+83,06/20/1993,Transfer,-$375.00,Checking-B,06/01/1993,06/14/1993,transfer to savings,Aurora Bank,xxxx1001,06/20/1993,06/20/1993
+84,07/15/1993,Salary,"$4,522.00",Checking-B,07/01/1993,07/12/1993,payroll deposit monthly,Aurora Bank,xxxx1001,07/15/1993,07/15/1993
+85,07/16/1993,Groceries,-$387.00,Checking-B,07/01/1993,07/12/1993,market basket staples,Aurora Bank,xxxx1001,07/16/1993,07/16/1993
+86,07/17/1993,Restaurants,-$183.00,Credit-H,07/01/1993,07/12/1993,corner cafe dinner,Harbor Card,xxxx2002,07/17/1993,07/17/1993
+87,07/18/1993,Electric,-$148.00,Checking-B,07/01/1993,07/12/1993,utility power bill,Aurora Bank,xxxx1001,07/18/1993,07/18/1993
+88,07/19/1993,Rent,"-$1,368.00",Checking-B,07/01/1993,07/19/1993,apartment rent payment,Aurora Bank,xxxx1001,07/19/1993,07/19/1993
+89,07/20/1993,Transfer,-$400.00,Checking-B,07/01/1993,07/19/1993,transfer to savings,Aurora Bank,xxxx1001,07/20/1993,07/20/1993
+90,08/15/1993,Salary,"$4,545.00",Checking-B,08/01/1993,08/09/1993,payroll deposit monthly,Aurora Bank,xxxx1001,08/15/1993,08/15/1993
+91,08/16/1993,Groceries,-$403.00,Checking-B,08/01/1993,08/16/1993,market basket staples,Aurora Bank,xxxx1001,08/16/1993,08/16/1993
+92,08/17/1993,Restaurants,-$153.00,Credit-H,08/01/1993,08/16/1993,corner cafe dinner,Harbor Card,xxxx2002,08/17/1993,08/17/1993
+93,08/18/1993,Electric,-$152.00,Checking-B,08/01/1993,08/16/1993,utility power bill,Aurora Bank,xxxx1001,08/18/1993,08/18/1993
+94,08/19/1993,Rent,"-$1,380.00",Checking-B,08/01/1993,08/16/1993,apartment rent payment,Aurora Bank,xxxx1001,08/19/1993,08/19/1993
+95,08/20/1993,Transfer,-$425.00,Checking-B,08/01/1993,08/16/1993,transfer to savings,Aurora Bank,xxxx1001,08/20/1993,08/20/1993
+96,09/15/1993,Salary,"$4,568.00",Checking-B,09/01/1993,09/13/1993,payroll deposit monthly,Aurora Bank,xxxx1001,09/15/1993,09/15/1993
+97,09/16/1993,Groceries,-$419.00,Checking-B,09/01/1993,09/13/1993,market basket staples,Aurora Bank,xxxx1001,09/16/1993,09/16/1993
+98,09/17/1993,Restaurants,-$168.00,Credit-H,09/01/1993,09/13/1993,corner cafe dinner,Harbor Card,xxxx2002,09/17/1993,09/17/1993
+99,09/18/1993,Electric,-$115.00,Checking-B,09/01/1993,09/13/1993,utility power bill,Aurora Bank,xxxx1001,09/18/1993,09/18/1993
+100,09/19/1993,Rent,"-$1,392.00",Checking-B,09/01/1993,09/13/1993,apartment rent payment,Aurora Bank,xxxx1001,09/19/1993,09/19/1993
+101,09/20/1993,Transfer,-$350.00,Checking-B,09/01/1993,09/20/1993,transfer to savings,Aurora Bank,xxxx1001,09/20/1993,09/20/1993
+102,10/15/1993,Salary,"$4,591.00",Checking-B,10/01/1993,10/11/1993,payroll deposit monthly,Aurora Bank,xxxx1001,10/15/1993,10/15/1993
+103,10/16/1993,Groceries,-$435.00,Checking-B,10/01/1993,10/11/1993,market basket staples,Aurora Bank,xxxx1001,10/16/1993,10/16/1993
+104,10/17/1993,Restaurants,-$183.00,Credit-H,10/01/1993,10/11/1993,corner cafe dinner,Harbor Card,xxxx2002,10/17/1993,10/17/1993
+105,10/18/1993,Electric,-$119.00,Checking-B,10/01/1993,10/18/1993,utility power bill,Aurora Bank,xxxx1001,10/18/1993,10/18/1993
+106,10/19/1993,Rent,"-$1,404.00",Checking-B,10/01/1993,10/18/1993,apartment rent payment,Aurora Bank,xxxx1001,10/19/1993,10/19/1993
+107,10/20/1993,Transfer,-$375.00,Checking-B,10/01/1993,10/18/1993,transfer to savings,Aurora Bank,xxxx1001,10/20/1993,10/20/1993
+108,11/15/1993,Salary,"$4,614.00",Checking-B,11/01/1993,11/15/1993,payroll deposit monthly,Aurora Bank,xxxx1001,11/15/1993,11/15/1993
+109,11/16/1993,Groceries,-$409.00,Checking-B,11/01/1993,11/15/1993,market basket staples,Aurora Bank,xxxx1001,11/16/1993,11/16/1993
+110,11/17/1993,Restaurants,-$198.00,Credit-H,11/01/1993,11/15/1993,corner cafe dinner,Harbor Card,xxxx2002,11/17/1993,11/17/1993
+111,11/18/1993,Electric,-$123.00,Checking-B,11/01/1993,11/15/1993,utility power bill,Aurora Bank,xxxx1001,11/18/1993,11/18/1993
+112,11/19/1993,Rent,"-$1,416.00",Checking-B,11/01/1993,11/15/1993,apartment rent payment,Aurora Bank,xxxx1001,11/19/1993,11/19/1993
+113,11/20/1993,Transfer,-$400.00,Checking-B,11/01/1993,11/15/1993,transfer to savings,Aurora Bank,xxxx1001,11/20/1993,11/20/1993
+114,12/15/1993,Salary,"$4,637.00",Checking-B,12/01/1993,12/13/1993,payroll deposit monthly,Aurora Bank,xxxx1001,12/15/1993,12/15/1993
+115,12/16/1993,Groceries,-$425.00,Checking-B,12/01/1993,12/13/1993,market basket staples,Aurora Bank,xxxx1001,12/16/1993,12/16/1993
+116,12/17/1993,Restaurants,-$213.00,Credit-H,12/01/1993,12/13/1993,corner cafe dinner,Harbor Card,xxxx2002,12/17/1993,12/17/1993
+117,12/18/1993,Electric,-$127.00,Checking-B,12/01/1993,12/13/1993,utility power bill,Aurora Bank,xxxx1001,12/18/1993,12/18/1993
+118,12/19/1993,Rent,"-$1,428.00",Checking-B,12/01/1993,12/13/1993,apartment rent payment,Aurora Bank,xxxx1001,12/19/1993,12/19/1993
+119,12/20/1993,Transfer,-$425.00,Checking-B,12/01/1993,12/20/1993,transfer to savings,Aurora Bank,xxxx1001,12/20/1993,12/20/1993
+120,01/15/1994,Salary,"$4,660.00",Checking-B,01/01/1994,01/10/1994,payroll deposit monthly,Aurora Bank,xxxx1001,01/15/1994,01/15/1994
+121,01/16/1994,Groceries,-$333.00,Checking-B,01/01/1994,01/10/1994,market basket staples,Aurora Bank,xxxx1001,01/16/1994,01/16/1994
+122,01/17/1994,Restaurants,-$111.00,Credit-H,01/01/1994,01/17/1994,corner cafe dinner,Harbor Card,xxxx2002,01/17/1994,01/17/1994
+123,01/18/1994,Electric,-$140.00,Checking-B,01/01/1994,01/17/1994,utility power bill,Aurora Bank,xxxx1001,01/18/1994,01/18/1994
+124,01/19/1994,Rent,"-$1,440.00",Checking-B,01/01/1994,01/17/1994,apartment rent payment,Aurora Bank,xxxx1001,01/19/1994,01/19/1994
+125,01/20/1994,Transfer,-$350.00,Checking-B,01/01/1994,01/17/1994,transfer to savings,Aurora Bank,xxxx1001,01/20/1994,01/20/1994
+126,02/15/1994,Salary,"$4,683.00",Checking-B,02/01/1994,02/14/1994,payroll deposit monthly,Aurora Bank,xxxx1001,02/15/1994,02/15/1994
+127,02/16/1994,Groceries,-$349.00,Checking-B,02/01/1994,02/14/1994,market basket staples,Aurora Bank,xxxx1001,02/16/1994,02/16/1994
+128,02/17/1994,Restaurants,-$126.00,Credit-H,02/01/1994,02/14/1994,corner cafe dinner,Harbor Card,xxxx2002,02/17/1994,02/17/1994
+129,02/18/1994,Electric,-$144.00,Checking-B,02/01/1994,02/14/1994,utility power bill,Aurora Bank,xxxx1001,02/18/1994,02/18/1994
+130,02/19/1994,Rent,"-$1,452.00",Checking-B,02/01/1994,02/14/1994,apartment rent payment,Aurora Bank,xxxx1001,02/19/1994,02/19/1994
+131,02/20/1994,Transfer,-$375.00,Checking-B,02/01/1994,02/14/1994,transfer to savings,Aurora Bank,xxxx1001,02/20/1994,02/20/1994
+132,03/15/1994,Salary,"$4,706.00",Checking-B,03/01/1994,03/14/1994,payroll deposit monthly,Aurora Bank,xxxx1001,03/15/1994,03/15/1994
+133,03/16/1994,Groceries,-$365.00,Checking-B,03/01/1994,03/14/1994,market basket staples,Aurora Bank,xxxx1001,03/16/1994,03/16/1994
+134,03/17/1994,Restaurants,-$141.00,Credit-H,03/01/1994,03/14/1994,corner cafe dinner,Harbor Card,xxxx2002,03/17/1994,03/17/1994
+135,03/18/1994,Electric,-$123.00,Checking-B,03/01/1994,03/14/1994,utility power bill,Aurora Bank,xxxx1001,03/18/1994,03/18/1994
+136,03/19/1994,Rent,"-$1,464.00",Checking-B,03/01/1994,03/14/1994,apartment rent payment,Aurora Bank,xxxx1001,03/19/1994,03/19/1994
+137,03/20/1994,Transfer,-$400.00,Checking-B,03/01/1994,03/14/1994,transfer to savings,Aurora Bank,xxxx1001,03/20/1994,03/20/1994
+138,04/15/1994,Salary,"$4,729.00",Checking-B,04/01/1994,04/11/1994,payroll deposit monthly,Aurora Bank,xxxx1001,04/15/1994,04/15/1994
+139,04/16/1994,Groceries,-$381.00,Checking-B,04/01/1994,04/11/1994,market basket staples,Aurora Bank,xxxx1001,04/16/1994,04/16/1994
+140,04/17/1994,Restaurants,-$156.00,Credit-H,04/01/1994,04/11/1994,corner cafe dinner,Harbor Card,xxxx2002,04/17/1994,04/17/1994
+141,04/18/1994,Electric,-$127.00,Checking-B,04/01/1994,04/18/1994,utility power bill,Aurora Bank,xxxx1001,04/18/1994,04/18/1994
+142,04/19/1994,Rent,"-$1,476.00",Checking-B,04/01/1994,04/18/1994,apartment rent payment,Aurora Bank,xxxx1001,04/19/1994,04/19/1994
+143,04/20/1994,Transfer,-$425.00,Checking-B,04/01/1994,04/18/1994,transfer to savings,Aurora Bank,xxxx1001,04/20/1994,04/20/1994
+144,05/15/1994,Salary,"$4,752.00",Checking-B,05/01/1994,05/09/1994,payroll deposit monthly,Aurora Bank,xxxx1001,05/15/1994,05/15/1994
+145,05/16/1994,Groceries,-$355.00,Checking-B,05/01/1994,05/16/1994,market basket staples,Aurora Bank,xxxx1001,05/16/1994,05/16/1994
+146,05/17/1994,Restaurants,-$171.00,Credit-H,05/01/1994,05/16/1994,corner cafe dinner,Harbor Card,xxxx2002,05/17/1994,05/17/1994
+147,05/18/1994,Electric,-$115.00,Checking-B,05/01/1994,05/16/1994,utility power bill,Aurora Bank,xxxx1001,05/18/1994,05/18/1994
+148,05/19/1994,Rent,"-$1,488.00",Checking-B,05/01/1994,05/16/1994,apartment rent payment,Aurora Bank,xxxx1001,05/19/1994,05/19/1994
+149,05/20/1994,Transfer,-$350.00,Checking-B,05/01/1994,05/16/1994,transfer to savings,Aurora Bank,xxxx1001,05/20/1994,05/20/1994
+150,06/15/1994,Salary,"$4,775.00",Checking-B,06/01/1994,06/13/1994,payroll deposit monthly,Aurora Bank,xxxx1001,06/15/1994,06/15/1994
+151,06/16/1994,Groceries,-$371.00,Checking-B,06/01/1994,06/13/1994,market basket staples,Aurora Bank,xxxx1001,06/16/1994,06/16/1994
+152,06/17/1994,Restaurants,-$141.00,Credit-H,06/01/1994,06/13/1994,corner cafe dinner,Harbor Card,xxxx2002,06/17/1994,06/17/1994
+153,06/18/1994,Electric,-$119.00,Checking-B,06/01/1994,06/13/1994,utility power bill,Aurora Bank,xxxx1001,06/18/1994,06/18/1994
+154,06/19/1994,Rent,"-$1,500.00",Checking-B,06/01/1994,06/13/1994,apartment rent payment,Aurora Bank,xxxx1001,06/19/1994,06/19/1994
+155,06/20/1994,Transfer,-$375.00,Checking-B,06/01/1994,06/20/1994,transfer to savings,Aurora Bank,xxxx1001,06/20/1994,06/20/1994
+156,07/15/1994,Salary,"$4,798.00",Checking-B,07/01/1994,07/11/1994,payroll deposit monthly,Aurora Bank,xxxx1001,07/15/1994,07/15/1994
+157,07/16/1994,Groceries,-$387.00,Checking-B,07/01/1994,07/11/1994,market basket staples,Aurora Bank,xxxx1001,07/16/1994,07/16/1994
+158,07/17/1994,Restaurants,-$156.00,Credit-H,07/01/1994,07/11/1994,corner cafe dinner,Harbor Card,xxxx2002,07/17/1994,07/17/1994
+159,07/18/1994,Electric,-$148.00,Checking-B,07/01/1994,07/18/1994,utility power bill,Aurora Bank,xxxx1001,07/18/1994,07/18/1994
+160,07/19/1994,Rent,"-$1,512.00",Checking-B,07/01/1994,07/18/1994,apartment rent payment,Aurora Bank,xxxx1001,07/19/1994,07/19/1994
+161,07/20/1994,Transfer,-$400.00,Checking-B,07/01/1994,07/18/1994,transfer to savings,Aurora Bank,xxxx1001,07/20/1994,07/20/1994
+162,08/15/1994,Salary,"$4,821.00",Checking-B,08/01/1994,08/15/1994,payroll deposit monthly,Aurora Bank,xxxx1001,08/15/1994,08/15/1994
+163,08/16/1994,Groceries,-$403.00,Checking-B,08/01/1994,08/15/1994,market basket staples,Aurora Bank,xxxx1001,08/16/1994,08/16/1994
+164,08/17/1994,Restaurants,-$171.00,Credit-H,08/01/1994,08/15/1994,corner cafe dinner,Harbor Card,xxxx2002,08/17/1994,08/17/1994
+165,08/18/1994,Electric,-$152.00,Checking-B,08/01/1994,08/15/1994,utility power bill,Aurora Bank,xxxx1001,08/18/1994,08/18/1994
+166,08/19/1994,Rent,"-$1,524.00",Checking-B,08/01/1994,08/15/1994,apartment rent payment,Aurora Bank,xxxx1001,08/19/1994,08/19/1994
+167,08/20/1994,Transfer,-$425.00,Checking-B,08/01/1994,08/15/1994,transfer to savings,Aurora Bank,xxxx1001,08/20/1994,08/20/1994
+168,09/15/1994,Salary,"$4,844.00",Checking-B,09/01/1994,09/12/1994,payroll deposit monthly,Aurora Bank,xxxx1001,09/15/1994,09/15/1994
+169,09/16/1994,Groceries,-$419.00,Checking-B,09/01/1994,09/12/1994,market basket staples,Aurora Bank,xxxx1001,09/16/1994,09/16/1994
+170,09/17/1994,Restaurants,-$186.00,Credit-H,09/01/1994,09/12/1994,corner cafe dinner,Harbor Card,xxxx2002,09/17/1994,09/17/1994
+171,09/18/1994,Electric,-$115.00,Checking-B,09/01/1994,09/12/1994,utility power bill,Aurora Bank,xxxx1001,09/18/1994,09/18/1994
+172,09/19/1994,Rent,"-$1,536.00",Checking-B,09/01/1994,09/19/1994,apartment rent payment,Aurora Bank,xxxx1001,09/19/1994,09/19/1994
+173,09/20/1994,Transfer,-$350.00,Checking-B,09/01/1994,09/19/1994,transfer to savings,Aurora Bank,xxxx1001,09/20/1994,09/20/1994
+174,10/15/1994,Salary,"$4,867.00",Checking-B,10/01/1994,10/10/1994,payroll deposit monthly,Aurora Bank,xxxx1001,10/15/1994,10/15/1994
+175,10/16/1994,Groceries,-$435.00,Checking-B,10/01/1994,10/10/1994,market basket staples,Aurora Bank,xxxx1001,10/16/1994,10/16/1994
+176,10/17/1994,Restaurants,-$201.00,Credit-H,10/01/1994,10/17/1994,corner cafe dinner,Harbor Card,xxxx2002,10/17/1994,10/17/1994
+177,10/18/1994,Electric,-$119.00,Checking-B,10/01/1994,10/17/1994,utility power bill,Aurora Bank,xxxx1001,10/18/1994,10/18/1994
+178,10/19/1994,Rent,"-$1,548.00",Checking-B,10/01/1994,10/17/1994,apartment rent payment,Aurora Bank,xxxx1001,10/19/1994,10/19/1994
+179,10/20/1994,Transfer,-$375.00,Checking-B,10/01/1994,10/17/1994,transfer to savings,Aurora Bank,xxxx1001,10/20/1994,10/20/1994
+180,11/15/1994,Salary,"$4,890.00",Checking-B,11/01/1994,11/14/1994,payroll deposit monthly,Aurora Bank,xxxx1001,11/15/1994,11/15/1994
+181,11/16/1994,Groceries,-$409.00,Checking-B,11/01/1994,11/14/1994,market basket staples,Aurora Bank,xxxx1001,11/16/1994,11/16/1994
+182,11/17/1994,Restaurants,-$171.00,Credit-H,11/01/1994,11/14/1994,corner cafe dinner,Harbor Card,xxxx2002,11/17/1994,11/17/1994
+183,11/18/1994,Electric,-$123.00,Checking-B,11/01/1994,11/14/1994,utility power bill,Aurora Bank,xxxx1001,11/18/1994,11/18/1994
+184,11/19/1994,Rent,"-$1,560.00",Checking-B,11/01/1994,11/14/1994,apartment rent payment,Aurora Bank,xxxx1001,11/19/1994,11/19/1994
+185,11/20/1994,Transfer,-$400.00,Checking-B,11/01/1994,11/14/1994,transfer to savings,Aurora Bank,xxxx1001,11/20/1994,11/20/1994
+186,12/15/1994,Salary,"$4,913.00",Checking-B,12/01/1994,12/12/1994,payroll deposit monthly,Aurora Bank,xxxx1001,12/15/1994,12/15/1994
+187,12/16/1994,Groceries,-$425.00,Checking-B,12/01/1994,12/12/1994,market basket staples,Aurora Bank,xxxx1001,12/16/1994,12/16/1994
+188,12/17/1994,Restaurants,-$186.00,Credit-H,12/01/1994,12/12/1994,corner cafe dinner,Harbor Card,xxxx2002,12/17/1994,12/17/1994
+189,12/18/1994,Electric,-$127.00,Checking-B,12/01/1994,12/12/1994,utility power bill,Aurora Bank,xxxx1001,12/18/1994,12/18/1994
+190,12/19/1994,Rent,"-$1,572.00",Checking-B,12/01/1994,12/19/1994,apartment rent payment,Aurora Bank,xxxx1001,12/19/1994,12/19/1994
+191,12/20/1994,Transfer,-$425.00,Checking-B,12/01/1994,12/19/1994,transfer to savings,Aurora Bank,xxxx1001,12/20/1994,12/20/1994
+192,01/15/1995,Salary,"$4,936.00",Checking-B,01/01/1995,01/09/1995,payroll deposit monthly,Aurora Bank,xxxx1001,01/15/1995,01/15/1995
+193,01/16/1995,Groceries,-$333.00,Checking-B,01/01/1995,01/16/1995,market basket staples,Aurora Bank,xxxx1001,01/16/1995,01/16/1995
+194,01/17/1995,Restaurants,-$129.00,Credit-H,01/01/1995,01/16/1995,corner cafe dinner,Harbor Card,xxxx2002,01/17/1995,01/17/1995
+195,01/18/1995,Electric,-$140.00,Checking-B,01/01/1995,01/16/1995,utility power bill,Aurora Bank,xxxx1001,01/18/1995,01/18/1995
+196,01/19/1995,Rent,"-$1,584.00",Checking-B,01/01/1995,01/16/1995,apartment rent payment,Aurora Bank,xxxx1001,01/19/1995,01/19/1995
+197,01/20/1995,Transfer,-$350.00,Checking-B,01/01/1995,01/16/1995,transfer to savings,Aurora Bank,xxxx1001,01/20/1995,01/20/1995
+198,02/15/1995,Salary,"$4,959.00",Checking-B,02/01/1995,02/13/1995,payroll deposit monthly,Aurora Bank,xxxx1001,02/15/1995,02/15/1995
+199,02/16/1995,Groceries,-$349.00,Checking-B,02/01/1995,02/13/1995,market basket staples,Aurora Bank,xxxx1001,02/16/1995,02/16/1995
+200,02/17/1995,Restaurants,-$144.00,Credit-H,02/01/1995,02/13/1995,corner cafe dinner,Harbor Card,xxxx2002,02/17/1995,02/17/1995
+201,02/18/1995,Electric,-$144.00,Checking-B,02/01/1995,02/13/1995,utility power bill,Aurora Bank,xxxx1001,02/18/1995,02/18/1995
+202,02/19/1995,Rent,"-$1,596.00",Checking-B,02/01/1995,02/13/1995,apartment rent payment,Aurora Bank,xxxx1001,02/19/1995,02/19/1995
+203,02/20/1995,Transfer,-$375.00,Checking-B,02/01/1995,02/20/1995,transfer to savings,Aurora Bank,xxxx1001,02/20/1995,02/20/1995
+204,03/15/1995,Salary,"$4,982.00",Checking-B,03/01/1995,03/13/1995,payroll deposit monthly,Aurora Bank,xxxx1001,03/15/1995,03/15/1995
+205,03/16/1995,Groceries,-$365.00,Checking-B,03/01/1995,03/13/1995,market basket staples,Aurora Bank,xxxx1001,03/16/1995,03/16/1995
+206,03/17/1995,Restaurants,-$159.00,Credit-H,03/01/1995,03/13/1995,corner cafe dinner,Harbor Card,xxxx2002,03/17/1995,03/17/1995
+207,03/18/1995,Electric,-$123.00,Checking-B,03/01/1995,03/13/1995,utility power bill,Aurora Bank,xxxx1001,03/18/1995,03/18/1995
+208,03/19/1995,Rent,"-$1,608.00",Checking-B,03/01/1995,03/13/1995,apartment rent payment,Aurora Bank,xxxx1001,03/19/1995,03/19/1995
+209,03/20/1995,Transfer,-$400.00,Checking-B,03/01/1995,03/20/1995,transfer to savings,Aurora Bank,xxxx1001,03/20/1995,03/20/1995
+210,04/15/1995,Salary,"$5,005.00",Checking-B,04/01/1995,04/10/1995,payroll deposit monthly,Aurora Bank,xxxx1001,04/15/1995,04/15/1995
+211,04/16/1995,Groceries,-$381.00,Checking-B,04/01/1995,04/10/1995,market basket staples,Aurora Bank,xxxx1001,04/16/1995,04/16/1995
+212,04/17/1995,Restaurants,-$129.00,Credit-H,04/01/1995,04/17/1995,corner cafe dinner,Harbor Card,xxxx2002,04/17/1995,04/17/1995
+213,04/18/1995,Electric,-$127.00,Checking-B,04/01/1995,04/17/1995,utility power bill,Aurora Bank,xxxx1001,04/18/1995,04/18/1995
+214,04/19/1995,Rent,"-$1,620.00",Checking-B,04/01/1995,04/17/1995,apartment rent payment,Aurora Bank,xxxx1001,04/19/1995,04/19/1995
+215,04/20/1995,Transfer,-$425.00,Checking-B,04/01/1995,04/17/1995,transfer to savings,Aurora Bank,xxxx1001,04/20/1995,04/20/1995
+216,02/07/1995,Restaurants,-$45.99,Checking-B,02/01/1995,02/06/1995,duplicate pair seed 1,Aurora Bank,xxxx1001,02/07/1995,02/07/1995
+217,02/07/1995,Restaurants,-$45.99,Checking-B,02/01/1995,02/06/1995,duplicate pair seed 1,Aurora Bank,xxxx1001,02/07/1995,02/07/1995
+218,12/12/1994,Restaurants,-$125.50,Checking-B,12/01/1994,12/12/1994,duplicate pair seed 2,Aurora Bank,xxxx1001,12/12/1994,12/12/1994
+219,12/12/1994,Restaurants,-$125.50,Checking-B,12/01/1994,12/12/1994,duplicate pair seed 2,Aurora Bank,xxxx1001,12/12/1994,12/12/1994
+220,10/05/1994,Restaurants,-$78.00,Checking-B,10/01/1994,10/03/1994,duplicate pair seed 3,Aurora Bank,xxxx1001,10/05/1994,10/05/1994
+221,10/05/1994,Restaurants,-$78.00,Checking-B,10/01/1994,10/03/1994,duplicate pair seed 3,Aurora Bank,xxxx1001,10/05/1994,10/05/1994
+222,11/17/1994,Streaming Subscription,-$15.99,Credit-H,11/01/1994,11/14/1994,verum streamus 00001,Harbor Card,xxxx2002,11/17/1994,11/17/1994
+223,12/17/1994,Streaming Subscription,-$15.99,Credit-H,12/01/1994,12/12/1994,verum streamus 00002,Harbor Card,xxxx2002,12/17/1994,12/17/1994
+224,01/17/1995,Streaming Subscription,-$15.99,Credit-H,01/01/1995,01/16/1995,verum streamus 00003,Harbor Card,xxxx2002,01/17/1995,01/17/1995
+225,02/17/1995,Streaming Subscription,-$15.99,Credit-H,02/01/1995,02/13/1995,verum streamus 00004,Harbor Card,xxxx2002,02/17/1995,02/17/1995
+226,03/17/1995,Streaming Subscription,-$15.99,Credit-H,03/01/1995,03/13/1995,verum streamus 00005,Harbor Card,xxxx2002,03/17/1995,03/17/1995
+227,04/17/1995,Streaming Subscription,-$15.99,Credit-H,04/01/1995,04/17/1995,verum streamus 00006,Harbor Card,xxxx2002,04/17/1995,04/17/1995
+228,12/17/1994,Cloud Subscription,-$9.99,Credit-H,12/01/1994,12/12/1994,nimbus cloudus 00001,Harbor Card,xxxx2002,12/17/1994,12/17/1994
+229,01/17/1995,Cloud Subscription,-$9.99,Credit-H,01/01/1995,01/16/1995,nimbus cloudus 00002,Harbor Card,xxxx2002,01/17/1995,01/17/1995
+230,02/17/1995,Cloud Subscription,-$9.99,Credit-H,02/01/1995,02/13/1995,nimbus cloudus 00003,Harbor Card,xxxx2002,02/17/1995,02/17/1995
+231,03/17/1995,Cloud Subscription,-$9.99,Credit-H,03/01/1995,03/13/1995,nimbus cloudus 00004,Harbor Card,xxxx2002,03/17/1995,03/17/1995
+232,04/17/1995,Cloud Subscription,-$9.99,Credit-H,04/01/1995,04/17/1995,nimbus cloudus 00005,Harbor Card,xxxx2002,04/17/1995,04/17/1995
+233,03/16/1995,Shopping,"-$2,500.00",Credit-H,03/01/1995,03/13/1995,magnum boxus 99000,Harbor Card,xxxx2002,03/16/1995,03/16/1995
+234,03/09/1995,Shopping,"-$2,500.00",Credit-H,03/01/1995,03/06/1995,magnum boxus 99001,Harbor Card,xxxx2002,03/09/1995,03/09/1995
+235,03/17/1994,Groceries,-$87.65,Checking-B,03/01/1994,03/14/1994,cross year staple,Aurora Bank,xxxx1001,03/17/1994,03/17/1994
+236,03/17/1995,Groceries,-$87.65,Checking-B,03/01/1995,03/13/1995,cross year staple,Aurora Bank,xxxx1001,03/17/1995,03/17/1995
+237,04/17/1995,Groceries,-$300.00,Checking-B,04/01/1995,04/17/1995,budget burn over,Aurora Bank,xxxx1001,04/17/1995,04/17/1995
+238,04/17/1995,Restaurants,-$50.00,Checking-B,04/01/1995,04/17/1995,budget burn under,Aurora Bank,xxxx1001,04/17/1995,04/17/1995

@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -12,6 +13,7 @@ def test_defaults_match_the_public_application_profile(tmp_path: Path) -> None:
     settings = load_settings(defaults_path=DEFAULTS, local_path=tmp_path / "missing.toml", environ={})
 
     assert settings.data.mode == "google_sheets"
+    assert settings.data.demo_reference_date == datetime(1995, 4, 20, tzinfo=UTC)
     assert settings.reporting.lookback_months == (3, 6, 12, 24)
     assert settings.reporting.default_lookback_months == 12
     assert settings.thresholds.expense == 3000
@@ -154,6 +156,14 @@ def test_unreadable_local_path_is_rejected(tmp_path: Path) -> None:
         (
             "[data_health]\nduplicate_require_same_account = 1\n",
             "duplicate_require_same_account must be true or false",
+        ),
+        (
+            '[data]\ndemo_reference_date = "not-a-date"\n',
+            "demo_reference_date must be an ISO 8601 date and time",
+        ),
+        (
+            '[data]\ndemo_reference_date = "1995-04-20T00:00:00"\n',
+            "demo_reference_date must include a timezone",
         ),
     ],
 )

@@ -1,22 +1,253 @@
 Unnamed: 0,Date,Time,Account,Account #,Account ID,Balance ID,Institution,Balance,Month,Week,Type,Class,Account Status,Date Added
-0,02/17/2026,02/17/2026 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-000,Aurora Bank,"$6,000.00",02/01/2026,02/16/2026,Depository,Asset,Active,01/01/2025
-1,03/17/2026,03/17/2026 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-001,Aurora Bank,"$6,500.00",03/01/2026,03/16/2026,Depository,Asset,Active,01/01/2025
-2,04/17/2026,04/17/2026 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-002,Aurora Bank,"$6,200.00",04/01/2026,04/13/2026,Depository,Asset,Active,01/01/2025
-3,02/17/2026,02/17/2026 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-003,Harbor Card,"$1,800.00",02/01/2026,02/16/2026,Credit,Liability,Active,01/01/2025
-4,03/17/2026,03/17/2026 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-004,Harbor Card,"$2,000.00",03/01/2026,03/16/2026,Credit,Liability,Active,01/01/2025
-5,04/17/2026,04/17/2026 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-005,Harbor Card,"$1,700.00",04/01/2026,04/13/2026,Credit,Liability,Active,01/01/2025
-6,02/17/2026,02/17/2026 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-006,Fidelity,"$15,000.00",02/01/2026,02/16/2026,Depository,Asset,Active,01/01/2025
-7,03/17/2026,03/17/2026 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-007,Fidelity,"$15,500.00",03/01/2026,03/16/2026,Depository,Asset,Active,01/01/2025
-8,04/17/2026,04/17/2026 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-008,Fidelity,"$16,000.00",04/01/2026,04/13/2026,Depository,Asset,Active,01/01/2025
-9,02/17/2026,02/17/2026 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-009,Vanguard,"$120,000.00",02/01/2026,02/16/2026,Depository,Asset,Active,01/01/2025
-10,03/17/2026,03/17/2026 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-010,Vanguard,"$125,000.00",03/01/2026,03/16/2026,Depository,Asset,Active,01/01/2025
-11,04/17/2026,04/17/2026 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-011,Vanguard,"$130,000.00",04/01/2026,04/13/2026,Depository,Asset,Active,01/01/2025
-12,02/17/2026,02/17/2026 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-ira-012,Vanguard,"$220,000.00",02/01/2026,02/16/2026,Depository,Asset,Active,01/01/2025
-13,03/17/2026,03/17/2026 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-ira-013,Vanguard,"$225,000.00",03/01/2026,03/16/2026,Depository,Asset,Active,01/01/2025
-14,04/17/2026,04/17/2026 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-ira-014,Vanguard,"$230,000.00",04/01/2026,04/13/2026,Depository,Asset,Active,01/01/2025
-15,02/17/2026,02/17/2026 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-015,Keystone Home,"$199,000.00",02/01/2026,02/16/2026,Credit,Liability,Active,01/01/2025
-16,03/17/2026,03/17/2026 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-016,Keystone Home,"$198,500.00",03/01/2026,03/16/2026,Credit,Liability,Active,01/01/2025
-17,04/17/2026,04/17/2026 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-017,Keystone Home,"$198,000.00",04/01/2026,04/13/2026,Credit,Liability,Active,01/01/2025
-18,02/17/2026,02/17/2026 08:00:00,ZeroSum-A,xxxx0001,zerosum0000000000000ZS01,bal-zero-018,Synthetic Bank,$0.00,02/01/2026,02/16/2026,Depository,Asset,Active,01/01/2025
-19,03/17/2026,03/17/2026 08:00:00,ZeroSum-A,xxxx0001,zerosum0000000000000ZS01,bal-zero-019,Synthetic Bank,$0.00,03/01/2026,03/16/2026,Depository,Asset,Active,01/01/2025
-20,04/17/2026,04/17/2026 08:00:00,ZeroSum-A,xxxx0001,zerosum0000000000000ZS01,bal-zero-020,Synthetic Bank,$0.00,04/01/2026,04/13/2026,Depository,Asset,Active,01/01/2025
+0,05/20/1992,1992-05-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-000,Aurora Bank,"$2,500.00",05/01/1992,05/18/1992,Depository,Asset,Active,05/01/1992
+1,05/20/1992,1992-05-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-000,Harbor Card,"$2,900.00",05/01/1992,05/18/1992,Credit,Liability,Active,05/01/1992
+2,05/20/1992,1992-05-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-000,Fidelity,"$8,000.00",05/01/1992,05/18/1992,Depository,Asset,Active,05/01/1992
+3,05/20/1992,1992-05-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-000,Vanguard,"$50,000.00",05/01/1992,05/18/1992,Investment,Asset,Active,05/01/1992
+4,05/20/1992,1992-05-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-000,Fidelity,"$120,000.00",05/01/1992,05/18/1992,Investment,Asset,Active,05/01/1992
+5,05/20/1992,1992-05-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-000,Aurora Bank,"$235,000.00",05/01/1992,05/18/1992,Loan,Liability,Active,05/01/1992
+6,05/20/1992,1992-05-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-000,Aurora Bank,$0.00,05/01/1992,05/18/1992,Depository,Asset,Active,05/01/1992
+7,06/20/1992,1992-06-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-001,Aurora Bank,"$2,600.00",06/01/1992,06/15/1992,Depository,Asset,Active,05/01/1992
+8,06/20/1992,1992-06-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-001,Harbor Card,"$2,865.00",06/01/1992,06/15/1992,Credit,Liability,Active,05/01/1992
+9,06/20/1992,1992-06-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-001,Fidelity,"$8,200.00",06/01/1992,06/15/1992,Depository,Asset,Active,05/01/1992
+10,06/20/1992,1992-06-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-001,Vanguard,"$51,300.00",06/01/1992,06/15/1992,Investment,Asset,Active,05/01/1992
+11,06/20/1992,1992-06-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-001,Fidelity,"$123,000.00",06/01/1992,06/15/1992,Investment,Asset,Active,05/01/1992
+12,06/20/1992,1992-06-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-001,Aurora Bank,"$234,000.00",06/01/1992,06/15/1992,Loan,Liability,Active,05/01/1992
+13,06/20/1992,1992-06-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-001,Aurora Bank,$0.00,06/01/1992,06/15/1992,Depository,Asset,Active,05/01/1992
+14,07/20/1992,1992-07-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-002,Aurora Bank,"$2,700.00",07/01/1992,07/20/1992,Depository,Asset,Active,05/01/1992
+15,07/20/1992,1992-07-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-002,Harbor Card,"$2,830.00",07/01/1992,07/20/1992,Credit,Liability,Active,05/01/1992
+16,07/20/1992,1992-07-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-002,Fidelity,"$8,400.00",07/01/1992,07/20/1992,Depository,Asset,Active,05/01/1992
+17,07/20/1992,1992-07-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-002,Vanguard,"$52,600.00",07/01/1992,07/20/1992,Investment,Asset,Active,05/01/1992
+18,07/20/1992,1992-07-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-002,Fidelity,"$126,000.00",07/01/1992,07/20/1992,Investment,Asset,Active,05/01/1992
+19,07/20/1992,1992-07-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-002,Aurora Bank,"$233,000.00",07/01/1992,07/20/1992,Loan,Liability,Active,05/01/1992
+20,07/20/1992,1992-07-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-002,Aurora Bank,$0.00,07/01/1992,07/20/1992,Depository,Asset,Active,05/01/1992
+21,08/20/1992,1992-08-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-003,Aurora Bank,"$2,800.00",08/01/1992,08/17/1992,Depository,Asset,Active,05/01/1992
+22,08/20/1992,1992-08-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-003,Harbor Card,"$2,795.00",08/01/1992,08/17/1992,Credit,Liability,Active,05/01/1992
+23,08/20/1992,1992-08-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-003,Fidelity,"$8,600.00",08/01/1992,08/17/1992,Depository,Asset,Active,05/01/1992
+24,08/20/1992,1992-08-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-003,Vanguard,"$53,900.00",08/01/1992,08/17/1992,Investment,Asset,Active,05/01/1992
+25,08/20/1992,1992-08-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-003,Fidelity,"$129,000.00",08/01/1992,08/17/1992,Investment,Asset,Active,05/01/1992
+26,08/20/1992,1992-08-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-003,Aurora Bank,"$232,000.00",08/01/1992,08/17/1992,Loan,Liability,Active,05/01/1992
+27,08/20/1992,1992-08-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-003,Aurora Bank,$0.00,08/01/1992,08/17/1992,Depository,Asset,Active,05/01/1992
+28,09/20/1992,1992-09-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-004,Aurora Bank,"$2,900.00",09/01/1992,09/14/1992,Depository,Asset,Active,05/01/1992
+29,09/20/1992,1992-09-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-004,Harbor Card,"$2,760.00",09/01/1992,09/14/1992,Credit,Liability,Active,05/01/1992
+30,09/20/1992,1992-09-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-004,Fidelity,"$8,800.00",09/01/1992,09/14/1992,Depository,Asset,Active,05/01/1992
+31,09/20/1992,1992-09-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-004,Vanguard,"$55,200.00",09/01/1992,09/14/1992,Investment,Asset,Active,05/01/1992
+32,09/20/1992,1992-09-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-004,Fidelity,"$132,000.00",09/01/1992,09/14/1992,Investment,Asset,Active,05/01/1992
+33,09/20/1992,1992-09-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-004,Aurora Bank,"$231,000.00",09/01/1992,09/14/1992,Loan,Liability,Active,05/01/1992
+34,09/20/1992,1992-09-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-004,Aurora Bank,$0.00,09/01/1992,09/14/1992,Depository,Asset,Active,05/01/1992
+35,10/20/1992,1992-10-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-005,Aurora Bank,"$3,000.00",10/01/1992,10/19/1992,Depository,Asset,Active,05/01/1992
+36,10/20/1992,1992-10-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-005,Harbor Card,"$2,725.00",10/01/1992,10/19/1992,Credit,Liability,Active,05/01/1992
+37,10/20/1992,1992-10-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-005,Fidelity,"$9,000.00",10/01/1992,10/19/1992,Depository,Asset,Active,05/01/1992
+38,10/20/1992,1992-10-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-005,Vanguard,"$56,500.00",10/01/1992,10/19/1992,Investment,Asset,Active,05/01/1992
+39,10/20/1992,1992-10-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-005,Fidelity,"$135,000.00",10/01/1992,10/19/1992,Investment,Asset,Active,05/01/1992
+40,10/20/1992,1992-10-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-005,Aurora Bank,"$230,000.00",10/01/1992,10/19/1992,Loan,Liability,Active,05/01/1992
+41,10/20/1992,1992-10-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-005,Aurora Bank,$0.00,10/01/1992,10/19/1992,Depository,Asset,Active,05/01/1992
+42,11/20/1992,1992-11-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-006,Aurora Bank,"$3,100.00",11/01/1992,11/16/1992,Depository,Asset,Active,05/01/1992
+43,11/20/1992,1992-11-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-006,Harbor Card,"$2,690.00",11/01/1992,11/16/1992,Credit,Liability,Active,05/01/1992
+44,11/20/1992,1992-11-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-006,Fidelity,"$9,200.00",11/01/1992,11/16/1992,Depository,Asset,Active,05/01/1992
+45,11/20/1992,1992-11-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-006,Vanguard,"$57,800.00",11/01/1992,11/16/1992,Investment,Asset,Active,05/01/1992
+46,11/20/1992,1992-11-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-006,Fidelity,"$138,000.00",11/01/1992,11/16/1992,Investment,Asset,Active,05/01/1992
+47,11/20/1992,1992-11-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-006,Aurora Bank,"$229,000.00",11/01/1992,11/16/1992,Loan,Liability,Active,05/01/1992
+48,11/20/1992,1992-11-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-006,Aurora Bank,$0.00,11/01/1992,11/16/1992,Depository,Asset,Active,05/01/1992
+49,12/20/1992,1992-12-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-007,Aurora Bank,"$3,200.00",12/01/1992,12/14/1992,Depository,Asset,Active,05/01/1992
+50,12/20/1992,1992-12-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-007,Harbor Card,"$2,655.00",12/01/1992,12/14/1992,Credit,Liability,Active,05/01/1992
+51,12/20/1992,1992-12-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-007,Fidelity,"$9,400.00",12/01/1992,12/14/1992,Depository,Asset,Active,05/01/1992
+52,12/20/1992,1992-12-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-007,Vanguard,"$59,100.00",12/01/1992,12/14/1992,Investment,Asset,Active,05/01/1992
+53,12/20/1992,1992-12-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-007,Fidelity,"$141,000.00",12/01/1992,12/14/1992,Investment,Asset,Active,05/01/1992
+54,12/20/1992,1992-12-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-007,Aurora Bank,"$228,000.00",12/01/1992,12/14/1992,Loan,Liability,Active,05/01/1992
+55,12/20/1992,1992-12-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-007,Aurora Bank,$0.00,12/01/1992,12/14/1992,Depository,Asset,Active,05/01/1992
+56,01/20/1993,1993-01-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-008,Aurora Bank,"$3,300.00",01/01/1993,01/18/1993,Depository,Asset,Active,05/01/1992
+57,01/20/1993,1993-01-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-008,Harbor Card,"$2,620.00",01/01/1993,01/18/1993,Credit,Liability,Active,05/01/1992
+58,01/20/1993,1993-01-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-008,Fidelity,"$9,600.00",01/01/1993,01/18/1993,Depository,Asset,Active,05/01/1992
+59,01/20/1993,1993-01-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-008,Vanguard,"$60,400.00",01/01/1993,01/18/1993,Investment,Asset,Active,05/01/1992
+60,01/20/1993,1993-01-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-008,Fidelity,"$144,000.00",01/01/1993,01/18/1993,Investment,Asset,Active,05/01/1992
+61,01/20/1993,1993-01-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-008,Aurora Bank,"$227,000.00",01/01/1993,01/18/1993,Loan,Liability,Active,05/01/1992
+62,01/20/1993,1993-01-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-008,Aurora Bank,$0.00,01/01/1993,01/18/1993,Depository,Asset,Active,05/01/1992
+63,02/20/1993,1993-02-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-009,Aurora Bank,"$3,400.00",02/01/1993,02/15/1993,Depository,Asset,Active,05/01/1992
+64,02/20/1993,1993-02-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-009,Harbor Card,"$2,585.00",02/01/1993,02/15/1993,Credit,Liability,Active,05/01/1992
+65,02/20/1993,1993-02-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-009,Fidelity,"$9,800.00",02/01/1993,02/15/1993,Depository,Asset,Active,05/01/1992
+66,02/20/1993,1993-02-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-009,Vanguard,"$61,700.00",02/01/1993,02/15/1993,Investment,Asset,Active,05/01/1992
+67,02/20/1993,1993-02-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-009,Fidelity,"$147,000.00",02/01/1993,02/15/1993,Investment,Asset,Active,05/01/1992
+68,02/20/1993,1993-02-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-009,Aurora Bank,"$226,000.00",02/01/1993,02/15/1993,Loan,Liability,Active,05/01/1992
+69,02/20/1993,1993-02-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-009,Aurora Bank,$0.00,02/01/1993,02/15/1993,Depository,Asset,Active,05/01/1992
+70,03/20/1993,1993-03-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-010,Aurora Bank,"$3,500.00",03/01/1993,03/15/1993,Depository,Asset,Active,05/01/1992
+71,03/20/1993,1993-03-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-010,Harbor Card,"$2,550.00",03/01/1993,03/15/1993,Credit,Liability,Active,05/01/1992
+72,03/20/1993,1993-03-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-010,Fidelity,"$10,000.00",03/01/1993,03/15/1993,Depository,Asset,Active,05/01/1992
+73,03/20/1993,1993-03-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-010,Vanguard,"$63,000.00",03/01/1993,03/15/1993,Investment,Asset,Active,05/01/1992
+74,03/20/1993,1993-03-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-010,Fidelity,"$150,000.00",03/01/1993,03/15/1993,Investment,Asset,Active,05/01/1992
+75,03/20/1993,1993-03-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-010,Aurora Bank,"$225,000.00",03/01/1993,03/15/1993,Loan,Liability,Active,05/01/1992
+76,03/20/1993,1993-03-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-010,Aurora Bank,$0.00,03/01/1993,03/15/1993,Depository,Asset,Active,05/01/1992
+77,04/20/1993,1993-04-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-011,Aurora Bank,"$3,600.00",04/01/1993,04/19/1993,Depository,Asset,Active,05/01/1992
+78,04/20/1993,1993-04-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-011,Harbor Card,"$2,515.00",04/01/1993,04/19/1993,Credit,Liability,Active,05/01/1992
+79,04/20/1993,1993-04-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-011,Fidelity,"$10,200.00",04/01/1993,04/19/1993,Depository,Asset,Active,05/01/1992
+80,04/20/1993,1993-04-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-011,Vanguard,"$64,300.00",04/01/1993,04/19/1993,Investment,Asset,Active,05/01/1992
+81,04/20/1993,1993-04-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-011,Fidelity,"$153,000.00",04/01/1993,04/19/1993,Investment,Asset,Active,05/01/1992
+82,04/20/1993,1993-04-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-011,Aurora Bank,"$224,000.00",04/01/1993,04/19/1993,Loan,Liability,Active,05/01/1992
+83,04/20/1993,1993-04-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-011,Aurora Bank,$0.00,04/01/1993,04/19/1993,Depository,Asset,Active,05/01/1992
+84,05/20/1993,1993-05-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-012,Aurora Bank,"$3,700.00",05/01/1993,05/17/1993,Depository,Asset,Active,05/01/1992
+85,05/20/1993,1993-05-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-012,Harbor Card,"$2,480.00",05/01/1993,05/17/1993,Credit,Liability,Active,05/01/1992
+86,05/20/1993,1993-05-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-012,Fidelity,"$10,400.00",05/01/1993,05/17/1993,Depository,Asset,Active,05/01/1992
+87,05/20/1993,1993-05-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-012,Vanguard,"$65,600.00",05/01/1993,05/17/1993,Investment,Asset,Active,05/01/1992
+88,05/20/1993,1993-05-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-012,Fidelity,"$156,000.00",05/01/1993,05/17/1993,Investment,Asset,Active,05/01/1992
+89,05/20/1993,1993-05-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-012,Aurora Bank,"$223,000.00",05/01/1993,05/17/1993,Loan,Liability,Active,05/01/1992
+90,05/20/1993,1993-05-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-012,Aurora Bank,$0.00,05/01/1993,05/17/1993,Depository,Asset,Active,05/01/1992
+91,06/20/1993,1993-06-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-013,Aurora Bank,"$3,800.00",06/01/1993,06/14/1993,Depository,Asset,Active,05/01/1992
+92,06/20/1993,1993-06-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-013,Harbor Card,"$2,445.00",06/01/1993,06/14/1993,Credit,Liability,Active,05/01/1992
+93,06/20/1993,1993-06-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-013,Fidelity,"$10,600.00",06/01/1993,06/14/1993,Depository,Asset,Active,05/01/1992
+94,06/20/1993,1993-06-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-013,Vanguard,"$66,900.00",06/01/1993,06/14/1993,Investment,Asset,Active,05/01/1992
+95,06/20/1993,1993-06-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-013,Fidelity,"$159,000.00",06/01/1993,06/14/1993,Investment,Asset,Active,05/01/1992
+96,06/20/1993,1993-06-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-013,Aurora Bank,"$222,000.00",06/01/1993,06/14/1993,Loan,Liability,Active,05/01/1992
+97,06/20/1993,1993-06-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-013,Aurora Bank,$0.00,06/01/1993,06/14/1993,Depository,Asset,Active,05/01/1992
+98,07/20/1993,1993-07-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-014,Aurora Bank,"$3,900.00",07/01/1993,07/19/1993,Depository,Asset,Active,05/01/1992
+99,07/20/1993,1993-07-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-014,Harbor Card,"$2,410.00",07/01/1993,07/19/1993,Credit,Liability,Active,05/01/1992
+100,07/20/1993,1993-07-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-014,Fidelity,"$10,800.00",07/01/1993,07/19/1993,Depository,Asset,Active,05/01/1992
+101,07/20/1993,1993-07-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-014,Vanguard,"$68,200.00",07/01/1993,07/19/1993,Investment,Asset,Active,05/01/1992
+102,07/20/1993,1993-07-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-014,Fidelity,"$162,000.00",07/01/1993,07/19/1993,Investment,Asset,Active,05/01/1992
+103,07/20/1993,1993-07-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-014,Aurora Bank,"$221,000.00",07/01/1993,07/19/1993,Loan,Liability,Active,05/01/1992
+104,07/20/1993,1993-07-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-014,Aurora Bank,$0.00,07/01/1993,07/19/1993,Depository,Asset,Active,05/01/1992
+105,08/20/1993,1993-08-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-015,Aurora Bank,"$4,000.00",08/01/1993,08/16/1993,Depository,Asset,Active,05/01/1992
+106,08/20/1993,1993-08-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-015,Harbor Card,"$2,375.00",08/01/1993,08/16/1993,Credit,Liability,Active,05/01/1992
+107,08/20/1993,1993-08-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-015,Fidelity,"$11,000.00",08/01/1993,08/16/1993,Depository,Asset,Active,05/01/1992
+108,08/20/1993,1993-08-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-015,Vanguard,"$69,500.00",08/01/1993,08/16/1993,Investment,Asset,Active,05/01/1992
+109,08/20/1993,1993-08-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-015,Fidelity,"$165,000.00",08/01/1993,08/16/1993,Investment,Asset,Active,05/01/1992
+110,08/20/1993,1993-08-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-015,Aurora Bank,"$220,000.00",08/01/1993,08/16/1993,Loan,Liability,Active,05/01/1992
+111,08/20/1993,1993-08-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-015,Aurora Bank,$0.00,08/01/1993,08/16/1993,Depository,Asset,Active,05/01/1992
+112,09/20/1993,1993-09-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-016,Aurora Bank,"$4,100.00",09/01/1993,09/20/1993,Depository,Asset,Active,05/01/1992
+113,09/20/1993,1993-09-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-016,Harbor Card,"$2,340.00",09/01/1993,09/20/1993,Credit,Liability,Active,05/01/1992
+114,09/20/1993,1993-09-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-016,Fidelity,"$11,200.00",09/01/1993,09/20/1993,Depository,Asset,Active,05/01/1992
+115,09/20/1993,1993-09-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-016,Vanguard,"$70,800.00",09/01/1993,09/20/1993,Investment,Asset,Active,05/01/1992
+116,09/20/1993,1993-09-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-016,Fidelity,"$168,000.00",09/01/1993,09/20/1993,Investment,Asset,Active,05/01/1992
+117,09/20/1993,1993-09-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-016,Aurora Bank,"$219,000.00",09/01/1993,09/20/1993,Loan,Liability,Active,05/01/1992
+118,09/20/1993,1993-09-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-016,Aurora Bank,$0.00,09/01/1993,09/20/1993,Depository,Asset,Active,05/01/1992
+119,10/20/1993,1993-10-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-017,Aurora Bank,"$4,200.00",10/01/1993,10/18/1993,Depository,Asset,Active,05/01/1992
+120,10/20/1993,1993-10-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-017,Harbor Card,"$2,305.00",10/01/1993,10/18/1993,Credit,Liability,Active,05/01/1992
+121,10/20/1993,1993-10-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-017,Fidelity,"$11,400.00",10/01/1993,10/18/1993,Depository,Asset,Active,05/01/1992
+122,10/20/1993,1993-10-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-017,Vanguard,"$72,100.00",10/01/1993,10/18/1993,Investment,Asset,Active,05/01/1992
+123,10/20/1993,1993-10-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-017,Fidelity,"$171,000.00",10/01/1993,10/18/1993,Investment,Asset,Active,05/01/1992
+124,10/20/1993,1993-10-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-017,Aurora Bank,"$218,000.00",10/01/1993,10/18/1993,Loan,Liability,Active,05/01/1992
+125,10/20/1993,1993-10-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-017,Aurora Bank,$0.00,10/01/1993,10/18/1993,Depository,Asset,Active,05/01/1992
+126,11/20/1993,1993-11-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-018,Aurora Bank,"$4,300.00",11/01/1993,11/15/1993,Depository,Asset,Active,05/01/1992
+127,11/20/1993,1993-11-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-018,Harbor Card,"$2,270.00",11/01/1993,11/15/1993,Credit,Liability,Active,05/01/1992
+128,11/20/1993,1993-11-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-018,Fidelity,"$11,600.00",11/01/1993,11/15/1993,Depository,Asset,Active,05/01/1992
+129,11/20/1993,1993-11-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-018,Vanguard,"$73,400.00",11/01/1993,11/15/1993,Investment,Asset,Active,05/01/1992
+130,11/20/1993,1993-11-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-018,Fidelity,"$174,000.00",11/01/1993,11/15/1993,Investment,Asset,Active,05/01/1992
+131,11/20/1993,1993-11-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-018,Aurora Bank,"$217,000.00",11/01/1993,11/15/1993,Loan,Liability,Active,05/01/1992
+132,11/20/1993,1993-11-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-018,Aurora Bank,$0.00,11/01/1993,11/15/1993,Depository,Asset,Active,05/01/1992
+133,12/20/1993,1993-12-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-019,Aurora Bank,"$4,400.00",12/01/1993,12/20/1993,Depository,Asset,Active,05/01/1992
+134,12/20/1993,1993-12-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-019,Harbor Card,"$2,235.00",12/01/1993,12/20/1993,Credit,Liability,Active,05/01/1992
+135,12/20/1993,1993-12-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-019,Fidelity,"$11,800.00",12/01/1993,12/20/1993,Depository,Asset,Active,05/01/1992
+136,12/20/1993,1993-12-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-019,Vanguard,"$74,700.00",12/01/1993,12/20/1993,Investment,Asset,Active,05/01/1992
+137,12/20/1993,1993-12-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-019,Fidelity,"$177,000.00",12/01/1993,12/20/1993,Investment,Asset,Active,05/01/1992
+138,12/20/1993,1993-12-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-019,Aurora Bank,"$216,000.00",12/01/1993,12/20/1993,Loan,Liability,Active,05/01/1992
+139,12/20/1993,1993-12-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-019,Aurora Bank,$0.00,12/01/1993,12/20/1993,Depository,Asset,Active,05/01/1992
+140,01/20/1994,1994-01-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-020,Aurora Bank,"$4,500.00",01/01/1994,01/17/1994,Depository,Asset,Active,05/01/1992
+141,01/20/1994,1994-01-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-020,Harbor Card,"$2,200.00",01/01/1994,01/17/1994,Credit,Liability,Active,05/01/1992
+142,01/20/1994,1994-01-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-020,Fidelity,"$12,000.00",01/01/1994,01/17/1994,Depository,Asset,Active,05/01/1992
+143,01/20/1994,1994-01-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-020,Vanguard,"$76,000.00",01/01/1994,01/17/1994,Investment,Asset,Active,05/01/1992
+144,01/20/1994,1994-01-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-020,Fidelity,"$180,000.00",01/01/1994,01/17/1994,Investment,Asset,Active,05/01/1992
+145,01/20/1994,1994-01-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-020,Aurora Bank,"$215,000.00",01/01/1994,01/17/1994,Loan,Liability,Active,05/01/1992
+146,01/20/1994,1994-01-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-020,Aurora Bank,$0.00,01/01/1994,01/17/1994,Depository,Asset,Active,05/01/1992
+147,02/20/1994,1994-02-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-021,Aurora Bank,"$4,600.00",02/01/1994,02/14/1994,Depository,Asset,Active,05/01/1992
+148,02/20/1994,1994-02-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-021,Harbor Card,"$2,165.00",02/01/1994,02/14/1994,Credit,Liability,Active,05/01/1992
+149,02/20/1994,1994-02-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-021,Fidelity,"$12,200.00",02/01/1994,02/14/1994,Depository,Asset,Active,05/01/1992
+150,02/20/1994,1994-02-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-021,Vanguard,"$77,300.00",02/01/1994,02/14/1994,Investment,Asset,Active,05/01/1992
+151,02/20/1994,1994-02-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-021,Fidelity,"$183,000.00",02/01/1994,02/14/1994,Investment,Asset,Active,05/01/1992
+152,02/20/1994,1994-02-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-021,Aurora Bank,"$214,000.00",02/01/1994,02/14/1994,Loan,Liability,Active,05/01/1992
+153,02/20/1994,1994-02-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-021,Aurora Bank,$0.00,02/01/1994,02/14/1994,Depository,Asset,Active,05/01/1992
+154,03/20/1994,1994-03-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-022,Aurora Bank,"$4,700.00",03/01/1994,03/14/1994,Depository,Asset,Active,05/01/1992
+155,03/20/1994,1994-03-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-022,Harbor Card,"$2,130.00",03/01/1994,03/14/1994,Credit,Liability,Active,05/01/1992
+156,03/20/1994,1994-03-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-022,Fidelity,"$12,400.00",03/01/1994,03/14/1994,Depository,Asset,Active,05/01/1992
+157,03/20/1994,1994-03-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-022,Vanguard,"$78,600.00",03/01/1994,03/14/1994,Investment,Asset,Active,05/01/1992
+158,03/20/1994,1994-03-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-022,Fidelity,"$186,000.00",03/01/1994,03/14/1994,Investment,Asset,Active,05/01/1992
+159,03/20/1994,1994-03-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-022,Aurora Bank,"$213,000.00",03/01/1994,03/14/1994,Loan,Liability,Active,05/01/1992
+160,03/20/1994,1994-03-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-022,Aurora Bank,$0.00,03/01/1994,03/14/1994,Depository,Asset,Active,05/01/1992
+161,04/20/1994,1994-04-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-023,Aurora Bank,"$4,800.00",04/01/1994,04/18/1994,Depository,Asset,Active,05/01/1992
+162,04/20/1994,1994-04-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-023,Harbor Card,"$2,095.00",04/01/1994,04/18/1994,Credit,Liability,Active,05/01/1992
+163,04/20/1994,1994-04-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-023,Fidelity,"$12,600.00",04/01/1994,04/18/1994,Depository,Asset,Active,05/01/1992
+164,04/20/1994,1994-04-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-023,Vanguard,"$79,900.00",04/01/1994,04/18/1994,Investment,Asset,Active,05/01/1992
+165,04/20/1994,1994-04-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-023,Fidelity,"$189,000.00",04/01/1994,04/18/1994,Investment,Asset,Active,05/01/1992
+166,04/20/1994,1994-04-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-023,Aurora Bank,"$212,000.00",04/01/1994,04/18/1994,Loan,Liability,Active,05/01/1992
+167,04/20/1994,1994-04-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-023,Aurora Bank,$0.00,04/01/1994,04/18/1994,Depository,Asset,Active,05/01/1992
+168,05/20/1994,1994-05-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-024,Aurora Bank,"$4,900.00",05/01/1994,05/16/1994,Depository,Asset,Active,05/01/1992
+169,05/20/1994,1994-05-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-024,Harbor Card,"$2,060.00",05/01/1994,05/16/1994,Credit,Liability,Active,05/01/1992
+170,05/20/1994,1994-05-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-024,Fidelity,"$12,800.00",05/01/1994,05/16/1994,Depository,Asset,Active,05/01/1992
+171,05/20/1994,1994-05-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-024,Vanguard,"$81,200.00",05/01/1994,05/16/1994,Investment,Asset,Active,05/01/1992
+172,05/20/1994,1994-05-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-024,Fidelity,"$192,000.00",05/01/1994,05/16/1994,Investment,Asset,Active,05/01/1992
+173,05/20/1994,1994-05-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-024,Aurora Bank,"$211,000.00",05/01/1994,05/16/1994,Loan,Liability,Active,05/01/1992
+174,05/20/1994,1994-05-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-024,Aurora Bank,$0.00,05/01/1994,05/16/1994,Depository,Asset,Active,05/01/1992
+175,06/20/1994,1994-06-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-025,Aurora Bank,"$5,000.00",06/01/1994,06/20/1994,Depository,Asset,Active,05/01/1992
+176,06/20/1994,1994-06-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-025,Harbor Card,"$2,025.00",06/01/1994,06/20/1994,Credit,Liability,Active,05/01/1992
+177,06/20/1994,1994-06-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-025,Fidelity,"$13,000.00",06/01/1994,06/20/1994,Depository,Asset,Active,05/01/1992
+178,06/20/1994,1994-06-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-025,Vanguard,"$82,500.00",06/01/1994,06/20/1994,Investment,Asset,Active,05/01/1992
+179,06/20/1994,1994-06-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-025,Fidelity,"$195,000.00",06/01/1994,06/20/1994,Investment,Asset,Active,05/01/1992
+180,06/20/1994,1994-06-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-025,Aurora Bank,"$210,000.00",06/01/1994,06/20/1994,Loan,Liability,Active,05/01/1992
+181,06/20/1994,1994-06-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-025,Aurora Bank,$0.00,06/01/1994,06/20/1994,Depository,Asset,Active,05/01/1992
+182,07/20/1994,1994-07-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-026,Aurora Bank,"$5,100.00",07/01/1994,07/18/1994,Depository,Asset,Active,05/01/1992
+183,07/20/1994,1994-07-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-026,Harbor Card,"$1,990.00",07/01/1994,07/18/1994,Credit,Liability,Active,05/01/1992
+184,07/20/1994,1994-07-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-026,Fidelity,"$13,200.00",07/01/1994,07/18/1994,Depository,Asset,Active,05/01/1992
+185,07/20/1994,1994-07-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-026,Vanguard,"$83,800.00",07/01/1994,07/18/1994,Investment,Asset,Active,05/01/1992
+186,07/20/1994,1994-07-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-026,Fidelity,"$198,000.00",07/01/1994,07/18/1994,Investment,Asset,Active,05/01/1992
+187,07/20/1994,1994-07-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-026,Aurora Bank,"$209,000.00",07/01/1994,07/18/1994,Loan,Liability,Active,05/01/1992
+188,07/20/1994,1994-07-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-026,Aurora Bank,$0.00,07/01/1994,07/18/1994,Depository,Asset,Active,05/01/1992
+189,08/20/1994,1994-08-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-027,Aurora Bank,"$5,200.00",08/01/1994,08/15/1994,Depository,Asset,Active,05/01/1992
+190,08/20/1994,1994-08-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-027,Harbor Card,"$1,955.00",08/01/1994,08/15/1994,Credit,Liability,Active,05/01/1992
+191,08/20/1994,1994-08-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-027,Fidelity,"$13,400.00",08/01/1994,08/15/1994,Depository,Asset,Active,05/01/1992
+192,08/20/1994,1994-08-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-027,Vanguard,"$85,100.00",08/01/1994,08/15/1994,Investment,Asset,Active,05/01/1992
+193,08/20/1994,1994-08-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-027,Fidelity,"$201,000.00",08/01/1994,08/15/1994,Investment,Asset,Active,05/01/1992
+194,08/20/1994,1994-08-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-027,Aurora Bank,"$208,000.00",08/01/1994,08/15/1994,Loan,Liability,Active,05/01/1992
+195,08/20/1994,1994-08-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-027,Aurora Bank,$0.00,08/01/1994,08/15/1994,Depository,Asset,Active,05/01/1992
+196,09/20/1994,1994-09-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-028,Aurora Bank,"$5,300.00",09/01/1994,09/19/1994,Depository,Asset,Active,05/01/1992
+197,09/20/1994,1994-09-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-028,Harbor Card,"$1,920.00",09/01/1994,09/19/1994,Credit,Liability,Active,05/01/1992
+198,09/20/1994,1994-09-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-028,Fidelity,"$13,600.00",09/01/1994,09/19/1994,Depository,Asset,Active,05/01/1992
+199,09/20/1994,1994-09-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-028,Vanguard,"$86,400.00",09/01/1994,09/19/1994,Investment,Asset,Active,05/01/1992
+200,09/20/1994,1994-09-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-028,Fidelity,"$204,000.00",09/01/1994,09/19/1994,Investment,Asset,Active,05/01/1992
+201,09/20/1994,1994-09-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-028,Aurora Bank,"$207,000.00",09/01/1994,09/19/1994,Loan,Liability,Active,05/01/1992
+202,09/20/1994,1994-09-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-028,Aurora Bank,$0.00,09/01/1994,09/19/1994,Depository,Asset,Active,05/01/1992
+203,10/20/1994,1994-10-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-029,Aurora Bank,"$5,400.00",10/01/1994,10/17/1994,Depository,Asset,Active,05/01/1992
+204,10/20/1994,1994-10-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-029,Harbor Card,"$1,885.00",10/01/1994,10/17/1994,Credit,Liability,Active,05/01/1992
+205,10/20/1994,1994-10-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-029,Fidelity,"$13,800.00",10/01/1994,10/17/1994,Depository,Asset,Active,05/01/1992
+206,10/20/1994,1994-10-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-029,Vanguard,"$87,700.00",10/01/1994,10/17/1994,Investment,Asset,Active,05/01/1992
+207,10/20/1994,1994-10-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-029,Fidelity,"$207,000.00",10/01/1994,10/17/1994,Investment,Asset,Active,05/01/1992
+208,10/20/1994,1994-10-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-029,Aurora Bank,"$206,000.00",10/01/1994,10/17/1994,Loan,Liability,Active,05/01/1992
+209,10/20/1994,1994-10-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-029,Aurora Bank,$0.00,10/01/1994,10/17/1994,Depository,Asset,Active,05/01/1992
+210,11/20/1994,1994-11-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-030,Aurora Bank,"$5,500.00",11/01/1994,11/14/1994,Depository,Asset,Active,05/01/1992
+211,11/20/1994,1994-11-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-030,Harbor Card,"$1,850.00",11/01/1994,11/14/1994,Credit,Liability,Active,05/01/1992
+212,11/20/1994,1994-11-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-030,Fidelity,"$14,000.00",11/01/1994,11/14/1994,Depository,Asset,Active,05/01/1992
+213,11/20/1994,1994-11-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-030,Vanguard,"$89,000.00",11/01/1994,11/14/1994,Investment,Asset,Active,05/01/1992
+214,11/20/1994,1994-11-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-030,Fidelity,"$210,000.00",11/01/1994,11/14/1994,Investment,Asset,Active,05/01/1992
+215,11/20/1994,1994-11-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-030,Aurora Bank,"$205,000.00",11/01/1994,11/14/1994,Loan,Liability,Active,05/01/1992
+216,11/20/1994,1994-11-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-030,Aurora Bank,$0.00,11/01/1994,11/14/1994,Depository,Asset,Active,05/01/1992
+217,12/20/1994,1994-12-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-031,Aurora Bank,"$5,600.00",12/01/1994,12/19/1994,Depository,Asset,Active,05/01/1992
+218,12/20/1994,1994-12-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-031,Harbor Card,"$1,815.00",12/01/1994,12/19/1994,Credit,Liability,Active,05/01/1992
+219,12/20/1994,1994-12-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-031,Fidelity,"$14,200.00",12/01/1994,12/19/1994,Depository,Asset,Active,05/01/1992
+220,12/20/1994,1994-12-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-031,Vanguard,"$90,300.00",12/01/1994,12/19/1994,Investment,Asset,Active,05/01/1992
+221,12/20/1994,1994-12-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-031,Fidelity,"$213,000.00",12/01/1994,12/19/1994,Investment,Asset,Active,05/01/1992
+222,12/20/1994,1994-12-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-031,Aurora Bank,"$204,000.00",12/01/1994,12/19/1994,Loan,Liability,Active,05/01/1992
+223,12/20/1994,1994-12-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-031,Aurora Bank,$0.00,12/01/1994,12/19/1994,Depository,Asset,Active,05/01/1992
+224,01/20/1995,1995-01-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-032,Aurora Bank,"$5,700.00",01/01/1995,01/16/1995,Depository,Asset,Active,05/01/1992
+225,01/20/1995,1995-01-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-032,Harbor Card,"$1,780.00",01/01/1995,01/16/1995,Credit,Liability,Active,05/01/1992
+226,01/20/1995,1995-01-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-032,Fidelity,"$14,400.00",01/01/1995,01/16/1995,Depository,Asset,Active,05/01/1992
+227,01/20/1995,1995-01-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-032,Vanguard,"$91,600.00",01/01/1995,01/16/1995,Investment,Asset,Active,05/01/1992
+228,01/20/1995,1995-01-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-032,Fidelity,"$216,000.00",01/01/1995,01/16/1995,Investment,Asset,Active,05/01/1992
+229,01/20/1995,1995-01-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-032,Aurora Bank,"$203,000.00",01/01/1995,01/16/1995,Loan,Liability,Active,05/01/1992
+230,01/20/1995,1995-01-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-032,Aurora Bank,$0.00,01/01/1995,01/16/1995,Depository,Asset,Active,05/01/1992
+231,02/20/1995,1995-02-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-033,Aurora Bank,"$5,800.00",02/01/1995,02/20/1995,Depository,Asset,Active,05/01/1992
+232,02/20/1995,1995-02-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-033,Harbor Card,"$1,745.00",02/01/1995,02/20/1995,Credit,Liability,Active,05/01/1992
+233,02/20/1995,1995-02-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-033,Fidelity,"$14,600.00",02/01/1995,02/20/1995,Depository,Asset,Active,05/01/1992
+234,02/20/1995,1995-02-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-033,Vanguard,"$92,900.00",02/01/1995,02/20/1995,Investment,Asset,Active,05/01/1992
+235,02/20/1995,1995-02-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-033,Fidelity,"$219,000.00",02/01/1995,02/20/1995,Investment,Asset,Active,05/01/1992
+236,02/20/1995,1995-02-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-033,Aurora Bank,"$202,000.00",02/01/1995,02/20/1995,Loan,Liability,Active,05/01/1992
+237,02/20/1995,1995-02-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-033,Aurora Bank,$0.00,02/01/1995,02/20/1995,Depository,Asset,Active,05/01/1992
+238,03/20/1995,1995-03-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-034,Aurora Bank,"$5,900.00",03/01/1995,03/20/1995,Depository,Asset,Active,05/01/1992
+239,03/20/1995,1995-03-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-034,Harbor Card,"$1,710.00",03/01/1995,03/20/1995,Credit,Liability,Active,05/01/1992
+240,03/20/1995,1995-03-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-034,Fidelity,"$14,800.00",03/01/1995,03/20/1995,Depository,Asset,Active,05/01/1992
+241,03/20/1995,1995-03-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-034,Vanguard,"$94,200.00",03/01/1995,03/20/1995,Investment,Asset,Active,05/01/1992
+242,03/20/1995,1995-03-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-034,Fidelity,"$222,000.00",03/01/1995,03/20/1995,Investment,Asset,Active,05/01/1992
+243,03/20/1995,1995-03-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-034,Aurora Bank,"$201,000.00",03/01/1995,03/20/1995,Loan,Liability,Active,05/01/1992
+244,03/20/1995,1995-03-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-034,Aurora Bank,$0.00,03/01/1995,03/20/1995,Depository,Asset,Active,05/01/1992
+245,04/20/1995,1995-04-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-035,Aurora Bank,"$6,000.00",04/01/1995,04/17/1995,Depository,Asset,Active,05/01/1992
+246,04/20/1995,1995-04-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-035,Harbor Card,"$1,675.00",04/01/1995,04/17/1995,Credit,Liability,Active,05/01/1992
+247,04/20/1995,1995-04-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-035,Fidelity,"$15,000.00",04/01/1995,04/17/1995,Depository,Asset,Active,05/01/1992
+248,04/20/1995,1995-04-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-035,Vanguard,"$95,500.00",04/01/1995,04/17/1995,Investment,Asset,Active,05/01/1992
+249,04/20/1995,1995-04-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-035,Fidelity,"$225,000.00",04/01/1995,04/17/1995,Investment,Asset,Active,05/01/1992
+250,04/20/1995,1995-04-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-035,Aurora Bank,"$200,000.00",04/01/1995,04/17/1995,Loan,Liability,Active,05/01/1992
+251,04/20/1995,1995-04-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-035,Aurora Bank,$0.00,04/01/1995,04/17/1995,Depository,Asset,Active,05/01/1992

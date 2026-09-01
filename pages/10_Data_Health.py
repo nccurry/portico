@@ -14,6 +14,7 @@ from src.analysis.duplicates import (
 from src.config import get_settings
 from src.custom_types import ColumnConfig
 from src.page_helpers import get_transaction_column_config, render_data_refresh_controls
+from src.reporting_periods import current_timestamp
 from src.spreadsheet import (
     BalanceHistorySpreadsheet,
     TransactionsSpreadsheet,
@@ -80,7 +81,7 @@ def _age_label(value: pd.Timestamp | None) -> str:
     """Describe how old a source's latest row is."""
     if value is None:
         return "Source unavailable"
-    today = pd.Timestamp.now(tz="UTC").normalize()
+    today = current_timestamp().normalize()
     age = max((today - value.normalize()).days, 0)
     if age == 0:
         return "Updated today"

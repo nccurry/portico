@@ -8,6 +8,7 @@ import pandas as pd
 from src.analysis.merchants import _mode_or_first, normalize_merchant_name
 from src.config import get_settings
 from src.custom_types import SubscriptionSummary
+from src.reporting_periods import current_timestamp
 
 CADENCE_DAYS: Final[dict[str, int]] = {
     "Monthly": 30,
@@ -328,7 +329,7 @@ def summarize_subscriptions(
     subscription_categories: list[str],
 ) -> SubscriptionSummary:
     """Return active inventory and actual trailing-year subscription metrics."""
-    latest_data_date = _latest_date(transactions) if not transactions.empty else pd.Timestamp.now(tz="UTC")
+    latest_data_date = _latest_date(transactions) if not transactions.empty else current_timestamp()
     known = _prepare_expenses(transactions) if not transactions.empty else pd.DataFrame()
     if not known.empty:
         known = known[known["Category"].isin(subscription_categories)]
