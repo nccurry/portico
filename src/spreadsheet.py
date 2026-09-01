@@ -6,7 +6,6 @@ from typing import ClassVar, TypedDict, override
 
 import pandas as pd
 import streamlit as st
-from streamlit_gsheets import GSheetsConnection
 
 from src.config import get_settings
 from src.scrubbing import (
@@ -84,6 +83,8 @@ class Spreadsheet(metaclass=ABCMeta):
             return
 
         try:
+            from streamlit_gsheets import GSheetsConnection
+
             conn = st.connection(name=self.name, type=GSheetsConnection)
             self.raw_df = conn.read()
         except Exception:

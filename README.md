@@ -70,9 +70,13 @@ financial records.
 
 [Try it out in your browser](https://nccurry.github.io/portico/).
 
-The browser demo shows an interactive accounts, net worth, and spending sample
-from the synthetic CSV files in this repository. It runs in your browser. It
-does not read Google Sheets, load secrets, or send Discord messages.
+The browser demo runs the same Portico pages, calculations, settings, and
+synthetic CSV files as the native demo. It runs in your browser. It does not
+read Google Sheets, load secrets, or send Discord messages.
+
+The browser runtime temporarily uses Streamlit 1.57. Controls that normally
+keep state after a page or view changes can reset. Portico removes this bridge
+after Stlite supports Streamlit 1.62 and all Pages demo screens pass a browser test.
 
 ### Run the demo locally
 

@@ -10,20 +10,26 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 OUTPUT_DIRECTORY = PROJECT_ROOT / "build" / "pages"
 ARCHIVE_PATH = OUTPUT_DIRECTORY / "portico-demo.zip"
 DEMO_ENTRYPOINT = PROJECT_ROOT / "demo" / "pages" / "entry.py"
+APPLICATION_ENTRYPOINT = PROJECT_ROOT / "Home.py"
 SITE_FILES = (
     (PROJECT_ROOT / "demo" / "pages" / "index.html", OUTPUT_DIRECTORY / "index.html"),
     (PROJECT_ROOT / "assets" / "brand" / "logo.svg", OUTPUT_DIRECTORY / "logo.svg"),
 )
-SOURCE_FILES = (
-    Path("src/__init__.py"),
-    Path("src/analysis/__init__.py"),
-    Path("src/analysis/home.py"),
+APPLICATION_FILES = (
+    Path(".streamlit/config.toml"),
+    Path("config/defaults.toml"),
+    Path("demo/__init__.py"),
+    Path("demo/pages/__init__.py"),
+    Path("demo/pages/streamlit_compat.py"),
 )
+APPLICATION_DIRECTORIES = (Path("pages"), Path("src"))
 
 
 def _app_files() -> tuple[Path, ...]:
-    """Return the calculation code and synthetic data for the browser demo."""
-    files = [PROJECT_ROOT / path for path in SOURCE_FILES]
+    """Return the Portico app and synthetic data for the browser demo."""
+    files = [PROJECT_ROOT / path for path in APPLICATION_FILES]
+    for directory in APPLICATION_DIRECTORIES:
+        files.extend(sorted((PROJECT_ROOT / directory).rglob("*.py")))
     files.extend(sorted((PROJECT_ROOT / "demo" / "data").glob("*.csv")))
     return tuple(files)
 
@@ -45,8 +51,10 @@ def _copy_site_files() -> None:
 def _write_archive(files: tuple[Path, ...]) -> None:
     """Write the source code and synthetic data for the browser runtime."""
     _require_file(DEMO_ENTRYPOINT)
+    _require_file(APPLICATION_ENTRYPOINT)
     with ZipFile(ARCHIVE_PATH, "w", compression=ZIP_DEFLATED) as archive:
-        archive.write(DEMO_ENTRYPOINT, "demo/pages/entry.py")
+        archive.write(DEMO_ENTRYPOINT, "Home.py")
+        archive.write(APPLICATION_ENTRYPOINT, "portico_home.py")
         for source in files:
             _require_file(source)
             archive.write(source, source.relative_to(PROJECT_ROOT).as_posix())

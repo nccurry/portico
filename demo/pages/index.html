@@ -11,7 +11,7 @@
     <link rel="icon" href="logo.svg" type="image/svg+xml" />
     <link
       rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/@stlite/browser@0.89.0/build/stlite.css"
+      href="https://cdn.jsdelivr.net/npm/@stlite/browser@1.8.1/build/stlite.css"
     />
     <style>
       html,
@@ -41,7 +41,7 @@
   </head>
   <body>
     <main id="app" aria-live="polite">
-      <p class="loading">Loading the demo...</p>
+      <p class="loading">Loading the full Portico demo...</p>
     </main>
     <noscript>
       <p>Enable JavaScript to use the demo.</p>
@@ -51,7 +51,7 @@
 
       try {
         const { mount } = await import(
-          "https://cdn.jsdelivr.net/npm/@stlite/browser@0.89.0/build/stlite.js",
+          "https://cdn.jsdelivr.net/npm/@stlite/browser@1.8.1/build/stlite.js",
         );
 
         app.replaceChildren();
@@ -64,7 +64,7 @@
                 options: {},
               },
             ],
-            entrypoint: "demo/pages/entry.py",
+            entrypoint: "Home.py",
             requirements: ["altair", "pandas"],
           },
           app,
