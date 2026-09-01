@@ -11,20 +11,19 @@ from src.analysis.income import (
     calculate_savings_summary,
     summarize_income_expense_ledger,
 )
+from src.config import get_settings
 from src.constants import (
     COLOR_EXPENSE,
     COLOR_INCOME,
     COLOR_PLACEHOLDER,
     COLOR_SAVINGS,
 )
-from src.config import get_settings
 from src.custom_types import SavingsSummary
 from src.filters import render_income_expense_filters
 from src.page_helpers import render_data_refresh_controls
 from src.reporting_periods import month_lookback_options, rolling_month_window
 from src.spreadsheet import TransactionsSpreadsheet, load_transactions_data
 from src.value_visibility import mask_value, value_safe_altair_chart, value_safe_dataframe
-
 
 CALCULATION_VIEWS = ["Regular", "Actual"]
 CASH_FLOW_SELECTION = "cash_month_pick"

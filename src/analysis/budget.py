@@ -8,7 +8,6 @@ import pandas as pd
 from src.custom_types import BudgetFilters, BudgetSummary
 from src.filters import apply_transaction_filters
 
-
 type BudgetDimension = Literal["Group", "Category"]
 
 BUDGET_HISTORY_COLUMNS = [

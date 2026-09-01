@@ -11,9 +11,13 @@ from streamlit_gsheets import GSheetsConnection
 from src.config import get_settings
 from src.scrubbing import (
     BALANCE_HISTORY_REQUIRED_COLUMNS,
-    SpreadsheetSchemaError as SpreadsheetSchemaError,
     scrub_categories,
     scrub_transactions,
+)
+from src.scrubbing import (
+    SpreadsheetSchemaError as SpreadsheetSchemaError,
+)
+from src.scrubbing import (
     validate_required_columns as validate_required_columns,
 )
 

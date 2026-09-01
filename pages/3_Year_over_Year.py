@@ -23,7 +23,6 @@ from src.reporting_periods import latest_data_timestamp, rolling_month_window
 from src.spreadsheet import TransactionsSpreadsheet, load_transactions_data
 from src.value_visibility import mask_value, value_safe_altair_chart, value_safe_dataframe
 
-
 MONTHS = list(calendar.month_abbr[1:])
 PRIOR_YEAR_COLORS = ["#CBD5E1", "#94A3B8", "#64748B", "#475569", "#334155"]
 VIEW_OPTIONS = [

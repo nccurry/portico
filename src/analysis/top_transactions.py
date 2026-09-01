@@ -7,7 +7,6 @@ import pandas as pd
 from src.analysis.merchants import enrich_with_merchant
 from src.custom_types import TransactionExplorerSummary
 
-
 FOCUS_OPTIONS = (
     "All transactions",
     "Largest",

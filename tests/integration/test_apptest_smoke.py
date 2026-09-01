@@ -458,7 +458,7 @@ class TestHomeSmoke:
         )
         assert not at.exception
         assert at.title[0].value == "Accounts and net worth"
-        assert set(caption.value for caption in at.caption) == {
+        assert {caption.value for caption in at.caption} == {
             "Latest balance update Apr 17, 2026",
             "Loaded 2026-04-17 00:00 UTC",
         }

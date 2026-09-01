@@ -10,7 +10,6 @@ import streamlit as st
 
 from src.custom_types import ColumnConfig
 
-
 MASKED_VALUE = "XXXXXXXX"
 MASKED_AXIS_LABEL_EXPR = f"isNumber(datum.value) ? '{MASKED_VALUE}' : datum.label"
 VALUES_HIDDEN_KEY = "hide_values"

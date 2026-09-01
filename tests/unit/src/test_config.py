@@ -4,7 +4,6 @@ import pytest
 
 from src.config import ConfigError, load_settings
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DEFAULTS = PROJECT_ROOT / "config" / "defaults.toml"
 

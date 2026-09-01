@@ -19,6 +19,7 @@ from src.analysis.budget import (
     summarize_budget,
     summarize_budget_history,
 )
+from src.config import get_settings
 from src.constants import (
     COLOR_ADDITIONAL_SPENDING,
     COLOR_BUDGET,
@@ -28,14 +29,12 @@ from src.constants import (
     COLOR_SAVINGS,
     COLOR_UNDER_BUDGET,
 )
-from src.config import get_settings
 from src.custom_types import BudgetFilters, ColumnConfig
 from src.filters import render_budget_filters
 from src.page_helpers import render_data_refresh_controls
 from src.reporting_periods import latest_data_timestamp, reporting_anchor, rolling_month_window
 from src.spreadsheet import load_categories_data, load_transactions_data
 from src.value_visibility import mask_value, value_safe_altair_chart, value_safe_dataframe
-
 
 SELECTED_GROUP_KEY = "budget_selected_group"
 

@@ -1,7 +1,6 @@
 """Streamlit test isolation and date-freezing fixtures."""
 
-from collections.abc import Generator
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from datetime import tzinfo
 from typing import overload
 from unittest.mock import MagicMock, patch
@@ -82,10 +81,5 @@ def frozen_time(
             return frozen_utc.tz_convert("UTC").tz_localize(None)
         return frozen_utc.tz_convert(tz)
 
-    original_now = pd.Timestamp.now
-    setattr(pd.Timestamp, "now", classmethod(_frozen_now))
-    try:
-        with freeze_time(iso, tz_offset=0):
-            yield
-    finally:
-        setattr(pd.Timestamp, "now", original_now)
+    with patch.object(pd.Timestamp, "now", classmethod(_frozen_now)), freeze_time(iso, tz_offset=0):
+        yield

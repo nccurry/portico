@@ -3,13 +3,13 @@
 import pandas as pd
 import streamlit as st
 
+from src.config import get_settings
 from src.constants import (
     FI_SPENDING_LOOKBACK_OPTIONS,
     MAX_SAVINGS_RATE,
     MIN_SAVINGS_RATE,
     SAVINGS_RATE_STEP,
 )
-from src.config import get_settings
 from src.custom_types import (
     BudgetFilters,
     FIFilters,

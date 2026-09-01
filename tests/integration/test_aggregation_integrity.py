@@ -7,11 +7,11 @@ that the numbers at each stage are arithmetically consistent.
 import pandas as pd
 import pytest
 
-from src.config import get_settings
-from src.custom_types import IncomeExpenseFilters, SpendingFilters, TransactionFilterOptions
 from src.analysis.financial_independence import calculate_avg_monthly_spending
 from src.analysis.income import process_income_expense_data
 from src.analysis.spending import build_spending_ledger, build_spending_overview
+from src.config import get_settings
+from src.custom_types import IncomeExpenseFilters, SpendingFilters, TransactionFilterOptions
 from src.filters import apply_transaction_filters
 from src.spreadsheet import get_all_accounts, get_portfolio_value
 from tests.custom_types import FullDatasetFactory, TransactionsSpreadsheetFactory

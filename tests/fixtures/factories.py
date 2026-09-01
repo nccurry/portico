@@ -11,7 +11,6 @@ from tests.custom_types import (
     TransactionsSpreadsheetFactory,
 )
 
-
 # 9. make_transactions_spreadsheet  (factory fixture)
 # ---------------------------------------------------------------------------
 
@@ -28,16 +27,18 @@ def make_transactions_spreadsheet(
             ts = make_transactions_spreadsheet()           # uses default 8-row df
             ts = make_transactions_spreadsheet(custom_df)  # uses caller-supplied df
     """
-    from src.spreadsheet import TransactionsSpreadsheet, Spreadsheet
+    from src.spreadsheet import Spreadsheet, TransactionsSpreadsheet
 
     def _factory(df: pd.DataFrame | None = None) -> TransactionsSpreadsheet:
         """Build a TransactionsSpreadsheet with scrubbed_df set to *df*."""
         if df is None:
             df = scrubbed_transactions_df
 
-        with patch.object(Spreadsheet, "load", lambda self: None):
-            with patch.object(TransactionsSpreadsheet, "scrub", lambda self: setattr(self, "scrubbed_df", df)):
-                return TransactionsSpreadsheet()
+        with (
+            patch.object(Spreadsheet, "load", lambda self: None),
+            patch.object(TransactionsSpreadsheet, "scrub", lambda self: setattr(self, "scrubbed_df", df)),
+        ):
+            return TransactionsSpreadsheet()
 
     return _factory
 
@@ -66,9 +67,11 @@ def make_balance_spreadsheet(
         if df is None:
             df = scrubbed_balance_df
 
-        with patch.object(Spreadsheet, "load", lambda self: None):
-            with patch.object(BalanceHistorySpreadsheet, "scrub", lambda self: setattr(self, "scrubbed_df", df)):
-                return BalanceHistorySpreadsheet()
+        with (
+            patch.object(Spreadsheet, "load", lambda self: None),
+            patch.object(BalanceHistorySpreadsheet, "scrub", lambda self: setattr(self, "scrubbed_df", df)),
+        ):
+            return BalanceHistorySpreadsheet()
 
     return _factory
 
@@ -102,9 +105,8 @@ def make_categories_spreadsheet(
             else:
                 self.budget_df = pd.DataFrame(columns=["Category", "Month", "Budget", "Group", "Type"])
 
-        with patch.object(Spreadsheet, "load", lambda self: None):
-            with patch.object(CategoriesSpreadsheet, "scrub", _scrub):
-                return CategoriesSpreadsheet()
+        with patch.object(Spreadsheet, "load", lambda self: None), patch.object(CategoriesSpreadsheet, "scrub", _scrub):
+            return CategoriesSpreadsheet()
 
     return _factory
 

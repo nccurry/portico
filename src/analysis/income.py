@@ -6,7 +6,6 @@ from src.config import get_settings
 from src.custom_types import IncomeExpenseFilters, SavingsSummary, TransactionFilterOptions
 from src.spreadsheet import TransactionsSpreadsheet
 
-
 MONTHLY_CASH_FLOW_COLUMNS = [
     "Month",
     "Income",

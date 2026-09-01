@@ -3,17 +3,17 @@
 from __future__ import annotations
 
 import argparse
-from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
 import datetime as dt
-from io import TextIOWrapper
 import json
 import os
-from pathlib import Path
 import re
 import sys
 import tempfile
 import tomllib
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
+from io import TextIOWrapper
+from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
@@ -32,7 +32,6 @@ from src.weekly_expenses import (
     completed_week,
     validate_selected_categories,
 )
-
 
 DEFAULT_SECRETS_PATH = Path(".streamlit/secrets.toml")
 DEFAULT_STATE_PATH = Path(".local/discord-weekly-state.json")
