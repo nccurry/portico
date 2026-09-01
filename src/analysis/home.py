@@ -77,7 +77,8 @@ def build_balance_group_inventory(
     """Summarize current balance groups and their net-worth contribution.
 
     ``Balance`` is a positive magnitude for pure groups. For a mixed group, it
-    is the absolute value of the group's net contribution.
+    is the absolute value of the group's net contribution. Liability trends use
+    debt magnitude so they decrease as the debt is paid off.
     """
     start = _as_utc(start_date)
     end = _as_utc(end_date)
@@ -96,20 +97,22 @@ def build_balance_group_inventory(
 
     opening = _latest_accounts_as_of(balances, start).set_index("_Account_Key")
     opening_contributions = opening["_Contribution"]
-    weekly_by_group = {}
-    for group, group_rows in current.groupby("Group", sort=True):
-        account_keys = set(group_rows["_Account_Key"])
-        weekly_by_group[str(group)] = build_net_worth_history(
-            balances[balances["_Account_Key"].isin(account_keys)],
-            start,
-            end,
-        )["Net_Worth"].tolist()
-
     records: list[dict[str, object]] = []
     for group, group_rows in current.groupby("Group", sort=True):
         group_name = str(group)
         classes = set(group_rows["_Class"])
         group_type = classes.pop() if len(classes) == 1 else "Mixed"
+        account_keys = set(group_rows["_Account_Key"])
+        account_history = build_net_worth_history(
+            balances[balances["_Account_Key"].isin(account_keys)],
+            start,
+            end,
+        )
+        trend = (
+            account_history["Liabilities"].abs().tolist()
+            if group_type == "Liability"
+            else account_history["Net_Worth"].tolist()
+        )
         net_contribution = float(group_rows["_Contribution"].sum())
         opening_contribution = float(group_rows["_Account_Key"].map(opening_contributions).fillna(0.0).sum())
         period_change = net_contribution - opening_contribution
@@ -127,7 +130,7 @@ def build_balance_group_inventory(
                 "Period_Change_Pct": period_change_pct,
                 "Last_Updated": group_rows["Date"].max(),
                 "Account_Count": int(group_rows["_Account_Key"].nunique()),
-                "Trend": weekly_by_group[group_name],
+                "Trend": trend,
             }
         )
 
