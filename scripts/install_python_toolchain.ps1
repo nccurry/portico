@@ -1,4 +1,4 @@
-# Install the pinned uv and Python toolchain inside the repository.
+# Install the uv and Python versions pinned by pyproject.toml.
 [CmdletBinding()]
 param()
 

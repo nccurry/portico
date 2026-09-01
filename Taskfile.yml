@@ -65,9 +65,9 @@ tasks:
   deps:python:install:
     desc: "Install pinned uv and Python locally"
     cmds:
-      - cmd: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-python-toolchain.ps1
+      - cmd: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install_python_toolchain.ps1
         platforms: [windows]
-      - cmd: sh scripts/install-python-toolchain.sh
+      - cmd: sh scripts/install_python_toolchain.sh
         platforms: [linux, darwin]
 
   deps:sync:
@@ -234,7 +234,7 @@ tasks:
     desc: "Check shell script syntax"
     platforms: [linux, darwin]
     cmds:
-      - sh -n .devcontainer/install-tools.sh scripts/bootstrap.sh scripts/install-python-toolchain.sh
+      - sh -n .devcontainer/install-tools.sh scripts/bootstrap.sh scripts/install_python_toolchain.sh
 
   lint:python:
     desc: "Run Ruff lint checks"

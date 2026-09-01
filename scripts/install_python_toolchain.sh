@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-# Install the pinned uv and Python toolchain inside the repository.
+# Install the uv and Python versions pinned by pyproject.toml.
 set -eu
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
