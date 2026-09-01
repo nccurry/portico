@@ -7,6 +7,10 @@ Portico uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- An interactive GitHub Pages preview for synthetic accounts, net worth, and spending data.
+
 ## [1.0.0] - 2026-08-30
 
 ### Added

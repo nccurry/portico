@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Explore Portico with synthetic personal-finance data in your browser."
+    />
+    <title>Portico demo</title>
+    <link rel="icon" href="logo.svg" type="image/svg+xml" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@stlite/browser@0.89.0/build/stlite.css"
+    />
+    <style>
+      html,
+      body,
+      #app {
+        min-height: 100%;
+        margin: 0;
+      }
+
+      #app {
+        min-height: 100vh;
+      }
+
+      .loading,
+      .load-error,
+      noscript p {
+        margin: 3rem auto;
+        color: #64748b;
+        font-family: system-ui, sans-serif;
+        text-align: center;
+      }
+
+      .load-error {
+        color: #1e293b;
+      }
+    </style>
+  </head>
+  <body>
+    <main id="app" aria-live="polite">
+      <p class="loading">Loading the demo...</p>
+    </main>
+    <noscript>
+      <p>Enable JavaScript to use the demo.</p>
+    </noscript>
+    <script type="module">
+      const app = document.querySelector("#app");
+
+      try {
+        const { mount } = await import(
+          "https://cdn.jsdelivr.net/npm/@stlite/browser@0.89.0/build/stlite.js",
+        );
+
+        app.replaceChildren();
+        mount(
+          {
+            archives: [
+              {
+                url: "./portico-demo.zip",
+                format: "zip",
+                options: {},
+              },
+            ],
+            entrypoint: "demo/pages/entry.py",
+            requirements: ["altair", "pandas"],
+          },
+          app,
+        );
+      } catch (error) {
+        console.error(error);
+        const message = document.createElement("p");
+        message.className = "load-error";
+        message.textContent = "The demo did not load. Refresh the page and try again.";
+        app.replaceChildren(message);
+      }
+    </script>
+  </body>
+</html>

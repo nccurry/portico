@@ -18,3 +18,7 @@ without an authenticated TLS reverse proxy.
 The container runs as a non-root user with a read-only root filesystem. The
 documented container command mounts the Streamlit secrets file as read-only.
 These controls do not add user authentication to the dashboard.
+
+The GitHub Pages demo is public. It contains synthetic data and runs in the
+browser. It cannot load secrets, read Google Sheets, or send Discord messages.
+Do not add private data or configuration files to its build inputs.
