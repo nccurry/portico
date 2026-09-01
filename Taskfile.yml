@@ -12,7 +12,7 @@ vars:
   UV_CACHE: '{{default ".local/uv-cache" .UV_CACHE_DIR}}'
   PYTEST_TEMP: '{{default ".local/pytest-tmp" .PYTEST_TEMP}}'
   COVERAGE_INPUTS: '{{default "." .COVERAGE_INPUTS}}'
-  LINT_PATHS: src/ pages/ tests/ scripts/ Home.py
+  LINT_PATHS: src/ pages/ demo/ tests/ scripts/ Home.py
   ADDRESS: '{{default "127.0.0.1" .ADDRESS}}'
   PORT: '{{default "8501" .PORT}}'
   TIMEZONE: '{{default "Etc/UTC" .TZ}}'
@@ -285,6 +285,11 @@ tasks:
       PORTICO_DATA_SOURCE: demo
     cmds:
       - '{{.UV}} run --locked --dev streamlit run Home.py --server.address=127.0.0.1 --server.port={{.PORT | quote}}'
+
+  pages:build:
+    desc: "Build the browser demo for GitHub Pages"
+    cmds:
+      - '{{.UV}} run --locked --dev python -m scripts.build_pages_demo'
 
   run:lan:
     desc: "Run the app on all interfaces for a trusted network"

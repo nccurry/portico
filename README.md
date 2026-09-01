@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="#try-the-demo">Try the demo</a>
+  <a href="https://nccurry.github.io/portico/">Try it out</a>
   |
   <a href="#connect-google-sheets">Connect Google Sheets</a>
   |
@@ -22,7 +22,7 @@
   <a href="https://github.com/nccurry/portico/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/nccurry/portico/actions/workflows/ci.yml/badge.svg" /></a>
   <a href="pyproject.toml"><img alt="Python 3.14" src="https://img.shields.io/badge/python-3.14-3776AB?logo=python&amp;logoColor=white" /></a>
   <a href="https://github.com/nccurry/portico/actions/workflows/ci.yml"><img alt="Code coverage: 90%" src="https://img.shields.io/badge/coverage-90%25-brightgreen" /></a>
-  <a href="#try-the-demo"><img alt="Synthetic demo included" src="https://img.shields.io/badge/demo-synthetic_data-2DA44E?logo=streamlit&amp;logoColor=white" /></a>
+  <a href="https://nccurry.github.io/portico/"><img alt="Synthetic demo included" src="https://img.shields.io/badge/demo-synthetic_data-2DA44E?logo=streamlit&amp;logoColor=white" /></a>
   <a href="LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/License-Apache--2.0-blue.svg" /></a>
   <a href="https://github.com/nccurry/portico/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/nccurry/portico?display_name=tag&amp;sort=semver" /></a>
 </p>
@@ -68,6 +68,14 @@ financial records.
 
 ## Try the demo
 
+[Try it out in your browser](https://nccurry.github.io/portico/).
+
+The browser demo shows an interactive accounts, net worth, and spending sample
+from the synthetic CSV files in this repository. It runs in your browser. It
+does not read Google Sheets, load secrets, or send Discord messages.
+
+### Run the demo locally
+
 Install Docker Engine. Then pull the latest release and start the demo:
 
 ```console
@@ -80,8 +88,8 @@ docker run --rm --init --name portico \
   ghcr.io/nccurry/portico:latest
 ```
 
-Open <http://127.0.0.1:8501>. The demo accepts connections only from the local
-computer. It does not load Streamlit secrets or contact Google Sheets.
+Open <http://127.0.0.1:8501>. The local demo accepts connections only from the
+local computer. It does not load Streamlit secrets or contact Google Sheets.
 
 Press `Ctrl+C` to stop the demo.
 

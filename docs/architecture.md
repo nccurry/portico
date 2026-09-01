@@ -118,6 +118,13 @@ The Discord schedule is part of the container runtime. It is disabled by
 default and enabled with environment variables. This keeps deployment to one
 container without a host cron job, systemd unit, or second notifier container.
 
+### Browser demo
+
+GitHub Pages hosts a static interactive preview with synthetic data. Stlite
+runs a browser-safe accounts, net worth, and spending view in the visitor's
+browser. The demo cannot load secrets, connect to Google Sheets, or send
+Discord messages. It is a public preview, not a hosted Portico service.
+
 ## Runtime design
 
 The main data flow is:
@@ -151,12 +158,15 @@ logged and does not stop the dashboard.
 ### Data sources
 
 Live mode uses `st-gsheets-connection` and the URLs in
-`.streamlit/secrets.toml`. Demo mode reads the committed CSV files in
-`demo/data`.
+`.streamlit/secrets.toml`. Native demo mode reads the committed CSV files in
+`demo/data`. Both native modes create the same spreadsheet classes and
+normalized DataFrames. Pages and calculations must not contain separate native
+demo behavior. The shared demo banner is the only intended presentation
+difference.
 
-Both modes create the same spreadsheet classes and normalized DataFrames. Pages
-and calculations must not contain separate demo behavior. The shared demo banner
-is the only intended presentation difference.
+The browser demo reads the same CSV files directly and reuses the net-worth
+calculations. It stays intentionally small because the browser runtime supports
+fewer Streamlit features than the native app.
 
 ### State and caching
 
@@ -331,6 +341,7 @@ The design uses a small and clear security boundary:
 - The production container runs as a non-root user.
 - The container root filesystem is read-only.
 - Demo data and screenshots are synthetic.
+- The public browser demo contains only synthetic data.
 - Error messages do not print financial rows or secret URLs.
 
 The Hide values control does not replace these rules. It changes presentation
@@ -345,7 +356,7 @@ Portico does not aim to provide:
 - Google Sheets writeback
 - A database that copies the workbook
 - Multiple users or household accounts
-- A public hosted service
+- A public hosted service for personal data
 - A source-plugin framework
 - A separate frontend and backend
 - Corporate identity, service-account, or role-management systems

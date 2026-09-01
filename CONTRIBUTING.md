@@ -82,6 +82,13 @@ Run these commands before you open a pull request:
 .tools/bin/task container:smoke
 ```
 
+If you change the browser demo, its data, or its balance calculations, run this
+command:
+
+```console
+.tools/bin/task pages:build
+```
+
 `check` runs linting and the unit and integration test suites. The container
 command builds and checks the production image.
 In PowerShell, replace `.tools/bin/task` with
