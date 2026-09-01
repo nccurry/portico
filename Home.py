@@ -227,6 +227,15 @@ def _render_financial_position(
 def _render_account_group(group_row: pd.Series, accounts: pd.DataFrame) -> None:
     """Render one balance group and its current accounts."""
     group = str(group_row["Group"])
+    is_liability = group_row["Type"] == "Liability"
+    display_balance = float(group_row["Balance"] if is_liability else group_row["Net_Contribution"])
+    display_change = float(-group_row["Period_Change"] if is_liability else group_row["Period_Change"])
+    balance_label = "Debt" if is_liability else "Balance"
+    change_description = (
+        "Debt balance across the selected time frame; lower is better"
+        if is_liability
+        else "Balance change across the selected time frame"
+    )
     selected_accounts = (
         accounts[accounts["Group"] == group]
         .sort_values(
@@ -240,9 +249,10 @@ def _render_account_group(group_row: pd.Series, accounts: pd.DataFrame) -> None:
     with st.container(border=True):
         st.metric(
             group,
-            _format_currency(float(group_row["Net_Contribution"])),
-            delta=_format_currency(float(group_row["Period_Change"]), show_plus=True),
-            delta_description="Balance change across the selected time frame",
+            _format_currency(display_balance),
+            delta=_format_currency(display_change, show_plus=True),
+            delta_color="inverse" if is_liability else "normal",
+            delta_description=change_description,
             chart_data=group_row["Trend"],
             chart_type="line",
             width="stretch",
@@ -253,20 +263,23 @@ def _render_account_group(group_row: pd.Series, accounts: pd.DataFrame) -> None:
             f"Account details ({mask_value(str(account_count))})",
             icon=":material/account_balance:",
         ):
+            balance_column = "Balance" if is_liability else "Net_Contribution"
             details = selected_accounts[
                 [
                     "Account",
                     "Institution",
-                    "Net_Contribution",
+                    balance_column,
                     "Period_Change",
                     "Last_Updated",
                 ]
             ].rename(
                 columns={
-                    "Net_Contribution": "Balance",
+                    balance_column: "Balance",
                     "Period_Change": "Change",
                 }
             )
+            if is_liability:
+                details["Change"] = -details["Change"]
             st.dataframe(
                 details,
                 width="stretch",
@@ -276,7 +289,7 @@ def _render_account_group(group_row: pd.Series, accounts: pd.DataFrame) -> None:
                     {
                         "Account": st.column_config.TextColumn("Account", pinned=True),
                         "Institution": "Institution",
-                        "Balance": st.column_config.NumberColumn("Balance", format="$%+,.2f"),
+                        "Balance": st.column_config.NumberColumn(balance_label, format="$%,.2f"),
                         "Change": st.column_config.NumberColumn("Change", format="$%+,.2f"),
                         "Last_Updated": st.column_config.DatetimeColumn(
                             "Updated",

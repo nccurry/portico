@@ -255,6 +255,7 @@ def test_balance_group_inventory_signs_changes_and_mixed_groups() -> None:
     assert inventory.loc["Credit", "Net_Contribution"] == pytest.approx(-150)
     assert inventory.loc["Credit", "Period_Change"] == pytest.approx(50)
     assert inventory.loc["Credit", "Period_Change_Pct"] == pytest.approx(25)
+    assert inventory.loc["Credit", "Trend"] == pytest.approx([200, 200, 200, 150, 150, 150])
     assert inventory.loc["Investing", "Type"] == "Mixed"
     assert inventory.loc["Investing", "Balance"] == pytest.approx(350)
     assert inventory.loc["Investing", "Net_Contribution"] == pytest.approx(350)

@@ -495,6 +495,10 @@ class TestHomeSmoke:
         group_metrics = [metric for metric in at.metric[3:] if metric.label in group_names]
         assert {metric.label for metric in group_metrics} == group_names
         assert all(metric.proto.chart_data for metric in group_metrics)
+        liabilities = next(metric for metric in group_metrics if metric.label == "Liabilities")
+        assert liabilities.value == "$151,560"
+        assert liabilities.delta == "-$10,320"
+        assert liabilities.proto.chart_data[0] > liabilities.proto.chart_data[-1]
         assert len(at.metric) == 8
         assert len(at.dataframe) == len(group_names)
         assert all(table.key != "home_balance_groups" for table in at.dataframe)
@@ -507,6 +511,9 @@ class TestHomeSmoke:
             for table in at.dataframe
             for forbidden in ["Type", "Class", "Net_Contribution"]
         )
+        liability_details = next(table.value for table in at.dataframe if "Home Loan" in set(table.value["Account"]))
+        assert liability_details["Balance"].gt(0).all()
+        assert liability_details["Change"].lt(0).all()
 
     def test_group_cards_summarize_accounts(
         self,
