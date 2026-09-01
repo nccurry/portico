@@ -7,8 +7,9 @@ from inspect import signature
 import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
 
-# TODO(stlite-1.62): Delete this file and its call in entry.py after
-# @stlite/browser bundles Streamlit 1.62 and the browser smoke test opens every Portico page.
+# The current Stlite runtime cannot restore cached Pandas UTC datetime data.
+# TODO(stlite-1.62): Delete this file and its call in entry.py after @stlite/browser
+# bundles Streamlit 1.62, restores this data, and the browser test opens every page twice.
 
 PERSIST_STATE_WIDGETS = (
     "multiselect",
@@ -51,12 +52,34 @@ def _patch_keyword(target: object, name: str, keyword: str) -> None:
     """Make one Streamlit element accept an argument from a newer runtime."""
     renderer = getattr(target, name, None)
     if callable(renderer):
-        setattr(target, name, _without_keyword(renderer, keyword))
+        _set_attribute(target, name, _without_keyword(renderer, keyword))
+
+
+def _set_attribute(target: object, name: str, value: object) -> None:
+    """Set one attribute on the browser runtime."""
+    setattr(target, name, value)
 
 
 def _placeholder_skeleton(container: object, **_: object) -> object:
     """Keep the loading placeholder empty before Streamlit added skeletons."""
     return container
+
+
+def _no_cache_data(
+    function: Callable[..., object] | None = None,
+    **_: object,
+) -> Callable[..., object] | Callable[[Callable[..., object]], Callable[..., object]]:
+    """Return browser functions without Streamlit's serialized data cache."""
+    if function is not None:
+        return function
+    return lambda decorated: decorated
+
+
+def _clear_no_cache_data() -> None:
+    """Match Streamlit's cache-clearing API when no browser cache exists."""
+
+
+_set_attribute(_no_cache_data, "clear", _clear_no_cache_data)
 
 
 def install_streamlit_compatibility(
@@ -65,13 +88,15 @@ def install_streamlit_compatibility(
 ) -> None:
     """Install only the Streamlit 1.57 fallbacks required by Portico."""
     if not getattr(streamlit_module, COMPATIBILITY_MARKER, False):
+        supports_column_wrap = _supports_keyword(streamlit_module, "columns", "wrap")
         for name in PERSIST_STATE_WIDGETS:
             if not _supports_keyword(streamlit_module, name, "persist_state"):
                 _patch_keyword(streamlit_module, name, "persist_state")
-        if not _supports_keyword(streamlit_module, "columns", "wrap"):
+        if not supports_column_wrap:
             _patch_keyword(streamlit_module, "columns", "wrap")
-        setattr(streamlit_module, COMPATIBILITY_MARKER, True)
+            _set_attribute(streamlit_module, "cache_data", _no_cache_data)
+        _set_attribute(streamlit_module, COMPATIBILITY_MARKER, True)
 
     method_name = "skeleton"
     if not hasattr(delta_generator, method_name):
-        setattr(delta_generator, method_name, _placeholder_skeleton)
+        _set_attribute(delta_generator, method_name, _placeholder_skeleton)

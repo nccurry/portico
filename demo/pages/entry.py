@@ -15,7 +15,8 @@ def main() -> None:
     os.environ["PORTICO_DATA_SOURCE"] = "demo"
 
     # TODO(stlite-1.62): Remove this call with demo/pages/streamlit_compat.py after
-    # @stlite/browser bundles Streamlit 1.62 and the browser smoke test opens every page.
+    # @stlite/browser bundles Streamlit 1.62, restores cached datetime data, and the
+    # browser test opens every page twice.
     install_streamlit_compatibility()
     runpy.run_path(str(PROJECT_ROOT / "portico_home.py"), run_name="__main__")
 
