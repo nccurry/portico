@@ -1,5 +1,7 @@
 """Pure calculations for the income and savings page."""
 
+from __future__ import annotations
+
 import pandas as pd
 
 from src.config import get_settings

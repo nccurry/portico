@@ -51,7 +51,11 @@ def _categories_sheet_url() -> str | None:
     try:
         config = st.secrets["connections"]["categories"]
         url = str(config.get("spreadsheet", ""))
-    except FileNotFoundError, KeyError, TypeError:
+    except FileNotFoundError:
+        return None
+    except KeyError:
+        return None
+    except TypeError:
         return None
     return url or None
 

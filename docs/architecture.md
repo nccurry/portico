@@ -121,9 +121,15 @@ container without a host cron job, systemd unit, or second notifier container.
 ### Browser demo
 
 GitHub Pages hosts a static interactive preview with synthetic data. Stlite
-runs a browser-safe accounts, net worth, and spending view in the visitor's
-browser. The demo cannot load secrets, connect to Google Sheets, or send
-Discord messages. It is a public preview, not a hosted Portico service.
+runs the Portico navigation, pages, calculations, settings, and synthetic data
+in the visitor's browser. The demo cannot load secrets, connect to Google
+Sheets, or send Discord messages. It is a public preview, not a hosted Portico
+service.
+
+The browser runtime temporarily uses Streamlit 1.57. The demo bridge ignores
+`persist_state`, `wrap`, and loading skeleton calls. A control can reset after
+its page or view changes. Remove the bridge after Stlite supports Streamlit
+1.62 and the browser test opens every page.
 
 ## Runtime design
 
@@ -164,9 +170,9 @@ normalized DataFrames. Pages and calculations must not contain separate native
 demo behavior. The shared demo banner is the only intended presentation
 difference.
 
-The browser demo reads the same CSV files directly and reuses the net-worth
-calculations. It stays intentionally small because the browser runtime supports
-fewer Streamlit features than the native app.
+The browser demo starts native demo mode and packages `Home.py`, every page,
+the required source modules, settings, and the same CSV files. It has no
+browser-specific financial calculations.
 
 ### State and caching
 
