@@ -122,18 +122,18 @@ tasks:
       - '{{.UV}} lock --check'
 
   deps:outdated:
-    desc: "List outdated project dependencies"
+    desc: "Show outdated packages and the dependencies that constrain them"
     cmds:
-      - '{{.UV}} pip list --outdated --python {{.PYTHON}}'
+      - '{{.UV}} tree --locked --outdated --depth 4'
 
   deps:update:
-    desc: "Update direct dependencies to latest exact pins"
+    desc: "Update every direct Python dependency to its latest exact pin"
     aliases: [pkg:update]
     cmds:
-      - '{{.UV}} remove --no-sync altair pandas st-gsheets-connection streamlit'
-      - '{{.UV}} add --no-sync --bounds exact altair pandas st-gsheets-connection streamlit'
-      - '{{.UV}} remove --dev --no-sync freezegun mypy pandas-stubs pytest pytest-cov ruff'
-      - '{{.UV}} add --dev --no-sync --bounds exact freezegun mypy pandas-stubs pytest pytest-cov ruff'
+      - '{{.UV}} remove --no-sync altair croniter pandas st-gsheets-connection streamlit'
+      - '{{.UV}} add --no-sync --bounds exact altair croniter pandas st-gsheets-connection streamlit'
+      - '{{.UV}} remove --dev --no-sync freezegun mypy pandas-stubs pytest pytest-cov ruff types-croniter'
+      - '{{.UV}} add --dev --no-sync --bounds exact freezegun mypy pandas-stubs pytest pytest-cov ruff types-croniter'
       - '{{.UV}} lock --upgrade'
       - '{{.UV}} sync --dev'
       - echo "Packages updated. Run 'task check' to verify nothing broke."

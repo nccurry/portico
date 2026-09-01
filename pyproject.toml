@@ -38,7 +38,7 @@ dev = [
 
 [tool.portico.bootstrap]
 python = "3.14.7"
-uv = "0.12.7"
+uv = "0.12.8"
 task = "3.53.1"
 
 [tool.uv]
