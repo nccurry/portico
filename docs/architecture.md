@@ -132,6 +132,10 @@ A control can reset after its page or view changes, and reports recalculate
 after a rerun. Remove the bridge after Stlite supports Streamlit 1.62, restores
 cached datetime data, and the browser test opens every page twice.
 
+The fixture covers May 1992 through April 1995. It uses varied household
+accounts, spending, subscriptions, and budgets so each report shows meaningful
+changes instead of repeated values.
+
 ## Runtime design
 
 The main data flow is:
@@ -295,7 +299,7 @@ command and relies on delivery state to prevent duplicates.
 | `src/weekly_expenses.py` | Weekly expense report calculations |
 | `src/discord_notifier.py` | Discord configuration, transport, formatting, and state |
 | `scripts/container_entrypoint.py` | Container process and optional Discord schedule |
-| `scripts/generate_demo_data.py` | Regenerates date-based synthetic demo CSV files |
+| `scripts/generate_demo_data.py` | Regenerates all four date-based synthetic workbook CSV files |
 | `scripts/` | Bootstrap, diagnostics, local commands, and build tools |
 | `config/` | Tracked application defaults and ignored local overrides |
 | `demo/data/` | Canonical synthetic workbook data |

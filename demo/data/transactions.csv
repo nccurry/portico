@@ -1,240 +1,987 @@
 Unnamed: 0,Date,Category,Amount,Account,Month,Week,Full Description,Institution,Account #,Date Added,Categorized Date
-0,05/15/1992,Salary,"$4,200.00",Checking-B,05/01/1992,05/11/1992,payroll deposit monthly,Aurora Bank,xxxx1001,05/15/1992,05/15/1992
-1,05/16/1992,Groceries,-$355.00,Checking-B,05/01/1992,05/11/1992,market basket staples,Aurora Bank,xxxx1001,05/16/1992,05/16/1992
-2,05/17/1992,Restaurants,-$135.00,Credit-H,05/01/1992,05/11/1992,corner cafe dinner,Harbor Card,xxxx2002,05/17/1992,05/17/1992
-3,05/18/1992,Electric,-$115.00,Checking-B,05/01/1992,05/18/1992,utility power bill,Aurora Bank,xxxx1001,05/18/1992,05/18/1992
-4,05/19/1992,Rent,"-$1,200.00",Checking-B,05/01/1992,05/18/1992,apartment rent payment,Aurora Bank,xxxx1001,05/19/1992,05/19/1992
-5,05/20/1992,Transfer,-$350.00,Checking-B,05/01/1992,05/18/1992,transfer to savings,Aurora Bank,xxxx1001,05/20/1992,05/20/1992
-6,06/15/1992,Salary,"$4,223.00",Checking-B,06/01/1992,06/15/1992,payroll deposit monthly,Aurora Bank,xxxx1001,06/15/1992,06/15/1992
-7,06/16/1992,Groceries,-$371.00,Checking-B,06/01/1992,06/15/1992,market basket staples,Aurora Bank,xxxx1001,06/16/1992,06/16/1992
-8,06/17/1992,Restaurants,-$150.00,Credit-H,06/01/1992,06/15/1992,corner cafe dinner,Harbor Card,xxxx2002,06/17/1992,06/17/1992
-9,06/18/1992,Electric,-$119.00,Checking-B,06/01/1992,06/15/1992,utility power bill,Aurora Bank,xxxx1001,06/18/1992,06/18/1992
-10,06/19/1992,Rent,"-$1,212.00",Checking-B,06/01/1992,06/15/1992,apartment rent payment,Aurora Bank,xxxx1001,06/19/1992,06/19/1992
-11,06/20/1992,Transfer,-$375.00,Checking-B,06/01/1992,06/15/1992,transfer to savings,Aurora Bank,xxxx1001,06/20/1992,06/20/1992
-12,07/15/1992,Salary,"$4,246.00",Checking-B,07/01/1992,07/13/1992,payroll deposit monthly,Aurora Bank,xxxx1001,07/15/1992,07/15/1992
-13,07/16/1992,Groceries,-$387.00,Checking-B,07/01/1992,07/13/1992,market basket staples,Aurora Bank,xxxx1001,07/16/1992,07/16/1992
-14,07/17/1992,Restaurants,-$165.00,Credit-H,07/01/1992,07/13/1992,corner cafe dinner,Harbor Card,xxxx2002,07/17/1992,07/17/1992
-15,07/18/1992,Electric,-$148.00,Checking-B,07/01/1992,07/13/1992,utility power bill,Aurora Bank,xxxx1001,07/18/1992,07/18/1992
-16,07/19/1992,Rent,"-$1,224.00",Checking-B,07/01/1992,07/13/1992,apartment rent payment,Aurora Bank,xxxx1001,07/19/1992,07/19/1992
-17,07/20/1992,Transfer,-$400.00,Checking-B,07/01/1992,07/20/1992,transfer to savings,Aurora Bank,xxxx1001,07/20/1992,07/20/1992
-18,08/15/1992,Salary,"$4,269.00",Checking-B,08/01/1992,08/10/1992,payroll deposit monthly,Aurora Bank,xxxx1001,08/15/1992,08/15/1992
-19,08/16/1992,Groceries,-$403.00,Checking-B,08/01/1992,08/10/1992,market basket staples,Aurora Bank,xxxx1001,08/16/1992,08/16/1992
-20,08/17/1992,Restaurants,-$180.00,Credit-H,08/01/1992,08/17/1992,corner cafe dinner,Harbor Card,xxxx2002,08/17/1992,08/17/1992
-21,08/18/1992,Electric,-$152.00,Checking-B,08/01/1992,08/17/1992,utility power bill,Aurora Bank,xxxx1001,08/18/1992,08/18/1992
-22,08/19/1992,Rent,"-$1,236.00",Checking-B,08/01/1992,08/17/1992,apartment rent payment,Aurora Bank,xxxx1001,08/19/1992,08/19/1992
-23,08/20/1992,Transfer,-$425.00,Checking-B,08/01/1992,08/17/1992,transfer to savings,Aurora Bank,xxxx1001,08/20/1992,08/20/1992
-24,09/15/1992,Salary,"$4,292.00",Checking-B,09/01/1992,09/14/1992,payroll deposit monthly,Aurora Bank,xxxx1001,09/15/1992,09/15/1992
-25,09/16/1992,Groceries,-$419.00,Checking-B,09/01/1992,09/14/1992,market basket staples,Aurora Bank,xxxx1001,09/16/1992,09/16/1992
-26,09/17/1992,Restaurants,-$195.00,Credit-H,09/01/1992,09/14/1992,corner cafe dinner,Harbor Card,xxxx2002,09/17/1992,09/17/1992
-27,09/18/1992,Electric,-$115.00,Checking-B,09/01/1992,09/14/1992,utility power bill,Aurora Bank,xxxx1001,09/18/1992,09/18/1992
-28,09/19/1992,Rent,"-$1,248.00",Checking-B,09/01/1992,09/14/1992,apartment rent payment,Aurora Bank,xxxx1001,09/19/1992,09/19/1992
-29,09/20/1992,Transfer,-$350.00,Checking-B,09/01/1992,09/14/1992,transfer to savings,Aurora Bank,xxxx1001,09/20/1992,09/20/1992
-30,10/15/1992,Salary,"$4,315.00",Checking-B,10/01/1992,10/12/1992,payroll deposit monthly,Aurora Bank,xxxx1001,10/15/1992,10/15/1992
-31,10/16/1992,Groceries,-$435.00,Checking-B,10/01/1992,10/12/1992,market basket staples,Aurora Bank,xxxx1001,10/16/1992,10/16/1992
-32,10/17/1992,Restaurants,-$165.00,Credit-H,10/01/1992,10/12/1992,corner cafe dinner,Harbor Card,xxxx2002,10/17/1992,10/17/1992
-33,10/18/1992,Electric,-$119.00,Checking-B,10/01/1992,10/12/1992,utility power bill,Aurora Bank,xxxx1001,10/18/1992,10/18/1992
-34,10/19/1992,Rent,"-$1,260.00",Checking-B,10/01/1992,10/19/1992,apartment rent payment,Aurora Bank,xxxx1001,10/19/1992,10/19/1992
-35,10/20/1992,Transfer,-$375.00,Checking-B,10/01/1992,10/19/1992,transfer to savings,Aurora Bank,xxxx1001,10/20/1992,10/20/1992
-36,11/15/1992,Salary,"$4,338.00",Checking-B,11/01/1992,11/09/1992,payroll deposit monthly,Aurora Bank,xxxx1001,11/15/1992,11/15/1992
-37,11/16/1992,Groceries,-$409.00,Checking-B,11/01/1992,11/16/1992,market basket staples,Aurora Bank,xxxx1001,11/16/1992,11/16/1992
-38,11/17/1992,Restaurants,-$180.00,Credit-H,11/01/1992,11/16/1992,corner cafe dinner,Harbor Card,xxxx2002,11/17/1992,11/17/1992
-39,11/18/1992,Electric,-$123.00,Checking-B,11/01/1992,11/16/1992,utility power bill,Aurora Bank,xxxx1001,11/18/1992,11/18/1992
-40,11/19/1992,Rent,"-$1,272.00",Checking-B,11/01/1992,11/16/1992,apartment rent payment,Aurora Bank,xxxx1001,11/19/1992,11/19/1992
-41,11/20/1992,Transfer,-$400.00,Checking-B,11/01/1992,11/16/1992,transfer to savings,Aurora Bank,xxxx1001,11/20/1992,11/20/1992
-42,12/15/1992,Salary,"$4,361.00",Checking-B,12/01/1992,12/14/1992,payroll deposit monthly,Aurora Bank,xxxx1001,12/15/1992,12/15/1992
-43,12/16/1992,Groceries,-$425.00,Checking-B,12/01/1992,12/14/1992,market basket staples,Aurora Bank,xxxx1001,12/16/1992,12/16/1992
-44,12/17/1992,Restaurants,-$195.00,Credit-H,12/01/1992,12/14/1992,corner cafe dinner,Harbor Card,xxxx2002,12/17/1992,12/17/1992
-45,12/18/1992,Electric,-$127.00,Checking-B,12/01/1992,12/14/1992,utility power bill,Aurora Bank,xxxx1001,12/18/1992,12/18/1992
-46,12/19/1992,Rent,"-$1,284.00",Checking-B,12/01/1992,12/14/1992,apartment rent payment,Aurora Bank,xxxx1001,12/19/1992,12/19/1992
-47,12/20/1992,Transfer,-$425.00,Checking-B,12/01/1992,12/14/1992,transfer to savings,Aurora Bank,xxxx1001,12/20/1992,12/20/1992
-48,01/15/1993,Salary,"$4,384.00",Checking-B,01/01/1993,01/11/1993,payroll deposit monthly,Aurora Bank,xxxx1001,01/15/1993,01/15/1993
-49,01/16/1993,Groceries,-$333.00,Checking-B,01/01/1993,01/11/1993,market basket staples,Aurora Bank,xxxx1001,01/16/1993,01/16/1993
-50,01/17/1993,Restaurants,-$138.00,Credit-H,01/01/1993,01/11/1993,corner cafe dinner,Harbor Card,xxxx2002,01/17/1993,01/17/1993
-51,01/18/1993,Electric,-$140.00,Checking-B,01/01/1993,01/18/1993,utility power bill,Aurora Bank,xxxx1001,01/18/1993,01/18/1993
-52,01/19/1993,Rent,"-$1,296.00",Checking-B,01/01/1993,01/18/1993,apartment rent payment,Aurora Bank,xxxx1001,01/19/1993,01/19/1993
-53,01/20/1993,Transfer,-$350.00,Checking-B,01/01/1993,01/18/1993,transfer to savings,Aurora Bank,xxxx1001,01/20/1993,01/20/1993
-54,02/15/1993,Salary,"$4,407.00",Checking-B,02/01/1993,02/15/1993,payroll deposit monthly,Aurora Bank,xxxx1001,02/15/1993,02/15/1993
-55,02/16/1993,Groceries,-$349.00,Checking-B,02/01/1993,02/15/1993,market basket staples,Aurora Bank,xxxx1001,02/16/1993,02/16/1993
-56,02/17/1993,Restaurants,-$153.00,Credit-H,02/01/1993,02/15/1993,corner cafe dinner,Harbor Card,xxxx2002,02/17/1993,02/17/1993
-57,02/18/1993,Electric,-$144.00,Checking-B,02/01/1993,02/15/1993,utility power bill,Aurora Bank,xxxx1001,02/18/1993,02/18/1993
-58,02/19/1993,Rent,"-$1,308.00",Checking-B,02/01/1993,02/15/1993,apartment rent payment,Aurora Bank,xxxx1001,02/19/1993,02/19/1993
-59,02/20/1993,Transfer,-$375.00,Checking-B,02/01/1993,02/15/1993,transfer to savings,Aurora Bank,xxxx1001,02/20/1993,02/20/1993
-60,03/15/1993,Salary,"$4,430.00",Checking-B,03/01/1993,03/15/1993,payroll deposit monthly,Aurora Bank,xxxx1001,03/15/1993,03/15/1993
-61,03/16/1993,Groceries,-$365.00,Checking-B,03/01/1993,03/15/1993,market basket staples,Aurora Bank,xxxx1001,03/16/1993,03/16/1993
-62,03/17/1993,Restaurants,-$123.00,Credit-H,03/01/1993,03/15/1993,corner cafe dinner,Harbor Card,xxxx2002,03/17/1993,03/17/1993
-63,03/18/1993,Electric,-$123.00,Checking-B,03/01/1993,03/15/1993,utility power bill,Aurora Bank,xxxx1001,03/18/1993,03/18/1993
-64,03/19/1993,Rent,"-$1,320.00",Checking-B,03/01/1993,03/15/1993,apartment rent payment,Aurora Bank,xxxx1001,03/19/1993,03/19/1993
-65,03/20/1993,Transfer,-$400.00,Checking-B,03/01/1993,03/15/1993,transfer to savings,Aurora Bank,xxxx1001,03/20/1993,03/20/1993
-66,04/15/1993,Salary,"$4,453.00",Checking-B,04/01/1993,04/12/1993,payroll deposit monthly,Aurora Bank,xxxx1001,04/15/1993,04/15/1993
-67,04/16/1993,Groceries,-$381.00,Checking-B,04/01/1993,04/12/1993,market basket staples,Aurora Bank,xxxx1001,04/16/1993,04/16/1993
-68,04/17/1993,Restaurants,-$138.00,Credit-H,04/01/1993,04/12/1993,corner cafe dinner,Harbor Card,xxxx2002,04/17/1993,04/17/1993
-69,04/18/1993,Electric,-$127.00,Checking-B,04/01/1993,04/12/1993,utility power bill,Aurora Bank,xxxx1001,04/18/1993,04/18/1993
-70,04/19/1993,Rent,"-$1,332.00",Checking-B,04/01/1993,04/19/1993,apartment rent payment,Aurora Bank,xxxx1001,04/19/1993,04/19/1993
-71,04/20/1993,Transfer,-$425.00,Checking-B,04/01/1993,04/19/1993,transfer to savings,Aurora Bank,xxxx1001,04/20/1993,04/20/1993
-72,05/15/1993,Salary,"$4,476.00",Checking-B,05/01/1993,05/10/1993,payroll deposit monthly,Aurora Bank,xxxx1001,05/15/1993,05/15/1993
-73,05/16/1993,Groceries,-$355.00,Checking-B,05/01/1993,05/10/1993,market basket staples,Aurora Bank,xxxx1001,05/16/1993,05/16/1993
-74,05/17/1993,Restaurants,-$153.00,Credit-H,05/01/1993,05/17/1993,corner cafe dinner,Harbor Card,xxxx2002,05/17/1993,05/17/1993
-75,05/18/1993,Electric,-$115.00,Checking-B,05/01/1993,05/17/1993,utility power bill,Aurora Bank,xxxx1001,05/18/1993,05/18/1993
-76,05/19/1993,Rent,"-$1,344.00",Checking-B,05/01/1993,05/17/1993,apartment rent payment,Aurora Bank,xxxx1001,05/19/1993,05/19/1993
-77,05/20/1993,Transfer,-$350.00,Checking-B,05/01/1993,05/17/1993,transfer to savings,Aurora Bank,xxxx1001,05/20/1993,05/20/1993
-78,06/15/1993,Salary,"$4,499.00",Checking-B,06/01/1993,06/14/1993,payroll deposit monthly,Aurora Bank,xxxx1001,06/15/1993,06/15/1993
-79,06/16/1993,Groceries,-$371.00,Checking-B,06/01/1993,06/14/1993,market basket staples,Aurora Bank,xxxx1001,06/16/1993,06/16/1993
-80,06/17/1993,Restaurants,-$168.00,Credit-H,06/01/1993,06/14/1993,corner cafe dinner,Harbor Card,xxxx2002,06/17/1993,06/17/1993
-81,06/18/1993,Electric,-$119.00,Checking-B,06/01/1993,06/14/1993,utility power bill,Aurora Bank,xxxx1001,06/18/1993,06/18/1993
-82,06/19/1993,Rent,"-$1,356.00",Checking-B,06/01/1993,06/14/1993,apartment rent payment,Aurora Bank,xxxx1001,06/19/1993,06/19/1993
-83,06/20/1993,Transfer,-$375.00,Checking-B,06/01/1993,06/14/1993,transfer to savings,Aurora Bank,xxxx1001,06/20/1993,06/20/1993
-84,07/15/1993,Salary,"$4,522.00",Checking-B,07/01/1993,07/12/1993,payroll deposit monthly,Aurora Bank,xxxx1001,07/15/1993,07/15/1993
-85,07/16/1993,Groceries,-$387.00,Checking-B,07/01/1993,07/12/1993,market basket staples,Aurora Bank,xxxx1001,07/16/1993,07/16/1993
-86,07/17/1993,Restaurants,-$183.00,Credit-H,07/01/1993,07/12/1993,corner cafe dinner,Harbor Card,xxxx2002,07/17/1993,07/17/1993
-87,07/18/1993,Electric,-$148.00,Checking-B,07/01/1993,07/12/1993,utility power bill,Aurora Bank,xxxx1001,07/18/1993,07/18/1993
-88,07/19/1993,Rent,"-$1,368.00",Checking-B,07/01/1993,07/19/1993,apartment rent payment,Aurora Bank,xxxx1001,07/19/1993,07/19/1993
-89,07/20/1993,Transfer,-$400.00,Checking-B,07/01/1993,07/19/1993,transfer to savings,Aurora Bank,xxxx1001,07/20/1993,07/20/1993
-90,08/15/1993,Salary,"$4,545.00",Checking-B,08/01/1993,08/09/1993,payroll deposit monthly,Aurora Bank,xxxx1001,08/15/1993,08/15/1993
-91,08/16/1993,Groceries,-$403.00,Checking-B,08/01/1993,08/16/1993,market basket staples,Aurora Bank,xxxx1001,08/16/1993,08/16/1993
-92,08/17/1993,Restaurants,-$153.00,Credit-H,08/01/1993,08/16/1993,corner cafe dinner,Harbor Card,xxxx2002,08/17/1993,08/17/1993
-93,08/18/1993,Electric,-$152.00,Checking-B,08/01/1993,08/16/1993,utility power bill,Aurora Bank,xxxx1001,08/18/1993,08/18/1993
-94,08/19/1993,Rent,"-$1,380.00",Checking-B,08/01/1993,08/16/1993,apartment rent payment,Aurora Bank,xxxx1001,08/19/1993,08/19/1993
-95,08/20/1993,Transfer,-$425.00,Checking-B,08/01/1993,08/16/1993,transfer to savings,Aurora Bank,xxxx1001,08/20/1993,08/20/1993
-96,09/15/1993,Salary,"$4,568.00",Checking-B,09/01/1993,09/13/1993,payroll deposit monthly,Aurora Bank,xxxx1001,09/15/1993,09/15/1993
-97,09/16/1993,Groceries,-$419.00,Checking-B,09/01/1993,09/13/1993,market basket staples,Aurora Bank,xxxx1001,09/16/1993,09/16/1993
-98,09/17/1993,Restaurants,-$168.00,Credit-H,09/01/1993,09/13/1993,corner cafe dinner,Harbor Card,xxxx2002,09/17/1993,09/17/1993
-99,09/18/1993,Electric,-$115.00,Checking-B,09/01/1993,09/13/1993,utility power bill,Aurora Bank,xxxx1001,09/18/1993,09/18/1993
-100,09/19/1993,Rent,"-$1,392.00",Checking-B,09/01/1993,09/13/1993,apartment rent payment,Aurora Bank,xxxx1001,09/19/1993,09/19/1993
-101,09/20/1993,Transfer,-$350.00,Checking-B,09/01/1993,09/20/1993,transfer to savings,Aurora Bank,xxxx1001,09/20/1993,09/20/1993
-102,10/15/1993,Salary,"$4,591.00",Checking-B,10/01/1993,10/11/1993,payroll deposit monthly,Aurora Bank,xxxx1001,10/15/1993,10/15/1993
-103,10/16/1993,Groceries,-$435.00,Checking-B,10/01/1993,10/11/1993,market basket staples,Aurora Bank,xxxx1001,10/16/1993,10/16/1993
-104,10/17/1993,Restaurants,-$183.00,Credit-H,10/01/1993,10/11/1993,corner cafe dinner,Harbor Card,xxxx2002,10/17/1993,10/17/1993
-105,10/18/1993,Electric,-$119.00,Checking-B,10/01/1993,10/18/1993,utility power bill,Aurora Bank,xxxx1001,10/18/1993,10/18/1993
-106,10/19/1993,Rent,"-$1,404.00",Checking-B,10/01/1993,10/18/1993,apartment rent payment,Aurora Bank,xxxx1001,10/19/1993,10/19/1993
-107,10/20/1993,Transfer,-$375.00,Checking-B,10/01/1993,10/18/1993,transfer to savings,Aurora Bank,xxxx1001,10/20/1993,10/20/1993
-108,11/15/1993,Salary,"$4,614.00",Checking-B,11/01/1993,11/15/1993,payroll deposit monthly,Aurora Bank,xxxx1001,11/15/1993,11/15/1993
-109,11/16/1993,Groceries,-$409.00,Checking-B,11/01/1993,11/15/1993,market basket staples,Aurora Bank,xxxx1001,11/16/1993,11/16/1993
-110,11/17/1993,Restaurants,-$198.00,Credit-H,11/01/1993,11/15/1993,corner cafe dinner,Harbor Card,xxxx2002,11/17/1993,11/17/1993
-111,11/18/1993,Electric,-$123.00,Checking-B,11/01/1993,11/15/1993,utility power bill,Aurora Bank,xxxx1001,11/18/1993,11/18/1993
-112,11/19/1993,Rent,"-$1,416.00",Checking-B,11/01/1993,11/15/1993,apartment rent payment,Aurora Bank,xxxx1001,11/19/1993,11/19/1993
-113,11/20/1993,Transfer,-$400.00,Checking-B,11/01/1993,11/15/1993,transfer to savings,Aurora Bank,xxxx1001,11/20/1993,11/20/1993
-114,12/15/1993,Salary,"$4,637.00",Checking-B,12/01/1993,12/13/1993,payroll deposit monthly,Aurora Bank,xxxx1001,12/15/1993,12/15/1993
-115,12/16/1993,Groceries,-$425.00,Checking-B,12/01/1993,12/13/1993,market basket staples,Aurora Bank,xxxx1001,12/16/1993,12/16/1993
-116,12/17/1993,Restaurants,-$213.00,Credit-H,12/01/1993,12/13/1993,corner cafe dinner,Harbor Card,xxxx2002,12/17/1993,12/17/1993
-117,12/18/1993,Electric,-$127.00,Checking-B,12/01/1993,12/13/1993,utility power bill,Aurora Bank,xxxx1001,12/18/1993,12/18/1993
-118,12/19/1993,Rent,"-$1,428.00",Checking-B,12/01/1993,12/13/1993,apartment rent payment,Aurora Bank,xxxx1001,12/19/1993,12/19/1993
-119,12/20/1993,Transfer,-$425.00,Checking-B,12/01/1993,12/20/1993,transfer to savings,Aurora Bank,xxxx1001,12/20/1993,12/20/1993
-120,01/15/1994,Salary,"$4,660.00",Checking-B,01/01/1994,01/10/1994,payroll deposit monthly,Aurora Bank,xxxx1001,01/15/1994,01/15/1994
-121,01/16/1994,Groceries,-$333.00,Checking-B,01/01/1994,01/10/1994,market basket staples,Aurora Bank,xxxx1001,01/16/1994,01/16/1994
-122,01/17/1994,Restaurants,-$111.00,Credit-H,01/01/1994,01/17/1994,corner cafe dinner,Harbor Card,xxxx2002,01/17/1994,01/17/1994
-123,01/18/1994,Electric,-$140.00,Checking-B,01/01/1994,01/17/1994,utility power bill,Aurora Bank,xxxx1001,01/18/1994,01/18/1994
-124,01/19/1994,Rent,"-$1,440.00",Checking-B,01/01/1994,01/17/1994,apartment rent payment,Aurora Bank,xxxx1001,01/19/1994,01/19/1994
-125,01/20/1994,Transfer,-$350.00,Checking-B,01/01/1994,01/17/1994,transfer to savings,Aurora Bank,xxxx1001,01/20/1994,01/20/1994
-126,02/15/1994,Salary,"$4,683.00",Checking-B,02/01/1994,02/14/1994,payroll deposit monthly,Aurora Bank,xxxx1001,02/15/1994,02/15/1994
-127,02/16/1994,Groceries,-$349.00,Checking-B,02/01/1994,02/14/1994,market basket staples,Aurora Bank,xxxx1001,02/16/1994,02/16/1994
-128,02/17/1994,Restaurants,-$126.00,Credit-H,02/01/1994,02/14/1994,corner cafe dinner,Harbor Card,xxxx2002,02/17/1994,02/17/1994
-129,02/18/1994,Electric,-$144.00,Checking-B,02/01/1994,02/14/1994,utility power bill,Aurora Bank,xxxx1001,02/18/1994,02/18/1994
-130,02/19/1994,Rent,"-$1,452.00",Checking-B,02/01/1994,02/14/1994,apartment rent payment,Aurora Bank,xxxx1001,02/19/1994,02/19/1994
-131,02/20/1994,Transfer,-$375.00,Checking-B,02/01/1994,02/14/1994,transfer to savings,Aurora Bank,xxxx1001,02/20/1994,02/20/1994
-132,03/15/1994,Salary,"$4,706.00",Checking-B,03/01/1994,03/14/1994,payroll deposit monthly,Aurora Bank,xxxx1001,03/15/1994,03/15/1994
-133,03/16/1994,Groceries,-$365.00,Checking-B,03/01/1994,03/14/1994,market basket staples,Aurora Bank,xxxx1001,03/16/1994,03/16/1994
-134,03/17/1994,Restaurants,-$141.00,Credit-H,03/01/1994,03/14/1994,corner cafe dinner,Harbor Card,xxxx2002,03/17/1994,03/17/1994
-135,03/18/1994,Electric,-$123.00,Checking-B,03/01/1994,03/14/1994,utility power bill,Aurora Bank,xxxx1001,03/18/1994,03/18/1994
-136,03/19/1994,Rent,"-$1,464.00",Checking-B,03/01/1994,03/14/1994,apartment rent payment,Aurora Bank,xxxx1001,03/19/1994,03/19/1994
-137,03/20/1994,Transfer,-$400.00,Checking-B,03/01/1994,03/14/1994,transfer to savings,Aurora Bank,xxxx1001,03/20/1994,03/20/1994
-138,04/15/1994,Salary,"$4,729.00",Checking-B,04/01/1994,04/11/1994,payroll deposit monthly,Aurora Bank,xxxx1001,04/15/1994,04/15/1994
-139,04/16/1994,Groceries,-$381.00,Checking-B,04/01/1994,04/11/1994,market basket staples,Aurora Bank,xxxx1001,04/16/1994,04/16/1994
-140,04/17/1994,Restaurants,-$156.00,Credit-H,04/01/1994,04/11/1994,corner cafe dinner,Harbor Card,xxxx2002,04/17/1994,04/17/1994
-141,04/18/1994,Electric,-$127.00,Checking-B,04/01/1994,04/18/1994,utility power bill,Aurora Bank,xxxx1001,04/18/1994,04/18/1994
-142,04/19/1994,Rent,"-$1,476.00",Checking-B,04/01/1994,04/18/1994,apartment rent payment,Aurora Bank,xxxx1001,04/19/1994,04/19/1994
-143,04/20/1994,Transfer,-$425.00,Checking-B,04/01/1994,04/18/1994,transfer to savings,Aurora Bank,xxxx1001,04/20/1994,04/20/1994
-144,05/15/1994,Salary,"$4,752.00",Checking-B,05/01/1994,05/09/1994,payroll deposit monthly,Aurora Bank,xxxx1001,05/15/1994,05/15/1994
-145,05/16/1994,Groceries,-$355.00,Checking-B,05/01/1994,05/16/1994,market basket staples,Aurora Bank,xxxx1001,05/16/1994,05/16/1994
-146,05/17/1994,Restaurants,-$171.00,Credit-H,05/01/1994,05/16/1994,corner cafe dinner,Harbor Card,xxxx2002,05/17/1994,05/17/1994
-147,05/18/1994,Electric,-$115.00,Checking-B,05/01/1994,05/16/1994,utility power bill,Aurora Bank,xxxx1001,05/18/1994,05/18/1994
-148,05/19/1994,Rent,"-$1,488.00",Checking-B,05/01/1994,05/16/1994,apartment rent payment,Aurora Bank,xxxx1001,05/19/1994,05/19/1994
-149,05/20/1994,Transfer,-$350.00,Checking-B,05/01/1994,05/16/1994,transfer to savings,Aurora Bank,xxxx1001,05/20/1994,05/20/1994
-150,06/15/1994,Salary,"$4,775.00",Checking-B,06/01/1994,06/13/1994,payroll deposit monthly,Aurora Bank,xxxx1001,06/15/1994,06/15/1994
-151,06/16/1994,Groceries,-$371.00,Checking-B,06/01/1994,06/13/1994,market basket staples,Aurora Bank,xxxx1001,06/16/1994,06/16/1994
-152,06/17/1994,Restaurants,-$141.00,Credit-H,06/01/1994,06/13/1994,corner cafe dinner,Harbor Card,xxxx2002,06/17/1994,06/17/1994
-153,06/18/1994,Electric,-$119.00,Checking-B,06/01/1994,06/13/1994,utility power bill,Aurora Bank,xxxx1001,06/18/1994,06/18/1994
-154,06/19/1994,Rent,"-$1,500.00",Checking-B,06/01/1994,06/13/1994,apartment rent payment,Aurora Bank,xxxx1001,06/19/1994,06/19/1994
-155,06/20/1994,Transfer,-$375.00,Checking-B,06/01/1994,06/20/1994,transfer to savings,Aurora Bank,xxxx1001,06/20/1994,06/20/1994
-156,07/15/1994,Salary,"$4,798.00",Checking-B,07/01/1994,07/11/1994,payroll deposit monthly,Aurora Bank,xxxx1001,07/15/1994,07/15/1994
-157,07/16/1994,Groceries,-$387.00,Checking-B,07/01/1994,07/11/1994,market basket staples,Aurora Bank,xxxx1001,07/16/1994,07/16/1994
-158,07/17/1994,Restaurants,-$156.00,Credit-H,07/01/1994,07/11/1994,corner cafe dinner,Harbor Card,xxxx2002,07/17/1994,07/17/1994
-159,07/18/1994,Electric,-$148.00,Checking-B,07/01/1994,07/18/1994,utility power bill,Aurora Bank,xxxx1001,07/18/1994,07/18/1994
-160,07/19/1994,Rent,"-$1,512.00",Checking-B,07/01/1994,07/18/1994,apartment rent payment,Aurora Bank,xxxx1001,07/19/1994,07/19/1994
-161,07/20/1994,Transfer,-$400.00,Checking-B,07/01/1994,07/18/1994,transfer to savings,Aurora Bank,xxxx1001,07/20/1994,07/20/1994
-162,08/15/1994,Salary,"$4,821.00",Checking-B,08/01/1994,08/15/1994,payroll deposit monthly,Aurora Bank,xxxx1001,08/15/1994,08/15/1994
-163,08/16/1994,Groceries,-$403.00,Checking-B,08/01/1994,08/15/1994,market basket staples,Aurora Bank,xxxx1001,08/16/1994,08/16/1994
-164,08/17/1994,Restaurants,-$171.00,Credit-H,08/01/1994,08/15/1994,corner cafe dinner,Harbor Card,xxxx2002,08/17/1994,08/17/1994
-165,08/18/1994,Electric,-$152.00,Checking-B,08/01/1994,08/15/1994,utility power bill,Aurora Bank,xxxx1001,08/18/1994,08/18/1994
-166,08/19/1994,Rent,"-$1,524.00",Checking-B,08/01/1994,08/15/1994,apartment rent payment,Aurora Bank,xxxx1001,08/19/1994,08/19/1994
-167,08/20/1994,Transfer,-$425.00,Checking-B,08/01/1994,08/15/1994,transfer to savings,Aurora Bank,xxxx1001,08/20/1994,08/20/1994
-168,09/15/1994,Salary,"$4,844.00",Checking-B,09/01/1994,09/12/1994,payroll deposit monthly,Aurora Bank,xxxx1001,09/15/1994,09/15/1994
-169,09/16/1994,Groceries,-$419.00,Checking-B,09/01/1994,09/12/1994,market basket staples,Aurora Bank,xxxx1001,09/16/1994,09/16/1994
-170,09/17/1994,Restaurants,-$186.00,Credit-H,09/01/1994,09/12/1994,corner cafe dinner,Harbor Card,xxxx2002,09/17/1994,09/17/1994
-171,09/18/1994,Electric,-$115.00,Checking-B,09/01/1994,09/12/1994,utility power bill,Aurora Bank,xxxx1001,09/18/1994,09/18/1994
-172,09/19/1994,Rent,"-$1,536.00",Checking-B,09/01/1994,09/19/1994,apartment rent payment,Aurora Bank,xxxx1001,09/19/1994,09/19/1994
-173,09/20/1994,Transfer,-$350.00,Checking-B,09/01/1994,09/19/1994,transfer to savings,Aurora Bank,xxxx1001,09/20/1994,09/20/1994
-174,10/15/1994,Salary,"$4,867.00",Checking-B,10/01/1994,10/10/1994,payroll deposit monthly,Aurora Bank,xxxx1001,10/15/1994,10/15/1994
-175,10/16/1994,Groceries,-$435.00,Checking-B,10/01/1994,10/10/1994,market basket staples,Aurora Bank,xxxx1001,10/16/1994,10/16/1994
-176,10/17/1994,Restaurants,-$201.00,Credit-H,10/01/1994,10/17/1994,corner cafe dinner,Harbor Card,xxxx2002,10/17/1994,10/17/1994
-177,10/18/1994,Electric,-$119.00,Checking-B,10/01/1994,10/17/1994,utility power bill,Aurora Bank,xxxx1001,10/18/1994,10/18/1994
-178,10/19/1994,Rent,"-$1,548.00",Checking-B,10/01/1994,10/17/1994,apartment rent payment,Aurora Bank,xxxx1001,10/19/1994,10/19/1994
-179,10/20/1994,Transfer,-$375.00,Checking-B,10/01/1994,10/17/1994,transfer to savings,Aurora Bank,xxxx1001,10/20/1994,10/20/1994
-180,11/15/1994,Salary,"$4,890.00",Checking-B,11/01/1994,11/14/1994,payroll deposit monthly,Aurora Bank,xxxx1001,11/15/1994,11/15/1994
-181,11/16/1994,Groceries,-$409.00,Checking-B,11/01/1994,11/14/1994,market basket staples,Aurora Bank,xxxx1001,11/16/1994,11/16/1994
-182,11/17/1994,Restaurants,-$171.00,Credit-H,11/01/1994,11/14/1994,corner cafe dinner,Harbor Card,xxxx2002,11/17/1994,11/17/1994
-183,11/18/1994,Electric,-$123.00,Checking-B,11/01/1994,11/14/1994,utility power bill,Aurora Bank,xxxx1001,11/18/1994,11/18/1994
-184,11/19/1994,Rent,"-$1,560.00",Checking-B,11/01/1994,11/14/1994,apartment rent payment,Aurora Bank,xxxx1001,11/19/1994,11/19/1994
-185,11/20/1994,Transfer,-$400.00,Checking-B,11/01/1994,11/14/1994,transfer to savings,Aurora Bank,xxxx1001,11/20/1994,11/20/1994
-186,12/15/1994,Salary,"$4,913.00",Checking-B,12/01/1994,12/12/1994,payroll deposit monthly,Aurora Bank,xxxx1001,12/15/1994,12/15/1994
-187,12/16/1994,Groceries,-$425.00,Checking-B,12/01/1994,12/12/1994,market basket staples,Aurora Bank,xxxx1001,12/16/1994,12/16/1994
-188,12/17/1994,Restaurants,-$186.00,Credit-H,12/01/1994,12/12/1994,corner cafe dinner,Harbor Card,xxxx2002,12/17/1994,12/17/1994
-189,12/18/1994,Electric,-$127.00,Checking-B,12/01/1994,12/12/1994,utility power bill,Aurora Bank,xxxx1001,12/18/1994,12/18/1994
-190,12/19/1994,Rent,"-$1,572.00",Checking-B,12/01/1994,12/19/1994,apartment rent payment,Aurora Bank,xxxx1001,12/19/1994,12/19/1994
-191,12/20/1994,Transfer,-$425.00,Checking-B,12/01/1994,12/19/1994,transfer to savings,Aurora Bank,xxxx1001,12/20/1994,12/20/1994
-192,01/15/1995,Salary,"$4,936.00",Checking-B,01/01/1995,01/09/1995,payroll deposit monthly,Aurora Bank,xxxx1001,01/15/1995,01/15/1995
-193,01/16/1995,Groceries,-$333.00,Checking-B,01/01/1995,01/16/1995,market basket staples,Aurora Bank,xxxx1001,01/16/1995,01/16/1995
-194,01/17/1995,Restaurants,-$129.00,Credit-H,01/01/1995,01/16/1995,corner cafe dinner,Harbor Card,xxxx2002,01/17/1995,01/17/1995
-195,01/18/1995,Electric,-$140.00,Checking-B,01/01/1995,01/16/1995,utility power bill,Aurora Bank,xxxx1001,01/18/1995,01/18/1995
-196,01/19/1995,Rent,"-$1,584.00",Checking-B,01/01/1995,01/16/1995,apartment rent payment,Aurora Bank,xxxx1001,01/19/1995,01/19/1995
-197,01/20/1995,Transfer,-$350.00,Checking-B,01/01/1995,01/16/1995,transfer to savings,Aurora Bank,xxxx1001,01/20/1995,01/20/1995
-198,02/15/1995,Salary,"$4,959.00",Checking-B,02/01/1995,02/13/1995,payroll deposit monthly,Aurora Bank,xxxx1001,02/15/1995,02/15/1995
-199,02/16/1995,Groceries,-$349.00,Checking-B,02/01/1995,02/13/1995,market basket staples,Aurora Bank,xxxx1001,02/16/1995,02/16/1995
-200,02/17/1995,Restaurants,-$144.00,Credit-H,02/01/1995,02/13/1995,corner cafe dinner,Harbor Card,xxxx2002,02/17/1995,02/17/1995
-201,02/18/1995,Electric,-$144.00,Checking-B,02/01/1995,02/13/1995,utility power bill,Aurora Bank,xxxx1001,02/18/1995,02/18/1995
-202,02/19/1995,Rent,"-$1,596.00",Checking-B,02/01/1995,02/13/1995,apartment rent payment,Aurora Bank,xxxx1001,02/19/1995,02/19/1995
-203,02/20/1995,Transfer,-$375.00,Checking-B,02/01/1995,02/20/1995,transfer to savings,Aurora Bank,xxxx1001,02/20/1995,02/20/1995
-204,03/15/1995,Salary,"$4,982.00",Checking-B,03/01/1995,03/13/1995,payroll deposit monthly,Aurora Bank,xxxx1001,03/15/1995,03/15/1995
-205,03/16/1995,Groceries,-$365.00,Checking-B,03/01/1995,03/13/1995,market basket staples,Aurora Bank,xxxx1001,03/16/1995,03/16/1995
-206,03/17/1995,Restaurants,-$159.00,Credit-H,03/01/1995,03/13/1995,corner cafe dinner,Harbor Card,xxxx2002,03/17/1995,03/17/1995
-207,03/18/1995,Electric,-$123.00,Checking-B,03/01/1995,03/13/1995,utility power bill,Aurora Bank,xxxx1001,03/18/1995,03/18/1995
-208,03/19/1995,Rent,"-$1,608.00",Checking-B,03/01/1995,03/13/1995,apartment rent payment,Aurora Bank,xxxx1001,03/19/1995,03/19/1995
-209,03/20/1995,Transfer,-$400.00,Checking-B,03/01/1995,03/20/1995,transfer to savings,Aurora Bank,xxxx1001,03/20/1995,03/20/1995
-210,04/15/1995,Salary,"$5,005.00",Checking-B,04/01/1995,04/10/1995,payroll deposit monthly,Aurora Bank,xxxx1001,04/15/1995,04/15/1995
-211,04/16/1995,Groceries,-$381.00,Checking-B,04/01/1995,04/10/1995,market basket staples,Aurora Bank,xxxx1001,04/16/1995,04/16/1995
-212,04/17/1995,Restaurants,-$129.00,Credit-H,04/01/1995,04/17/1995,corner cafe dinner,Harbor Card,xxxx2002,04/17/1995,04/17/1995
-213,04/18/1995,Electric,-$127.00,Checking-B,04/01/1995,04/17/1995,utility power bill,Aurora Bank,xxxx1001,04/18/1995,04/18/1995
-214,04/19/1995,Rent,"-$1,620.00",Checking-B,04/01/1995,04/17/1995,apartment rent payment,Aurora Bank,xxxx1001,04/19/1995,04/19/1995
-215,04/20/1995,Transfer,-$425.00,Checking-B,04/01/1995,04/17/1995,transfer to savings,Aurora Bank,xxxx1001,04/20/1995,04/20/1995
-216,02/07/1995,Restaurants,-$45.99,Checking-B,02/01/1995,02/06/1995,duplicate pair seed 1,Aurora Bank,xxxx1001,02/07/1995,02/07/1995
-217,02/07/1995,Restaurants,-$45.99,Checking-B,02/01/1995,02/06/1995,duplicate pair seed 1,Aurora Bank,xxxx1001,02/07/1995,02/07/1995
-218,12/12/1994,Restaurants,-$125.50,Checking-B,12/01/1994,12/12/1994,duplicate pair seed 2,Aurora Bank,xxxx1001,12/12/1994,12/12/1994
-219,12/12/1994,Restaurants,-$125.50,Checking-B,12/01/1994,12/12/1994,duplicate pair seed 2,Aurora Bank,xxxx1001,12/12/1994,12/12/1994
-220,10/05/1994,Restaurants,-$78.00,Checking-B,10/01/1994,10/03/1994,duplicate pair seed 3,Aurora Bank,xxxx1001,10/05/1994,10/05/1994
-221,10/05/1994,Restaurants,-$78.00,Checking-B,10/01/1994,10/03/1994,duplicate pair seed 3,Aurora Bank,xxxx1001,10/05/1994,10/05/1994
-222,11/17/1994,Streaming Subscription,-$15.99,Credit-H,11/01/1994,11/14/1994,verum streamus 00001,Harbor Card,xxxx2002,11/17/1994,11/17/1994
-223,12/17/1994,Streaming Subscription,-$15.99,Credit-H,12/01/1994,12/12/1994,verum streamus 00002,Harbor Card,xxxx2002,12/17/1994,12/17/1994
-224,01/17/1995,Streaming Subscription,-$15.99,Credit-H,01/01/1995,01/16/1995,verum streamus 00003,Harbor Card,xxxx2002,01/17/1995,01/17/1995
-225,02/17/1995,Streaming Subscription,-$15.99,Credit-H,02/01/1995,02/13/1995,verum streamus 00004,Harbor Card,xxxx2002,02/17/1995,02/17/1995
-226,03/17/1995,Streaming Subscription,-$15.99,Credit-H,03/01/1995,03/13/1995,verum streamus 00005,Harbor Card,xxxx2002,03/17/1995,03/17/1995
-227,04/17/1995,Streaming Subscription,-$15.99,Credit-H,04/01/1995,04/17/1995,verum streamus 00006,Harbor Card,xxxx2002,04/17/1995,04/17/1995
-228,12/17/1994,Cloud Subscription,-$9.99,Credit-H,12/01/1994,12/12/1994,nimbus cloudus 00001,Harbor Card,xxxx2002,12/17/1994,12/17/1994
-229,01/17/1995,Cloud Subscription,-$9.99,Credit-H,01/01/1995,01/16/1995,nimbus cloudus 00002,Harbor Card,xxxx2002,01/17/1995,01/17/1995
-230,02/17/1995,Cloud Subscription,-$9.99,Credit-H,02/01/1995,02/13/1995,nimbus cloudus 00003,Harbor Card,xxxx2002,02/17/1995,02/17/1995
-231,03/17/1995,Cloud Subscription,-$9.99,Credit-H,03/01/1995,03/13/1995,nimbus cloudus 00004,Harbor Card,xxxx2002,03/17/1995,03/17/1995
-232,04/17/1995,Cloud Subscription,-$9.99,Credit-H,04/01/1995,04/17/1995,nimbus cloudus 00005,Harbor Card,xxxx2002,04/17/1995,04/17/1995
-233,03/16/1995,Shopping,"-$2,500.00",Credit-H,03/01/1995,03/13/1995,magnum boxus 99000,Harbor Card,xxxx2002,03/16/1995,03/16/1995
-234,03/09/1995,Shopping,"-$2,500.00",Credit-H,03/01/1995,03/06/1995,magnum boxus 99001,Harbor Card,xxxx2002,03/09/1995,03/09/1995
-235,03/17/1994,Groceries,-$87.65,Checking-B,03/01/1994,03/14/1994,cross year staple,Aurora Bank,xxxx1001,03/17/1994,03/17/1994
-236,03/17/1995,Groceries,-$87.65,Checking-B,03/01/1995,03/13/1995,cross year staple,Aurora Bank,xxxx1001,03/17/1995,03/17/1995
-237,04/17/1995,Groceries,-$300.00,Checking-B,04/01/1995,04/17/1995,budget burn over,Aurora Bank,xxxx1001,04/17/1995,04/17/1995
-238,04/17/1995,Restaurants,-$50.00,Checking-B,04/01/1995,04/17/1995,budget burn under,Aurora Bank,xxxx1001,04/17/1995,04/17/1995
+0,05/01/1992,Rent,"-$1,240.00",Main Checking,05/01/1992,04/27/1992,Maple Street Rent,Aurora Bank,xxxx1001,05/01/1992,05/01/1992
+1,05/02/1992,Salary,"$2,105.00",Main Checking,05/01/1992,04/27/1992,Cedar Works Payroll,Aurora Bank,xxxx1001,05/02/1992,05/02/1992
+2,05/03/1992,Salary,"$2,095.00",Main Checking,05/01/1992,04/27/1992,Cedar Works Payroll,Aurora Bank,xxxx1001,05/03/1992,05/03/1992
+3,05/04/1992,Interest,$12.00,Emergency Savings,05/01/1992,05/04/1992,Aurora Savings Interest,Aurora Bank,xxxx1002,05/04/1992,05/04/1992
+4,05/05/1992,Electric,-$150.00,Main Checking,05/01/1992,05/04/1992,City Electric Service,Aurora Bank,xxxx1001,05/05/1992,05/05/1992
+5,05/06/1992,Natural Gas,-$113.00,Main Checking,05/01/1992,05/04/1992,Harbor Gas Service,Aurora Bank,xxxx1001,05/06/1992,05/06/1992
+6,05/07/1992,Internet,-$38.00,Main Checking,05/01/1992,05/04/1992,Civic Fiber Internet,Aurora Bank,xxxx1001,05/07/1992,05/07/1992
+7,05/08/1992,Mobile Phone,-$58.00,Everyday Card,05/01/1992,05/04/1992,Northline Mobile Phone,Harbor Card,xxxx2001,05/08/1992,05/08/1992
+8,05/09/1992,Water & Sewer,-$52.00,Main Checking,05/01/1992,05/04/1992,City Water Sewer,Aurora Bank,xxxx1001,05/09/1992,05/09/1992
+9,05/10/1992,Trash,-$22.00,Main Checking,05/01/1992,05/04/1992,Neighborhood Trash Service,Aurora Bank,xxxx1001,05/10/1992,05/10/1992
+10,05/11/1992,Groceries,-$280.00,Main Checking,05/01/1992,05/11/1992,Market Basket Staples,Aurora Bank,xxxx1001,05/11/1992,05/11/1992
+11,05/12/1992,Groceries,-$205.00,Everyday Card,05/01/1992,05/11/1992,Greenway Market Groceries,Harbor Card,xxxx2001,05/12/1992,05/12/1992
+12,05/13/1992,Coffee,-$32.00,Everyday Card,05/01/1992,05/11/1992,Northstar Coffee Roasters,Harbor Card,xxxx2001,05/13/1992,05/13/1992
+13,05/14/1992,Restaurants,-$82.00,Everyday Card,05/01/1992,05/11/1992,Juniper Kitchen Dinner,Harbor Card,xxxx2001,05/14/1992,05/14/1992
+14,05/15/1992,Restaurants,-$58.00,Everyday Card,05/01/1992,05/11/1992,Riverstone Diner Lunch,Harbor Card,xxxx2001,05/15/1992,05/15/1992
+15,05/16/1992,Automobile Fuel,-$60.00,Everyday Card,05/01/1992,05/11/1992,Highway Fuel Station,Harbor Card,xxxx2001,05/16/1992,05/16/1992
+16,05/17/1992,Automobile Fuel,-$43.00,Everyday Card,05/01/1992,05/11/1992,Westside Fuel Station,Harbor Card,xxxx2001,05/17/1992,05/17/1992
+17,05/18/1992,Shopping,-$60.00,Travel Rewards Card,05/01/1992,05/18/1992,Willow Goods Market,Harbor Card,xxxx2002,05/18/1992,05/18/1992
+18,05/19/1992,Charitable Giving,-$45.00,Main Checking,05/01/1992,05/18/1992,River Aid Donation,Aurora Bank,xxxx1001,05/19/1992,05/19/1992
+19,05/20/1992,Transfer,$500.00,Emergency Savings,05/01/1992,05/18/1992,Transfer Emergency Savings,Aurora Bank,xxxx1002,05/20/1992,05/20/1992
+20,05/20/1992,Transfer,-$500.00,Main Checking,05/01/1992,05/18/1992,Transfer Emergency Savings,Aurora Bank,xxxx1001,05/20/1992,05/20/1992
+21,05/21/1992,Pet Care,-$63.00,Everyday Card,05/01/1992,05/18/1992,Elm Pet Market,Harbor Card,xxxx2001,05/21/1992,05/21/1992
+22,05/21/1992,Home Supplies,-$102.00,Travel Rewards Card,05/01/1992,05/18/1992,Harbor Home Supplies,Harbor Card,xxxx2002,05/21/1992,05/21/1992
+23,05/23/1992,Streaming Subscription,-$12.99,Everyday Card,05/01/1992,05/18/1992,Flicker Stream Membership,Harbor Card,xxxx2001,05/23/1992,05/23/1992
+24,05/24/1992,Cloud Subscription,-$6.99,Everyday Card,05/01/1992,05/18/1992,CloudBox Storage Plan,Harbor Card,xxxx2001,05/24/1992,05/24/1992
+25,05/25/1992,Music Subscription,-$9.99,Everyday Card,05/01/1992,05/25/1992,Soundwave Music Plan,Harbor Card,xxxx2001,05/25/1992,05/25/1992
+26,05/26/1992,News Subscription,-$8.50,Everyday Card,05/01/1992,05/25/1992,Morning Gazette Digital,Harbor Card,xxxx2001,05/26/1992,05/26/1992
+27,06/01/1992,Rent,"-$1,250.00",Main Checking,06/01/1992,06/01/1992,Maple Street Rent,Aurora Bank,xxxx1001,06/01/1992,06/01/1992
+28,06/02/1992,Salary,"$2,050.00",Main Checking,06/01/1992,06/01/1992,Cedar Works Payroll,Aurora Bank,xxxx1001,06/02/1992,06/02/1992
+29,06/03/1992,Salary,"$2,150.00",Main Checking,06/01/1992,06/01/1992,Cedar Works Payroll,Aurora Bank,xxxx1001,06/03/1992,06/03/1992
+30,06/04/1992,Interest,$14.00,Emergency Savings,06/01/1992,06/01/1992,Aurora Savings Interest,Aurora Bank,xxxx1002,06/04/1992,06/04/1992
+31,06/05/1992,Electric,-$140.00,Main Checking,06/01/1992,06/01/1992,City Electric Service,Aurora Bank,xxxx1001,06/05/1992,06/05/1992
+32,06/06/1992,Natural Gas,-$100.00,Main Checking,06/01/1992,06/01/1992,Harbor Gas Service,Aurora Bank,xxxx1001,06/06/1992,06/06/1992
+33,06/07/1992,Internet,-$39.00,Main Checking,06/01/1992,06/01/1992,Civic Fiber Internet,Aurora Bank,xxxx1001,06/07/1992,06/07/1992
+34,06/08/1992,Mobile Phone,-$56.00,Everyday Card,06/01/1992,06/08/1992,Northline Mobile Phone,Harbor Card,xxxx2001,06/08/1992,06/08/1992
+35,06/09/1992,Water & Sewer,-$49.00,Main Checking,06/01/1992,06/08/1992,City Water Sewer,Aurora Bank,xxxx1001,06/09/1992,06/09/1992
+36,06/10/1992,Trash,-$23.00,Main Checking,06/01/1992,06/08/1992,Neighborhood Trash Service,Aurora Bank,xxxx1001,06/10/1992,06/10/1992
+37,06/11/1992,Groceries,-$225.00,Main Checking,06/01/1992,06/08/1992,Market Basket Staples,Aurora Bank,xxxx1001,06/11/1992,06/11/1992
+38,06/12/1992,Groceries,-$250.00,Everyday Card,06/01/1992,06/08/1992,Greenway Market Groceries,Harbor Card,xxxx2001,06/12/1992,06/12/1992
+39,06/13/1992,Coffee,-$19.00,Everyday Card,06/01/1992,06/08/1992,Northstar Coffee Roasters,Harbor Card,xxxx2001,06/13/1992,06/13/1992
+40,06/14/1992,Restaurants,-$47.00,Everyday Card,06/01/1992,06/08/1992,Juniper Kitchen Dinner,Harbor Card,xxxx2001,06/14/1992,06/14/1992
+41,06/15/1992,Restaurants,-$103.00,Everyday Card,06/01/1992,06/15/1992,Riverstone Diner Lunch,Harbor Card,xxxx2001,06/15/1992,06/15/1992
+42,06/16/1992,Automobile Fuel,-$43.00,Everyday Card,06/01/1992,06/15/1992,Highway Fuel Station,Harbor Card,xxxx2001,06/16/1992,06/16/1992
+43,06/17/1992,Automobile Fuel,-$65.00,Everyday Card,06/01/1992,06/15/1992,Westside Fuel Station,Harbor Card,xxxx2001,06/17/1992,06/17/1992
+44,06/18/1992,Shopping,-$125.00,Travel Rewards Card,06/01/1992,06/15/1992,Willow Goods Market,Harbor Card,xxxx2002,06/18/1992,06/18/1992
+45,06/19/1992,Charitable Giving,-$55.00,Main Checking,06/01/1992,06/15/1992,River Aid Donation,Aurora Bank,xxxx1001,06/19/1992,06/19/1992
+46,06/20/1992,Transfer,$380.00,Emergency Savings,06/01/1992,06/15/1992,Transfer Emergency Savings,Aurora Bank,xxxx1002,06/20/1992,06/20/1992
+47,06/20/1992,Transfer,-$380.00,Main Checking,06/01/1992,06/15/1992,Transfer Emergency Savings,Aurora Bank,xxxx1001,06/20/1992,06/20/1992
+48,06/21/1992,Auto Insurance,-$260.00,Main Checking,06/01/1992,06/15/1992,Harbor Auto Insurance,Aurora Bank,xxxx1001,06/21/1992,06/21/1992
+49,06/21/1992,Medical,-$46.00,Everyday Card,06/01/1992,06/15/1992,Pine Medical Clinic,Harbor Card,xxxx2001,06/21/1992,06/21/1992
+50,06/23/1992,Streaming Subscription,-$12.99,Everyday Card,06/01/1992,06/22/1992,Flicker Stream Membership,Harbor Card,xxxx2001,06/23/1992,06/23/1992
+51,06/24/1992,Cloud Subscription,-$6.99,Everyday Card,06/01/1992,06/22/1992,CloudBox Storage Plan,Harbor Card,xxxx2001,06/24/1992,06/24/1992
+52,06/25/1992,Music Subscription,-$9.99,Everyday Card,06/01/1992,06/22/1992,Soundwave Music Plan,Harbor Card,xxxx2001,06/25/1992,06/25/1992
+53,06/26/1992,News Subscription,-$8.50,Everyday Card,06/01/1992,06/22/1992,Morning Gazette Digital,Harbor Card,xxxx2001,06/26/1992,06/26/1992
+54,07/01/1992,Rent,"-$1,235.00",Main Checking,07/01/1992,06/29/1992,Maple Street Rent,Aurora Bank,xxxx1001,07/01/1992,07/01/1992
+55,07/02/1992,Salary,"$2,120.00",Main Checking,07/01/1992,06/29/1992,Cedar Works Payroll,Aurora Bank,xxxx1001,07/02/1992,07/02/1992
+56,07/03/1992,Salary,"$2,100.00",Main Checking,07/01/1992,06/29/1992,Cedar Works Payroll,Aurora Bank,xxxx1001,07/03/1992,07/03/1992
+57,07/04/1992,Interest,$13.00,Emergency Savings,07/01/1992,06/29/1992,Aurora Savings Interest,Aurora Bank,xxxx1002,07/04/1992,07/04/1992
+58,07/05/1992,Electric,-$117.00,Main Checking,07/01/1992,06/29/1992,City Electric Service,Aurora Bank,xxxx1001,07/05/1992,07/05/1992
+59,07/06/1992,Natural Gas,-$73.00,Main Checking,07/01/1992,07/06/1992,Harbor Gas Service,Aurora Bank,xxxx1001,07/06/1992,07/06/1992
+60,07/07/1992,Internet,-$38.00,Main Checking,07/01/1992,07/06/1992,Civic Fiber Internet,Aurora Bank,xxxx1001,07/07/1992,07/07/1992
+61,07/08/1992,Mobile Phone,-$59.00,Everyday Card,07/01/1992,07/06/1992,Northline Mobile Phone,Harbor Card,xxxx2001,07/08/1992,07/08/1992
+62,07/09/1992,Water & Sewer,-$44.00,Main Checking,07/01/1992,07/06/1992,City Water Sewer,Aurora Bank,xxxx1001,07/09/1992,07/09/1992
+63,07/10/1992,Trash,-$22.00,Main Checking,07/01/1992,07/06/1992,Neighborhood Trash Service,Aurora Bank,xxxx1001,07/10/1992,07/10/1992
+64,07/11/1992,Groceries,-$255.00,Main Checking,07/01/1992,07/06/1992,Market Basket Staples,Aurora Bank,xxxx1001,07/11/1992,07/11/1992
+65,07/12/1992,Groceries,-$225.00,Everyday Card,07/01/1992,07/06/1992,Greenway Market Groceries,Harbor Card,xxxx2001,07/12/1992,07/12/1992
+66,07/13/1992,Coffee,-$28.00,Everyday Card,07/01/1992,07/13/1992,Northstar Coffee Roasters,Harbor Card,xxxx2001,07/13/1992,07/13/1992
+67,07/14/1992,Restaurants,-$70.00,Everyday Card,07/01/1992,07/13/1992,Juniper Kitchen Dinner,Harbor Card,xxxx2001,07/14/1992,07/14/1992
+68,07/15/1992,Restaurants,-$83.00,Everyday Card,07/01/1992,07/13/1992,Riverstone Diner Lunch,Harbor Card,xxxx2001,07/15/1992,07/15/1992
+69,07/16/1992,Automobile Fuel,-$56.00,Everyday Card,07/01/1992,07/13/1992,Highway Fuel Station,Harbor Card,xxxx2001,07/16/1992,07/16/1992
+70,07/17/1992,Automobile Fuel,-$55.00,Everyday Card,07/01/1992,07/13/1992,Westside Fuel Station,Harbor Card,xxxx2001,07/17/1992,07/17/1992
+71,07/18/1992,Shopping,-$185.00,Travel Rewards Card,07/01/1992,07/13/1992,Willow Goods Market,Harbor Card,xxxx2002,07/18/1992,07/18/1992
+72,07/19/1992,Charitable Giving,-$50.00,Main Checking,07/01/1992,07/13/1992,River Aid Donation,Aurora Bank,xxxx1001,07/19/1992,07/19/1992
+73,07/20/1992,Transfer,$540.00,Emergency Savings,07/01/1992,07/20/1992,Transfer Emergency Savings,Aurora Bank,xxxx1002,07/20/1992,07/20/1992
+74,07/20/1992,Transfer,-$540.00,Main Checking,07/01/1992,07/20/1992,Transfer Emergency Savings,Aurora Bank,xxxx1001,07/20/1992,07/20/1992
+75,07/21/1992,Home Supplies,-$122.00,Travel Rewards Card,07/01/1992,07/20/1992,Harbor Home Supplies,Harbor Card,xxxx2002,07/21/1992,07/21/1992
+76,07/22/1992,Travel,-$490.00,Travel Rewards Card,07/01/1992,07/20/1992,Lakeview Travel Booking,Harbor Card,xxxx2002,07/22/1992,07/22/1992
+77,07/23/1992,Streaming Subscription,-$12.99,Everyday Card,07/01/1992,07/20/1992,Flicker Stream Membership,Harbor Card,xxxx2001,07/23/1992,07/23/1992
+78,07/24/1992,Cloud Subscription,-$6.99,Everyday Card,07/01/1992,07/20/1992,CloudBox Storage Plan,Harbor Card,xxxx2001,07/24/1992,07/24/1992
+79,07/25/1992,Music Subscription,-$9.99,Everyday Card,07/01/1992,07/20/1992,Soundwave Music Plan,Harbor Card,xxxx2001,07/25/1992,07/25/1992
+80,07/26/1992,News Subscription,-$8.50,Everyday Card,07/01/1992,07/20/1992,Morning Gazette Digital,Harbor Card,xxxx2001,07/26/1992,07/26/1992
+81,08/01/1992,Rent,"-$1,260.00",Main Checking,08/01/1992,07/27/1992,Maple Street Rent,Aurora Bank,xxxx1001,08/01/1992,08/01/1992
+82,08/02/1992,Salary,"$2,065.00",Main Checking,08/01/1992,07/27/1992,Cedar Works Payroll,Aurora Bank,xxxx1001,08/02/1992,08/02/1992
+83,08/03/1992,Salary,"$2,145.00",Main Checking,08/01/1992,08/03/1992,Cedar Works Payroll,Aurora Bank,xxxx1001,08/03/1992,08/03/1992
+84,08/04/1992,Interest,$15.00,Emergency Savings,08/01/1992,08/03/1992,Aurora Savings Interest,Aurora Bank,xxxx1002,08/04/1992,08/04/1992
+85,08/05/1992,Electric,-$100.00,Main Checking,08/01/1992,08/03/1992,City Electric Service,Aurora Bank,xxxx1001,08/05/1992,08/05/1992
+86,08/06/1992,Natural Gas,-$50.00,Main Checking,08/01/1992,08/03/1992,Harbor Gas Service,Aurora Bank,xxxx1001,08/06/1992,08/06/1992
+87,08/07/1992,Internet,-$40.00,Main Checking,08/01/1992,08/03/1992,Civic Fiber Internet,Aurora Bank,xxxx1001,08/07/1992,08/07/1992
+88,08/08/1992,Mobile Phone,-$57.00,Everyday Card,08/01/1992,08/03/1992,Northline Mobile Phone,Harbor Card,xxxx2001,08/08/1992,08/08/1992
+89,08/09/1992,Water & Sewer,-$40.00,Main Checking,08/01/1992,08/03/1992,City Water Sewer,Aurora Bank,xxxx1001,08/09/1992,08/09/1992
+90,08/10/1992,Trash,-$23.00,Main Checking,08/01/1992,08/10/1992,Neighborhood Trash Service,Aurora Bank,xxxx1001,08/10/1992,08/10/1992
+91,08/11/1992,Groceries,-$290.00,Main Checking,08/01/1992,08/10/1992,Market Basket Staples,Aurora Bank,xxxx1001,08/11/1992,08/11/1992
+92,08/12/1992,Groceries,-$200.00,Everyday Card,08/01/1992,08/10/1992,Greenway Market Groceries,Harbor Card,xxxx2001,08/12/1992,08/12/1992
+93,08/13/1992,Coffee,-$34.00,Everyday Card,08/01/1992,08/10/1992,Northstar Coffee Roasters,Harbor Card,xxxx2001,08/13/1992,08/13/1992
+94,08/14/1992,Restaurants,-$94.00,Everyday Card,08/01/1992,08/10/1992,Juniper Kitchen Dinner,Harbor Card,xxxx2001,08/14/1992,08/14/1992
+95,08/15/1992,Restaurants,-$66.00,Everyday Card,08/01/1992,08/10/1992,Riverstone Diner Lunch,Harbor Card,xxxx2001,08/15/1992,08/15/1992
+96,08/16/1992,Automobile Fuel,-$63.00,Everyday Card,08/01/1992,08/10/1992,Highway Fuel Station,Harbor Card,xxxx2001,08/16/1992,08/16/1992
+97,08/17/1992,Automobile Fuel,-$39.00,Everyday Card,08/01/1992,08/17/1992,Westside Fuel Station,Harbor Card,xxxx2001,08/17/1992,08/17/1992
+98,08/18/1992,Shopping,-$75.00,Travel Rewards Card,08/01/1992,08/17/1992,Willow Goods Market,Harbor Card,xxxx2002,08/18/1992,08/18/1992
+99,08/19/1992,Charitable Giving,-$40.00,Main Checking,08/01/1992,08/17/1992,River Aid Donation,Aurora Bank,xxxx1001,08/19/1992,08/19/1992
+100,08/20/1992,Transfer,$330.00,Emergency Savings,08/01/1992,08/17/1992,Transfer Emergency Savings,Aurora Bank,xxxx1002,08/20/1992,08/20/1992
+101,08/20/1992,Transfer,-$330.00,Main Checking,08/01/1992,08/17/1992,Transfer Emergency Savings,Aurora Bank,xxxx1001,08/20/1992,08/20/1992
+102,08/23/1992,Streaming Subscription,-$12.99,Everyday Card,08/01/1992,08/17/1992,Flicker Stream Membership,Harbor Card,xxxx2001,08/23/1992,08/23/1992
+103,08/24/1992,Cloud Subscription,-$6.99,Everyday Card,08/01/1992,08/24/1992,CloudBox Storage Plan,Harbor Card,xxxx2001,08/24/1992,08/24/1992
+104,08/25/1992,Music Subscription,-$9.99,Everyday Card,08/01/1992,08/24/1992,Soundwave Music Plan,Harbor Card,xxxx2001,08/25/1992,08/25/1992
+105,08/26/1992,News Subscription,-$8.50,Everyday Card,08/01/1992,08/24/1992,Morning Gazette Digital,Harbor Card,xxxx2001,08/26/1992,08/26/1992
+106,09/01/1992,Rent,"-$1,245.00",Main Checking,09/01/1992,08/31/1992,Maple Street Rent,Aurora Bank,xxxx1001,09/01/1992,09/01/1992
+107,09/02/1992,Salary,"$2,090.00",Main Checking,09/01/1992,08/31/1992,Cedar Works Payroll,Aurora Bank,xxxx1001,09/02/1992,09/02/1992
+108,09/03/1992,Salary,"$2,115.00",Main Checking,09/01/1992,08/31/1992,Cedar Works Payroll,Aurora Bank,xxxx1001,09/03/1992,09/03/1992
+109,09/04/1992,Interest,$14.00,Emergency Savings,09/01/1992,08/31/1992,Aurora Savings Interest,Aurora Bank,xxxx1002,09/04/1992,09/04/1992
+110,09/05/1992,Electric,-$87.00,Main Checking,09/01/1992,08/31/1992,City Electric Service,Aurora Bank,xxxx1001,09/05/1992,09/05/1992
+111,09/06/1992,Natural Gas,-$34.00,Main Checking,09/01/1992,08/31/1992,Harbor Gas Service,Aurora Bank,xxxx1001,09/06/1992,09/06/1992
+112,09/07/1992,Internet,-$39.00,Main Checking,09/01/1992,09/07/1992,Civic Fiber Internet,Aurora Bank,xxxx1001,09/07/1992,09/07/1992
+113,09/08/1992,Mobile Phone,-$55.00,Everyday Card,09/01/1992,09/07/1992,Northline Mobile Phone,Harbor Card,xxxx2001,09/08/1992,09/08/1992
+114,09/09/1992,Water & Sewer,-$37.00,Main Checking,09/01/1992,09/07/1992,City Water Sewer,Aurora Bank,xxxx1001,09/09/1992,09/09/1992
+115,09/10/1992,Trash,-$22.00,Main Checking,09/01/1992,09/07/1992,Neighborhood Trash Service,Aurora Bank,xxxx1001,09/10/1992,09/10/1992
+116,09/11/1992,Groceries,-$235.00,Main Checking,09/01/1992,09/07/1992,Market Basket Staples,Aurora Bank,xxxx1001,09/11/1992,09/11/1992
+117,09/12/1992,Groceries,-$260.00,Everyday Card,09/01/1992,09/07/1992,Greenway Market Groceries,Harbor Card,xxxx2001,09/12/1992,09/12/1992
+118,09/13/1992,Coffee,-$22.00,Everyday Card,09/01/1992,09/07/1992,Northstar Coffee Roasters,Harbor Card,xxxx2001,09/13/1992,09/13/1992
+119,09/14/1992,Restaurants,-$54.00,Everyday Card,09/01/1992,09/14/1992,Juniper Kitchen Dinner,Harbor Card,xxxx2001,09/14/1992,09/14/1992
+120,09/15/1992,Restaurants,-$114.00,Everyday Card,09/01/1992,09/14/1992,Riverstone Diner Lunch,Harbor Card,xxxx2001,09/15/1992,09/15/1992
+121,09/16/1992,Automobile Fuel,-$38.00,Everyday Card,09/01/1992,09/14/1992,Highway Fuel Station,Harbor Card,xxxx2001,09/16/1992,09/16/1992
+122,09/17/1992,Automobile Fuel,-$61.00,Everyday Card,09/01/1992,09/14/1992,Westside Fuel Station,Harbor Card,xxxx2001,09/17/1992,09/17/1992
+123,09/18/1992,Shopping,-$160.00,Travel Rewards Card,09/01/1992,09/14/1992,Willow Goods Market,Harbor Card,xxxx2002,09/18/1992,09/18/1992
+124,09/19/1992,Charitable Giving,-$45.00,Main Checking,09/01/1992,09/14/1992,River Aid Donation,Aurora Bank,xxxx1001,09/19/1992,09/19/1992
+125,09/20/1992,Transfer,$460.00,Emergency Savings,09/01/1992,09/14/1992,Transfer Emergency Savings,Aurora Bank,xxxx1002,09/20/1992,09/20/1992
+126,09/20/1992,Transfer,-$460.00,Main Checking,09/01/1992,09/14/1992,Transfer Emergency Savings,Aurora Bank,xxxx1001,09/20/1992,09/20/1992
+127,09/21/1992,Pet Care,-$63.00,Everyday Card,09/01/1992,09/21/1992,Elm Pet Market,Harbor Card,xxxx2001,09/21/1992,09/21/1992
+128,09/21/1992,Auto Insurance,-$275.00,Main Checking,09/01/1992,09/21/1992,Harbor Auto Insurance,Aurora Bank,xxxx1001,09/21/1992,09/21/1992
+129,09/21/1992,Home Supplies,-$87.00,Travel Rewards Card,09/01/1992,09/21/1992,Harbor Home Supplies,Harbor Card,xxxx2002,09/21/1992,09/21/1992
+130,09/21/1992,Medical,-$83.00,Everyday Card,09/01/1992,09/21/1992,Pine Medical Clinic,Harbor Card,xxxx2001,09/21/1992,09/21/1992
+131,09/23/1992,Streaming Subscription,-$12.99,Everyday Card,09/01/1992,09/21/1992,Flicker Stream Membership,Harbor Card,xxxx2001,09/23/1992,09/23/1992
+132,09/24/1992,Cloud Subscription,-$6.99,Everyday Card,09/01/1992,09/21/1992,CloudBox Storage Plan,Harbor Card,xxxx2001,09/24/1992,09/24/1992
+133,09/25/1992,Music Subscription,-$9.99,Everyday Card,09/01/1992,09/21/1992,Soundwave Music Plan,Harbor Card,xxxx2001,09/25/1992,09/25/1992
+134,09/26/1992,News Subscription,-$8.50,Everyday Card,09/01/1992,09/21/1992,Morning Gazette Digital,Harbor Card,xxxx2001,09/26/1992,09/26/1992
+135,10/01/1992,Rent,"-$1,230.00",Main Checking,10/01/1992,09/28/1992,Maple Street Rent,Aurora Bank,xxxx1001,10/01/1992,10/01/1992
+136,10/02/1992,Salary,"$2,115.00",Main Checking,10/01/1992,09/28/1992,Cedar Works Payroll,Aurora Bank,xxxx1001,10/02/1992,10/02/1992
+137,10/03/1992,Salary,"$2,090.00",Main Checking,10/01/1992,09/28/1992,Cedar Works Payroll,Aurora Bank,xxxx1001,10/03/1992,10/03/1992
+138,10/04/1992,Interest,$12.00,Emergency Savings,10/01/1992,09/28/1992,Aurora Savings Interest,Aurora Bank,xxxx1002,10/04/1992,10/04/1992
+139,10/05/1992,Electric,-$83.00,Main Checking,10/01/1992,10/05/1992,City Electric Service,Aurora Bank,xxxx1001,10/05/1992,10/05/1992
+140,10/06/1992,Natural Gas,-$24.00,Main Checking,10/01/1992,10/05/1992,Harbor Gas Service,Aurora Bank,xxxx1001,10/06/1992,10/06/1992
+141,10/07/1992,Internet,-$38.00,Main Checking,10/01/1992,10/05/1992,Civic Fiber Internet,Aurora Bank,xxxx1001,10/07/1992,10/07/1992
+142,10/08/1992,Mobile Phone,-$58.00,Everyday Card,10/01/1992,10/05/1992,Northline Mobile Phone,Harbor Card,xxxx2001,10/08/1992,10/08/1992
+143,10/09/1992,Water & Sewer,-$35.00,Main Checking,10/01/1992,10/05/1992,City Water Sewer,Aurora Bank,xxxx1001,10/09/1992,10/09/1992
+144,10/10/1992,Trash,-$23.00,Main Checking,10/01/1992,10/05/1992,Neighborhood Trash Service,Aurora Bank,xxxx1001,10/10/1992,10/10/1992
+145,10/11/1992,Groceries,-$270.00,Main Checking,10/01/1992,10/05/1992,Market Basket Staples,Aurora Bank,xxxx1001,10/11/1992,10/11/1992
+146,10/12/1992,Groceries,-$230.00,Everyday Card,10/01/1992,10/12/1992,Greenway Market Groceries,Harbor Card,xxxx2001,10/12/1992,10/12/1992
+147,10/13/1992,Coffee,-$30.00,Everyday Card,10/01/1992,10/12/1992,Northstar Coffee Roasters,Harbor Card,xxxx2001,10/13/1992,10/13/1992
+148,10/14/1992,Restaurants,-$76.00,Everyday Card,10/01/1992,10/12/1992,Juniper Kitchen Dinner,Harbor Card,xxxx2001,10/14/1992,10/14/1992
+149,10/15/1992,Restaurants,-$88.00,Everyday Card,10/01/1992,10/12/1992,Riverstone Diner Lunch,Harbor Card,xxxx2001,10/15/1992,10/15/1992
+150,10/16/1992,Automobile Fuel,-$53.00,Everyday Card,10/01/1992,10/12/1992,Highway Fuel Station,Harbor Card,xxxx2001,10/16/1992,10/16/1992
+151,10/17/1992,Automobile Fuel,-$69.00,Everyday Card,10/01/1992,10/12/1992,Westside Fuel Station,Harbor Card,xxxx2001,10/17/1992,10/17/1992
+152,10/18/1992,Shopping,-$115.00,Travel Rewards Card,10/01/1992,10/12/1992,Willow Goods Market,Harbor Card,xxxx2002,10/18/1992,10/18/1992
+153,10/19/1992,Charitable Giving,-$55.00,Main Checking,10/01/1992,10/19/1992,River Aid Donation,Aurora Bank,xxxx1001,10/19/1992,10/19/1992
+154,10/20/1992,Transfer,$500.00,Emergency Savings,10/01/1992,10/19/1992,Transfer Emergency Savings,Aurora Bank,xxxx1002,10/20/1992,10/20/1992
+155,10/20/1992,Transfer,-$500.00,Main Checking,10/01/1992,10/19/1992,Transfer Emergency Savings,Aurora Bank,xxxx1001,10/20/1992,10/20/1992
+156,10/22/1992,Travel,-$320.00,Travel Rewards Card,10/01/1992,10/19/1992,Lakeview Travel Booking,Harbor Card,xxxx2002,10/22/1992,10/22/1992
+157,10/23/1992,Streaming Subscription,-$12.99,Everyday Card,10/01/1992,10/19/1992,Flicker Stream Membership,Harbor Card,xxxx2001,10/23/1992,10/23/1992
+158,10/24/1992,Cloud Subscription,-$6.99,Everyday Card,10/01/1992,10/19/1992,CloudBox Storage Plan,Harbor Card,xxxx2001,10/24/1992,10/24/1992
+159,10/25/1992,Music Subscription,-$9.99,Everyday Card,10/01/1992,10/19/1992,Soundwave Music Plan,Harbor Card,xxxx2001,10/25/1992,10/25/1992
+160,10/26/1992,News Subscription,-$8.50,Everyday Card,10/01/1992,10/26/1992,Morning Gazette Digital,Harbor Card,xxxx2001,10/26/1992,10/26/1992
+161,11/01/1992,Rent,"-$1,255.00",Main Checking,11/01/1992,10/26/1992,Maple Street Rent,Aurora Bank,xxxx1001,11/01/1992,11/01/1992
+162,11/02/1992,Salary,"$2,060.00",Main Checking,11/01/1992,11/02/1992,Cedar Works Payroll,Aurora Bank,xxxx1001,11/02/1992,11/02/1992
+163,11/03/1992,Salary,"$2,160.00",Main Checking,11/01/1992,11/02/1992,Cedar Works Payroll,Aurora Bank,xxxx1001,11/03/1992,11/03/1992
+164,11/04/1992,Interest,$14.00,Emergency Savings,11/01/1992,11/02/1992,Aurora Savings Interest,Aurora Bank,xxxx1002,11/04/1992,11/04/1992
+165,11/05/1992,Electric,-$90.00,Main Checking,11/01/1992,11/02/1992,City Electric Service,Aurora Bank,xxxx1001,11/05/1992,11/05/1992
+166,11/06/1992,Natural Gas,-$18.00,Main Checking,11/01/1992,11/02/1992,Harbor Gas Service,Aurora Bank,xxxx1001,11/06/1992,11/06/1992
+167,11/07/1992,Internet,-$39.00,Main Checking,11/01/1992,11/02/1992,Civic Fiber Internet,Aurora Bank,xxxx1001,11/07/1992,11/07/1992
+168,11/08/1992,Mobile Phone,-$56.00,Everyday Card,11/01/1992,11/02/1992,Northline Mobile Phone,Harbor Card,xxxx2001,11/08/1992,11/08/1992
+169,11/09/1992,Water & Sewer,-$38.00,Main Checking,11/01/1992,11/09/1992,City Water Sewer,Aurora Bank,xxxx1001,11/09/1992,11/09/1992
+170,11/10/1992,Trash,-$22.00,Main Checking,11/01/1992,11/09/1992,Neighborhood Trash Service,Aurora Bank,xxxx1001,11/10/1992,11/10/1992
+171,11/11/1992,Groceries,-$240.00,Main Checking,11/01/1992,11/09/1992,Market Basket Staples,Aurora Bank,xxxx1001,11/11/1992,11/11/1992
+172,11/12/1992,Groceries,-$245.00,Everyday Card,11/01/1992,11/09/1992,Greenway Market Groceries,Harbor Card,xxxx2001,11/12/1992,11/12/1992
+173,11/13/1992,Coffee,-$32.00,Everyday Card,11/01/1992,11/09/1992,Northstar Coffee Roasters,Harbor Card,xxxx2001,11/13/1992,11/13/1992
+174,11/14/1992,Restaurants,-$87.00,Everyday Card,11/01/1992,11/09/1992,Juniper Kitchen Dinner,Harbor Card,xxxx2001,11/14/1992,11/14/1992
+175,11/15/1992,Restaurants,-$96.00,Everyday Card,11/01/1992,11/09/1992,Riverstone Diner Lunch,Harbor Card,xxxx2001,11/15/1992,11/15/1992
+176,11/16/1992,Automobile Fuel,-$60.00,Everyday Card,11/01/1992,11/16/1992,Highway Fuel Station,Harbor Card,xxxx2001,11/16/1992,11/16/1992
+177,11/17/1992,Automobile Fuel,-$43.00,Everyday Card,11/01/1992,11/16/1992,Westside Fuel Station,Harbor Card,xxxx2001,11/17/1992,11/17/1992
+178,11/18/1992,Shopping,-$85.00,Travel Rewards Card,11/01/1992,11/16/1992,Willow Goods Market,Harbor Card,xxxx2002,11/18/1992,11/18/1992
+179,11/19/1992,Charitable Giving,-$50.00,Main Checking,11/01/1992,11/16/1992,River Aid Donation,Aurora Bank,xxxx1001,11/19/1992,11/19/1992
+180,11/20/1992,Transfer,$380.00,Emergency Savings,11/01/1992,11/16/1992,Transfer Emergency Savings,Aurora Bank,xxxx1002,11/20/1992,11/20/1992
+181,11/20/1992,Transfer,-$380.00,Main Checking,11/01/1992,11/16/1992,Transfer Emergency Savings,Aurora Bank,xxxx1001,11/20/1992,11/20/1992
+182,11/21/1992,Home Supplies,-$52.00,Travel Rewards Card,11/01/1992,11/16/1992,Harbor Home Supplies,Harbor Card,xxxx2002,11/21/1992,11/21/1992
+183,11/23/1992,Streaming Subscription,-$12.99,Everyday Card,11/01/1992,11/23/1992,Flicker Stream Membership,Harbor Card,xxxx2001,11/23/1992,11/23/1992
+184,11/24/1992,Cloud Subscription,-$6.99,Everyday Card,11/01/1992,11/23/1992,CloudBox Storage Plan,Harbor Card,xxxx2001,11/24/1992,11/24/1992
+185,11/25/1992,Music Subscription,-$9.99,Everyday Card,11/01/1992,11/23/1992,Soundwave Music Plan,Harbor Card,xxxx2001,11/25/1992,11/25/1992
+186,11/26/1992,News Subscription,-$8.50,Everyday Card,11/01/1992,11/23/1992,Morning Gazette Digital,Harbor Card,xxxx2001,11/26/1992,11/26/1992
+187,12/01/1992,Rent,"-$1,240.00",Main Checking,12/01/1992,11/30/1992,Maple Street Rent,Aurora Bank,xxxx1001,12/01/1992,12/01/1992
+188,12/02/1992,Salary,"$2,105.00",Main Checking,12/01/1992,11/30/1992,Cedar Works Payroll,Aurora Bank,xxxx1001,12/02/1992,12/02/1992
+189,12/03/1992,Salary,"$2,095.00",Main Checking,12/01/1992,11/30/1992,Cedar Works Payroll,Aurora Bank,xxxx1001,12/03/1992,12/03/1992
+190,12/04/1992,Interest,$13.00,Emergency Savings,12/01/1992,11/30/1992,Aurora Savings Interest,Aurora Bank,xxxx1002,12/04/1992,12/04/1992
+191,12/05/1992,Electric,-$113.00,Main Checking,12/01/1992,11/30/1992,City Electric Service,Aurora Bank,xxxx1001,12/05/1992,12/05/1992
+192,12/06/1992,Natural Gas,-$26.00,Main Checking,12/01/1992,11/30/1992,Harbor Gas Service,Aurora Bank,xxxx1001,12/06/1992,12/06/1992
+193,12/07/1992,Internet,-$38.00,Main Checking,12/01/1992,12/07/1992,Civic Fiber Internet,Aurora Bank,xxxx1001,12/07/1992,12/07/1992
+194,12/08/1992,Mobile Phone,-$59.00,Everyday Card,12/01/1992,12/07/1992,Northline Mobile Phone,Harbor Card,xxxx2001,12/08/1992,12/08/1992
+195,12/09/1992,Water & Sewer,-$42.00,Main Checking,12/01/1992,12/07/1992,City Water Sewer,Aurora Bank,xxxx1001,12/09/1992,12/09/1992
+196,12/10/1992,Trash,-$23.00,Main Checking,12/01/1992,12/07/1992,Neighborhood Trash Service,Aurora Bank,xxxx1001,12/10/1992,12/10/1992
+197,12/11/1992,Groceries,-$285.00,Main Checking,12/01/1992,12/07/1992,Market Basket Staples,Aurora Bank,xxxx1001,12/11/1992,12/11/1992
+198,12/12/1992,Groceries,-$215.00,Everyday Card,12/01/1992,12/07/1992,Greenway Market Groceries,Harbor Card,xxxx2001,12/12/1992,12/12/1992
+199,12/13/1992,Coffee,-$19.00,Everyday Card,12/01/1992,12/07/1992,Northstar Coffee Roasters,Harbor Card,xxxx2001,12/13/1992,12/13/1992
+200,12/14/1992,Restaurants,-$82.00,Everyday Card,12/01/1992,12/14/1992,Juniper Kitchen Dinner,Harbor Card,xxxx2001,12/14/1992,12/14/1992
+201,12/15/1992,Restaurants,-$58.00,Everyday Card,12/01/1992,12/14/1992,Riverstone Diner Lunch,Harbor Card,xxxx2001,12/15/1992,12/15/1992
+202,12/16/1992,Automobile Fuel,-$43.00,Everyday Card,12/01/1992,12/14/1992,Highway Fuel Station,Harbor Card,xxxx2001,12/16/1992,12/16/1992
+203,12/17/1992,Automobile Fuel,-$65.00,Everyday Card,12/01/1992,12/14/1992,Westside Fuel Station,Harbor Card,xxxx2001,12/17/1992,12/17/1992
+204,12/18/1992,Shopping,-$215.00,Travel Rewards Card,12/01/1992,12/14/1992,Willow Goods Market,Harbor Card,xxxx2002,12/18/1992,12/18/1992
+205,12/19/1992,Charitable Giving,-$40.00,Main Checking,12/01/1992,12/14/1992,River Aid Donation,Aurora Bank,xxxx1001,12/19/1992,12/19/1992
+206,12/20/1992,Transfer,$540.00,Emergency Savings,12/01/1992,12/14/1992,Transfer Emergency Savings,Aurora Bank,xxxx1002,12/20/1992,12/20/1992
+207,12/20/1992,Transfer,-$540.00,Main Checking,12/01/1992,12/14/1992,Transfer Emergency Savings,Aurora Bank,xxxx1001,12/20/1992,12/20/1992
+208,12/21/1992,Auto Insurance,-$265.00,Main Checking,12/01/1992,12/21/1992,Harbor Auto Insurance,Aurora Bank,xxxx1001,12/21/1992,12/21/1992
+209,12/21/1992,Medical,-$63.00,Everyday Card,12/01/1992,12/21/1992,Pine Medical Clinic,Harbor Card,xxxx2001,12/21/1992,12/21/1992
+210,12/22/1992,Given Gift,-$160.00,Travel Rewards Card,12/01/1992,12/21/1992,Willow Gifts Holiday,Harbor Card,xxxx2002,12/22/1992,12/22/1992
+211,12/23/1992,Streaming Subscription,-$12.99,Everyday Card,12/01/1992,12/21/1992,Flicker Stream Membership,Harbor Card,xxxx2001,12/23/1992,12/23/1992
+212,12/24/1992,Cloud Subscription,-$6.99,Everyday Card,12/01/1992,12/21/1992,CloudBox Storage Plan,Harbor Card,xxxx2001,12/24/1992,12/24/1992
+213,12/25/1992,Music Subscription,-$9.99,Everyday Card,12/01/1992,12/21/1992,Soundwave Music Plan,Harbor Card,xxxx2001,12/25/1992,12/25/1992
+214,12/26/1992,News Subscription,-$8.50,Everyday Card,12/01/1992,12/21/1992,Morning Gazette Digital,Harbor Card,xxxx2001,12/26/1992,12/26/1992
+215,01/01/1993,Rent,"-$1,320.00",Main Checking,01/01/1993,12/28/1992,Maple Street Rent,Aurora Bank,xxxx1001,01/01/1993,01/01/1993
+216,01/02/1993,Salary,"$2,145.00",Main Checking,01/01/1993,12/28/1992,Cedar Works Payroll,Aurora Bank,xxxx1001,01/02/1993,01/02/1993
+217,01/03/1993,Salary,"$2,245.00",Main Checking,01/01/1993,12/28/1992,Cedar Works Payroll,Aurora Bank,xxxx1001,01/03/1993,01/03/1993
+218,01/04/1993,Interest,$18.00,Emergency Savings,01/01/1993,01/04/1993,Aurora Savings Interest,Aurora Bank,xxxx1002,01/04/1993,01/04/1993
+219,01/05/1993,Electric,-$131.00,Main Checking,01/01/1993,01/04/1993,City Electric Service,Aurora Bank,xxxx1001,01/05/1993,01/05/1993
+220,01/06/1993,Natural Gas,-$44.00,Main Checking,01/01/1993,01/04/1993,Harbor Gas Service,Aurora Bank,xxxx1001,01/06/1993,01/06/1993
+221,01/07/1993,Internet,-$42.00,Main Checking,01/01/1993,01/04/1993,Civic Fiber Internet,Aurora Bank,xxxx1001,01/07/1993,01/07/1993
+222,01/08/1993,Mobile Phone,-$59.00,Everyday Card,01/01/1993,01/04/1993,Northline Mobile Phone,Harbor Card,xxxx2001,01/08/1993,01/08/1993
+223,01/09/1993,Water & Sewer,-$49.00,Main Checking,01/01/1993,01/04/1993,City Water Sewer,Aurora Bank,xxxx1001,01/09/1993,01/09/1993
+224,01/10/1993,Trash,-$23.00,Main Checking,01/01/1993,01/04/1993,Neighborhood Trash Service,Aurora Bank,xxxx1001,01/10/1993,01/10/1993
+225,01/11/1993,Groceries,-$272.00,Main Checking,01/01/1993,01/11/1993,Market Basket Staples,Aurora Bank,xxxx1001,01/11/1993,01/11/1993
+226,01/12/1993,Groceries,-$217.00,Everyday Card,01/01/1993,01/11/1993,Greenway Market Groceries,Harbor Card,xxxx2001,01/12/1993,01/12/1993
+227,01/13/1993,Coffee,-$31.00,Everyday Card,01/01/1993,01/11/1993,Northstar Coffee Roasters,Harbor Card,xxxx2001,01/13/1993,01/13/1993
+228,01/14/1993,Restaurants,-$57.00,Everyday Card,01/01/1993,01/11/1993,Juniper Kitchen Dinner,Harbor Card,xxxx2001,01/14/1993,01/14/1993
+229,01/15/1993,Restaurants,-$113.00,Everyday Card,01/01/1993,01/11/1993,Riverstone Diner Lunch,Harbor Card,xxxx2001,01/15/1993,01/15/1993
+230,01/16/1993,Automobile Fuel,-$61.00,Everyday Card,01/01/1993,01/11/1993,Highway Fuel Station,Harbor Card,xxxx2001,01/16/1993,01/16/1993
+231,01/17/1993,Automobile Fuel,-$60.00,Everyday Card,01/01/1993,01/11/1993,Westside Fuel Station,Harbor Card,xxxx2001,01/17/1993,01/17/1993
+232,01/18/1993,Shopping,-$74.00,Travel Rewards Card,01/01/1993,01/18/1993,Willow Goods Market,Harbor Card,xxxx2002,01/18/1993,01/18/1993
+233,01/19/1993,Charitable Giving,-$48.00,Main Checking,01/01/1993,01/18/1993,River Aid Donation,Aurora Bank,xxxx1001,01/19/1993,01/19/1993
+234,01/20/1993,Transfer,$350.00,Emergency Savings,01/01/1993,01/18/1993,Transfer Emergency Savings,Aurora Bank,xxxx1002,01/20/1993,01/20/1993
+235,01/20/1993,Transfer,-$350.00,Main Checking,01/01/1993,01/18/1993,Transfer Emergency Savings,Aurora Bank,xxxx1001,01/20/1993,01/20/1993
+236,01/21/1993,Pet Care,-$67.00,Everyday Card,01/01/1993,01/18/1993,Elm Pet Market,Harbor Card,xxxx2001,01/21/1993,01/21/1993
+237,01/21/1993,Home Supplies,-$69.00,Travel Rewards Card,01/01/1993,01/18/1993,Harbor Home Supplies,Harbor Card,xxxx2002,01/21/1993,01/21/1993
+238,01/22/1993,Travel,-$240.00,Travel Rewards Card,01/01/1993,01/18/1993,Lakeview Travel Booking,Harbor Card,xxxx2002,01/22/1993,01/22/1993
+239,01/23/1993,Streaming Subscription,-$12.99,Everyday Card,01/01/1993,01/18/1993,Flicker Stream Membership,Harbor Card,xxxx2001,01/23/1993,01/23/1993
+240,01/24/1993,Cloud Subscription,-$6.99,Everyday Card,01/01/1993,01/18/1993,CloudBox Storage Plan,Harbor Card,xxxx2001,01/24/1993,01/24/1993
+241,01/25/1993,Music Subscription,-$9.99,Everyday Card,01/01/1993,01/25/1993,Soundwave Music Plan,Harbor Card,xxxx2001,01/25/1993,01/25/1993
+242,01/26/1993,News Subscription,-$8.50,Everyday Card,01/01/1993,01/25/1993,Morning Gazette Digital,Harbor Card,xxxx2001,01/26/1993,01/26/1993
+243,02/01/1993,Rent,"-$1,305.00",Main Checking,02/01/1993,02/01/1993,Maple Street Rent,Aurora Bank,xxxx1001,02/01/1993,02/01/1993
+244,02/02/1993,Salary,"$2,215.00",Main Checking,02/01/1993,02/01/1993,Cedar Works Payroll,Aurora Bank,xxxx1001,02/02/1993,02/02/1993
+245,02/03/1993,Salary,"$2,195.00",Main Checking,02/01/1993,02/01/1993,Cedar Works Payroll,Aurora Bank,xxxx1001,02/03/1993,02/03/1993
+246,02/04/1993,Interest,$17.00,Emergency Savings,02/01/1993,02/01/1993,Aurora Savings Interest,Aurora Bank,xxxx1002,02/04/1993,02/04/1993
+247,02/05/1993,Electric,-$127.00,Main Checking,02/01/1993,02/01/1993,City Electric Service,Aurora Bank,xxxx1001,02/05/1993,02/05/1993
+248,02/06/1993,Natural Gas,-$57.00,Main Checking,02/01/1993,02/01/1993,Harbor Gas Service,Aurora Bank,xxxx1001,02/06/1993,02/06/1993
+249,02/07/1993,Internet,-$41.00,Main Checking,02/01/1993,02/01/1993,Civic Fiber Internet,Aurora Bank,xxxx1001,02/07/1993,02/07/1993
+250,02/08/1993,Mobile Phone,-$57.00,Everyday Card,02/01/1993,02/08/1993,Northline Mobile Phone,Harbor Card,xxxx2001,02/08/1993,02/08/1993
+251,02/09/1993,Water & Sewer,-$51.00,Main Checking,02/01/1993,02/08/1993,City Water Sewer,Aurora Bank,xxxx1001,02/09/1993,02/09/1993
+252,02/10/1993,Trash,-$24.00,Main Checking,02/01/1993,02/08/1993,Neighborhood Trash Service,Aurora Bank,xxxx1001,02/10/1993,02/10/1993
+253,02/11/1993,Groceries,-$292.00,Main Checking,02/01/1993,02/08/1993,Market Basket Staples,Aurora Bank,xxxx1001,02/11/1993,02/11/1993
+254,02/12/1993,Groceries,-$262.00,Everyday Card,02/01/1993,02/08/1993,Greenway Market Groceries,Harbor Card,xxxx2001,02/12/1993,02/12/1993
+255,02/13/1993,Coffee,-$37.00,Everyday Card,02/01/1993,02/08/1993,Northstar Coffee Roasters,Harbor Card,xxxx2001,02/13/1993,02/13/1993
+256,02/14/1993,Restaurants,-$80.00,Everyday Card,02/01/1993,02/08/1993,Juniper Kitchen Dinner,Harbor Card,xxxx2001,02/14/1993,02/14/1993
+257,02/15/1993,Restaurants,-$93.00,Everyday Card,02/01/1993,02/15/1993,Riverstone Diner Lunch,Harbor Card,xxxx2001,02/15/1993,02/15/1993
+258,02/16/1993,Automobile Fuel,-$68.00,Everyday Card,02/01/1993,02/15/1993,Highway Fuel Station,Harbor Card,xxxx2001,02/16/1993,02/16/1993
+259,02/17/1993,Automobile Fuel,-$44.00,Everyday Card,02/01/1993,02/15/1993,Westside Fuel Station,Harbor Card,xxxx2001,02/17/1993,02/17/1993
+260,02/18/1993,Shopping,-$139.00,Travel Rewards Card,02/01/1993,02/15/1993,Willow Goods Market,Harbor Card,xxxx2002,02/18/1993,02/18/1993
+261,02/19/1993,Charitable Giving,-$58.00,Main Checking,02/01/1993,02/15/1993,River Aid Donation,Aurora Bank,xxxx1001,02/19/1993,02/19/1993
+262,02/20/1993,Transfer,$480.00,Emergency Savings,02/01/1993,02/15/1993,Transfer Emergency Savings,Aurora Bank,xxxx1002,02/20/1993,02/20/1993
+263,02/20/1993,Transfer,-$480.00,Main Checking,02/01/1993,02/15/1993,Transfer Emergency Savings,Aurora Bank,xxxx1001,02/20/1993,02/20/1993
+264,02/23/1993,Streaming Subscription,-$12.99,Everyday Card,02/01/1993,02/22/1993,Flicker Stream Membership,Harbor Card,xxxx2001,02/23/1993,02/23/1993
+265,02/24/1993,Cloud Subscription,-$6.99,Everyday Card,02/01/1993,02/22/1993,CloudBox Storage Plan,Harbor Card,xxxx2001,02/24/1993,02/24/1993
+266,02/25/1993,Music Subscription,-$9.99,Everyday Card,02/01/1993,02/22/1993,Soundwave Music Plan,Harbor Card,xxxx2001,02/25/1993,02/25/1993
+267,02/26/1993,News Subscription,-$8.50,Everyday Card,02/01/1993,02/22/1993,Morning Gazette Digital,Harbor Card,xxxx2001,02/26/1993,02/26/1993
+268,03/01/1993,Rent,"-$1,330.00",Main Checking,03/01/1993,03/01/1993,Maple Street Rent,Aurora Bank,xxxx1001,03/01/1993,03/01/1993
+269,03/02/1993,Salary,"$2,160.00",Main Checking,03/01/1993,03/01/1993,Cedar Works Payroll,Aurora Bank,xxxx1001,03/02/1993,03/02/1993
+270,03/03/1993,Salary,"$2,240.00",Main Checking,03/01/1993,03/01/1993,Cedar Works Payroll,Aurora Bank,xxxx1001,03/03/1993,03/03/1993
+271,03/04/1993,Interest,$15.00,Emergency Savings,03/01/1993,03/01/1993,Aurora Savings Interest,Aurora Bank,xxxx1002,03/04/1993,03/04/1993
+272,03/05/1993,Electric,-$141.00,Main Checking,03/01/1993,03/01/1993,City Electric Service,Aurora Bank,xxxx1001,03/05/1993,03/05/1993
+273,03/06/1993,Natural Gas,-$82.00,Main Checking,03/01/1993,03/01/1993,Harbor Gas Service,Aurora Bank,xxxx1001,03/06/1993,03/06/1993
+274,03/07/1993,Internet,-$40.00,Main Checking,03/01/1993,03/01/1993,Civic Fiber Internet,Aurora Bank,xxxx1001,03/07/1993,03/07/1993
+275,03/08/1993,Mobile Phone,-$60.00,Everyday Card,03/01/1993,03/08/1993,Northline Mobile Phone,Harbor Card,xxxx2001,03/08/1993,03/08/1993
+276,03/09/1993,Water & Sewer,-$53.00,Main Checking,03/01/1993,03/08/1993,City Water Sewer,Aurora Bank,xxxx1001,03/09/1993,03/09/1993
+277,03/10/1993,Trash,-$23.00,Main Checking,03/01/1993,03/08/1993,Neighborhood Trash Service,Aurora Bank,xxxx1001,03/10/1993,03/10/1993
+278,03/11/1993,Groceries,-$237.00,Main Checking,03/01/1993,03/08/1993,Market Basket Staples,Aurora Bank,xxxx1001,03/11/1993,03/11/1993
+279,03/12/1993,Groceries,-$237.00,Everyday Card,03/01/1993,03/08/1993,Greenway Market Groceries,Harbor Card,xxxx2001,03/12/1993,03/12/1993
+280,03/13/1993,Coffee,-$25.00,Everyday Card,03/01/1993,03/08/1993,Northstar Coffee Roasters,Harbor Card,xxxx2001,03/13/1993,03/13/1993
+281,03/14/1993,Restaurants,-$104.00,Everyday Card,03/01/1993,03/08/1993,Juniper Kitchen Dinner,Harbor Card,xxxx2001,03/14/1993,03/14/1993
+282,03/15/1993,Restaurants,-$76.00,Everyday Card,03/01/1993,03/15/1993,Riverstone Diner Lunch,Harbor Card,xxxx2001,03/15/1993,03/15/1993
+283,03/16/1993,Automobile Fuel,-$43.00,Everyday Card,03/01/1993,03/15/1993,Highway Fuel Station,Harbor Card,xxxx2001,03/16/1993,03/16/1993
+284,03/17/1993,Automobile Fuel,-$66.00,Everyday Card,03/01/1993,03/15/1993,Westside Fuel Station,Harbor Card,xxxx2001,03/17/1993,03/17/1993
+285,03/18/1993,Shopping,-$199.00,Travel Rewards Card,03/01/1993,03/15/1993,Willow Goods Market,Harbor Card,xxxx2002,03/18/1993,03/18/1993
+286,03/19/1993,Charitable Giving,-$53.00,Main Checking,03/01/1993,03/15/1993,River Aid Donation,Aurora Bank,xxxx1001,03/19/1993,03/19/1993
+287,03/20/1993,Transfer,$520.00,Emergency Savings,03/01/1993,03/15/1993,Transfer Emergency Savings,Aurora Bank,xxxx1002,03/20/1993,03/20/1993
+288,03/20/1993,Transfer,-$520.00,Main Checking,03/01/1993,03/15/1993,Transfer Emergency Savings,Aurora Bank,xxxx1001,03/20/1993,03/20/1993
+289,03/21/1993,Auto Insurance,-$290.00,Main Checking,03/01/1993,03/15/1993,Harbor Auto Insurance,Aurora Bank,xxxx1001,03/21/1993,03/21/1993
+290,03/21/1993,Home Supplies,-$109.00,Travel Rewards Card,03/01/1993,03/15/1993,Harbor Home Supplies,Harbor Card,xxxx2002,03/21/1993,03/21/1993
+291,03/21/1993,Medical,-$103.00,Everyday Card,03/01/1993,03/15/1993,Pine Medical Clinic,Harbor Card,xxxx2001,03/21/1993,03/21/1993
+292,03/23/1993,Streaming Subscription,-$12.99,Everyday Card,03/01/1993,03/22/1993,Flicker Stream Membership,Harbor Card,xxxx2001,03/23/1993,03/23/1993
+293,03/24/1993,Cloud Subscription,-$6.99,Everyday Card,03/01/1993,03/22/1993,CloudBox Storage Plan,Harbor Card,xxxx2001,03/24/1993,03/24/1993
+294,03/25/1993,Music Subscription,-$9.99,Everyday Card,03/01/1993,03/22/1993,Soundwave Music Plan,Harbor Card,xxxx2001,03/25/1993,03/25/1993
+295,03/26/1993,News Subscription,-$8.50,Everyday Card,03/01/1993,03/22/1993,Morning Gazette Digital,Harbor Card,xxxx2001,03/26/1993,03/26/1993
+296,04/01/1993,Rent,"-$1,315.00",Main Checking,04/01/1993,03/29/1993,Maple Street Rent,Aurora Bank,xxxx1001,04/01/1993,04/01/1993
+297,04/02/1993,Salary,"$2,185.00",Main Checking,04/01/1993,03/29/1993,Cedar Works Payroll,Aurora Bank,xxxx1001,04/02/1993,04/02/1993
+298,04/03/1993,Salary,"$2,210.00",Main Checking,04/01/1993,03/29/1993,Cedar Works Payroll,Aurora Bank,xxxx1001,04/03/1993,04/03/1993
+299,04/04/1993,Interest,$17.00,Emergency Savings,04/01/1993,03/29/1993,Aurora Savings Interest,Aurora Bank,xxxx1002,04/04/1993,04/04/1993
+300,04/05/1993,Electric,-$159.00,Main Checking,04/01/1993,04/05/1993,City Electric Service,Aurora Bank,xxxx1001,04/05/1993,04/05/1993
+301,04/06/1993,Natural Gas,-$112.00,Main Checking,04/01/1993,04/05/1993,Harbor Gas Service,Aurora Bank,xxxx1001,04/06/1993,04/06/1993
+302,04/07/1993,Internet,-$41.00,Main Checking,04/01/1993,04/05/1993,Civic Fiber Internet,Aurora Bank,xxxx1001,04/07/1993,04/07/1993
+303,04/08/1993,Mobile Phone,-$58.00,Everyday Card,04/01/1993,04/05/1993,Northline Mobile Phone,Harbor Card,xxxx2001,04/08/1993,04/08/1993
+304,04/09/1993,Water & Sewer,-$56.00,Main Checking,04/01/1993,04/05/1993,City Water Sewer,Aurora Bank,xxxx1001,04/09/1993,04/09/1993
+305,04/10/1993,Trash,-$24.00,Main Checking,04/01/1993,04/05/1993,Neighborhood Trash Service,Aurora Bank,xxxx1001,04/10/1993,04/10/1993
+306,04/11/1993,Groceries,-$267.00,Main Checking,04/01/1993,04/05/1993,Market Basket Staples,Aurora Bank,xxxx1001,04/11/1993,04/11/1993
+307,04/12/1993,Groceries,-$212.00,Everyday Card,04/01/1993,04/12/1993,Greenway Market Groceries,Harbor Card,xxxx2001,04/12/1993,04/12/1993
+308,04/13/1993,Coffee,-$33.00,Everyday Card,04/01/1993,04/12/1993,Northstar Coffee Roasters,Harbor Card,xxxx2001,04/13/1993,04/13/1993
+309,04/14/1993,Restaurants,-$64.00,Everyday Card,04/01/1993,04/12/1993,Juniper Kitchen Dinner,Harbor Card,xxxx2001,04/14/1993,04/14/1993
+310,04/15/1993,Restaurants,-$124.00,Everyday Card,04/01/1993,04/12/1993,Riverstone Diner Lunch,Harbor Card,xxxx2001,04/15/1993,04/15/1993
+311,04/16/1993,Automobile Fuel,-$58.00,Everyday Card,04/01/1993,04/12/1993,Highway Fuel Station,Harbor Card,xxxx2001,04/16/1993,04/16/1993
+312,04/17/1993,Automobile Fuel,-$74.00,Everyday Card,04/01/1993,04/12/1993,Westside Fuel Station,Harbor Card,xxxx2001,04/17/1993,04/17/1993
+313,04/18/1993,Shopping,-$89.00,Travel Rewards Card,04/01/1993,04/12/1993,Willow Goods Market,Harbor Card,xxxx2002,04/18/1993,04/18/1993
+314,04/19/1993,Charitable Giving,-$43.00,Main Checking,04/01/1993,04/19/1993,River Aid Donation,Aurora Bank,xxxx1001,04/19/1993,04/19/1993
+315,04/20/1993,Transfer,$400.00,Emergency Savings,04/01/1993,04/19/1993,Transfer Emergency Savings,Aurora Bank,xxxx1002,04/20/1993,04/20/1993
+316,04/20/1993,Transfer,-$400.00,Main Checking,04/01/1993,04/19/1993,Transfer Emergency Savings,Aurora Bank,xxxx1001,04/20/1993,04/20/1993
+317,04/22/1993,Travel,-$140.00,Travel Rewards Card,04/01/1993,04/19/1993,Lakeview Travel Booking,Harbor Card,xxxx2002,04/22/1993,04/22/1993
+318,04/23/1993,Streaming Subscription,-$12.99,Everyday Card,04/01/1993,04/19/1993,Flicker Stream Membership,Harbor Card,xxxx2001,04/23/1993,04/23/1993
+319,04/24/1993,Cloud Subscription,-$6.99,Everyday Card,04/01/1993,04/19/1993,CloudBox Storage Plan,Harbor Card,xxxx2001,04/24/1993,04/24/1993
+320,04/25/1993,Music Subscription,-$9.99,Everyday Card,04/01/1993,04/19/1993,Soundwave Music Plan,Harbor Card,xxxx2001,04/25/1993,04/25/1993
+321,04/26/1993,News Subscription,-$8.50,Everyday Card,04/01/1993,04/26/1993,Morning Gazette Digital,Harbor Card,xxxx2001,04/26/1993,04/26/1993
+322,05/01/1993,Rent,"-$1,300.00",Main Checking,05/01/1993,04/26/1993,Maple Street Rent,Aurora Bank,xxxx1001,05/01/1993,05/01/1993
+323,05/02/1993,Salary,"$2,210.00",Main Checking,05/01/1993,04/26/1993,Cedar Works Payroll,Aurora Bank,xxxx1001,05/02/1993,05/02/1993
+324,05/03/1993,Salary,"$2,185.00",Main Checking,05/01/1993,05/03/1993,Cedar Works Payroll,Aurora Bank,xxxx1001,05/03/1993,05/03/1993
+325,05/04/1993,Interest,$16.00,Emergency Savings,05/01/1993,05/03/1993,Aurora Savings Interest,Aurora Bank,xxxx1002,05/04/1993,05/04/1993
+326,05/05/1993,Electric,-$156.00,Main Checking,05/01/1993,05/03/1993,City Electric Service,Aurora Bank,xxxx1001,05/05/1993,05/05/1993
+327,05/06/1993,Natural Gas,-$117.00,Main Checking,05/01/1993,05/03/1993,Harbor Gas Service,Aurora Bank,xxxx1001,05/06/1993,05/06/1993
+328,05/07/1993,Internet,-$40.00,Main Checking,05/01/1993,05/03/1993,Civic Fiber Internet,Aurora Bank,xxxx1001,05/07/1993,05/07/1993
+329,05/08/1993,Mobile Phone,-$61.00,Everyday Card,05/01/1993,05/03/1993,Northline Mobile Phone,Harbor Card,xxxx2001,05/08/1993,05/08/1993
+330,05/09/1993,Water & Sewer,-$54.00,Main Checking,05/01/1993,05/03/1993,City Water Sewer,Aurora Bank,xxxx1001,05/09/1993,05/09/1993
+331,05/10/1993,Trash,-$23.00,Main Checking,05/01/1993,05/10/1993,Neighborhood Trash Service,Aurora Bank,xxxx1001,05/10/1993,05/10/1993
+332,05/11/1993,Groceries,-$302.00,Main Checking,05/01/1993,05/10/1993,Market Basket Staples,Aurora Bank,xxxx1001,05/11/1993,05/11/1993
+333,05/12/1993,Groceries,-$272.00,Everyday Card,05/01/1993,05/10/1993,Greenway Market Groceries,Harbor Card,xxxx2001,05/12/1993,05/12/1993
+334,05/13/1993,Coffee,-$35.00,Everyday Card,05/01/1993,05/10/1993,Northstar Coffee Roasters,Harbor Card,xxxx2001,05/13/1993,05/13/1993
+335,05/14/1993,Restaurants,-$86.00,Everyday Card,05/01/1993,05/10/1993,Juniper Kitchen Dinner,Harbor Card,xxxx2001,05/14/1993,05/14/1993
+336,05/15/1993,Restaurants,-$98.00,Everyday Card,05/01/1993,05/10/1993,Riverstone Diner Lunch,Harbor Card,xxxx2001,05/15/1993,05/15/1993
+337,05/16/1993,Automobile Fuel,-$65.00,Everyday Card,05/01/1993,05/10/1993,Highway Fuel Station,Harbor Card,xxxx2001,05/16/1993,05/16/1993
+338,05/17/1993,Automobile Fuel,-$48.00,Everyday Card,05/01/1993,05/17/1993,Westside Fuel Station,Harbor Card,xxxx2001,05/17/1993,05/17/1993
+339,05/18/1993,Shopping,-$174.00,Travel Rewards Card,05/01/1993,05/17/1993,Willow Goods Market,Harbor Card,xxxx2002,05/18/1993,05/18/1993
+340,05/19/1993,Charitable Giving,-$48.00,Main Checking,05/01/1993,05/17/1993,River Aid Donation,Aurora Bank,xxxx1001,05/19/1993,05/19/1993
+341,05/20/1993,Transfer,$560.00,Emergency Savings,05/01/1993,05/17/1993,Transfer Emergency Savings,Aurora Bank,xxxx1002,05/20/1993,05/20/1993
+342,05/20/1993,Transfer,-$560.00,Main Checking,05/01/1993,05/17/1993,Transfer Emergency Savings,Aurora Bank,xxxx1001,05/20/1993,05/20/1993
+343,05/21/1993,Pet Care,-$67.00,Everyday Card,05/01/1993,05/17/1993,Elm Pet Market,Harbor Card,xxxx2001,05/21/1993,05/21/1993
+344,05/21/1993,Home Supplies,-$129.00,Travel Rewards Card,05/01/1993,05/17/1993,Harbor Home Supplies,Harbor Card,xxxx2002,05/21/1993,05/21/1993
+345,05/23/1993,Streaming Subscription,-$12.99,Everyday Card,05/01/1993,05/17/1993,Flicker Stream Membership,Harbor Card,xxxx2001,05/23/1993,05/23/1993
+346,05/24/1993,Cloud Subscription,-$6.99,Everyday Card,05/01/1993,05/24/1993,CloudBox Storage Plan,Harbor Card,xxxx2001,05/24/1993,05/24/1993
+347,05/25/1993,Music Subscription,-$9.99,Everyday Card,05/01/1993,05/24/1993,Soundwave Music Plan,Harbor Card,xxxx2001,05/25/1993,05/25/1993
+348,05/26/1993,News Subscription,-$8.50,Everyday Card,05/01/1993,05/24/1993,Morning Gazette Digital,Harbor Card,xxxx2001,05/26/1993,05/26/1993
+349,05/27/1993,Fitness Subscription,-$32.00,Everyday Card,05/01/1993,05/24/1993,Fit Club Membership,Harbor Card,xxxx2001,05/27/1993,05/27/1993
+350,06/01/1993,Rent,"-$1,325.00",Main Checking,06/01/1993,05/31/1993,Maple Street Rent,Aurora Bank,xxxx1001,06/01/1993,06/01/1993
+351,06/02/1993,Salary,"$2,155.00",Main Checking,06/01/1993,05/31/1993,Cedar Works Payroll,Aurora Bank,xxxx1001,06/02/1993,06/02/1993
+352,06/03/1993,Salary,"$2,255.00",Main Checking,06/01/1993,05/31/1993,Cedar Works Payroll,Aurora Bank,xxxx1001,06/03/1993,06/03/1993
+353,06/04/1993,Interest,$18.00,Emergency Savings,06/01/1993,05/31/1993,Aurora Savings Interest,Aurora Bank,xxxx1002,06/04/1993,06/04/1993
+354,06/05/1993,Electric,-$146.00,Main Checking,06/01/1993,05/31/1993,City Electric Service,Aurora Bank,xxxx1001,06/05/1993,06/05/1993
+355,06/06/1993,Natural Gas,-$104.00,Main Checking,06/01/1993,05/31/1993,Harbor Gas Service,Aurora Bank,xxxx1001,06/06/1993,06/06/1993
+356,06/07/1993,Internet,-$42.00,Main Checking,06/01/1993,06/07/1993,Civic Fiber Internet,Aurora Bank,xxxx1001,06/07/1993,06/07/1993
+357,06/08/1993,Mobile Phone,-$59.00,Everyday Card,06/01/1993,06/07/1993,Northline Mobile Phone,Harbor Card,xxxx2001,06/08/1993,06/08/1993
+358,06/09/1993,Water & Sewer,-$51.00,Main Checking,06/01/1993,06/07/1993,City Water Sewer,Aurora Bank,xxxx1001,06/09/1993,06/09/1993
+359,06/10/1993,Trash,-$24.00,Main Checking,06/01/1993,06/07/1993,Neighborhood Trash Service,Aurora Bank,xxxx1001,06/10/1993,06/10/1993
+360,06/11/1993,Groceries,-$247.00,Main Checking,06/01/1993,06/07/1993,Market Basket Staples,Aurora Bank,xxxx1001,06/11/1993,06/11/1993
+361,06/12/1993,Groceries,-$242.00,Everyday Card,06/01/1993,06/07/1993,Greenway Market Groceries,Harbor Card,xxxx2001,06/12/1993,06/12/1993
+362,06/13/1993,Coffee,-$22.00,Everyday Card,06/01/1993,06/07/1993,Northstar Coffee Roasters,Harbor Card,xxxx2001,06/13/1993,06/13/1993
+363,06/14/1993,Restaurants,-$97.00,Everyday Card,06/01/1993,06/14/1993,Juniper Kitchen Dinner,Harbor Card,xxxx2001,06/14/1993,06/14/1993
+364,06/15/1993,Restaurants,-$106.00,Everyday Card,06/01/1993,06/14/1993,Riverstone Diner Lunch,Harbor Card,xxxx2001,06/15/1993,06/15/1993
+365,06/16/1993,Automobile Fuel,-$48.00,Everyday Card,06/01/1993,06/14/1993,Highway Fuel Station,Harbor Card,xxxx2001,06/16/1993,06/16/1993
+366,06/17/1993,Automobile Fuel,-$70.00,Everyday Card,06/01/1993,06/14/1993,Westside Fuel Station,Harbor Card,xxxx2001,06/17/1993,06/17/1993
+367,06/18/1993,Shopping,-$129.00,Travel Rewards Card,06/01/1993,06/14/1993,Willow Goods Market,Harbor Card,xxxx2002,06/18/1993,06/18/1993
+368,06/19/1993,Charitable Giving,-$58.00,Main Checking,06/01/1993,06/14/1993,River Aid Donation,Aurora Bank,xxxx1001,06/19/1993,06/19/1993
+369,06/20/1993,Transfer,$350.00,Emergency Savings,06/01/1993,06/14/1993,Transfer Emergency Savings,Aurora Bank,xxxx1002,06/20/1993,06/20/1993
+370,06/20/1993,Transfer,-$350.00,Main Checking,06/01/1993,06/14/1993,Transfer Emergency Savings,Aurora Bank,xxxx1001,06/20/1993,06/20/1993
+371,06/21/1993,Auto Insurance,-$270.00,Main Checking,06/01/1993,06/21/1993,Harbor Auto Insurance,Aurora Bank,xxxx1001,06/21/1993,06/21/1993
+372,06/21/1993,Medical,-$51.00,Everyday Card,06/01/1993,06/21/1993,Pine Medical Clinic,Harbor Card,xxxx2001,06/21/1993,06/21/1993
+373,06/23/1993,Streaming Subscription,-$12.99,Everyday Card,06/01/1993,06/21/1993,Flicker Stream Membership,Harbor Card,xxxx2001,06/23/1993,06/23/1993
+374,06/24/1993,Cloud Subscription,-$6.99,Everyday Card,06/01/1993,06/21/1993,CloudBox Storage Plan,Harbor Card,xxxx2001,06/24/1993,06/24/1993
+375,06/25/1993,Music Subscription,-$9.99,Everyday Card,06/01/1993,06/21/1993,Soundwave Music Plan,Harbor Card,xxxx2001,06/25/1993,06/25/1993
+376,06/26/1993,News Subscription,-$8.50,Everyday Card,06/01/1993,06/21/1993,Morning Gazette Digital,Harbor Card,xxxx2001,06/26/1993,06/26/1993
+377,06/27/1993,Fitness Subscription,-$32.00,Everyday Card,06/01/1993,06/21/1993,Fit Club Membership,Harbor Card,xxxx2001,06/27/1993,06/27/1993
+378,07/01/1993,Rent,"-$1,310.00",Main Checking,07/01/1993,06/28/1993,Maple Street Rent,Aurora Bank,xxxx1001,07/01/1993,07/01/1993
+379,07/02/1993,Salary,"$2,200.00",Main Checking,07/01/1993,06/28/1993,Cedar Works Payroll,Aurora Bank,xxxx1001,07/02/1993,07/02/1993
+380,07/03/1993,Salary,"$2,190.00",Main Checking,07/01/1993,06/28/1993,Cedar Works Payroll,Aurora Bank,xxxx1001,07/03/1993,07/03/1993
+381,07/04/1993,Interest,$17.00,Emergency Savings,07/01/1993,06/28/1993,Aurora Savings Interest,Aurora Bank,xxxx1002,07/04/1993,07/04/1993
+382,07/05/1993,Electric,-$123.00,Main Checking,07/01/1993,07/05/1993,City Electric Service,Aurora Bank,xxxx1001,07/05/1993,07/05/1993
+383,07/06/1993,Natural Gas,-$77.00,Main Checking,07/01/1993,07/05/1993,Harbor Gas Service,Aurora Bank,xxxx1001,07/06/1993,07/06/1993
+384,07/07/1993,Internet,-$41.00,Main Checking,07/01/1993,07/05/1993,Civic Fiber Internet,Aurora Bank,xxxx1001,07/07/1993,07/07/1993
+385,07/08/1993,Mobile Phone,-$57.00,Everyday Card,07/01/1993,07/05/1993,Northline Mobile Phone,Harbor Card,xxxx2001,07/08/1993,07/08/1993
+386,07/09/1993,Water & Sewer,-$46.00,Main Checking,07/01/1993,07/05/1993,City Water Sewer,Aurora Bank,xxxx1001,07/09/1993,07/09/1993
+387,07/10/1993,Trash,-$23.00,Main Checking,07/01/1993,07/05/1993,Neighborhood Trash Service,Aurora Bank,xxxx1001,07/10/1993,07/10/1993
+388,07/11/1993,Groceries,-$282.00,Main Checking,07/01/1993,07/05/1993,Market Basket Staples,Aurora Bank,xxxx1001,07/11/1993,07/11/1993
+389,07/12/1993,Groceries,-$257.00,Everyday Card,07/01/1993,07/12/1993,Greenway Market Groceries,Harbor Card,xxxx2001,07/12/1993,07/12/1993
+390,07/13/1993,Coffee,-$31.00,Everyday Card,07/01/1993,07/12/1993,Northstar Coffee Roasters,Harbor Card,xxxx2001,07/13/1993,07/13/1993
+391,07/14/1993,Restaurants,-$92.00,Everyday Card,07/01/1993,07/12/1993,Juniper Kitchen Dinner,Harbor Card,xxxx2001,07/14/1993,07/14/1993
+392,07/15/1993,Restaurants,-$68.00,Everyday Card,07/01/1993,07/12/1993,Riverstone Diner Lunch,Harbor Card,xxxx2001,07/15/1993,07/15/1993
+393,07/16/1993,Automobile Fuel,-$61.00,Everyday Card,07/01/1993,07/12/1993,Highway Fuel Station,Harbor Card,xxxx2001,07/16/1993,07/16/1993
+394,07/17/1993,Automobile Fuel,-$60.00,Everyday Card,07/01/1993,07/12/1993,Westside Fuel Station,Harbor Card,xxxx2001,07/17/1993,07/17/1993
+395,07/18/1993,Shopping,-$99.00,Travel Rewards Card,07/01/1993,07/12/1993,Willow Goods Market,Harbor Card,xxxx2002,07/18/1993,07/18/1993
+396,07/19/1993,Charitable Giving,-$53.00,Main Checking,07/01/1993,07/19/1993,River Aid Donation,Aurora Bank,xxxx1001,07/19/1993,07/19/1993
+397,07/20/1993,Transfer,$480.00,Emergency Savings,07/01/1993,07/19/1993,Transfer Emergency Savings,Aurora Bank,xxxx1002,07/20/1993,07/20/1993
+398,07/20/1993,Transfer,-$480.00,Main Checking,07/01/1993,07/19/1993,Transfer Emergency Savings,Aurora Bank,xxxx1001,07/20/1993,07/20/1993
+399,07/21/1993,Home Supplies,-$94.00,Travel Rewards Card,07/01/1993,07/19/1993,Harbor Home Supplies,Harbor Card,xxxx2002,07/21/1993,07/21/1993
+400,07/22/1993,Travel,-$110.00,Travel Rewards Card,07/01/1993,07/19/1993,Lakeview Travel Booking,Harbor Card,xxxx2002,07/22/1993,07/22/1993
+401,07/23/1993,Streaming Subscription,-$12.99,Everyday Card,07/01/1993,07/19/1993,Flicker Stream Membership,Harbor Card,xxxx2001,07/23/1993,07/23/1993
+402,07/24/1993,Cloud Subscription,-$6.99,Everyday Card,07/01/1993,07/19/1993,CloudBox Storage Plan,Harbor Card,xxxx2001,07/24/1993,07/24/1993
+403,07/25/1993,Music Subscription,-$9.99,Everyday Card,07/01/1993,07/19/1993,Soundwave Music Plan,Harbor Card,xxxx2001,07/25/1993,07/25/1993
+404,07/26/1993,News Subscription,-$8.50,Everyday Card,07/01/1993,07/26/1993,Morning Gazette Digital,Harbor Card,xxxx2001,07/26/1993,07/26/1993
+405,07/27/1993,Fitness Subscription,-$32.00,Everyday Card,07/01/1993,07/26/1993,Fit Club Membership,Harbor Card,xxxx2001,07/27/1993,07/27/1993
+406,08/01/1993,Rent,"-$1,320.00",Main Checking,08/01/1993,07/26/1993,Maple Street Rent,Aurora Bank,xxxx1001,08/01/1993,08/01/1993
+407,08/02/1993,Salary,"$2,145.00",Main Checking,08/01/1993,08/02/1993,Cedar Works Payroll,Aurora Bank,xxxx1001,08/02/1993,08/02/1993
+408,08/03/1993,Salary,"$2,245.00",Main Checking,08/01/1993,08/02/1993,Cedar Works Payroll,Aurora Bank,xxxx1001,08/03/1993,08/03/1993
+409,08/04/1993,Interest,$15.00,Emergency Savings,08/01/1993,08/02/1993,Aurora Savings Interest,Aurora Bank,xxxx1002,08/04/1993,08/04/1993
+410,08/05/1993,Electric,-$106.00,Main Checking,08/01/1993,08/02/1993,City Electric Service,Aurora Bank,xxxx1001,08/05/1993,08/05/1993
+411,08/06/1993,Natural Gas,-$54.00,Main Checking,08/01/1993,08/02/1993,Harbor Gas Service,Aurora Bank,xxxx1001,08/06/1993,08/06/1993
+412,08/07/1993,Internet,-$40.00,Main Checking,08/01/1993,08/02/1993,Civic Fiber Internet,Aurora Bank,xxxx1001,08/07/1993,08/07/1993
+413,08/08/1993,Mobile Phone,-$60.00,Everyday Card,08/01/1993,08/02/1993,Northline Mobile Phone,Harbor Card,xxxx2001,08/08/1993,08/08/1993
+414,08/09/1993,Water & Sewer,-$42.00,Main Checking,08/01/1993,08/09/1993,City Water Sewer,Aurora Bank,xxxx1001,08/09/1993,08/09/1993
+415,08/10/1993,Trash,-$24.00,Main Checking,08/01/1993,08/09/1993,Neighborhood Trash Service,Aurora Bank,xxxx1001,08/10/1993,08/10/1993
+416,08/11/1993,Groceries,-$252.00,Main Checking,08/01/1993,08/09/1993,Market Basket Staples,Aurora Bank,xxxx1001,08/11/1993,08/11/1993
+417,08/12/1993,Groceries,-$227.00,Everyday Card,08/01/1993,08/09/1993,Greenway Market Groceries,Harbor Card,xxxx2001,08/12/1993,08/12/1993
+418,08/13/1993,Coffee,-$37.00,Everyday Card,08/01/1993,08/09/1993,Northstar Coffee Roasters,Harbor Card,xxxx2001,08/13/1993,08/13/1993
+419,08/14/1993,Restaurants,-$57.00,Everyday Card,08/01/1993,08/09/1993,Juniper Kitchen Dinner,Harbor Card,xxxx2001,08/14/1993,08/14/1993
+420,08/15/1993,Restaurants,-$113.00,Everyday Card,08/01/1993,08/09/1993,Riverstone Diner Lunch,Harbor Card,xxxx2001,08/15/1993,08/15/1993
+421,08/16/1993,Automobile Fuel,-$68.00,Everyday Card,08/01/1993,08/16/1993,Highway Fuel Station,Harbor Card,xxxx2001,08/16/1993,08/16/1993
+422,08/17/1993,Automobile Fuel,-$44.00,Everyday Card,08/01/1993,08/16/1993,Westside Fuel Station,Harbor Card,xxxx2001,08/17/1993,08/17/1993
+423,08/18/1993,Shopping,-$229.00,Travel Rewards Card,08/01/1993,08/16/1993,Willow Goods Market,Harbor Card,xxxx2002,08/18/1993,08/18/1993
+424,08/19/1993,Charitable Giving,-$43.00,Main Checking,08/01/1993,08/16/1993,River Aid Donation,Aurora Bank,xxxx1001,08/19/1993,08/19/1993
+425,08/20/1993,Transfer,$520.00,Emergency Savings,08/01/1993,08/16/1993,Transfer Emergency Savings,Aurora Bank,xxxx1002,08/20/1993,08/20/1993
+426,08/20/1993,Transfer,-$520.00,Main Checking,08/01/1993,08/16/1993,Transfer Emergency Savings,Aurora Bank,xxxx1001,08/20/1993,08/20/1993
+427,08/23/1993,Streaming Subscription,-$12.99,Everyday Card,08/01/1993,08/23/1993,Flicker Stream Membership,Harbor Card,xxxx2001,08/23/1993,08/23/1993
+428,08/24/1993,Cloud Subscription,-$6.99,Everyday Card,08/01/1993,08/23/1993,CloudBox Storage Plan,Harbor Card,xxxx2001,08/24/1993,08/24/1993
+429,08/25/1993,Music Subscription,-$9.99,Everyday Card,08/01/1993,08/23/1993,Soundwave Music Plan,Harbor Card,xxxx2001,08/25/1993,08/25/1993
+430,08/26/1993,News Subscription,-$8.50,Everyday Card,08/01/1993,08/23/1993,Morning Gazette Digital,Harbor Card,xxxx2001,08/26/1993,08/26/1993
+431,08/27/1993,Fitness Subscription,-$32.00,Everyday Card,08/01/1993,08/23/1993,Fit Club Membership,Harbor Card,xxxx2001,08/27/1993,08/27/1993
+432,09/01/1993,Rent,"-$1,305.00",Main Checking,09/01/1993,08/30/1993,Maple Street Rent,Aurora Bank,xxxx1001,09/01/1993,09/01/1993
+433,09/02/1993,Salary,"$2,215.00",Main Checking,09/01/1993,08/30/1993,Cedar Works Payroll,Aurora Bank,xxxx1001,09/02/1993,09/02/1993
+434,09/03/1993,Salary,"$2,195.00",Main Checking,09/01/1993,08/30/1993,Cedar Works Payroll,Aurora Bank,xxxx1001,09/03/1993,09/03/1993
+435,09/04/1993,Interest,$17.00,Emergency Savings,09/01/1993,08/30/1993,Aurora Savings Interest,Aurora Bank,xxxx1002,09/04/1993,09/04/1993
+436,09/05/1993,Electric,-$93.00,Main Checking,09/01/1993,08/30/1993,City Electric Service,Aurora Bank,xxxx1001,09/05/1993,09/05/1993
+437,09/06/1993,Natural Gas,-$38.00,Main Checking,09/01/1993,09/06/1993,Harbor Gas Service,Aurora Bank,xxxx1001,09/06/1993,09/06/1993
+438,09/07/1993,Internet,-$41.00,Main Checking,09/01/1993,09/06/1993,Civic Fiber Internet,Aurora Bank,xxxx1001,09/07/1993,09/07/1993
+439,09/08/1993,Mobile Phone,-$58.00,Everyday Card,09/01/1993,09/06/1993,Northline Mobile Phone,Harbor Card,xxxx2001,09/08/1993,09/08/1993
+440,09/09/1993,Water & Sewer,-$39.00,Main Checking,09/01/1993,09/06/1993,City Water Sewer,Aurora Bank,xxxx1001,09/09/1993,09/09/1993
+441,09/10/1993,Trash,-$23.00,Main Checking,09/01/1993,09/06/1993,Neighborhood Trash Service,Aurora Bank,xxxx1001,09/10/1993,09/10/1993
+442,09/11/1993,Groceries,-$297.00,Main Checking,09/01/1993,09/06/1993,Market Basket Staples,Aurora Bank,xxxx1001,09/11/1993,09/11/1993
+443,09/12/1993,Groceries,-$217.00,Everyday Card,09/01/1993,09/06/1993,Greenway Market Groceries,Harbor Card,xxxx2001,09/12/1993,09/12/1993
+444,09/13/1993,Coffee,-$25.00,Everyday Card,09/01/1993,09/13/1993,Northstar Coffee Roasters,Harbor Card,xxxx2001,09/13/1993,09/13/1993
+445,09/14/1993,Restaurants,-$80.00,Everyday Card,09/01/1993,09/13/1993,Juniper Kitchen Dinner,Harbor Card,xxxx2001,09/14/1993,09/14/1993
+446,09/15/1993,Restaurants,-$93.00,Everyday Card,09/01/1993,09/13/1993,Riverstone Diner Lunch,Harbor Card,xxxx2001,09/15/1993,09/15/1993
+447,09/16/1993,Automobile Fuel,-$43.00,Everyday Card,09/01/1993,09/13/1993,Highway Fuel Station,Harbor Card,xxxx2001,09/16/1993,09/16/1993
+448,09/17/1993,Automobile Fuel,-$66.00,Everyday Card,09/01/1993,09/13/1993,Westside Fuel Station,Harbor Card,xxxx2001,09/17/1993,09/17/1993
+449,09/18/1993,Shopping,-$74.00,Travel Rewards Card,09/01/1993,09/13/1993,Willow Goods Market,Harbor Card,xxxx2002,09/18/1993,09/18/1993
+450,09/19/1993,Charitable Giving,-$48.00,Main Checking,09/01/1993,09/13/1993,River Aid Donation,Aurora Bank,xxxx1001,09/19/1993,09/19/1993
+451,09/20/1993,Transfer,$400.00,Emergency Savings,09/01/1993,09/20/1993,Transfer Emergency Savings,Aurora Bank,xxxx1002,09/20/1993,09/20/1993
+452,09/20/1993,Transfer,-$400.00,Main Checking,09/01/1993,09/20/1993,Transfer Emergency Savings,Aurora Bank,xxxx1001,09/20/1993,09/20/1993
+453,09/21/1993,Pet Care,-$67.00,Everyday Card,09/01/1993,09/20/1993,Elm Pet Market,Harbor Card,xxxx2001,09/21/1993,09/21/1993
+454,09/21/1993,Auto Insurance,-$285.00,Main Checking,09/01/1993,09/20/1993,Harbor Auto Insurance,Aurora Bank,xxxx1001,09/21/1993,09/21/1993
+455,09/21/1993,Home Supplies,-$59.00,Travel Rewards Card,09/01/1993,09/20/1993,Harbor Home Supplies,Harbor Card,xxxx2002,09/21/1993,09/21/1993
+456,09/21/1993,Medical,-$88.00,Everyday Card,09/01/1993,09/20/1993,Pine Medical Clinic,Harbor Card,xxxx2001,09/21/1993,09/21/1993
+457,09/23/1993,Streaming Subscription,-$12.99,Everyday Card,09/01/1993,09/20/1993,Flicker Stream Membership,Harbor Card,xxxx2001,09/23/1993,09/23/1993
+458,09/24/1993,Cloud Subscription,-$6.99,Everyday Card,09/01/1993,09/20/1993,CloudBox Storage Plan,Harbor Card,xxxx2001,09/24/1993,09/24/1993
+459,09/25/1993,Music Subscription,-$9.99,Everyday Card,09/01/1993,09/20/1993,Soundwave Music Plan,Harbor Card,xxxx2001,09/25/1993,09/25/1993
+460,09/26/1993,News Subscription,-$8.50,Everyday Card,09/01/1993,09/20/1993,Morning Gazette Digital,Harbor Card,xxxx2001,09/26/1993,09/26/1993
+461,09/27/1993,Fitness Subscription,-$32.00,Everyday Card,09/01/1993,09/27/1993,Fit Club Membership,Harbor Card,xxxx2001,09/27/1993,09/27/1993
+462,10/01/1993,Rent,"-$1,330.00",Main Checking,10/01/1993,09/27/1993,Maple Street Rent,Aurora Bank,xxxx1001,10/01/1993,10/01/1993
+463,10/02/1993,Salary,"$2,160.00",Main Checking,10/01/1993,09/27/1993,Cedar Works Payroll,Aurora Bank,xxxx1001,10/02/1993,10/02/1993
+464,10/03/1993,Salary,"$2,240.00",Main Checking,10/01/1993,09/27/1993,Cedar Works Payroll,Aurora Bank,xxxx1001,10/03/1993,10/03/1993
+465,10/04/1993,Interest,$16.00,Emergency Savings,10/01/1993,10/04/1993,Aurora Savings Interest,Aurora Bank,xxxx1002,10/04/1993,10/04/1993
+466,10/05/1993,Electric,-$89.00,Main Checking,10/01/1993,10/04/1993,City Electric Service,Aurora Bank,xxxx1001,10/05/1993,10/05/1993
+467,10/06/1993,Natural Gas,-$28.00,Main Checking,10/01/1993,10/04/1993,Harbor Gas Service,Aurora Bank,xxxx1001,10/06/1993,10/06/1993
+468,10/07/1993,Internet,-$40.00,Main Checking,10/01/1993,10/04/1993,Civic Fiber Internet,Aurora Bank,xxxx1001,10/07/1993,10/07/1993
+469,10/08/1993,Mobile Phone,-$61.00,Everyday Card,10/01/1993,10/04/1993,Northline Mobile Phone,Harbor Card,xxxx2001,10/08/1993,10/08/1993
+470,10/09/1993,Water & Sewer,-$37.00,Main Checking,10/01/1993,10/04/1993,City Water Sewer,Aurora Bank,xxxx1001,10/09/1993,10/09/1993
+471,10/10/1993,Trash,-$24.00,Main Checking,10/01/1993,10/04/1993,Neighborhood Trash Service,Aurora Bank,xxxx1001,10/10/1993,10/10/1993
+472,10/11/1993,Groceries,-$272.00,Main Checking,10/01/1993,10/11/1993,Market Basket Staples,Aurora Bank,xxxx1001,10/11/1993,10/11/1993
+473,10/12/1993,Groceries,-$262.00,Everyday Card,10/01/1993,10/11/1993,Greenway Market Groceries,Harbor Card,xxxx2001,10/12/1993,10/12/1993
+474,10/13/1993,Coffee,-$33.00,Everyday Card,10/01/1993,10/11/1993,Northstar Coffee Roasters,Harbor Card,xxxx2001,10/13/1993,10/13/1993
+475,10/14/1993,Restaurants,-$104.00,Everyday Card,10/01/1993,10/11/1993,Juniper Kitchen Dinner,Harbor Card,xxxx2001,10/14/1993,10/14/1993
+476,10/15/1993,Restaurants,-$76.00,Everyday Card,10/01/1993,10/11/1993,Riverstone Diner Lunch,Harbor Card,xxxx2001,10/15/1993,10/15/1993
+477,10/16/1993,Automobile Fuel,-$58.00,Everyday Card,10/01/1993,10/11/1993,Highway Fuel Station,Harbor Card,xxxx2001,10/16/1993,10/16/1993
+478,10/17/1993,Automobile Fuel,-$74.00,Everyday Card,10/01/1993,10/11/1993,Westside Fuel Station,Harbor Card,xxxx2001,10/17/1993,10/17/1993
+479,10/18/1993,Shopping,-$139.00,Travel Rewards Card,10/01/1993,10/18/1993,Willow Goods Market,Harbor Card,xxxx2002,10/18/1993,10/18/1993
+480,10/19/1993,Charitable Giving,-$58.00,Main Checking,10/01/1993,10/18/1993,River Aid Donation,Aurora Bank,xxxx1001,10/19/1993,10/19/1993
+481,10/20/1993,Transfer,$560.00,Emergency Savings,10/01/1993,10/18/1993,Transfer Emergency Savings,Aurora Bank,xxxx1002,10/20/1993,10/20/1993
+482,10/20/1993,Transfer,-$560.00,Main Checking,10/01/1993,10/18/1993,Transfer Emergency Savings,Aurora Bank,xxxx1001,10/20/1993,10/20/1993
+483,10/22/1993,Travel,-$510.00,Travel Rewards Card,10/01/1993,10/18/1993,Lakeview Travel Booking,Harbor Card,xxxx2002,10/22/1993,10/22/1993
+484,10/23/1993,Streaming Subscription,-$12.99,Everyday Card,10/01/1993,10/18/1993,Flicker Stream Membership,Harbor Card,xxxx2001,10/23/1993,10/23/1993
+485,10/24/1993,Cloud Subscription,-$6.99,Everyday Card,10/01/1993,10/18/1993,CloudBox Storage Plan,Harbor Card,xxxx2001,10/24/1993,10/24/1993
+486,10/25/1993,Music Subscription,-$9.99,Everyday Card,10/01/1993,10/25/1993,Soundwave Music Plan,Harbor Card,xxxx2001,10/25/1993,10/25/1993
+487,10/26/1993,News Subscription,-$8.50,Everyday Card,10/01/1993,10/25/1993,Morning Gazette Digital,Harbor Card,xxxx2001,10/26/1993,10/26/1993
+488,10/27/1993,Fitness Subscription,-$32.00,Everyday Card,10/01/1993,10/25/1993,Fit Club Membership,Harbor Card,xxxx2001,10/27/1993,10/27/1993
+489,11/01/1993,Rent,"-$1,315.00",Main Checking,11/01/1993,11/01/1993,Maple Street Rent,Aurora Bank,xxxx1001,11/01/1993,11/01/1993
+490,11/02/1993,Salary,"$2,185.00",Main Checking,11/01/1993,11/01/1993,Cedar Works Payroll,Aurora Bank,xxxx1001,11/02/1993,11/02/1993
+491,11/03/1993,Salary,"$2,210.00",Main Checking,11/01/1993,11/01/1993,Cedar Works Payroll,Aurora Bank,xxxx1001,11/03/1993,11/03/1993
+492,11/04/1993,Interest,$18.00,Emergency Savings,11/01/1993,11/01/1993,Aurora Savings Interest,Aurora Bank,xxxx1002,11/04/1993,11/04/1993
+493,11/05/1993,Electric,-$96.00,Main Checking,11/01/1993,11/01/1993,City Electric Service,Aurora Bank,xxxx1001,11/05/1993,11/05/1993
+494,11/06/1993,Natural Gas,-$22.00,Main Checking,11/01/1993,11/01/1993,Harbor Gas Service,Aurora Bank,xxxx1001,11/06/1993,11/06/1993
+495,11/07/1993,Internet,-$42.00,Main Checking,11/01/1993,11/01/1993,Civic Fiber Internet,Aurora Bank,xxxx1001,11/07/1993,11/07/1993
+496,11/08/1993,Mobile Phone,-$59.00,Everyday Card,11/01/1993,11/08/1993,Northline Mobile Phone,Harbor Card,xxxx2001,11/08/1993,11/08/1993
+497,11/09/1993,Water & Sewer,-$40.00,Main Checking,11/01/1993,11/08/1993,City Water Sewer,Aurora Bank,xxxx1001,11/09/1993,11/09/1993
+498,11/10/1993,Trash,-$23.00,Main Checking,11/01/1993,11/08/1993,Neighborhood Trash Service,Aurora Bank,xxxx1001,11/10/1993,11/10/1993
+499,11/11/1993,Groceries,-$292.00,Main Checking,11/01/1993,11/08/1993,Market Basket Staples,Aurora Bank,xxxx1001,11/11/1993,11/11/1993
+500,11/12/1993,Groceries,-$237.00,Everyday Card,11/01/1993,11/08/1993,Greenway Market Groceries,Harbor Card,xxxx2001,11/12/1993,11/12/1993
+501,11/13/1993,Coffee,-$35.00,Everyday Card,11/01/1993,11/08/1993,Northstar Coffee Roasters,Harbor Card,xxxx2001,11/13/1993,11/13/1993
+502,11/14/1993,Restaurants,-$64.00,Everyday Card,11/01/1993,11/08/1993,Juniper Kitchen Dinner,Harbor Card,xxxx2001,11/14/1993,11/14/1993
+503,11/15/1993,Restaurants,-$124.00,Everyday Card,11/01/1993,11/15/1993,Riverstone Diner Lunch,Harbor Card,xxxx2001,11/15/1993,11/15/1993
+504,11/16/1993,Automobile Fuel,-$65.00,Everyday Card,11/01/1993,11/15/1993,Highway Fuel Station,Harbor Card,xxxx2001,11/16/1993,11/16/1993
+505,11/17/1993,Automobile Fuel,-$48.00,Everyday Card,11/01/1993,11/15/1993,Westside Fuel Station,Harbor Card,xxxx2001,11/17/1993,11/17/1993
+506,11/18/1993,Shopping,-$199.00,Travel Rewards Card,11/01/1993,11/15/1993,Willow Goods Market,Harbor Card,xxxx2002,11/18/1993,11/18/1993
+507,11/19/1993,Charitable Giving,-$53.00,Main Checking,11/01/1993,11/15/1993,River Aid Donation,Aurora Bank,xxxx1001,11/19/1993,11/19/1993
+508,11/20/1993,Transfer,$350.00,Emergency Savings,11/01/1993,11/15/1993,Transfer Emergency Savings,Aurora Bank,xxxx1002,11/20/1993,11/20/1993
+509,11/20/1993,Transfer,-$350.00,Main Checking,11/01/1993,11/15/1993,Transfer Emergency Savings,Aurora Bank,xxxx1001,11/20/1993,11/20/1993
+510,11/21/1993,Home Supplies,-$69.00,Travel Rewards Card,11/01/1993,11/15/1993,Harbor Home Supplies,Harbor Card,xxxx2002,11/21/1993,11/21/1993
+511,11/23/1993,Streaming Subscription,-$12.99,Everyday Card,11/01/1993,11/22/1993,Flicker Stream Membership,Harbor Card,xxxx2001,11/23/1993,11/23/1993
+512,11/24/1993,Cloud Subscription,-$6.99,Everyday Card,11/01/1993,11/22/1993,CloudBox Storage Plan,Harbor Card,xxxx2001,11/24/1993,11/24/1993
+513,11/25/1993,Music Subscription,-$9.99,Everyday Card,11/01/1993,11/22/1993,Soundwave Music Plan,Harbor Card,xxxx2001,11/25/1993,11/25/1993
+514,11/27/1993,Fitness Subscription,-$32.00,Everyday Card,11/01/1993,11/22/1993,Fit Club Membership,Harbor Card,xxxx2001,11/27/1993,11/27/1993
+515,12/01/1993,Rent,"-$1,300.00",Main Checking,12/01/1993,11/29/1993,Maple Street Rent,Aurora Bank,xxxx1001,12/01/1993,12/01/1993
+516,12/02/1993,Salary,"$2,210.00",Main Checking,12/01/1993,11/29/1993,Cedar Works Payroll,Aurora Bank,xxxx1001,12/02/1993,12/02/1993
+517,12/03/1993,Salary,"$2,185.00",Main Checking,12/01/1993,11/29/1993,Cedar Works Payroll,Aurora Bank,xxxx1001,12/03/1993,12/03/1993
+518,12/04/1993,Interest,$17.00,Emergency Savings,12/01/1993,11/29/1993,Aurora Savings Interest,Aurora Bank,xxxx1002,12/04/1993,12/04/1993
+519,12/05/1993,Electric,-$119.00,Main Checking,12/01/1993,11/29/1993,City Electric Service,Aurora Bank,xxxx1001,12/05/1993,12/05/1993
+520,12/06/1993,Natural Gas,-$30.00,Main Checking,12/01/1993,12/06/1993,Harbor Gas Service,Aurora Bank,xxxx1001,12/06/1993,12/06/1993
+521,12/07/1993,Internet,-$41.00,Main Checking,12/01/1993,12/06/1993,Civic Fiber Internet,Aurora Bank,xxxx1001,12/07/1993,12/07/1993
+522,12/08/1993,Mobile Phone,-$57.00,Everyday Card,12/01/1993,12/06/1993,Northline Mobile Phone,Harbor Card,xxxx2001,12/08/1993,12/08/1993
+523,12/09/1993,Water & Sewer,-$44.00,Main Checking,12/01/1993,12/06/1993,City Water Sewer,Aurora Bank,xxxx1001,12/09/1993,12/09/1993
+524,12/10/1993,Trash,-$24.00,Main Checking,12/01/1993,12/06/1993,Neighborhood Trash Service,Aurora Bank,xxxx1001,12/10/1993,12/10/1993
+525,12/11/1993,Groceries,-$237.00,Main Checking,12/01/1993,12/06/1993,Market Basket Staples,Aurora Bank,xxxx1001,12/11/1993,12/11/1993
+526,12/12/1993,Groceries,-$212.00,Everyday Card,12/01/1993,12/06/1993,Greenway Market Groceries,Harbor Card,xxxx2001,12/12/1993,12/12/1993
+527,12/13/1993,Coffee,-$22.00,Everyday Card,12/01/1993,12/13/1993,Northstar Coffee Roasters,Harbor Card,xxxx2001,12/13/1993,12/13/1993
+528,12/14/1993,Restaurants,-$86.00,Everyday Card,12/01/1993,12/13/1993,Juniper Kitchen Dinner,Harbor Card,xxxx2001,12/14/1993,12/14/1993
+529,12/15/1993,Restaurants,-$98.00,Everyday Card,12/01/1993,12/13/1993,Riverstone Diner Lunch,Harbor Card,xxxx2001,12/15/1993,12/15/1993
+530,12/16/1993,Automobile Fuel,-$48.00,Everyday Card,12/01/1993,12/13/1993,Highway Fuel Station,Harbor Card,xxxx2001,12/16/1993,12/16/1993
+531,12/17/1993,Automobile Fuel,-$70.00,Everyday Card,12/01/1993,12/13/1993,Westside Fuel Station,Harbor Card,xxxx2001,12/17/1993,12/17/1993
+532,12/18/1993,Shopping,-$89.00,Travel Rewards Card,12/01/1993,12/13/1993,Willow Goods Market,Harbor Card,xxxx2002,12/18/1993,12/18/1993
+533,12/19/1993,Charitable Giving,-$43.00,Main Checking,12/01/1993,12/13/1993,River Aid Donation,Aurora Bank,xxxx1001,12/19/1993,12/19/1993
+534,12/20/1993,Transfer,$480.00,Emergency Savings,12/01/1993,12/20/1993,Transfer Emergency Savings,Aurora Bank,xxxx1002,12/20/1993,12/20/1993
+535,12/20/1993,Transfer,-$480.00,Main Checking,12/01/1993,12/20/1993,Transfer Emergency Savings,Aurora Bank,xxxx1001,12/20/1993,12/20/1993
+536,12/21/1993,Auto Insurance,-$275.00,Main Checking,12/01/1993,12/20/1993,Harbor Auto Insurance,Aurora Bank,xxxx1001,12/21/1993,12/21/1993
+537,12/21/1993,Medical,-$68.00,Everyday Card,12/01/1993,12/20/1993,Pine Medical Clinic,Harbor Card,xxxx2001,12/21/1993,12/21/1993
+538,12/22/1993,Given Gift,-$172.00,Travel Rewards Card,12/01/1993,12/20/1993,Willow Gifts Holiday,Harbor Card,xxxx2002,12/22/1993,12/22/1993
+539,12/23/1993,Streaming Subscription,-$12.99,Everyday Card,12/01/1993,12/20/1993,Flicker Stream Membership,Harbor Card,xxxx2001,12/23/1993,12/23/1993
+540,12/24/1993,Cloud Subscription,-$6.99,Everyday Card,12/01/1993,12/20/1993,CloudBox Storage Plan,Harbor Card,xxxx2001,12/24/1993,12/24/1993
+541,12/25/1993,Music Subscription,-$9.99,Everyday Card,12/01/1993,12/20/1993,Soundwave Music Plan,Harbor Card,xxxx2001,12/25/1993,12/25/1993
+542,12/27/1993,Fitness Subscription,-$32.00,Everyday Card,12/01/1993,12/27/1993,Fit Club Membership,Harbor Card,xxxx2001,12/27/1993,12/27/1993
+543,01/01/1994,Rent,"-$1,395.00",Main Checking,01/01/1994,12/27/1993,Maple Street Rent,Aurora Bank,xxxx1001,01/01/1994,01/01/1994
+544,01/02/1994,Salary,"$2,250.00",Main Checking,01/01/1994,12/27/1993,Cedar Works Payroll,Aurora Bank,xxxx1001,01/02/1994,01/02/1994
+545,01/03/1994,Salary,"$2,350.00",Main Checking,01/01/1994,01/03/1994,Cedar Works Payroll,Aurora Bank,xxxx1001,01/03/1994,01/03/1994
+546,01/04/1994,Interest,$18.00,Emergency Savings,01/01/1994,01/03/1994,Aurora Savings Interest,Aurora Bank,xxxx1002,01/04/1994,01/04/1994
+547,01/05/1994,Electric,-$137.00,Main Checking,01/01/1994,01/03/1994,City Electric Service,Aurora Bank,xxxx1001,01/05/1994,01/05/1994
+548,01/06/1994,Natural Gas,-$48.00,Main Checking,01/01/1994,01/03/1994,Harbor Gas Service,Aurora Bank,xxxx1001,01/06/1994,01/06/1994
+549,01/07/1994,Internet,-$42.00,Main Checking,01/01/1994,01/03/1994,Civic Fiber Internet,Aurora Bank,xxxx1001,01/07/1994,01/07/1994
+550,01/08/1994,Mobile Phone,-$62.00,Everyday Card,01/01/1994,01/03/1994,Northline Mobile Phone,Harbor Card,xxxx2001,01/08/1994,01/08/1994
+551,01/09/1994,Water & Sewer,-$51.00,Main Checking,01/01/1994,01/03/1994,City Water Sewer,Aurora Bank,xxxx1001,01/09/1994,01/09/1994
+552,01/10/1994,Trash,-$24.00,Main Checking,01/01/1994,01/10/1994,Neighborhood Trash Service,Aurora Bank,xxxx1001,01/10/1994,01/10/1994
+553,01/11/1994,Groceries,-$279.00,Main Checking,01/01/1994,01/10/1994,Market Basket Staples,Aurora Bank,xxxx1001,01/11/1994,01/11/1994
+554,01/12/1994,Groceries,-$284.00,Everyday Card,01/01/1994,01/10/1994,Greenway Market Groceries,Harbor Card,xxxx2001,01/12/1994,01/12/1994
+555,01/13/1994,Coffee,-$34.00,Everyday Card,01/01/1994,01/10/1994,Northstar Coffee Roasters,Harbor Card,xxxx2001,01/13/1994,01/13/1994
+556,01/14/1994,Restaurants,-$107.00,Everyday Card,01/01/1994,01/10/1994,Juniper Kitchen Dinner,Harbor Card,xxxx2001,01/14/1994,01/14/1994
+557,01/15/1994,Restaurants,-$116.00,Everyday Card,01/01/1994,01/10/1994,Riverstone Diner Lunch,Harbor Card,xxxx2001,01/15/1994,01/15/1994
+558,01/16/1994,Automobile Fuel,-$66.00,Everyday Card,01/01/1994,01/10/1994,Highway Fuel Station,Harbor Card,xxxx2001,01/16/1994,01/16/1994
+559,01/17/1994,Automobile Fuel,-$65.00,Everyday Card,01/01/1994,01/17/1994,Westside Fuel Station,Harbor Card,xxxx2001,01/17/1994,01/17/1994
+560,01/18/1994,Shopping,-$188.00,Travel Rewards Card,01/01/1994,01/17/1994,Willow Goods Market,Harbor Card,xxxx2002,01/18/1994,01/18/1994
+561,01/19/1994,Charitable Giving,-$51.00,Main Checking,01/01/1994,01/17/1994,River Aid Donation,Aurora Bank,xxxx1001,01/19/1994,01/19/1994
+562,01/20/1994,Transfer,$540.00,Emergency Savings,01/01/1994,01/17/1994,Transfer Emergency Savings,Aurora Bank,xxxx1002,01/20/1994,01/20/1994
+563,01/20/1994,Transfer,-$540.00,Main Checking,01/01/1994,01/17/1994,Transfer Emergency Savings,Aurora Bank,xxxx1001,01/20/1994,01/20/1994
+564,01/21/1994,Pet Care,-$71.00,Everyday Card,01/01/1994,01/17/1994,Elm Pet Market,Harbor Card,xxxx2001,01/21/1994,01/21/1994
+565,01/21/1994,Home Supplies,-$116.00,Travel Rewards Card,01/01/1994,01/17/1994,Harbor Home Supplies,Harbor Card,xxxx2002,01/21/1994,01/21/1994
+566,01/22/1994,Travel,-$360.00,Travel Rewards Card,01/01/1994,01/17/1994,Lakeview Travel Booking,Harbor Card,xxxx2002,01/22/1994,01/22/1994
+567,01/22/1994,Meal Kit Subscription,-$68.00,Travel Rewards Card,01/01/1994,01/17/1994,Pantry Box Delivery,Harbor Card,xxxx2002,01/22/1994,01/22/1994
+568,01/23/1994,Streaming Subscription,-$12.99,Everyday Card,01/01/1994,01/17/1994,Flicker Stream Membership,Harbor Card,xxxx2001,01/23/1994,01/23/1994
+569,01/24/1994,Cloud Subscription,-$6.99,Everyday Card,01/01/1994,01/24/1994,CloudBox Storage Plan,Harbor Card,xxxx2001,01/24/1994,01/24/1994
+570,01/25/1994,Music Subscription,-$9.99,Everyday Card,01/01/1994,01/24/1994,Soundwave Music Plan,Harbor Card,xxxx2001,01/25/1994,01/25/1994
+571,01/27/1994,Fitness Subscription,-$32.00,Everyday Card,01/01/1994,01/24/1994,Fit Club Membership,Harbor Card,xxxx2001,01/27/1994,01/27/1994
+572,02/01/1994,Rent,"-$1,380.00",Main Checking,02/01/1994,01/31/1994,Maple Street Rent,Aurora Bank,xxxx1001,02/01/1994,02/01/1994
+573,02/02/1994,Salary,"$2,295.00",Main Checking,02/01/1994,01/31/1994,Cedar Works Payroll,Aurora Bank,xxxx1001,02/02/1994,02/02/1994
+574,02/03/1994,Salary,"$2,285.00",Main Checking,02/01/1994,01/31/1994,Cedar Works Payroll,Aurora Bank,xxxx1001,02/03/1994,02/03/1994
+575,02/04/1994,Interest,$20.00,Emergency Savings,02/01/1994,01/31/1994,Aurora Savings Interest,Aurora Bank,xxxx1002,02/04/1994,02/04/1994
+576,02/05/1994,Electric,-$133.00,Main Checking,02/01/1994,01/31/1994,City Electric Service,Aurora Bank,xxxx1001,02/05/1994,02/05/1994
+577,02/06/1994,Natural Gas,-$61.00,Main Checking,02/01/1994,01/31/1994,Harbor Gas Service,Aurora Bank,xxxx1001,02/06/1994,02/06/1994
+578,02/07/1994,Internet,-$43.00,Main Checking,02/01/1994,02/07/1994,Civic Fiber Internet,Aurora Bank,xxxx1001,02/07/1994,02/07/1994
+579,02/08/1994,Mobile Phone,-$60.00,Everyday Card,02/01/1994,02/07/1994,Northline Mobile Phone,Harbor Card,xxxx2001,02/08/1994,02/08/1994
+580,02/09/1994,Water & Sewer,-$53.00,Main Checking,02/01/1994,02/07/1994,City Water Sewer,Aurora Bank,xxxx1001,02/09/1994,02/09/1994
+581,02/10/1994,Trash,-$25.00,Main Checking,02/01/1994,02/07/1994,Neighborhood Trash Service,Aurora Bank,xxxx1001,02/10/1994,02/10/1994
+582,02/11/1994,Groceries,-$314.00,Main Checking,02/01/1994,02/07/1994,Market Basket Staples,Aurora Bank,xxxx1001,02/11/1994,02/11/1994
+583,02/12/1994,Groceries,-$254.00,Everyday Card,02/01/1994,02/07/1994,Greenway Market Groceries,Harbor Card,xxxx2001,02/12/1994,02/12/1994
+584,02/13/1994,Coffee,-$40.00,Everyday Card,02/01/1994,02/07/1994,Northstar Coffee Roasters,Harbor Card,xxxx2001,02/13/1994,02/13/1994
+585,02/14/1994,Restaurants,-$102.00,Everyday Card,02/01/1994,02/14/1994,Juniper Kitchen Dinner,Harbor Card,xxxx2001,02/14/1994,02/14/1994
+586,02/15/1994,Restaurants,-$78.00,Everyday Card,02/01/1994,02/14/1994,Riverstone Diner Lunch,Harbor Card,xxxx2001,02/15/1994,02/15/1994
+587,02/16/1994,Automobile Fuel,-$73.00,Everyday Card,02/01/1994,02/14/1994,Highway Fuel Station,Harbor Card,xxxx2001,02/16/1994,02/16/1994
+588,02/17/1994,Automobile Fuel,-$49.00,Everyday Card,02/01/1994,02/14/1994,Westside Fuel Station,Harbor Card,xxxx2001,02/17/1994,02/17/1994
+589,02/18/1994,Shopping,-$143.00,Travel Rewards Card,02/01/1994,02/14/1994,Willow Goods Market,Harbor Card,xxxx2002,02/18/1994,02/18/1994
+590,02/19/1994,Charitable Giving,-$61.00,Main Checking,02/01/1994,02/14/1994,River Aid Donation,Aurora Bank,xxxx1001,02/19/1994,02/19/1994
+591,02/20/1994,Transfer,$420.00,Emergency Savings,02/01/1994,02/14/1994,Transfer Emergency Savings,Aurora Bank,xxxx1002,02/20/1994,02/20/1994
+592,02/20/1994,Transfer,-$420.00,Main Checking,02/01/1994,02/14/1994,Transfer Emergency Savings,Aurora Bank,xxxx1001,02/20/1994,02/20/1994
+593,02/22/1994,Meal Kit Subscription,-$68.00,Travel Rewards Card,02/01/1994,02/21/1994,Pantry Box Delivery,Harbor Card,xxxx2002,02/22/1994,02/22/1994
+594,02/23/1994,Streaming Subscription,-$12.99,Everyday Card,02/01/1994,02/21/1994,Flicker Stream Membership,Harbor Card,xxxx2001,02/23/1994,02/23/1994
+595,02/24/1994,Cloud Subscription,-$6.99,Everyday Card,02/01/1994,02/21/1994,CloudBox Storage Plan,Harbor Card,xxxx2001,02/24/1994,02/24/1994
+596,02/25/1994,Music Subscription,-$9.99,Everyday Card,02/01/1994,02/21/1994,Soundwave Music Plan,Harbor Card,xxxx2001,02/25/1994,02/25/1994
+597,02/27/1994,Fitness Subscription,-$32.00,Everyday Card,02/01/1994,02/21/1994,Fit Club Membership,Harbor Card,xxxx2001,02/27/1994,02/27/1994
+598,03/01/1994,Rent,"-$1,390.00",Main Checking,03/01/1994,02/28/1994,Maple Street Rent,Aurora Bank,xxxx1001,03/01/1994,03/01/1994
+599,03/02/1994,Salary,"$2,240.00",Main Checking,03/01/1994,02/28/1994,Cedar Works Payroll,Aurora Bank,xxxx1001,03/02/1994,03/02/1994
+600,03/03/1994,Salary,"$2,340.00",Main Checking,03/01/1994,02/28/1994,Cedar Works Payroll,Aurora Bank,xxxx1001,03/03/1994,03/03/1994
+601,03/04/1994,Interest,$19.00,Emergency Savings,03/01/1994,02/28/1994,Aurora Savings Interest,Aurora Bank,xxxx1002,03/04/1994,03/04/1994
+602,03/05/1994,Electric,-$147.00,Main Checking,03/01/1994,02/28/1994,City Electric Service,Aurora Bank,xxxx1001,03/05/1994,03/05/1994
+603,03/06/1994,Natural Gas,-$86.00,Main Checking,03/01/1994,02/28/1994,Harbor Gas Service,Aurora Bank,xxxx1001,03/06/1994,03/06/1994
+604,03/07/1994,Internet,-$42.00,Main Checking,03/01/1994,03/07/1994,Civic Fiber Internet,Aurora Bank,xxxx1001,03/07/1994,03/07/1994
+605,03/08/1994,Mobile Phone,-$63.00,Everyday Card,03/01/1994,03/07/1994,Northline Mobile Phone,Harbor Card,xxxx2001,03/08/1994,03/08/1994
+606,03/09/1994,Water & Sewer,-$55.00,Main Checking,03/01/1994,03/07/1994,City Water Sewer,Aurora Bank,xxxx1001,03/09/1994,03/09/1994
+607,03/10/1994,Trash,-$24.00,Main Checking,03/01/1994,03/07/1994,Neighborhood Trash Service,Aurora Bank,xxxx1001,03/10/1994,03/10/1994
+608,03/11/1994,Groceries,-$259.00,Main Checking,03/01/1994,03/07/1994,Market Basket Staples,Aurora Bank,xxxx1001,03/11/1994,03/11/1994
+609,03/12/1994,Groceries,-$269.00,Everyday Card,03/01/1994,03/07/1994,Greenway Market Groceries,Harbor Card,xxxx2001,03/12/1994,03/12/1994
+610,03/13/1994,Coffee,-$28.00,Everyday Card,03/01/1994,03/07/1994,Northstar Coffee Roasters,Harbor Card,xxxx2001,03/13/1994,03/13/1994
+611,03/14/1994,Restaurants,-$67.00,Everyday Card,03/01/1994,03/14/1994,Juniper Kitchen Dinner,Harbor Card,xxxx2001,03/14/1994,03/14/1994
+612,03/15/1994,Restaurants,-$123.00,Everyday Card,03/01/1994,03/14/1994,Riverstone Diner Lunch,Harbor Card,xxxx2001,03/15/1994,03/15/1994
+613,03/16/1994,Automobile Fuel,-$48.00,Everyday Card,03/01/1994,03/14/1994,Highway Fuel Station,Harbor Card,xxxx2001,03/16/1994,03/16/1994
+614,03/17/1994,Groceries,-$87.65,Main Checking,03/01/1994,03/14/1994,Market Basket Pantry,Aurora Bank,xxxx1001,03/17/1994,03/17/1994
+615,03/17/1994,Automobile Fuel,-$71.00,Everyday Card,03/01/1994,03/14/1994,Westside Fuel Station,Harbor Card,xxxx2001,03/17/1994,03/17/1994
+616,03/18/1994,Shopping,-$113.00,Travel Rewards Card,03/01/1994,03/14/1994,Willow Goods Market,Harbor Card,xxxx2002,03/18/1994,03/18/1994
+617,03/19/1994,Charitable Giving,-$56.00,Main Checking,03/01/1994,03/14/1994,River Aid Donation,Aurora Bank,xxxx1001,03/19/1994,03/19/1994
+618,03/20/1994,Transfer,$580.00,Emergency Savings,03/01/1994,03/14/1994,Transfer Emergency Savings,Aurora Bank,xxxx1002,03/20/1994,03/20/1994
+619,03/20/1994,Transfer,-$580.00,Main Checking,03/01/1994,03/14/1994,Transfer Emergency Savings,Aurora Bank,xxxx1001,03/20/1994,03/20/1994
+620,03/21/1994,Auto Insurance,-$300.00,Main Checking,03/01/1994,03/21/1994,Harbor Auto Insurance,Aurora Bank,xxxx1001,03/21/1994,03/21/1994
+621,03/21/1994,Home Supplies,-$136.00,Travel Rewards Card,03/01/1994,03/21/1994,Harbor Home Supplies,Harbor Card,xxxx2002,03/21/1994,03/21/1994
+622,03/21/1994,Medical,-$108.00,Everyday Card,03/01/1994,03/21/1994,Pine Medical Clinic,Harbor Card,xxxx2001,03/21/1994,03/21/1994
+623,03/22/1994,Meal Kit Subscription,-$68.00,Travel Rewards Card,03/01/1994,03/21/1994,Pantry Box Delivery,Harbor Card,xxxx2002,03/22/1994,03/22/1994
+624,03/23/1994,Streaming Subscription,-$12.99,Everyday Card,03/01/1994,03/21/1994,Flicker Stream Membership,Harbor Card,xxxx2001,03/23/1994,03/23/1994
+625,03/24/1994,Cloud Subscription,-$6.99,Everyday Card,03/01/1994,03/21/1994,CloudBox Storage Plan,Harbor Card,xxxx2001,03/24/1994,03/24/1994
+626,03/25/1994,Music Subscription,-$9.99,Everyday Card,03/01/1994,03/21/1994,Soundwave Music Plan,Harbor Card,xxxx2001,03/25/1994,03/25/1994
+627,03/27/1994,Fitness Subscription,-$32.00,Everyday Card,03/01/1994,03/21/1994,Fit Club Membership,Harbor Card,xxxx2001,03/27/1994,03/27/1994
+628,04/01/1994,Rent,"-$1,375.00",Main Checking,04/01/1994,03/28/1994,Maple Street Rent,Aurora Bank,xxxx1001,04/01/1994,04/01/1994
+629,04/02/1994,Salary,"$2,310.00",Main Checking,04/01/1994,03/28/1994,Cedar Works Payroll,Aurora Bank,xxxx1001,04/02/1994,04/02/1994
+630,04/03/1994,Salary,"$2,290.00",Main Checking,04/01/1994,03/28/1994,Cedar Works Payroll,Aurora Bank,xxxx1001,04/03/1994,04/03/1994
+631,04/04/1994,Interest,$21.00,Emergency Savings,04/01/1994,04/04/1994,Aurora Savings Interest,Aurora Bank,xxxx1002,04/04/1994,04/04/1994
+632,04/05/1994,Electric,-$165.00,Main Checking,04/01/1994,04/04/1994,City Electric Service,Aurora Bank,xxxx1001,04/05/1994,04/05/1994
+633,04/06/1994,Natural Gas,-$116.00,Main Checking,04/01/1994,04/04/1994,Harbor Gas Service,Aurora Bank,xxxx1001,04/06/1994,04/06/1994
+634,04/07/1994,Internet,-$44.00,Main Checking,04/01/1994,04/04/1994,Civic Fiber Internet,Aurora Bank,xxxx1001,04/07/1994,04/07/1994
+635,04/08/1994,Mobile Phone,-$61.00,Everyday Card,04/01/1994,04/04/1994,Northline Mobile Phone,Harbor Card,xxxx2001,04/08/1994,04/08/1994
+636,04/09/1994,Water & Sewer,-$58.00,Main Checking,04/01/1994,04/04/1994,City Water Sewer,Aurora Bank,xxxx1001,04/09/1994,04/09/1994
+637,04/10/1994,Trash,-$25.00,Main Checking,04/01/1994,04/04/1994,Neighborhood Trash Service,Aurora Bank,xxxx1001,04/10/1994,04/10/1994
+638,04/11/1994,Groceries,-$294.00,Main Checking,04/01/1994,04/11/1994,Market Basket Staples,Aurora Bank,xxxx1001,04/11/1994,04/11/1994
+639,04/12/1994,Groceries,-$239.00,Everyday Card,04/01/1994,04/11/1994,Greenway Market Groceries,Harbor Card,xxxx2001,04/12/1994,04/12/1994
+640,04/13/1994,Coffee,-$36.00,Everyday Card,04/01/1994,04/11/1994,Northstar Coffee Roasters,Harbor Card,xxxx2001,04/13/1994,04/13/1994
+641,04/14/1994,Restaurants,-$90.00,Everyday Card,04/01/1994,04/11/1994,Juniper Kitchen Dinner,Harbor Card,xxxx2001,04/14/1994,04/14/1994
+642,04/15/1994,Restaurants,-$103.00,Everyday Card,04/01/1994,04/11/1994,Riverstone Diner Lunch,Harbor Card,xxxx2001,04/15/1994,04/15/1994
+643,04/16/1994,Automobile Fuel,-$63.00,Everyday Card,04/01/1994,04/11/1994,Highway Fuel Station,Harbor Card,xxxx2001,04/16/1994,04/16/1994
+644,04/17/1994,Automobile Fuel,-$79.00,Everyday Card,04/01/1994,04/11/1994,Westside Fuel Station,Harbor Card,xxxx2001,04/17/1994,04/17/1994
+645,04/18/1994,Shopping,-$243.00,Travel Rewards Card,04/01/1994,04/18/1994,Willow Goods Market,Harbor Card,xxxx2002,04/18/1994,04/18/1994
+646,04/19/1994,Charitable Giving,-$46.00,Main Checking,04/01/1994,04/18/1994,River Aid Donation,Aurora Bank,xxxx1001,04/19/1994,04/19/1994
+647,04/20/1994,Transfer,$370.00,Emergency Savings,04/01/1994,04/18/1994,Transfer Emergency Savings,Aurora Bank,xxxx1002,04/20/1994,04/20/1994
+648,04/20/1994,Transfer,-$370.00,Main Checking,04/01/1994,04/18/1994,Transfer Emergency Savings,Aurora Bank,xxxx1001,04/20/1994,04/20/1994
+649,04/22/1994,Travel,-$260.00,Travel Rewards Card,04/01/1994,04/18/1994,Lakeview Travel Booking,Harbor Card,xxxx2002,04/22/1994,04/22/1994
+650,04/22/1994,Meal Kit Subscription,-$68.00,Travel Rewards Card,04/01/1994,04/18/1994,Pantry Box Delivery,Harbor Card,xxxx2002,04/22/1994,04/22/1994
+651,04/23/1994,Streaming Subscription,-$12.99,Everyday Card,04/01/1994,04/18/1994,Flicker Stream Membership,Harbor Card,xxxx2001,04/23/1994,04/23/1994
+652,04/24/1994,Cloud Subscription,-$6.99,Everyday Card,04/01/1994,04/18/1994,CloudBox Storage Plan,Harbor Card,xxxx2001,04/24/1994,04/24/1994
+653,04/25/1994,Music Subscription,-$9.99,Everyday Card,04/01/1994,04/25/1994,Soundwave Music Plan,Harbor Card,xxxx2001,04/25/1994,04/25/1994
+654,04/27/1994,Fitness Subscription,-$32.00,Everyday Card,04/01/1994,04/25/1994,Fit Club Membership,Harbor Card,xxxx2001,04/27/1994,04/27/1994
+655,05/01/1994,Rent,"-$1,400.00",Main Checking,05/01/1994,04/25/1994,Maple Street Rent,Aurora Bank,xxxx1001,05/01/1994,05/01/1994
+656,05/02/1994,Salary,"$2,255.00",Main Checking,05/01/1994,05/02/1994,Cedar Works Payroll,Aurora Bank,xxxx1001,05/02/1994,05/02/1994
+657,05/03/1994,Salary,"$2,335.00",Main Checking,05/01/1994,05/02/1994,Cedar Works Payroll,Aurora Bank,xxxx1001,05/03/1994,05/03/1994
+658,05/04/1994,Interest,$20.00,Emergency Savings,05/01/1994,05/02/1994,Aurora Savings Interest,Aurora Bank,xxxx1002,05/04/1994,05/04/1994
+659,05/05/1994,Electric,-$162.00,Main Checking,05/01/1994,05/02/1994,City Electric Service,Aurora Bank,xxxx1001,05/05/1994,05/05/1994
+660,05/06/1994,Natural Gas,-$121.00,Main Checking,05/01/1994,05/02/1994,Harbor Gas Service,Aurora Bank,xxxx1001,05/06/1994,05/06/1994
+661,05/07/1994,Internet,-$43.00,Main Checking,05/01/1994,05/02/1994,Civic Fiber Internet,Aurora Bank,xxxx1001,05/07/1994,05/07/1994
+662,05/08/1994,Mobile Phone,-$59.00,Everyday Card,05/01/1994,05/02/1994,Northline Mobile Phone,Harbor Card,xxxx2001,05/08/1994,05/08/1994
+663,05/09/1994,Water & Sewer,-$56.00,Main Checking,05/01/1994,05/09/1994,City Water Sewer,Aurora Bank,xxxx1001,05/09/1994,05/09/1994
+664,05/10/1994,Trash,-$24.00,Main Checking,05/01/1994,05/09/1994,Neighborhood Trash Service,Aurora Bank,xxxx1001,05/10/1994,05/10/1994
+665,05/11/1994,Groceries,-$264.00,Main Checking,05/01/1994,05/09/1994,Market Basket Staples,Aurora Bank,xxxx1001,05/11/1994,05/11/1994
+666,05/12/1994,Groceries,-$229.00,Everyday Card,05/01/1994,05/09/1994,Greenway Market Groceries,Harbor Card,xxxx2001,05/12/1994,05/12/1994
+667,05/13/1994,Coffee,-$38.00,Everyday Card,05/01/1994,05/09/1994,Northstar Coffee Roasters,Harbor Card,xxxx2001,05/13/1994,05/13/1994
+668,05/14/1994,Restaurants,-$114.00,Everyday Card,05/01/1994,05/09/1994,Juniper Kitchen Dinner,Harbor Card,xxxx2001,05/14/1994,05/14/1994
+669,05/15/1994,Restaurants,-$86.00,Everyday Card,05/01/1994,05/09/1994,Riverstone Diner Lunch,Harbor Card,xxxx2001,05/15/1994,05/15/1994
+670,05/16/1994,Automobile Fuel,-$70.00,Everyday Card,05/01/1994,05/16/1994,Highway Fuel Station,Harbor Card,xxxx2001,05/16/1994,05/16/1994
+671,05/17/1994,Automobile Fuel,-$53.00,Everyday Card,05/01/1994,05/16/1994,Westside Fuel Station,Harbor Card,xxxx2001,05/17/1994,05/17/1994
+672,05/18/1994,Shopping,-$88.00,Travel Rewards Card,05/01/1994,05/16/1994,Willow Goods Market,Harbor Card,xxxx2002,05/18/1994,05/18/1994
+673,05/19/1994,Charitable Giving,-$51.00,Main Checking,05/01/1994,05/16/1994,River Aid Donation,Aurora Bank,xxxx1001,05/19/1994,05/19/1994
+674,05/20/1994,Transfer,$500.00,Emergency Savings,05/01/1994,05/16/1994,Transfer Emergency Savings,Aurora Bank,xxxx1002,05/20/1994,05/20/1994
+675,05/20/1994,Transfer,-$500.00,Main Checking,05/01/1994,05/16/1994,Transfer Emergency Savings,Aurora Bank,xxxx1001,05/20/1994,05/20/1994
+676,05/21/1994,Pet Care,-$71.00,Everyday Card,05/01/1994,05/16/1994,Elm Pet Market,Harbor Card,xxxx2001,05/21/1994,05/21/1994
+677,05/21/1994,Home Supplies,-$101.00,Travel Rewards Card,05/01/1994,05/16/1994,Harbor Home Supplies,Harbor Card,xxxx2002,05/21/1994,05/21/1994
+678,05/22/1994,Meal Kit Subscription,-$68.00,Travel Rewards Card,05/01/1994,05/16/1994,Pantry Box Delivery,Harbor Card,xxxx2002,05/22/1994,05/22/1994
+679,05/23/1994,Streaming Subscription,-$12.99,Everyday Card,05/01/1994,05/23/1994,Flicker Stream Membership,Harbor Card,xxxx2001,05/23/1994,05/23/1994
+680,05/24/1994,Cloud Subscription,-$6.99,Everyday Card,05/01/1994,05/23/1994,CloudBox Storage Plan,Harbor Card,xxxx2001,05/24/1994,05/24/1994
+681,05/25/1994,Music Subscription,-$9.99,Everyday Card,05/01/1994,05/23/1994,Soundwave Music Plan,Harbor Card,xxxx2001,05/25/1994,05/25/1994
+682,05/27/1994,Fitness Subscription,-$32.00,Everyday Card,05/01/1994,05/23/1994,Fit Club Membership,Harbor Card,xxxx2001,05/27/1994,05/27/1994
+683,06/01/1994,Rent,"-$1,385.00",Main Checking,06/01/1994,05/30/1994,Maple Street Rent,Aurora Bank,xxxx1001,06/01/1994,06/01/1994
+684,06/02/1994,Salary,"$2,280.00",Main Checking,06/01/1994,05/30/1994,Cedar Works Payroll,Aurora Bank,xxxx1001,06/02/1994,06/02/1994
+685,06/03/1994,Salary,"$2,305.00",Main Checking,06/01/1994,05/30/1994,Cedar Works Payroll,Aurora Bank,xxxx1001,06/03/1994,06/03/1994
+686,06/04/1994,Interest,$18.00,Emergency Savings,06/01/1994,05/30/1994,Aurora Savings Interest,Aurora Bank,xxxx1002,06/04/1994,06/04/1994
+687,06/05/1994,Electric,-$152.00,Main Checking,06/01/1994,05/30/1994,City Electric Service,Aurora Bank,xxxx1001,06/05/1994,06/05/1994
+688,06/06/1994,Natural Gas,-$108.00,Main Checking,06/01/1994,06/06/1994,Harbor Gas Service,Aurora Bank,xxxx1001,06/06/1994,06/06/1994
+689,06/07/1994,Internet,-$42.00,Main Checking,06/01/1994,06/06/1994,Civic Fiber Internet,Aurora Bank,xxxx1001,06/07/1994,06/07/1994
+690,06/08/1994,Mobile Phone,-$62.00,Everyday Card,06/01/1994,06/06/1994,Northline Mobile Phone,Harbor Card,xxxx2001,06/08/1994,06/08/1994
+691,06/09/1994,Water & Sewer,-$53.00,Main Checking,06/01/1994,06/06/1994,City Water Sewer,Aurora Bank,xxxx1001,06/09/1994,06/09/1994
+692,06/10/1994,Trash,-$25.00,Main Checking,06/01/1994,06/06/1994,Neighborhood Trash Service,Aurora Bank,xxxx1001,06/10/1994,06/10/1994
+693,06/11/1994,Groceries,-$309.00,Main Checking,06/01/1994,06/06/1994,Market Basket Staples,Aurora Bank,xxxx1001,06/11/1994,06/11/1994
+694,06/12/1994,Groceries,-$274.00,Everyday Card,06/01/1994,06/06/1994,Greenway Market Groceries,Harbor Card,xxxx2001,06/12/1994,06/12/1994
+695,06/13/1994,Coffee,-$25.00,Everyday Card,06/01/1994,06/13/1994,Northstar Coffee Roasters,Harbor Card,xxxx2001,06/13/1994,06/13/1994
+696,06/14/1994,Restaurants,-$74.00,Everyday Card,06/01/1994,06/13/1994,Juniper Kitchen Dinner,Harbor Card,xxxx2001,06/14/1994,06/14/1994
+697,06/15/1994,Restaurants,-$134.00,Everyday Card,06/01/1994,06/13/1994,Riverstone Diner Lunch,Harbor Card,xxxx2001,06/15/1994,06/15/1994
+698,06/16/1994,Automobile Fuel,-$53.00,Everyday Card,06/01/1994,06/13/1994,Highway Fuel Station,Harbor Card,xxxx2001,06/16/1994,06/16/1994
+699,06/17/1994,Automobile Fuel,-$75.00,Everyday Card,06/01/1994,06/13/1994,Westside Fuel Station,Harbor Card,xxxx2001,06/17/1994,06/17/1994
+700,06/18/1994,Shopping,-$153.00,Travel Rewards Card,06/01/1994,06/13/1994,Willow Goods Market,Harbor Card,xxxx2002,06/18/1994,06/18/1994
+701,06/19/1994,Charitable Giving,-$61.00,Main Checking,06/01/1994,06/13/1994,River Aid Donation,Aurora Bank,xxxx1001,06/19/1994,06/19/1994
+702,06/20/1994,Transfer,$540.00,Emergency Savings,06/01/1994,06/20/1994,Transfer Emergency Savings,Aurora Bank,xxxx1002,06/20/1994,06/20/1994
+703,06/20/1994,Transfer,-$540.00,Main Checking,06/01/1994,06/20/1994,Transfer Emergency Savings,Aurora Bank,xxxx1001,06/20/1994,06/20/1994
+704,06/21/1994,Auto Insurance,-$280.00,Main Checking,06/01/1994,06/20/1994,Harbor Auto Insurance,Aurora Bank,xxxx1001,06/21/1994,06/21/1994
+705,06/21/1994,Medical,-$56.00,Everyday Card,06/01/1994,06/20/1994,Pine Medical Clinic,Harbor Card,xxxx2001,06/21/1994,06/21/1994
+706,06/22/1994,Meal Kit Subscription,-$68.00,Travel Rewards Card,06/01/1994,06/20/1994,Pantry Box Delivery,Harbor Card,xxxx2002,06/22/1994,06/22/1994
+707,06/23/1994,Streaming Subscription,-$12.99,Everyday Card,06/01/1994,06/20/1994,Flicker Stream Membership,Harbor Card,xxxx2001,06/23/1994,06/23/1994
+708,06/24/1994,Cloud Subscription,-$6.99,Everyday Card,06/01/1994,06/20/1994,CloudBox Storage Plan,Harbor Card,xxxx2001,06/24/1994,06/24/1994
+709,06/25/1994,Music Subscription,-$9.99,Everyday Card,06/01/1994,06/20/1994,Soundwave Music Plan,Harbor Card,xxxx2001,06/25/1994,06/25/1994
+710,06/27/1994,Fitness Subscription,-$32.00,Everyday Card,06/01/1994,06/27/1994,Fit Club Membership,Harbor Card,xxxx2001,06/27/1994,06/27/1994
+711,07/01/1994,Rent,"-$1,370.00",Main Checking,07/01/1994,06/27/1994,Maple Street Rent,Aurora Bank,xxxx1001,07/01/1994,07/01/1994
+712,07/02/1994,Salary,"$2,305.00",Main Checking,07/01/1994,06/27/1994,Cedar Works Payroll,Aurora Bank,xxxx1001,07/02/1994,07/02/1994
+713,07/03/1994,Salary,"$2,280.00",Main Checking,07/01/1994,06/27/1994,Cedar Works Payroll,Aurora Bank,xxxx1001,07/03/1994,07/03/1994
+714,07/04/1994,Interest,$20.00,Emergency Savings,07/01/1994,07/04/1994,Aurora Savings Interest,Aurora Bank,xxxx1002,07/04/1994,07/04/1994
+715,07/05/1994,Electric,-$129.00,Main Checking,07/01/1994,07/04/1994,City Electric Service,Aurora Bank,xxxx1001,07/05/1994,07/05/1994
+716,07/06/1994,Natural Gas,-$81.00,Main Checking,07/01/1994,07/04/1994,Harbor Gas Service,Aurora Bank,xxxx1001,07/06/1994,07/06/1994
+717,07/07/1994,Internet,-$43.00,Main Checking,07/01/1994,07/04/1994,Civic Fiber Internet,Aurora Bank,xxxx1001,07/07/1994,07/07/1994
+718,07/08/1994,Mobile Phone,-$60.00,Everyday Card,07/01/1994,07/04/1994,Northline Mobile Phone,Harbor Card,xxxx2001,07/08/1994,07/08/1994
+719,07/09/1994,Water & Sewer,-$48.00,Main Checking,07/01/1994,07/04/1994,City Water Sewer,Aurora Bank,xxxx1001,07/09/1994,07/09/1994
+720,07/10/1994,Trash,-$24.00,Main Checking,07/01/1994,07/04/1994,Neighborhood Trash Service,Aurora Bank,xxxx1001,07/10/1994,07/10/1994
+721,07/11/1994,Groceries,-$284.00,Main Checking,07/01/1994,07/11/1994,Market Basket Staples,Aurora Bank,xxxx1001,07/11/1994,07/11/1994
+722,07/12/1994,Groceries,-$249.00,Everyday Card,07/01/1994,07/11/1994,Greenway Market Groceries,Harbor Card,xxxx2001,07/12/1994,07/12/1994
+723,07/13/1994,Coffee,-$34.00,Everyday Card,07/01/1994,07/11/1994,Northstar Coffee Roasters,Harbor Card,xxxx2001,07/13/1994,07/13/1994
+724,07/14/1994,Restaurants,-$96.00,Everyday Card,07/01/1994,07/11/1994,Juniper Kitchen Dinner,Harbor Card,xxxx2001,07/14/1994,07/14/1994
+725,07/15/1994,Restaurants,-$108.00,Everyday Card,07/01/1994,07/11/1994,Riverstone Diner Lunch,Harbor Card,xxxx2001,07/15/1994,07/15/1994
+726,07/16/1994,Automobile Fuel,-$66.00,Everyday Card,07/01/1994,07/11/1994,Highway Fuel Station,Harbor Card,xxxx2001,07/16/1994,07/16/1994
+727,07/17/1994,Automobile Fuel,-$65.00,Everyday Card,07/01/1994,07/11/1994,Westside Fuel Station,Harbor Card,xxxx2001,07/17/1994,07/17/1994
+728,07/18/1994,Shopping,-$213.00,Travel Rewards Card,07/01/1994,07/18/1994,Willow Goods Market,Harbor Card,xxxx2002,07/18/1994,07/18/1994
+729,07/19/1994,Charitable Giving,-$56.00,Main Checking,07/01/1994,07/18/1994,River Aid Donation,Aurora Bank,xxxx1001,07/19/1994,07/19/1994
+730,07/20/1994,Transfer,$420.00,Emergency Savings,07/01/1994,07/18/1994,Transfer Emergency Savings,Aurora Bank,xxxx1002,07/20/1994,07/20/1994
+731,07/20/1994,Transfer,-$420.00,Main Checking,07/01/1994,07/18/1994,Transfer Emergency Savings,Aurora Bank,xxxx1001,07/20/1994,07/20/1994
+732,07/21/1994,Home Supplies,-$66.00,Travel Rewards Card,07/01/1994,07/18/1994,Harbor Home Supplies,Harbor Card,xxxx2002,07/21/1994,07/21/1994
+733,07/22/1994,Travel,-$160.00,Travel Rewards Card,07/01/1994,07/18/1994,Lakeview Travel Booking,Harbor Card,xxxx2002,07/22/1994,07/22/1994
+734,07/22/1994,Meal Kit Subscription,-$68.00,Travel Rewards Card,07/01/1994,07/18/1994,Pantry Box Delivery,Harbor Card,xxxx2002,07/22/1994,07/22/1994
+735,07/23/1994,Streaming Subscription,-$12.99,Everyday Card,07/01/1994,07/18/1994,Flicker Stream Membership,Harbor Card,xxxx2001,07/23/1994,07/23/1994
+736,07/24/1994,Cloud Subscription,-$6.99,Everyday Card,07/01/1994,07/18/1994,CloudBox Storage Plan,Harbor Card,xxxx2001,07/24/1994,07/24/1994
+737,07/25/1994,Music Subscription,-$9.99,Everyday Card,07/01/1994,07/25/1994,Soundwave Music Plan,Harbor Card,xxxx2001,07/25/1994,07/25/1994
+738,07/27/1994,Fitness Subscription,-$32.00,Everyday Card,07/01/1994,07/25/1994,Fit Club Membership,Harbor Card,xxxx2001,07/27/1994,07/27/1994
+739,08/01/1994,Rent,"-$1,395.00",Main Checking,08/01/1994,08/01/1994,Maple Street Rent,Aurora Bank,xxxx1001,08/01/1994,08/01/1994
+740,08/02/1994,Salary,"$2,250.00",Main Checking,08/01/1994,08/01/1994,Cedar Works Payroll,Aurora Bank,xxxx1001,08/02/1994,08/02/1994
+741,08/03/1994,Salary,"$2,350.00",Main Checking,08/01/1994,08/01/1994,Cedar Works Payroll,Aurora Bank,xxxx1001,08/03/1994,08/03/1994
+742,08/04/1994,Interest,$19.00,Emergency Savings,08/01/1994,08/01/1994,Aurora Savings Interest,Aurora Bank,xxxx1002,08/04/1994,08/04/1994
+743,08/05/1994,Electric,-$112.00,Main Checking,08/01/1994,08/01/1994,City Electric Service,Aurora Bank,xxxx1001,08/05/1994,08/05/1994
+744,08/06/1994,Natural Gas,-$58.00,Main Checking,08/01/1994,08/01/1994,Harbor Gas Service,Aurora Bank,xxxx1001,08/06/1994,08/06/1994
+745,08/07/1994,Internet,-$42.00,Main Checking,08/01/1994,08/01/1994,Civic Fiber Internet,Aurora Bank,xxxx1001,08/07/1994,08/07/1994
+746,08/08/1994,Mobile Phone,-$63.00,Everyday Card,08/01/1994,08/08/1994,Northline Mobile Phone,Harbor Card,xxxx2001,08/08/1994,08/08/1994
+747,08/09/1994,Water & Sewer,-$44.00,Main Checking,08/01/1994,08/08/1994,City Water Sewer,Aurora Bank,xxxx1001,08/09/1994,08/09/1994
+748,08/10/1994,Trash,-$25.00,Main Checking,08/01/1994,08/08/1994,Neighborhood Trash Service,Aurora Bank,xxxx1001,08/10/1994,08/10/1994
+749,08/11/1994,Groceries,-$304.00,Main Checking,08/01/1994,08/08/1994,Market Basket Staples,Aurora Bank,xxxx1001,08/11/1994,08/11/1994
+750,08/12/1994,Groceries,-$224.00,Everyday Card,08/01/1994,08/08/1994,Greenway Market Groceries,Harbor Card,xxxx2001,08/12/1994,08/12/1994
+751,08/13/1994,Coffee,-$40.00,Everyday Card,08/01/1994,08/08/1994,Northstar Coffee Roasters,Harbor Card,xxxx2001,08/13/1994,08/13/1994
+752,08/14/1994,Restaurants,-$107.00,Everyday Card,08/01/1994,08/08/1994,Juniper Kitchen Dinner,Harbor Card,xxxx2001,08/14/1994,08/14/1994
+753,08/15/1994,Restaurants,-$116.00,Everyday Card,08/01/1994,08/15/1994,Riverstone Diner Lunch,Harbor Card,xxxx2001,08/15/1994,08/15/1994
+754,08/16/1994,Automobile Fuel,-$73.00,Everyday Card,08/01/1994,08/15/1994,Highway Fuel Station,Harbor Card,xxxx2001,08/16/1994,08/16/1994
+755,08/17/1994,Automobile Fuel,-$49.00,Everyday Card,08/01/1994,08/15/1994,Westside Fuel Station,Harbor Card,xxxx2001,08/17/1994,08/17/1994
+756,08/18/1994,Shopping,-$103.00,Travel Rewards Card,08/01/1994,08/15/1994,Willow Goods Market,Harbor Card,xxxx2002,08/18/1994,08/18/1994
+757,08/19/1994,Charitable Giving,-$46.00,Main Checking,08/01/1994,08/15/1994,River Aid Donation,Aurora Bank,xxxx1001,08/19/1994,08/19/1994
+758,08/20/1994,Transfer,$580.00,Emergency Savings,08/01/1994,08/15/1994,Transfer Emergency Savings,Aurora Bank,xxxx1002,08/20/1994,08/20/1994
+759,08/20/1994,Transfer,-$580.00,Main Checking,08/01/1994,08/15/1994,Transfer Emergency Savings,Aurora Bank,xxxx1001,08/20/1994,08/20/1994
+760,08/22/1994,Meal Kit Subscription,-$68.00,Travel Rewards Card,08/01/1994,08/22/1994,Pantry Box Delivery,Harbor Card,xxxx2002,08/22/1994,08/22/1994
+761,08/23/1994,Streaming Subscription,-$12.99,Everyday Card,08/01/1994,08/22/1994,Flicker Stream Membership,Harbor Card,xxxx2001,08/23/1994,08/23/1994
+762,08/24/1994,Cloud Subscription,-$6.99,Everyday Card,08/01/1994,08/22/1994,CloudBox Storage Plan,Harbor Card,xxxx2001,08/24/1994,08/24/1994
+763,08/25/1994,Music Subscription,-$9.99,Everyday Card,08/01/1994,08/22/1994,Soundwave Music Plan,Harbor Card,xxxx2001,08/25/1994,08/25/1994
+764,08/27/1994,Fitness Subscription,-$32.00,Everyday Card,08/01/1994,08/22/1994,Fit Club Membership,Harbor Card,xxxx2001,08/27/1994,08/27/1994
+765,09/01/1994,Rent,"-$1,380.00",Main Checking,09/01/1994,08/29/1994,Maple Street Rent,Aurora Bank,xxxx1001,09/01/1994,09/01/1994
+766,09/02/1994,Salary,"$2,295.00",Main Checking,09/01/1994,08/29/1994,Cedar Works Payroll,Aurora Bank,xxxx1001,09/02/1994,09/02/1994
+767,09/03/1994,Salary,"$2,285.00",Main Checking,09/01/1994,08/29/1994,Cedar Works Payroll,Aurora Bank,xxxx1001,09/03/1994,09/03/1994
+768,09/04/1994,Interest,$21.00,Emergency Savings,09/01/1994,08/29/1994,Aurora Savings Interest,Aurora Bank,xxxx1002,09/04/1994,09/04/1994
+769,09/05/1994,Electric,-$99.00,Main Checking,09/01/1994,09/05/1994,City Electric Service,Aurora Bank,xxxx1001,09/05/1994,09/05/1994
+770,09/06/1994,Natural Gas,-$42.00,Main Checking,09/01/1994,09/05/1994,Harbor Gas Service,Aurora Bank,xxxx1001,09/06/1994,09/06/1994
+771,09/07/1994,Internet,-$44.00,Main Checking,09/01/1994,09/05/1994,Civic Fiber Internet,Aurora Bank,xxxx1001,09/07/1994,09/07/1994
+772,09/08/1994,Mobile Phone,-$61.00,Everyday Card,09/01/1994,09/05/1994,Northline Mobile Phone,Harbor Card,xxxx2001,09/08/1994,09/08/1994
+773,09/09/1994,Water & Sewer,-$41.00,Main Checking,09/01/1994,09/05/1994,City Water Sewer,Aurora Bank,xxxx1001,09/09/1994,09/09/1994
+774,09/10/1994,Trash,-$24.00,Main Checking,09/01/1994,09/05/1994,Neighborhood Trash Service,Aurora Bank,xxxx1001,09/10/1994,09/10/1994
+775,09/11/1994,Groceries,-$249.00,Main Checking,09/01/1994,09/05/1994,Market Basket Staples,Aurora Bank,xxxx1001,09/11/1994,09/11/1994
+776,09/12/1994,Groceries,-$284.00,Everyday Card,09/01/1994,09/12/1994,Greenway Market Groceries,Harbor Card,xxxx2001,09/12/1994,09/12/1994
+777,09/13/1994,Coffee,-$28.00,Everyday Card,09/01/1994,09/12/1994,Northstar Coffee Roasters,Harbor Card,xxxx2001,09/13/1994,09/13/1994
+778,09/14/1994,Restaurants,-$102.00,Everyday Card,09/01/1994,09/12/1994,Juniper Kitchen Dinner,Harbor Card,xxxx2001,09/14/1994,09/14/1994
+779,09/15/1994,Restaurants,-$78.00,Everyday Card,09/01/1994,09/12/1994,Riverstone Diner Lunch,Harbor Card,xxxx2001,09/15/1994,09/15/1994
+780,09/16/1994,Automobile Fuel,-$48.00,Everyday Card,09/01/1994,09/12/1994,Highway Fuel Station,Harbor Card,xxxx2001,09/16/1994,09/16/1994
+781,09/17/1994,Automobile Fuel,-$71.00,Everyday Card,09/01/1994,09/12/1994,Westside Fuel Station,Harbor Card,xxxx2001,09/17/1994,09/17/1994
+782,09/18/1994,Shopping,-$188.00,Travel Rewards Card,09/01/1994,09/12/1994,Willow Goods Market,Harbor Card,xxxx2002,09/18/1994,09/18/1994
+783,09/19/1994,Charitable Giving,-$51.00,Main Checking,09/01/1994,09/19/1994,River Aid Donation,Aurora Bank,xxxx1001,09/19/1994,09/19/1994
+784,09/20/1994,Transfer,$370.00,Emergency Savings,09/01/1994,09/19/1994,Transfer Emergency Savings,Aurora Bank,xxxx1002,09/20/1994,09/20/1994
+785,09/20/1994,Transfer,-$370.00,Main Checking,09/01/1994,09/19/1994,Transfer Emergency Savings,Aurora Bank,xxxx1001,09/20/1994,09/20/1994
+786,09/21/1994,Pet Care,-$71.00,Everyday Card,09/01/1994,09/19/1994,Elm Pet Market,Harbor Card,xxxx2001,09/21/1994,09/21/1994
+787,09/21/1994,Auto Insurance,-$295.00,Main Checking,09/01/1994,09/19/1994,Harbor Auto Insurance,Aurora Bank,xxxx1001,09/21/1994,09/21/1994
+788,09/21/1994,Home Supplies,-$76.00,Travel Rewards Card,09/01/1994,09/19/1994,Harbor Home Supplies,Harbor Card,xxxx2002,09/21/1994,09/21/1994
+789,09/21/1994,Medical,-$93.00,Everyday Card,09/01/1994,09/19/1994,Pine Medical Clinic,Harbor Card,xxxx2001,09/21/1994,09/21/1994
+790,09/23/1994,Streaming Subscription,-$12.99,Everyday Card,09/01/1994,09/19/1994,Flicker Stream Membership,Harbor Card,xxxx2001,09/23/1994,09/23/1994
+791,09/24/1994,Cloud Subscription,-$6.99,Everyday Card,09/01/1994,09/19/1994,CloudBox Storage Plan,Harbor Card,xxxx2001,09/24/1994,09/24/1994
+792,09/25/1994,Music Subscription,-$9.99,Everyday Card,09/01/1994,09/19/1994,Soundwave Music Plan,Harbor Card,xxxx2001,09/25/1994,09/25/1994
+793,10/01/1994,Rent,"-$1,390.00",Main Checking,10/01/1994,09/26/1994,Maple Street Rent,Aurora Bank,xxxx1001,10/01/1994,10/01/1994
+794,10/02/1994,Salary,"$2,240.00",Main Checking,10/01/1994,09/26/1994,Cedar Works Payroll,Aurora Bank,xxxx1001,10/02/1994,10/02/1994
+795,10/03/1994,Salary,"$2,340.00",Main Checking,10/01/1994,10/03/1994,Cedar Works Payroll,Aurora Bank,xxxx1001,10/03/1994,10/03/1994
+796,10/04/1994,Interest,$20.00,Emergency Savings,10/01/1994,10/03/1994,Aurora Savings Interest,Aurora Bank,xxxx1002,10/04/1994,10/04/1994
+797,10/05/1994,Electric,-$95.00,Main Checking,10/01/1994,10/03/1994,City Electric Service,Aurora Bank,xxxx1001,10/05/1994,10/05/1994
+798,10/05/1994,Coffee,-$78.00,Everyday Card,10/01/1994,10/03/1994,Northstar Coffee Receipt,Harbor Card,xxxx2001,10/05/1994,10/05/1994
+799,10/05/1994,Coffee,-$78.00,Everyday Card,10/01/1994,10/03/1994,Northstar Coffee Receipt,Harbor Card,xxxx2001,10/05/1994,10/05/1994
+800,10/06/1994,Natural Gas,-$32.00,Main Checking,10/01/1994,10/03/1994,Harbor Gas Service,Aurora Bank,xxxx1001,10/06/1994,10/06/1994
+801,10/07/1994,Internet,-$43.00,Main Checking,10/01/1994,10/03/1994,Civic Fiber Internet,Aurora Bank,xxxx1001,10/07/1994,10/07/1994
+802,10/08/1994,Mobile Phone,-$59.00,Everyday Card,10/01/1994,10/03/1994,Northline Mobile Phone,Harbor Card,xxxx2001,10/08/1994,10/08/1994
+803,10/09/1994,Water & Sewer,-$39.00,Main Checking,10/01/1994,10/03/1994,City Water Sewer,Aurora Bank,xxxx1001,10/09/1994,10/09/1994
+804,10/10/1994,Trash,-$25.00,Main Checking,10/01/1994,10/10/1994,Neighborhood Trash Service,Aurora Bank,xxxx1001,10/10/1994,10/10/1994
+805,10/11/1994,Groceries,-$279.00,Main Checking,10/01/1994,10/10/1994,Market Basket Staples,Aurora Bank,xxxx1001,10/11/1994,10/11/1994
+806,10/12/1994,Groceries,-$254.00,Everyday Card,10/01/1994,10/10/1994,Greenway Market Groceries,Harbor Card,xxxx2001,10/12/1994,10/12/1994
+807,10/13/1994,Coffee,-$36.00,Everyday Card,10/01/1994,10/10/1994,Northstar Coffee Roasters,Harbor Card,xxxx2001,10/13/1994,10/13/1994
+808,10/14/1994,Restaurants,-$67.00,Everyday Card,10/01/1994,10/10/1994,Juniper Kitchen Dinner,Harbor Card,xxxx2001,10/14/1994,10/14/1994
+809,10/15/1994,Restaurants,-$123.00,Everyday Card,10/01/1994,10/10/1994,Riverstone Diner Lunch,Harbor Card,xxxx2001,10/15/1994,10/15/1994
+810,10/16/1994,Automobile Fuel,-$63.00,Everyday Card,10/01/1994,10/10/1994,Highway Fuel Station,Harbor Card,xxxx2001,10/16/1994,10/16/1994
+811,10/17/1994,Automobile Fuel,-$79.00,Everyday Card,10/01/1994,10/17/1994,Westside Fuel Station,Harbor Card,xxxx2001,10/17/1994,10/17/1994
+812,10/18/1994,Shopping,-$143.00,Travel Rewards Card,10/01/1994,10/17/1994,Willow Goods Market,Harbor Card,xxxx2002,10/18/1994,10/18/1994
+813,10/19/1994,Charitable Giving,-$61.00,Main Checking,10/01/1994,10/17/1994,River Aid Donation,Aurora Bank,xxxx1001,10/19/1994,10/19/1994
+814,10/20/1994,Transfer,$500.00,Emergency Savings,10/01/1994,10/17/1994,Transfer Emergency Savings,Aurora Bank,xxxx1002,10/20/1994,10/20/1994
+815,10/20/1994,Transfer,-$500.00,Main Checking,10/01/1994,10/17/1994,Transfer Emergency Savings,Aurora Bank,xxxx1001,10/20/1994,10/20/1994
+816,10/22/1994,Travel,-$130.00,Travel Rewards Card,10/01/1994,10/17/1994,Lakeview Travel Booking,Harbor Card,xxxx2002,10/22/1994,10/22/1994
+817,10/23/1994,Streaming Subscription,-$12.99,Everyday Card,10/01/1994,10/17/1994,Flicker Stream Membership,Harbor Card,xxxx2001,10/23/1994,10/23/1994
+818,10/24/1994,Cloud Subscription,-$6.99,Everyday Card,10/01/1994,10/24/1994,CloudBox Storage Plan,Harbor Card,xxxx2001,10/24/1994,10/24/1994
+819,10/25/1994,Music Subscription,-$9.99,Everyday Card,10/01/1994,10/24/1994,Soundwave Music Plan,Harbor Card,xxxx2001,10/25/1994,10/25/1994
+820,11/01/1994,Rent,"-$1,375.00",Main Checking,11/01/1994,10/31/1994,Maple Street Rent,Aurora Bank,xxxx1001,11/01/1994,11/01/1994
+821,11/02/1994,Salary,"$2,310.00",Main Checking,11/01/1994,10/31/1994,Cedar Works Payroll,Aurora Bank,xxxx1001,11/02/1994,11/02/1994
+822,11/03/1994,Salary,"$2,290.00",Main Checking,11/01/1994,10/31/1994,Cedar Works Payroll,Aurora Bank,xxxx1001,11/03/1994,11/03/1994
+823,11/04/1994,Interest,$18.00,Emergency Savings,11/01/1994,10/31/1994,Aurora Savings Interest,Aurora Bank,xxxx1002,11/04/1994,11/04/1994
+824,11/05/1994,Electric,-$102.00,Main Checking,11/01/1994,10/31/1994,City Electric Service,Aurora Bank,xxxx1001,11/05/1994,11/05/1994
+825,11/06/1994,Natural Gas,-$26.00,Main Checking,11/01/1994,10/31/1994,Harbor Gas Service,Aurora Bank,xxxx1001,11/06/1994,11/06/1994
+826,11/07/1994,Internet,-$42.00,Main Checking,11/01/1994,11/07/1994,Civic Fiber Internet,Aurora Bank,xxxx1001,11/07/1994,11/07/1994
+827,11/08/1994,Mobile Phone,-$62.00,Everyday Card,11/01/1994,11/07/1994,Northline Mobile Phone,Harbor Card,xxxx2001,11/08/1994,11/08/1994
+828,11/09/1994,Water & Sewer,-$42.00,Main Checking,11/01/1994,11/07/1994,City Water Sewer,Aurora Bank,xxxx1001,11/09/1994,11/09/1994
+829,11/10/1994,Trash,-$24.00,Main Checking,11/01/1994,11/07/1994,Neighborhood Trash Service,Aurora Bank,xxxx1001,11/10/1994,11/10/1994
+830,11/11/1994,Groceries,-$314.00,Main Checking,11/01/1994,11/07/1994,Market Basket Staples,Aurora Bank,xxxx1001,11/11/1994,11/11/1994
+831,11/12/1994,Groceries,-$269.00,Everyday Card,11/01/1994,11/07/1994,Greenway Market Groceries,Harbor Card,xxxx2001,11/12/1994,11/12/1994
+832,11/13/1994,Coffee,-$38.00,Everyday Card,11/01/1994,11/07/1994,Northstar Coffee Roasters,Harbor Card,xxxx2001,11/13/1994,11/13/1994
+833,11/14/1994,Restaurants,-$90.00,Everyday Card,11/01/1994,11/14/1994,Juniper Kitchen Dinner,Harbor Card,xxxx2001,11/14/1994,11/14/1994
+834,11/15/1994,Restaurants,-$103.00,Everyday Card,11/01/1994,11/14/1994,Riverstone Diner Lunch,Harbor Card,xxxx2001,11/15/1994,11/15/1994
+835,11/16/1994,Automobile Fuel,-$70.00,Everyday Card,11/01/1994,11/14/1994,Highway Fuel Station,Harbor Card,xxxx2001,11/16/1994,11/16/1994
+836,11/17/1994,Automobile Fuel,-$53.00,Everyday Card,11/01/1994,11/14/1994,Westside Fuel Station,Harbor Card,xxxx2001,11/17/1994,11/17/1994
+837,11/18/1994,Shopping,-$113.00,Travel Rewards Card,11/01/1994,11/14/1994,Willow Goods Market,Harbor Card,xxxx2002,11/18/1994,11/18/1994
+838,11/19/1994,Charitable Giving,-$56.00,Main Checking,11/01/1994,11/14/1994,River Aid Donation,Aurora Bank,xxxx1001,11/19/1994,11/19/1994
+839,11/20/1994,Transfer,$540.00,Emergency Savings,11/01/1994,11/14/1994,Transfer Emergency Savings,Aurora Bank,xxxx1002,11/20/1994,11/20/1994
+840,11/20/1994,Transfer,-$540.00,Main Checking,11/01/1994,11/14/1994,Transfer Emergency Savings,Aurora Bank,xxxx1001,11/20/1994,11/20/1994
+841,11/21/1994,Home Supplies,-$116.00,Travel Rewards Card,11/01/1994,11/21/1994,Harbor Home Supplies,Harbor Card,xxxx2002,11/21/1994,11/21/1994
+842,11/23/1994,Streaming Subscription,-$12.99,Everyday Card,11/01/1994,11/21/1994,Flicker Stream Membership,Harbor Card,xxxx2001,11/23/1994,11/23/1994
+843,11/24/1994,Cloud Subscription,-$6.99,Everyday Card,11/01/1994,11/21/1994,CloudBox Storage Plan,Harbor Card,xxxx2001,11/24/1994,11/24/1994
+844,11/25/1994,Music Subscription,-$9.99,Everyday Card,11/01/1994,11/21/1994,Soundwave Music Plan,Harbor Card,xxxx2001,11/25/1994,11/25/1994
+845,12/01/1994,Rent,"-$1,400.00",Main Checking,12/01/1994,11/28/1994,Maple Street Rent,Aurora Bank,xxxx1001,12/01/1994,12/01/1994
+846,12/02/1994,Salary,"$2,255.00",Main Checking,12/01/1994,11/28/1994,Cedar Works Payroll,Aurora Bank,xxxx1001,12/02/1994,12/02/1994
+847,12/03/1994,Salary,"$2,335.00",Main Checking,12/01/1994,11/28/1994,Cedar Works Payroll,Aurora Bank,xxxx1001,12/03/1994,12/03/1994
+848,12/04/1994,Interest,$20.00,Emergency Savings,12/01/1994,11/28/1994,Aurora Savings Interest,Aurora Bank,xxxx1002,12/04/1994,12/04/1994
+849,12/05/1994,Electric,-$125.00,Main Checking,12/01/1994,12/05/1994,City Electric Service,Aurora Bank,xxxx1001,12/05/1994,12/05/1994
+850,12/06/1994,Natural Gas,-$34.00,Main Checking,12/01/1994,12/05/1994,Harbor Gas Service,Aurora Bank,xxxx1001,12/06/1994,12/06/1994
+851,12/07/1994,Internet,-$43.00,Main Checking,12/01/1994,12/05/1994,Civic Fiber Internet,Aurora Bank,xxxx1001,12/07/1994,12/07/1994
+852,12/08/1994,Mobile Phone,-$60.00,Everyday Card,12/01/1994,12/05/1994,Northline Mobile Phone,Harbor Card,xxxx2001,12/08/1994,12/08/1994
+853,12/09/1994,Water & Sewer,-$46.00,Main Checking,12/01/1994,12/05/1994,City Water Sewer,Aurora Bank,xxxx1001,12/09/1994,12/09/1994
+854,12/10/1994,Trash,-$25.00,Main Checking,12/01/1994,12/05/1994,Neighborhood Trash Service,Aurora Bank,xxxx1001,12/10/1994,12/10/1994
+855,12/11/1994,Groceries,-$259.00,Main Checking,12/01/1994,12/05/1994,Market Basket Staples,Aurora Bank,xxxx1001,12/11/1994,12/11/1994
+856,12/12/1994,Groceries,-$239.00,Everyday Card,12/01/1994,12/12/1994,Greenway Market Groceries,Harbor Card,xxxx2001,12/12/1994,12/12/1994
+857,12/12/1994,Home Supplies,-$125.50,Travel Rewards Card,12/01/1994,12/12/1994,Harbor Home Receipt,Harbor Card,xxxx2002,12/12/1994,12/12/1994
+858,12/12/1994,Home Supplies,-$125.50,Travel Rewards Card,12/01/1994,12/12/1994,Harbor Home Receipt,Harbor Card,xxxx2002,12/12/1994,12/12/1994
+859,12/13/1994,Coffee,-$25.00,Everyday Card,12/01/1994,12/12/1994,Northstar Coffee Roasters,Harbor Card,xxxx2001,12/13/1994,12/13/1994
+860,12/14/1994,Restaurants,-$114.00,Everyday Card,12/01/1994,12/12/1994,Juniper Kitchen Dinner,Harbor Card,xxxx2001,12/14/1994,12/14/1994
+861,12/15/1994,Restaurants,-$86.00,Everyday Card,12/01/1994,12/12/1994,Riverstone Diner Lunch,Harbor Card,xxxx2001,12/15/1994,12/15/1994
+862,12/16/1994,Automobile Fuel,-$53.00,Everyday Card,12/01/1994,12/12/1994,Highway Fuel Station,Harbor Card,xxxx2001,12/16/1994,12/16/1994
+863,12/17/1994,Automobile Fuel,-$75.00,Everyday Card,12/01/1994,12/12/1994,Westside Fuel Station,Harbor Card,xxxx2001,12/17/1994,12/17/1994
+864,12/18/1994,Shopping,-$243.00,Travel Rewards Card,12/01/1994,12/12/1994,Willow Goods Market,Harbor Card,xxxx2002,12/18/1994,12/18/1994
+865,12/19/1994,Charitable Giving,-$46.00,Main Checking,12/01/1994,12/19/1994,River Aid Donation,Aurora Bank,xxxx1001,12/19/1994,12/19/1994
+866,12/20/1994,Transfer,$420.00,Emergency Savings,12/01/1994,12/19/1994,Transfer Emergency Savings,Aurora Bank,xxxx1002,12/20/1994,12/20/1994
+867,12/20/1994,Transfer,-$420.00,Main Checking,12/01/1994,12/19/1994,Transfer Emergency Savings,Aurora Bank,xxxx1001,12/20/1994,12/20/1994
+868,12/21/1994,Auto Insurance,-$285.00,Main Checking,12/01/1994,12/19/1994,Harbor Auto Insurance,Aurora Bank,xxxx1001,12/21/1994,12/21/1994
+869,12/21/1994,Medical,-$73.00,Everyday Card,12/01/1994,12/19/1994,Pine Medical Clinic,Harbor Card,xxxx2001,12/21/1994,12/21/1994
+870,12/22/1994,Given Gift,-$184.00,Travel Rewards Card,12/01/1994,12/19/1994,Willow Gifts Holiday,Harbor Card,xxxx2002,12/22/1994,12/22/1994
+871,12/23/1994,Streaming Subscription,-$12.99,Everyday Card,12/01/1994,12/19/1994,Flicker Stream Membership,Harbor Card,xxxx2001,12/23/1994,12/23/1994
+872,12/24/1994,Cloud Subscription,-$6.99,Everyday Card,12/01/1994,12/19/1994,CloudBox Storage Plan,Harbor Card,xxxx2001,12/24/1994,12/24/1994
+873,12/25/1994,Music Subscription,-$9.99,Everyday Card,12/01/1994,12/19/1994,Soundwave Music Plan,Harbor Card,xxxx2001,12/25/1994,12/25/1994
+874,01/01/1995,Rent,"-$1,455.00",Main Checking,01/01/1995,12/26/1994,Maple Street Rent,Aurora Bank,xxxx1001,01/01/1995,01/01/1995
+875,01/02/1995,Salary,"$2,375.00",Main Checking,01/01/1995,01/02/1995,Cedar Works Payroll,Aurora Bank,xxxx1001,01/02/1995,01/02/1995
+876,01/03/1995,Salary,"$2,400.00",Main Checking,01/01/1995,01/02/1995,Cedar Works Payroll,Aurora Bank,xxxx1001,01/03/1995,01/03/1995
+877,01/04/1995,Interest,$22.00,Emergency Savings,01/01/1995,01/02/1995,Aurora Savings Interest,Aurora Bank,xxxx1002,01/04/1995,01/04/1995
+878,01/05/1995,Electric,-$143.00,Main Checking,01/01/1995,01/02/1995,City Electric Service,Aurora Bank,xxxx1001,01/05/1995,01/05/1995
+879,01/06/1995,Natural Gas,-$52.00,Main Checking,01/01/1995,01/02/1995,Harbor Gas Service,Aurora Bank,xxxx1001,01/06/1995,01/06/1995
+880,01/07/1995,Internet,-$44.00,Main Checking,01/01/1995,01/02/1995,Civic Fiber Internet,Aurora Bank,xxxx1001,01/07/1995,01/07/1995
+881,01/08/1995,Mobile Phone,-$65.00,Everyday Card,01/01/1995,01/02/1995,Northline Mobile Phone,Harbor Card,xxxx2001,01/08/1995,01/08/1995
+882,01/09/1995,Water & Sewer,-$53.00,Main Checking,01/01/1995,01/09/1995,City Water Sewer,Aurora Bank,xxxx1001,01/09/1995,01/09/1995
+883,01/10/1995,Trash,-$25.00,Main Checking,01/01/1995,01/09/1995,Neighborhood Trash Service,Aurora Bank,xxxx1001,01/10/1995,01/10/1995
+884,01/11/1995,Groceries,-$306.00,Main Checking,01/01/1995,01/09/1995,Market Basket Staples,Aurora Bank,xxxx1001,01/11/1995,01/11/1995
+885,01/12/1995,Groceries,-$241.00,Everyday Card,01/01/1995,01/09/1995,Greenway Market Groceries,Harbor Card,xxxx2001,01/12/1995,01/12/1995
+886,01/13/1995,Coffee,-$37.00,Everyday Card,01/01/1995,01/09/1995,Northstar Coffee Roasters,Harbor Card,xxxx2001,01/13/1995,01/13/1995
+887,01/14/1995,Restaurants,-$84.00,Everyday Card,01/01/1995,01/09/1995,Juniper Kitchen Dinner,Harbor Card,xxxx2001,01/14/1995,01/14/1995
+888,01/15/1995,Restaurants,-$144.00,Everyday Card,01/01/1995,01/09/1995,Riverstone Diner Lunch,Harbor Card,xxxx2001,01/15/1995,01/15/1995
+889,01/16/1995,Automobile Fuel,-$71.00,Everyday Card,01/01/1995,01/16/1995,Highway Fuel Station,Harbor Card,xxxx2001,01/16/1995,01/16/1995
+890,01/17/1995,Automobile Fuel,-$70.00,Everyday Card,01/01/1995,01/16/1995,Westside Fuel Station,Harbor Card,xxxx2001,01/17/1995,01/17/1995
+891,01/18/1995,Shopping,-$102.00,Travel Rewards Card,01/01/1995,01/16/1995,Willow Goods Market,Harbor Card,xxxx2002,01/18/1995,01/18/1995
+892,01/19/1995,Charitable Giving,-$54.00,Main Checking,01/01/1995,01/16/1995,River Aid Donation,Aurora Bank,xxxx1001,01/19/1995,01/19/1995
+893,01/20/1995,Transfer,$600.00,Emergency Savings,01/01/1995,01/16/1995,Transfer Emergency Savings,Aurora Bank,xxxx1002,01/20/1995,01/20/1995
+894,01/20/1995,Transfer,-$600.00,Main Checking,01/01/1995,01/16/1995,Transfer Emergency Savings,Aurora Bank,xxxx1001,01/20/1995,01/20/1995
+895,01/21/1995,Pet Care,-$75.00,Everyday Card,01/01/1995,01/16/1995,Elm Pet Market,Harbor Card,xxxx2001,01/21/1995,01/21/1995
+896,01/21/1995,Home Supplies,-$143.00,Travel Rewards Card,01/01/1995,01/16/1995,Harbor Home Supplies,Harbor Card,xxxx2002,01/21/1995,01/21/1995
+897,01/22/1995,Travel,-$550.00,Travel Rewards Card,01/01/1995,01/16/1995,Lakeview Travel Booking,Harbor Card,xxxx2002,01/22/1995,01/22/1995
+898,01/23/1995,Streaming Subscription,-$12.99,Everyday Card,01/01/1995,01/23/1995,Flicker Stream Membership,Harbor Card,xxxx2001,01/23/1995,01/23/1995
+899,01/24/1995,Cloud Subscription,-$6.99,Everyday Card,01/01/1995,01/23/1995,CloudBox Storage Plan,Harbor Card,xxxx2001,01/24/1995,01/24/1995
+900,01/25/1995,Music Subscription,-$9.99,Everyday Card,01/01/1995,01/23/1995,Soundwave Music Plan,Harbor Card,xxxx2001,01/25/1995,01/25/1995
+901,01/27/1995,Fitness Subscription,-$36.00,Everyday Card,01/01/1995,01/23/1995,Fit Club Membership,Harbor Card,xxxx2001,01/27/1995,01/27/1995
+902,02/01/1995,Rent,"-$1,440.00",Main Checking,02/01/1995,01/30/1995,Maple Street Rent,Aurora Bank,xxxx1001,02/01/1995,02/01/1995
+903,02/02/1995,Salary,"$2,400.00",Main Checking,02/01/1995,01/30/1995,Cedar Works Payroll,Aurora Bank,xxxx1001,02/02/1995,02/02/1995
+904,02/03/1995,Salary,"$2,375.00",Main Checking,02/01/1995,01/30/1995,Cedar Works Payroll,Aurora Bank,xxxx1001,02/03/1995,02/03/1995
+905,02/04/1995,Interest,$24.00,Emergency Savings,02/01/1995,01/30/1995,Aurora Savings Interest,Aurora Bank,xxxx1002,02/04/1995,02/04/1995
+906,02/05/1995,Electric,-$139.00,Main Checking,02/01/1995,01/30/1995,City Electric Service,Aurora Bank,xxxx1001,02/05/1995,02/05/1995
+907,02/06/1995,Natural Gas,-$65.00,Main Checking,02/01/1995,02/06/1995,Harbor Gas Service,Aurora Bank,xxxx1001,02/06/1995,02/06/1995
+908,02/07/1995,Internet,-$46.00,Main Checking,02/01/1995,02/06/1995,Civic Fiber Internet,Aurora Bank,xxxx1001,02/07/1995,02/07/1995
+909,02/07/1995,Restaurants,-$45.99,Everyday Card,02/01/1995,02/06/1995,Juniper Kitchen Receipt,Harbor Card,xxxx2001,02/07/1995,02/07/1995
+910,02/07/1995,Restaurants,-$45.99,Everyday Card,02/01/1995,02/06/1995,Juniper Kitchen Receipt,Harbor Card,xxxx2001,02/07/1995,02/07/1995
+911,02/08/1995,Mobile Phone,-$63.00,Everyday Card,02/01/1995,02/06/1995,Northline Mobile Phone,Harbor Card,xxxx2001,02/08/1995,02/08/1995
+912,02/09/1995,Water & Sewer,-$55.00,Main Checking,02/01/1995,02/06/1995,City Water Sewer,Aurora Bank,xxxx1001,02/09/1995,02/09/1995
+913,02/10/1995,Trash,-$26.00,Main Checking,02/01/1995,02/06/1995,Neighborhood Trash Service,Aurora Bank,xxxx1001,02/10/1995,02/10/1995
+914,02/11/1995,Groceries,-$276.00,Main Checking,02/01/1995,02/06/1995,Market Basket Staples,Aurora Bank,xxxx1001,02/11/1995,02/11/1995
+915,02/12/1995,Groceries,-$286.00,Everyday Card,02/01/1995,02/06/1995,Greenway Market Groceries,Harbor Card,xxxx2001,02/12/1995,02/12/1995
+916,02/13/1995,Coffee,-$43.00,Everyday Card,02/01/1995,02/13/1995,Northstar Coffee Roasters,Harbor Card,xxxx2001,02/13/1995,02/13/1995
+917,02/14/1995,Restaurants,-$106.00,Everyday Card,02/01/1995,02/13/1995,Juniper Kitchen Dinner,Harbor Card,xxxx2001,02/14/1995,02/14/1995
+918,02/15/1995,Restaurants,-$118.00,Everyday Card,02/01/1995,02/13/1995,Riverstone Diner Lunch,Harbor Card,xxxx2001,02/15/1995,02/15/1995
+919,02/16/1995,Automobile Fuel,-$78.00,Everyday Card,02/01/1995,02/13/1995,Highway Fuel Station,Harbor Card,xxxx2001,02/16/1995,02/16/1995
+920,02/17/1995,Automobile Fuel,-$54.00,Everyday Card,02/01/1995,02/13/1995,Westside Fuel Station,Harbor Card,xxxx2001,02/17/1995,02/17/1995
+921,02/18/1995,Shopping,-$167.00,Travel Rewards Card,02/01/1995,02/13/1995,Willow Goods Market,Harbor Card,xxxx2002,02/18/1995,02/18/1995
+922,02/19/1995,Charitable Giving,-$64.00,Main Checking,02/01/1995,02/13/1995,River Aid Donation,Aurora Bank,xxxx1001,02/19/1995,02/19/1995
+923,02/20/1995,Transfer,$390.00,Emergency Savings,02/01/1995,02/20/1995,Transfer Emergency Savings,Aurora Bank,xxxx1002,02/20/1995,02/20/1995
+924,02/20/1995,Transfer,-$390.00,Main Checking,02/01/1995,02/20/1995,Transfer Emergency Savings,Aurora Bank,xxxx1001,02/20/1995,02/20/1995
+925,02/23/1995,Streaming Subscription,-$12.99,Everyday Card,02/01/1995,02/20/1995,Flicker Stream Membership,Harbor Card,xxxx2001,02/23/1995,02/23/1995
+926,02/24/1995,Cloud Subscription,-$6.99,Everyday Card,02/01/1995,02/20/1995,CloudBox Storage Plan,Harbor Card,xxxx2001,02/24/1995,02/24/1995
+927,02/25/1995,Music Subscription,-$9.99,Everyday Card,02/01/1995,02/20/1995,Soundwave Music Plan,Harbor Card,xxxx2001,02/25/1995,02/25/1995
+928,02/27/1995,Fitness Subscription,-$36.00,Everyday Card,02/01/1995,02/27/1995,Fit Club Membership,Harbor Card,xxxx2001,02/27/1995,02/27/1995
+929,03/01/1995,Rent,"-$1,465.00",Main Checking,03/01/1995,02/27/1995,Maple Street Rent,Aurora Bank,xxxx1001,03/01/1995,03/01/1995
+930,03/02/1995,Salary,"$2,345.00",Main Checking,03/01/1995,02/27/1995,Cedar Works Payroll,Aurora Bank,xxxx1001,03/02/1995,03/02/1995
+931,03/03/1995,Salary,"$2,445.00",Main Checking,03/01/1995,02/27/1995,Cedar Works Payroll,Aurora Bank,xxxx1001,03/03/1995,03/03/1995
+932,03/04/1995,Interest,$23.00,Emergency Savings,03/01/1995,02/27/1995,Aurora Savings Interest,Aurora Bank,xxxx1002,03/04/1995,03/04/1995
+933,03/05/1995,Electric,-$153.00,Main Checking,03/01/1995,02/27/1995,City Electric Service,Aurora Bank,xxxx1001,03/05/1995,03/05/1995
+934,03/06/1995,Natural Gas,-$90.00,Main Checking,03/01/1995,03/06/1995,Harbor Gas Service,Aurora Bank,xxxx1001,03/06/1995,03/06/1995
+935,03/07/1995,Internet,-$45.00,Main Checking,03/01/1995,03/06/1995,Civic Fiber Internet,Aurora Bank,xxxx1001,03/07/1995,03/07/1995
+936,03/08/1995,Mobile Phone,-$61.00,Everyday Card,03/01/1995,03/06/1995,Northline Mobile Phone,Harbor Card,xxxx2001,03/08/1995,03/08/1995
+937,03/09/1995,Water & Sewer,-$57.00,Main Checking,03/01/1995,03/06/1995,City Water Sewer,Aurora Bank,xxxx1001,03/09/1995,03/09/1995
+938,03/09/1995,Shopping,"-$1,250.00",Travel Rewards Card,03/01/1995,03/06/1995,Harbor Home Appliance,Harbor Card,xxxx2002,03/09/1995,03/09/1995
+939,03/10/1995,Trash,-$25.00,Main Checking,03/01/1995,03/06/1995,Neighborhood Trash Service,Aurora Bank,xxxx1001,03/10/1995,03/10/1995
+940,03/11/1995,Groceries,-$321.00,Main Checking,03/01/1995,03/06/1995,Market Basket Staples,Aurora Bank,xxxx1001,03/11/1995,03/11/1995
+941,03/12/1995,Groceries,-$261.00,Everyday Card,03/01/1995,03/06/1995,Greenway Market Groceries,Harbor Card,xxxx2001,03/12/1995,03/12/1995
+942,03/13/1995,Coffee,-$31.00,Everyday Card,03/01/1995,03/13/1995,Northstar Coffee Roasters,Harbor Card,xxxx2001,03/13/1995,03/13/1995
+943,03/14/1995,Restaurants,-$117.00,Everyday Card,03/01/1995,03/13/1995,Juniper Kitchen Dinner,Harbor Card,xxxx2001,03/14/1995,03/14/1995
+944,03/15/1995,Restaurants,-$126.00,Everyday Card,03/01/1995,03/13/1995,Riverstone Diner Lunch,Harbor Card,xxxx2001,03/15/1995,03/15/1995
+945,03/16/1995,Automobile Fuel,-$53.00,Everyday Card,03/01/1995,03/13/1995,Highway Fuel Station,Harbor Card,xxxx2001,03/16/1995,03/16/1995
+946,03/16/1995,Shopping,"-$1,250.00",Travel Rewards Card,03/01/1995,03/13/1995,Willow Furniture Desk,Harbor Card,xxxx2002,03/16/1995,03/16/1995
+947,03/17/1995,Groceries,-$94.25,Main Checking,03/01/1995,03/13/1995,Market Basket Pantry,Aurora Bank,xxxx1001,03/17/1995,03/17/1995
+948,03/17/1995,Automobile Fuel,-$76.00,Everyday Card,03/01/1995,03/13/1995,Westside Fuel Station,Harbor Card,xxxx2001,03/17/1995,03/17/1995
+949,03/18/1995,Shopping,-$227.00,Travel Rewards Card,03/01/1995,03/13/1995,Willow Goods Market,Harbor Card,xxxx2002,03/18/1995,03/18/1995
+950,03/19/1995,Charitable Giving,-$59.00,Main Checking,03/01/1995,03/13/1995,River Aid Donation,Aurora Bank,xxxx1001,03/19/1995,03/19/1995
+951,03/20/1995,Transfer,$520.00,Emergency Savings,03/01/1995,03/20/1995,Transfer Emergency Savings,Aurora Bank,xxxx1002,03/20/1995,03/20/1995
+952,03/20/1995,Transfer,-$520.00,Main Checking,03/01/1995,03/20/1995,Transfer Emergency Savings,Aurora Bank,xxxx1001,03/20/1995,03/20/1995
+953,03/21/1995,Auto Insurance,-$310.00,Main Checking,03/01/1995,03/20/1995,Harbor Auto Insurance,Aurora Bank,xxxx1001,03/21/1995,03/21/1995
+954,03/21/1995,Home Supplies,-$108.00,Travel Rewards Card,03/01/1995,03/20/1995,Harbor Home Supplies,Harbor Card,xxxx2002,03/21/1995,03/21/1995
+955,03/21/1995,Medical,-$113.00,Everyday Card,03/01/1995,03/20/1995,Pine Medical Clinic,Harbor Card,xxxx2001,03/21/1995,03/21/1995
+956,03/23/1995,Streaming Subscription,-$12.99,Everyday Card,03/01/1995,03/20/1995,Flicker Stream Membership,Harbor Card,xxxx2001,03/23/1995,03/23/1995
+957,03/24/1995,Cloud Subscription,-$6.99,Everyday Card,03/01/1995,03/20/1995,CloudBox Storage Plan,Harbor Card,xxxx2001,03/24/1995,03/24/1995
+958,03/25/1995,Music Subscription,-$9.99,Everyday Card,03/01/1995,03/20/1995,Soundwave Music Plan,Harbor Card,xxxx2001,03/25/1995,03/25/1995
+959,03/27/1995,Fitness Subscription,-$36.00,Everyday Card,03/01/1995,03/27/1995,Fit Club Membership,Harbor Card,xxxx2001,03/27/1995,03/27/1995
+960,04/01/1995,Rent,"-$1,450.00",Main Checking,04/01/1995,03/27/1995,Maple Street Rent,Aurora Bank,xxxx1001,04/01/1995,04/01/1995
+961,04/02/1995,Salary,"$2,390.00",Main Checking,04/01/1995,03/27/1995,Cedar Works Payroll,Aurora Bank,xxxx1001,04/02/1995,04/02/1995
+962,04/03/1995,Salary,"$2,380.00",Main Checking,04/01/1995,04/03/1995,Cedar Works Payroll,Aurora Bank,xxxx1001,04/03/1995,04/03/1995
+963,04/04/1995,Interest,$21.00,Emergency Savings,04/01/1995,04/03/1995,Aurora Savings Interest,Aurora Bank,xxxx1002,04/04/1995,04/04/1995
+964,04/05/1995,Electric,-$171.00,Main Checking,04/01/1995,04/03/1995,City Electric Service,Aurora Bank,xxxx1001,04/05/1995,04/05/1995
+965,04/06/1995,Natural Gas,-$120.00,Main Checking,04/01/1995,04/03/1995,Harbor Gas Service,Aurora Bank,xxxx1001,04/06/1995,04/06/1995
+966,04/07/1995,Internet,-$44.00,Main Checking,04/01/1995,04/03/1995,Civic Fiber Internet,Aurora Bank,xxxx1001,04/07/1995,04/07/1995
+967,04/08/1995,Mobile Phone,-$64.00,Everyday Card,04/01/1995,04/03/1995,Northline Mobile Phone,Harbor Card,xxxx2001,04/08/1995,04/08/1995
+968,04/09/1995,Water & Sewer,-$60.00,Main Checking,04/01/1995,04/03/1995,City Water Sewer,Aurora Bank,xxxx1001,04/09/1995,04/09/1995
+969,04/10/1995,Trash,-$26.00,Main Checking,04/01/1995,04/10/1995,Neighborhood Trash Service,Aurora Bank,xxxx1001,04/10/1995,04/10/1995
+970,04/11/1995,Groceries,-$296.00,Main Checking,04/01/1995,04/10/1995,Market Basket Staples,Aurora Bank,xxxx1001,04/11/1995,04/11/1995
+971,04/12/1995,Groceries,-$236.00,Everyday Card,04/01/1995,04/10/1995,Greenway Market Groceries,Harbor Card,xxxx2001,04/12/1995,04/12/1995
+972,04/13/1995,Coffee,-$39.00,Everyday Card,04/01/1995,04/10/1995,Northstar Coffee Roasters,Harbor Card,xxxx2001,04/13/1995,04/13/1995
+973,04/14/1995,Restaurants,-$112.00,Everyday Card,04/01/1995,04/10/1995,Juniper Kitchen Dinner,Harbor Card,xxxx2001,04/14/1995,04/14/1995
+974,04/15/1995,Restaurants,-$88.00,Everyday Card,04/01/1995,04/10/1995,Riverstone Diner Lunch,Harbor Card,xxxx2001,04/15/1995,04/15/1995
+975,04/16/1995,Automobile Fuel,-$68.00,Everyday Card,04/01/1995,04/10/1995,Highway Fuel Station,Harbor Card,xxxx2001,04/16/1995,04/16/1995
+976,04/17/1995,Automobile Fuel,-$84.00,Everyday Card,04/01/1995,04/17/1995,Westside Fuel Station,Harbor Card,xxxx2001,04/17/1995,04/17/1995
+977,04/18/1995,Shopping,-$117.00,Travel Rewards Card,04/01/1995,04/17/1995,Willow Goods Market,Harbor Card,xxxx2002,04/18/1995,04/18/1995
+978,04/19/1995,Charitable Giving,-$49.00,Main Checking,04/01/1995,04/17/1995,River Aid Donation,Aurora Bank,xxxx1001,04/19/1995,04/19/1995
+979,04/20/1995,Transfer,$560.00,Emergency Savings,04/01/1995,04/17/1995,Transfer Emergency Savings,Aurora Bank,xxxx1002,04/20/1995,04/20/1995
+980,04/20/1995,Transfer,-$560.00,Main Checking,04/01/1995,04/17/1995,Transfer Emergency Savings,Aurora Bank,xxxx1001,04/20/1995,04/20/1995
+981,04/22/1995,Travel,-$380.00,Travel Rewards Card,04/01/1995,04/17/1995,Lakeview Travel Booking,Harbor Card,xxxx2002,04/22/1995,04/22/1995
+982,04/23/1995,Streaming Subscription,-$12.99,Everyday Card,04/01/1995,04/17/1995,Flicker Stream Membership,Harbor Card,xxxx2001,04/23/1995,04/23/1995
+983,04/24/1995,Cloud Subscription,-$6.99,Everyday Card,04/01/1995,04/24/1995,CloudBox Storage Plan,Harbor Card,xxxx2001,04/24/1995,04/24/1995
+984,04/25/1995,Music Subscription,-$9.99,Everyday Card,04/01/1995,04/24/1995,Soundwave Music Plan,Harbor Card,xxxx2001,04/25/1995,04/25/1995
+985,04/27/1995,Fitness Subscription,-$36.00,Everyday Card,04/01/1995,04/24/1995,Fit Club Membership,Harbor Card,xxxx2001,04/27/1995,04/27/1995

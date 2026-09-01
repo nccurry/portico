@@ -45,21 +45,23 @@ def test_spending_entities_rejects_unknown_dimension() -> None:
         spending_entities(_transactions([]), "Merchant")
 
 
-def test_utility_bill_preset_uses_bill_group_and_utility_names() -> None:
+def test_utility_bill_preset_uses_configured_groups_and_utility_names() -> None:
     transactions = _transactions(
         [
             {"Category": "Electric", "Amount": -300.0},
             {"Category": "Water Bill", "Amount": -100.0},
             {"Category": "Mortgage Payment", "Amount": -2_000.0},
             {"Category": "Internet", "Group": "Shopping", "Amount": -500.0},
+            {"Category": "Rent", "Group": "Housing", "Amount": -1_200.0},
         ]
     )
 
     assert utility_bill_categories(
         transactions,
-        group_terms=("bill",),
-        category_terms=("electric", "water", "internet"),
+        group_terms=("bill", "housing"),
+        category_terms=("electric", "water", "internet", "rent"),
     ) == [
+        "Rent",
         "Electric",
         "Water Bill",
     ]

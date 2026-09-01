@@ -22,7 +22,7 @@ def test_defaults_match_the_public_application_profile(tmp_path: Path) -> None:
     assert settings.subscriptions.known_category_terms == ("subscription",)
     assert settings.subscriptions.minimum_confidence == 80
     assert settings.subscriptions.stale_after_days == 45
-    assert settings.year_over_year.utility_group_terms == ("bill",)
+    assert settings.year_over_year.utility_group_terms == ("bill", "housing")
     assert "electric" in settings.year_over_year.utility_category_terms
     assert settings.budget.history_months == 12
     assert settings.data_health.stale_account_days == 7
