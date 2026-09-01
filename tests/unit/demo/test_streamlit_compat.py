@@ -29,8 +29,31 @@ def test_legacy_runtime_ignores_new_widget_arguments() -> None:
     assert skeleton(height=300) is container
 
     patched_toggle = legacy_streamlit.toggle
+    patched_cache_data = legacy_streamlit.cache_data
     install_streamlit_compatibility(legacy_streamlit, LegacyContainer)
     assert legacy_streamlit.toggle is patched_toggle
+    assert legacy_streamlit.cache_data is patched_cache_data
+
+
+def test_legacy_runtime_recomputes_cached_functions() -> None:
+    """The browser bridge avoids cache deserialization on every rerun."""
+
+    legacy_streamlit = SimpleNamespace()
+    install_streamlit_compatibility(legacy_streamlit)
+    calls = 0
+
+    def analyze_balances() -> int:
+        nonlocal calls
+        calls += 1
+        return calls
+
+    cached_analysis = cast(
+        Callable[[], int],
+        legacy_streamlit.cache_data(show_spinner=False)(analyze_balances),
+    )
+    assert cached_analysis() == 1
+    assert cached_analysis() == 2
+    legacy_streamlit.cache_data.clear()
 
 
 def test_current_runtime_does_not_replace_supported_widgets() -> None:
@@ -42,13 +65,27 @@ def test_current_runtime_does_not_replace_supported_widgets() -> None:
     def columns(*args: object, wrap: bool = True, **kwargs: object) -> bool:
         return wrap
 
+    def cache_data(
+        function: Callable[..., object] | None = None,
+        **kwargs: object,
+    ) -> Callable[..., object] | Callable[[Callable[..., object]], Callable[..., object]]:
+        del kwargs
+        if function is not None:
+            return function
+        return lambda decorated: decorated
+
     class CurrentContainer:
         def skeleton(self, **kwargs: object) -> str:
             return "native"
 
-    current_streamlit = SimpleNamespace(toggle=toggle, columns=columns)
+    current_streamlit = SimpleNamespace(
+        toggle=toggle,
+        columns=columns,
+        cache_data=cache_data,
+    )
     install_streamlit_compatibility(current_streamlit, CurrentContainer)
 
     assert current_streamlit.toggle("Visible", persist_state="page") == "page"
     assert current_streamlit.columns([1, 1], wrap=False) is False
+    assert current_streamlit.cache_data is cache_data
     assert CurrentContainer().skeleton(height=300) == "native"

@@ -127,9 +127,10 @@ Sheets, or send Discord messages. It is a public preview, not a hosted Portico
 service.
 
 The browser runtime temporarily uses Streamlit 1.57. The demo bridge ignores
-`persist_state`, `wrap`, and loading skeleton calls. A control can reset after
-its page or view changes. Remove the bridge after Stlite supports Streamlit
-1.62 and the browser test opens every page.
+`persist_state`, `wrap`, loading skeleton calls, and serialized data caching.
+A control can reset after its page or view changes, and reports recalculate
+after a rerun. Remove the bridge after Stlite supports Streamlit 1.62, restores
+cached datetime data, and the browser test opens every page twice.
 
 ## Runtime design
 
