@@ -35,8 +35,8 @@ exclude_groups = ["Travel", "Donations"]
 
 [spending]
 default_view = "discretionary"
-exclude_categories = ["Christmas", "Given Gift", "Tax Return Payment"]
-exclude_groups = ["Bills", "Income", "Donations", "Maintenance", "Travel"]
+exclude_categories = ["Automobile Fuel", "Given Gift", "Groceries", "Tax Return Payment"]
+exclude_groups = ["Bills", "Donations", "Health", "Housing", "Income", "Insurance", "Maintenance", "Travel"]
 
 [subscriptions]
 known_category_terms = ["subscription"]
@@ -60,10 +60,11 @@ detection_excluded_categories = [
 detection_excluded_pattern = "Mortgage|Loan|Investment|401k|HSA|RSU|ESPP"
 
 [year_over_year]
-utility_group_terms = ["bill"]
+utility_group_terms = ["bill", "housing"]
 utility_category_terms = [
     "electric",
     "gas",
+    "rent",
     "water",
     "sewer",
     "internet",

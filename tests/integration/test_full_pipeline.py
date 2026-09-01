@@ -7,6 +7,10 @@ computed results, verifying cross-sheet joins, column schemas, and data integrit
 import pandas as pd
 import pytest
 
+from src.analysis.spending import build_spending_ledger
+from src.analysis.subscriptions import build_subscription_inventory, build_subscription_lifecycles
+from src.config import get_settings
+from src.custom_types import SpendingFilters
 from src.filters import apply_transaction_filters, calculate_date_range
 from src.spreadsheet import calculate_net_worth_summary
 from tests.custom_types import FullDatasetFactory, SpreadsheetBundle
@@ -174,3 +178,123 @@ class TestCrossSheetJoins:
         start, end = calculate_date_range("All Time", txns.scrubbed_df)
         assert start <= txns.scrubbed_df["Date"].min()
         assert end >= txns.scrubbed_df["Date"].max() - pd.Timedelta(days=1)
+
+
+# ---------------------------------------------------------------------------
+# Demo showcase scenarios
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.uses_real_dates
+class TestDemoShowcase:
+    def test_account_groups_have_multiple_realistic_accounts(self, full_dataset: SpreadsheetBundle) -> None:
+        _txns, _bal, _cats, accounts = full_dataset
+        group_counts = accounts.scrubbed_df.groupby("Group")["Account"].nunique().to_dict()
+
+        assert group_counts == {
+            "Credit Cards": 2,
+            "Investments": 3,
+            "Liabilities": 2,
+            "Retirement": 2,
+            "Savings": 3,
+        }
+        assert not accounts.scrubbed_df["Account"].str.contains("synthetic|zero", case=False).any()
+
+    def test_balance_history_has_rising_and_falling_account_trends(
+        self,
+        full_dataset: SpreadsheetBundle,
+    ) -> None:
+        _txns, balances, _cats, _accounts = full_dataset
+        for account in ("Main Checking", "Everyday Card", "Brokerage Account"):
+            changes = (
+                balances.scrubbed_df.loc[balances.scrubbed_df["Account"].eq(account)]
+                .sort_values("Date")["Balance"]
+                .diff()
+                .dropna()
+            )
+            assert (changes > 0).any(), account
+            assert (changes < 0).any(), account
+
+    def test_spending_has_utility_categories_and_varied_monthly_totals(
+        self,
+        full_dataset: SpreadsheetBundle,
+    ) -> None:
+        transactions, _bal, _cats, _accounts = full_dataset
+        expenses = transactions.scrubbed_df.query("Type == 'Expense'")
+        assert {
+            "Rent",
+            "Electric",
+            "Natural Gas",
+            "Internet",
+            "Mobile Phone",
+            "Water & Sewer",
+            "Trash",
+        }.issubset(set(expenses["Category"]))
+
+        for category in ("Electric", "Groceries", "Restaurants"):
+            monthly_totals = expenses.loc[expenses["Category"].eq(category)].groupby("Month")["Amount"].sum()
+            assert len(monthly_totals) == 36
+            assert monthly_totals.nunique() > 18
+
+    def test_discretionary_defaults_leave_housing_and_bills_out(
+        self,
+        full_dataset: SpreadsheetBundle,
+    ) -> None:
+        transactions, _bal, _cats, _accounts = full_dataset
+        settings = get_settings().spending
+        filters: SpendingFilters = {
+            "include_groups": [],
+            "include_categories": [],
+            "exclude_groups": list(settings.exclude_groups),
+            "exclude_categories": list(settings.exclude_categories),
+            "filter_large_expenses": False,
+            "expense_threshold": 999_999,
+        }
+        discretionary = build_spending_ledger(
+            transactions.scrubbed_df,
+            filters,
+            start_month="1994-05",
+            end_month="1995-05",
+        )
+        included = discretionary.loc[discretionary["Included"], "Category"]
+        assert "Rent" not in set(included)
+        assert "Electric" not in set(included)
+        assert "Restaurants" in set(included)
+
+    def test_subscriptions_show_current_and_past_lifecycles(
+        self,
+        full_dataset: SpreadsheetBundle,
+    ) -> None:
+        transactions, _bal, _cats, _accounts = full_dataset
+        subscription_categories = [
+            category
+            for category in transactions.scrubbed_df["Category"].dropna().unique()
+            if "Subscription" in category
+        ]
+        inventory = build_subscription_inventory(transactions.scrubbed_df, subscription_categories)
+        lifecycles = build_subscription_lifecycles(
+            transactions.scrubbed_df,
+            inventory,
+            subscription_categories,
+        )
+        statuses = inventory.set_index("Merchant")["Status"].to_dict()
+
+        assert statuses["FLICKER STREAM MEMBERSHIP"] == "Active"
+        assert statuses["CLOUDBOX STORAGE PLAN"] == "Active"
+        assert statuses["SOUNDWAVE MUSIC PLAN"] == "Active"
+        assert statuses["FIT CLUB MEMBERSHIP"] == "Active"
+        assert statuses["MORNING GAZETTE DIGITAL"] == "Inactive"
+        assert statuses["PANTRY BOX DELIVERY"] == "Inactive"
+
+        fit_club = lifecycles.loc[lifecycles["Merchant"].eq("FIT CLUB MEMBERSHIP")]
+        assert len(fit_club) == 2
+        assert set(fit_club["Status"]) == {"Active", "Inactive"}
+
+    def test_budgets_cover_everyday_expenses(self, full_dataset: SpreadsheetBundle) -> None:
+        _txns, _bal, categories, _accounts = full_dataset
+        april_budgets = categories.budget_df.loc[categories.budget_df["Month"].eq("1995-04")].set_index("Category")
+
+        assert april_budgets.loc["Rent", "Budget"] == 1_470
+        assert april_budgets.loc["Groceries", "Budget"] == 600
+        assert april_budgets.loc["Restaurants", "Budget"] == 335
+        assert april_budgets.loc["Electric", "Budget"] == 135

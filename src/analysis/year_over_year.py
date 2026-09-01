@@ -39,9 +39,11 @@ def utility_bill_categories(
     groups = expenses["Group"].fillna("").astype(str).str.strip()
     normalized_group_terms = tuple(term.casefold() for term in group_terms)
     normalized_category_terms = tuple(term.casefold() for term in category_terms)
-    mask = groups.str.casefold().apply(
-        lambda value: any(term in value for term in normalized_group_terms)
-    ) & categories.str.casefold().apply(lambda value: any(term in value for term in normalized_category_terms))
+    group_matches = groups.str.casefold().apply(lambda value: any(term in value for term in normalized_group_terms))
+    category_matches = categories.str.casefold().apply(
+        lambda value: any(term in value for term in normalized_category_terms)
+    )
+    mask = group_matches & category_matches
     return _ordered_categories(expenses, categories, mask)
 
 

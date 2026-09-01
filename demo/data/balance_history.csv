@@ -1,253 +1,433 @@
 Unnamed: 0,Date,Time,Account,Account #,Account ID,Balance ID,Institution,Balance,Month,Week,Type,Class,Account Status,Date Added
-0,05/20/1992,1992-05-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-000,Aurora Bank,"$2,500.00",05/01/1992,05/18/1992,Depository,Asset,Active,05/01/1992
-1,05/20/1992,1992-05-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-000,Harbor Card,"$2,900.00",05/01/1992,05/18/1992,Credit,Liability,Active,05/01/1992
-2,05/20/1992,1992-05-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-000,Fidelity,"$8,000.00",05/01/1992,05/18/1992,Depository,Asset,Active,05/01/1992
-3,05/20/1992,1992-05-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-000,Vanguard,"$50,000.00",05/01/1992,05/18/1992,Investment,Asset,Active,05/01/1992
-4,05/20/1992,1992-05-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-000,Fidelity,"$120,000.00",05/01/1992,05/18/1992,Investment,Asset,Active,05/01/1992
-5,05/20/1992,1992-05-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-000,Aurora Bank,"$235,000.00",05/01/1992,05/18/1992,Loan,Liability,Active,05/01/1992
-6,05/20/1992,1992-05-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-000,Aurora Bank,$0.00,05/01/1992,05/18/1992,Depository,Asset,Active,05/01/1992
-7,06/20/1992,1992-06-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-001,Aurora Bank,"$2,600.00",06/01/1992,06/15/1992,Depository,Asset,Active,05/01/1992
-8,06/20/1992,1992-06-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-001,Harbor Card,"$2,865.00",06/01/1992,06/15/1992,Credit,Liability,Active,05/01/1992
-9,06/20/1992,1992-06-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-001,Fidelity,"$8,200.00",06/01/1992,06/15/1992,Depository,Asset,Active,05/01/1992
-10,06/20/1992,1992-06-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-001,Vanguard,"$51,300.00",06/01/1992,06/15/1992,Investment,Asset,Active,05/01/1992
-11,06/20/1992,1992-06-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-001,Fidelity,"$123,000.00",06/01/1992,06/15/1992,Investment,Asset,Active,05/01/1992
-12,06/20/1992,1992-06-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-001,Aurora Bank,"$234,000.00",06/01/1992,06/15/1992,Loan,Liability,Active,05/01/1992
-13,06/20/1992,1992-06-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-001,Aurora Bank,$0.00,06/01/1992,06/15/1992,Depository,Asset,Active,05/01/1992
-14,07/20/1992,1992-07-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-002,Aurora Bank,"$2,700.00",07/01/1992,07/20/1992,Depository,Asset,Active,05/01/1992
-15,07/20/1992,1992-07-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-002,Harbor Card,"$2,830.00",07/01/1992,07/20/1992,Credit,Liability,Active,05/01/1992
-16,07/20/1992,1992-07-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-002,Fidelity,"$8,400.00",07/01/1992,07/20/1992,Depository,Asset,Active,05/01/1992
-17,07/20/1992,1992-07-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-002,Vanguard,"$52,600.00",07/01/1992,07/20/1992,Investment,Asset,Active,05/01/1992
-18,07/20/1992,1992-07-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-002,Fidelity,"$126,000.00",07/01/1992,07/20/1992,Investment,Asset,Active,05/01/1992
-19,07/20/1992,1992-07-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-002,Aurora Bank,"$233,000.00",07/01/1992,07/20/1992,Loan,Liability,Active,05/01/1992
-20,07/20/1992,1992-07-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-002,Aurora Bank,$0.00,07/01/1992,07/20/1992,Depository,Asset,Active,05/01/1992
-21,08/20/1992,1992-08-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-003,Aurora Bank,"$2,800.00",08/01/1992,08/17/1992,Depository,Asset,Active,05/01/1992
-22,08/20/1992,1992-08-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-003,Harbor Card,"$2,795.00",08/01/1992,08/17/1992,Credit,Liability,Active,05/01/1992
-23,08/20/1992,1992-08-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-003,Fidelity,"$8,600.00",08/01/1992,08/17/1992,Depository,Asset,Active,05/01/1992
-24,08/20/1992,1992-08-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-003,Vanguard,"$53,900.00",08/01/1992,08/17/1992,Investment,Asset,Active,05/01/1992
-25,08/20/1992,1992-08-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-003,Fidelity,"$129,000.00",08/01/1992,08/17/1992,Investment,Asset,Active,05/01/1992
-26,08/20/1992,1992-08-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-003,Aurora Bank,"$232,000.00",08/01/1992,08/17/1992,Loan,Liability,Active,05/01/1992
-27,08/20/1992,1992-08-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-003,Aurora Bank,$0.00,08/01/1992,08/17/1992,Depository,Asset,Active,05/01/1992
-28,09/20/1992,1992-09-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-004,Aurora Bank,"$2,900.00",09/01/1992,09/14/1992,Depository,Asset,Active,05/01/1992
-29,09/20/1992,1992-09-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-004,Harbor Card,"$2,760.00",09/01/1992,09/14/1992,Credit,Liability,Active,05/01/1992
-30,09/20/1992,1992-09-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-004,Fidelity,"$8,800.00",09/01/1992,09/14/1992,Depository,Asset,Active,05/01/1992
-31,09/20/1992,1992-09-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-004,Vanguard,"$55,200.00",09/01/1992,09/14/1992,Investment,Asset,Active,05/01/1992
-32,09/20/1992,1992-09-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-004,Fidelity,"$132,000.00",09/01/1992,09/14/1992,Investment,Asset,Active,05/01/1992
-33,09/20/1992,1992-09-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-004,Aurora Bank,"$231,000.00",09/01/1992,09/14/1992,Loan,Liability,Active,05/01/1992
-34,09/20/1992,1992-09-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-004,Aurora Bank,$0.00,09/01/1992,09/14/1992,Depository,Asset,Active,05/01/1992
-35,10/20/1992,1992-10-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-005,Aurora Bank,"$3,000.00",10/01/1992,10/19/1992,Depository,Asset,Active,05/01/1992
-36,10/20/1992,1992-10-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-005,Harbor Card,"$2,725.00",10/01/1992,10/19/1992,Credit,Liability,Active,05/01/1992
-37,10/20/1992,1992-10-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-005,Fidelity,"$9,000.00",10/01/1992,10/19/1992,Depository,Asset,Active,05/01/1992
-38,10/20/1992,1992-10-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-005,Vanguard,"$56,500.00",10/01/1992,10/19/1992,Investment,Asset,Active,05/01/1992
-39,10/20/1992,1992-10-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-005,Fidelity,"$135,000.00",10/01/1992,10/19/1992,Investment,Asset,Active,05/01/1992
-40,10/20/1992,1992-10-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-005,Aurora Bank,"$230,000.00",10/01/1992,10/19/1992,Loan,Liability,Active,05/01/1992
-41,10/20/1992,1992-10-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-005,Aurora Bank,$0.00,10/01/1992,10/19/1992,Depository,Asset,Active,05/01/1992
-42,11/20/1992,1992-11-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-006,Aurora Bank,"$3,100.00",11/01/1992,11/16/1992,Depository,Asset,Active,05/01/1992
-43,11/20/1992,1992-11-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-006,Harbor Card,"$2,690.00",11/01/1992,11/16/1992,Credit,Liability,Active,05/01/1992
-44,11/20/1992,1992-11-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-006,Fidelity,"$9,200.00",11/01/1992,11/16/1992,Depository,Asset,Active,05/01/1992
-45,11/20/1992,1992-11-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-006,Vanguard,"$57,800.00",11/01/1992,11/16/1992,Investment,Asset,Active,05/01/1992
-46,11/20/1992,1992-11-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-006,Fidelity,"$138,000.00",11/01/1992,11/16/1992,Investment,Asset,Active,05/01/1992
-47,11/20/1992,1992-11-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-006,Aurora Bank,"$229,000.00",11/01/1992,11/16/1992,Loan,Liability,Active,05/01/1992
-48,11/20/1992,1992-11-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-006,Aurora Bank,$0.00,11/01/1992,11/16/1992,Depository,Asset,Active,05/01/1992
-49,12/20/1992,1992-12-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-007,Aurora Bank,"$3,200.00",12/01/1992,12/14/1992,Depository,Asset,Active,05/01/1992
-50,12/20/1992,1992-12-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-007,Harbor Card,"$2,655.00",12/01/1992,12/14/1992,Credit,Liability,Active,05/01/1992
-51,12/20/1992,1992-12-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-007,Fidelity,"$9,400.00",12/01/1992,12/14/1992,Depository,Asset,Active,05/01/1992
-52,12/20/1992,1992-12-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-007,Vanguard,"$59,100.00",12/01/1992,12/14/1992,Investment,Asset,Active,05/01/1992
-53,12/20/1992,1992-12-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-007,Fidelity,"$141,000.00",12/01/1992,12/14/1992,Investment,Asset,Active,05/01/1992
-54,12/20/1992,1992-12-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-007,Aurora Bank,"$228,000.00",12/01/1992,12/14/1992,Loan,Liability,Active,05/01/1992
-55,12/20/1992,1992-12-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-007,Aurora Bank,$0.00,12/01/1992,12/14/1992,Depository,Asset,Active,05/01/1992
-56,01/20/1993,1993-01-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-008,Aurora Bank,"$3,300.00",01/01/1993,01/18/1993,Depository,Asset,Active,05/01/1992
-57,01/20/1993,1993-01-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-008,Harbor Card,"$2,620.00",01/01/1993,01/18/1993,Credit,Liability,Active,05/01/1992
-58,01/20/1993,1993-01-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-008,Fidelity,"$9,600.00",01/01/1993,01/18/1993,Depository,Asset,Active,05/01/1992
-59,01/20/1993,1993-01-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-008,Vanguard,"$60,400.00",01/01/1993,01/18/1993,Investment,Asset,Active,05/01/1992
-60,01/20/1993,1993-01-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-008,Fidelity,"$144,000.00",01/01/1993,01/18/1993,Investment,Asset,Active,05/01/1992
-61,01/20/1993,1993-01-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-008,Aurora Bank,"$227,000.00",01/01/1993,01/18/1993,Loan,Liability,Active,05/01/1992
-62,01/20/1993,1993-01-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-008,Aurora Bank,$0.00,01/01/1993,01/18/1993,Depository,Asset,Active,05/01/1992
-63,02/20/1993,1993-02-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-009,Aurora Bank,"$3,400.00",02/01/1993,02/15/1993,Depository,Asset,Active,05/01/1992
-64,02/20/1993,1993-02-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-009,Harbor Card,"$2,585.00",02/01/1993,02/15/1993,Credit,Liability,Active,05/01/1992
-65,02/20/1993,1993-02-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-009,Fidelity,"$9,800.00",02/01/1993,02/15/1993,Depository,Asset,Active,05/01/1992
-66,02/20/1993,1993-02-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-009,Vanguard,"$61,700.00",02/01/1993,02/15/1993,Investment,Asset,Active,05/01/1992
-67,02/20/1993,1993-02-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-009,Fidelity,"$147,000.00",02/01/1993,02/15/1993,Investment,Asset,Active,05/01/1992
-68,02/20/1993,1993-02-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-009,Aurora Bank,"$226,000.00",02/01/1993,02/15/1993,Loan,Liability,Active,05/01/1992
-69,02/20/1993,1993-02-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-009,Aurora Bank,$0.00,02/01/1993,02/15/1993,Depository,Asset,Active,05/01/1992
-70,03/20/1993,1993-03-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-010,Aurora Bank,"$3,500.00",03/01/1993,03/15/1993,Depository,Asset,Active,05/01/1992
-71,03/20/1993,1993-03-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-010,Harbor Card,"$2,550.00",03/01/1993,03/15/1993,Credit,Liability,Active,05/01/1992
-72,03/20/1993,1993-03-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-010,Fidelity,"$10,000.00",03/01/1993,03/15/1993,Depository,Asset,Active,05/01/1992
-73,03/20/1993,1993-03-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-010,Vanguard,"$63,000.00",03/01/1993,03/15/1993,Investment,Asset,Active,05/01/1992
-74,03/20/1993,1993-03-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-010,Fidelity,"$150,000.00",03/01/1993,03/15/1993,Investment,Asset,Active,05/01/1992
-75,03/20/1993,1993-03-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-010,Aurora Bank,"$225,000.00",03/01/1993,03/15/1993,Loan,Liability,Active,05/01/1992
-76,03/20/1993,1993-03-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-010,Aurora Bank,$0.00,03/01/1993,03/15/1993,Depository,Asset,Active,05/01/1992
-77,04/20/1993,1993-04-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-011,Aurora Bank,"$3,600.00",04/01/1993,04/19/1993,Depository,Asset,Active,05/01/1992
-78,04/20/1993,1993-04-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-011,Harbor Card,"$2,515.00",04/01/1993,04/19/1993,Credit,Liability,Active,05/01/1992
-79,04/20/1993,1993-04-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-011,Fidelity,"$10,200.00",04/01/1993,04/19/1993,Depository,Asset,Active,05/01/1992
-80,04/20/1993,1993-04-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-011,Vanguard,"$64,300.00",04/01/1993,04/19/1993,Investment,Asset,Active,05/01/1992
-81,04/20/1993,1993-04-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-011,Fidelity,"$153,000.00",04/01/1993,04/19/1993,Investment,Asset,Active,05/01/1992
-82,04/20/1993,1993-04-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-011,Aurora Bank,"$224,000.00",04/01/1993,04/19/1993,Loan,Liability,Active,05/01/1992
-83,04/20/1993,1993-04-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-011,Aurora Bank,$0.00,04/01/1993,04/19/1993,Depository,Asset,Active,05/01/1992
-84,05/20/1993,1993-05-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-012,Aurora Bank,"$3,700.00",05/01/1993,05/17/1993,Depository,Asset,Active,05/01/1992
-85,05/20/1993,1993-05-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-012,Harbor Card,"$2,480.00",05/01/1993,05/17/1993,Credit,Liability,Active,05/01/1992
-86,05/20/1993,1993-05-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-012,Fidelity,"$10,400.00",05/01/1993,05/17/1993,Depository,Asset,Active,05/01/1992
-87,05/20/1993,1993-05-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-012,Vanguard,"$65,600.00",05/01/1993,05/17/1993,Investment,Asset,Active,05/01/1992
-88,05/20/1993,1993-05-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-012,Fidelity,"$156,000.00",05/01/1993,05/17/1993,Investment,Asset,Active,05/01/1992
-89,05/20/1993,1993-05-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-012,Aurora Bank,"$223,000.00",05/01/1993,05/17/1993,Loan,Liability,Active,05/01/1992
-90,05/20/1993,1993-05-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-012,Aurora Bank,$0.00,05/01/1993,05/17/1993,Depository,Asset,Active,05/01/1992
-91,06/20/1993,1993-06-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-013,Aurora Bank,"$3,800.00",06/01/1993,06/14/1993,Depository,Asset,Active,05/01/1992
-92,06/20/1993,1993-06-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-013,Harbor Card,"$2,445.00",06/01/1993,06/14/1993,Credit,Liability,Active,05/01/1992
-93,06/20/1993,1993-06-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-013,Fidelity,"$10,600.00",06/01/1993,06/14/1993,Depository,Asset,Active,05/01/1992
-94,06/20/1993,1993-06-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-013,Vanguard,"$66,900.00",06/01/1993,06/14/1993,Investment,Asset,Active,05/01/1992
-95,06/20/1993,1993-06-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-013,Fidelity,"$159,000.00",06/01/1993,06/14/1993,Investment,Asset,Active,05/01/1992
-96,06/20/1993,1993-06-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-013,Aurora Bank,"$222,000.00",06/01/1993,06/14/1993,Loan,Liability,Active,05/01/1992
-97,06/20/1993,1993-06-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-013,Aurora Bank,$0.00,06/01/1993,06/14/1993,Depository,Asset,Active,05/01/1992
-98,07/20/1993,1993-07-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-014,Aurora Bank,"$3,900.00",07/01/1993,07/19/1993,Depository,Asset,Active,05/01/1992
-99,07/20/1993,1993-07-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-014,Harbor Card,"$2,410.00",07/01/1993,07/19/1993,Credit,Liability,Active,05/01/1992
-100,07/20/1993,1993-07-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-014,Fidelity,"$10,800.00",07/01/1993,07/19/1993,Depository,Asset,Active,05/01/1992
-101,07/20/1993,1993-07-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-014,Vanguard,"$68,200.00",07/01/1993,07/19/1993,Investment,Asset,Active,05/01/1992
-102,07/20/1993,1993-07-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-014,Fidelity,"$162,000.00",07/01/1993,07/19/1993,Investment,Asset,Active,05/01/1992
-103,07/20/1993,1993-07-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-014,Aurora Bank,"$221,000.00",07/01/1993,07/19/1993,Loan,Liability,Active,05/01/1992
-104,07/20/1993,1993-07-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-014,Aurora Bank,$0.00,07/01/1993,07/19/1993,Depository,Asset,Active,05/01/1992
-105,08/20/1993,1993-08-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-015,Aurora Bank,"$4,000.00",08/01/1993,08/16/1993,Depository,Asset,Active,05/01/1992
-106,08/20/1993,1993-08-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-015,Harbor Card,"$2,375.00",08/01/1993,08/16/1993,Credit,Liability,Active,05/01/1992
-107,08/20/1993,1993-08-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-015,Fidelity,"$11,000.00",08/01/1993,08/16/1993,Depository,Asset,Active,05/01/1992
-108,08/20/1993,1993-08-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-015,Vanguard,"$69,500.00",08/01/1993,08/16/1993,Investment,Asset,Active,05/01/1992
-109,08/20/1993,1993-08-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-015,Fidelity,"$165,000.00",08/01/1993,08/16/1993,Investment,Asset,Active,05/01/1992
-110,08/20/1993,1993-08-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-015,Aurora Bank,"$220,000.00",08/01/1993,08/16/1993,Loan,Liability,Active,05/01/1992
-111,08/20/1993,1993-08-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-015,Aurora Bank,$0.00,08/01/1993,08/16/1993,Depository,Asset,Active,05/01/1992
-112,09/20/1993,1993-09-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-016,Aurora Bank,"$4,100.00",09/01/1993,09/20/1993,Depository,Asset,Active,05/01/1992
-113,09/20/1993,1993-09-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-016,Harbor Card,"$2,340.00",09/01/1993,09/20/1993,Credit,Liability,Active,05/01/1992
-114,09/20/1993,1993-09-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-016,Fidelity,"$11,200.00",09/01/1993,09/20/1993,Depository,Asset,Active,05/01/1992
-115,09/20/1993,1993-09-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-016,Vanguard,"$70,800.00",09/01/1993,09/20/1993,Investment,Asset,Active,05/01/1992
-116,09/20/1993,1993-09-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-016,Fidelity,"$168,000.00",09/01/1993,09/20/1993,Investment,Asset,Active,05/01/1992
-117,09/20/1993,1993-09-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-016,Aurora Bank,"$219,000.00",09/01/1993,09/20/1993,Loan,Liability,Active,05/01/1992
-118,09/20/1993,1993-09-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-016,Aurora Bank,$0.00,09/01/1993,09/20/1993,Depository,Asset,Active,05/01/1992
-119,10/20/1993,1993-10-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-017,Aurora Bank,"$4,200.00",10/01/1993,10/18/1993,Depository,Asset,Active,05/01/1992
-120,10/20/1993,1993-10-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-017,Harbor Card,"$2,305.00",10/01/1993,10/18/1993,Credit,Liability,Active,05/01/1992
-121,10/20/1993,1993-10-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-017,Fidelity,"$11,400.00",10/01/1993,10/18/1993,Depository,Asset,Active,05/01/1992
-122,10/20/1993,1993-10-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-017,Vanguard,"$72,100.00",10/01/1993,10/18/1993,Investment,Asset,Active,05/01/1992
-123,10/20/1993,1993-10-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-017,Fidelity,"$171,000.00",10/01/1993,10/18/1993,Investment,Asset,Active,05/01/1992
-124,10/20/1993,1993-10-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-017,Aurora Bank,"$218,000.00",10/01/1993,10/18/1993,Loan,Liability,Active,05/01/1992
-125,10/20/1993,1993-10-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-017,Aurora Bank,$0.00,10/01/1993,10/18/1993,Depository,Asset,Active,05/01/1992
-126,11/20/1993,1993-11-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-018,Aurora Bank,"$4,300.00",11/01/1993,11/15/1993,Depository,Asset,Active,05/01/1992
-127,11/20/1993,1993-11-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-018,Harbor Card,"$2,270.00",11/01/1993,11/15/1993,Credit,Liability,Active,05/01/1992
-128,11/20/1993,1993-11-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-018,Fidelity,"$11,600.00",11/01/1993,11/15/1993,Depository,Asset,Active,05/01/1992
-129,11/20/1993,1993-11-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-018,Vanguard,"$73,400.00",11/01/1993,11/15/1993,Investment,Asset,Active,05/01/1992
-130,11/20/1993,1993-11-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-018,Fidelity,"$174,000.00",11/01/1993,11/15/1993,Investment,Asset,Active,05/01/1992
-131,11/20/1993,1993-11-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-018,Aurora Bank,"$217,000.00",11/01/1993,11/15/1993,Loan,Liability,Active,05/01/1992
-132,11/20/1993,1993-11-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-018,Aurora Bank,$0.00,11/01/1993,11/15/1993,Depository,Asset,Active,05/01/1992
-133,12/20/1993,1993-12-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-019,Aurora Bank,"$4,400.00",12/01/1993,12/20/1993,Depository,Asset,Active,05/01/1992
-134,12/20/1993,1993-12-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-019,Harbor Card,"$2,235.00",12/01/1993,12/20/1993,Credit,Liability,Active,05/01/1992
-135,12/20/1993,1993-12-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-019,Fidelity,"$11,800.00",12/01/1993,12/20/1993,Depository,Asset,Active,05/01/1992
-136,12/20/1993,1993-12-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-019,Vanguard,"$74,700.00",12/01/1993,12/20/1993,Investment,Asset,Active,05/01/1992
-137,12/20/1993,1993-12-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-019,Fidelity,"$177,000.00",12/01/1993,12/20/1993,Investment,Asset,Active,05/01/1992
-138,12/20/1993,1993-12-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-019,Aurora Bank,"$216,000.00",12/01/1993,12/20/1993,Loan,Liability,Active,05/01/1992
-139,12/20/1993,1993-12-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-019,Aurora Bank,$0.00,12/01/1993,12/20/1993,Depository,Asset,Active,05/01/1992
-140,01/20/1994,1994-01-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-020,Aurora Bank,"$4,500.00",01/01/1994,01/17/1994,Depository,Asset,Active,05/01/1992
-141,01/20/1994,1994-01-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-020,Harbor Card,"$2,200.00",01/01/1994,01/17/1994,Credit,Liability,Active,05/01/1992
-142,01/20/1994,1994-01-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-020,Fidelity,"$12,000.00",01/01/1994,01/17/1994,Depository,Asset,Active,05/01/1992
-143,01/20/1994,1994-01-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-020,Vanguard,"$76,000.00",01/01/1994,01/17/1994,Investment,Asset,Active,05/01/1992
-144,01/20/1994,1994-01-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-020,Fidelity,"$180,000.00",01/01/1994,01/17/1994,Investment,Asset,Active,05/01/1992
-145,01/20/1994,1994-01-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-020,Aurora Bank,"$215,000.00",01/01/1994,01/17/1994,Loan,Liability,Active,05/01/1992
-146,01/20/1994,1994-01-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-020,Aurora Bank,$0.00,01/01/1994,01/17/1994,Depository,Asset,Active,05/01/1992
-147,02/20/1994,1994-02-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-021,Aurora Bank,"$4,600.00",02/01/1994,02/14/1994,Depository,Asset,Active,05/01/1992
-148,02/20/1994,1994-02-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-021,Harbor Card,"$2,165.00",02/01/1994,02/14/1994,Credit,Liability,Active,05/01/1992
-149,02/20/1994,1994-02-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-021,Fidelity,"$12,200.00",02/01/1994,02/14/1994,Depository,Asset,Active,05/01/1992
-150,02/20/1994,1994-02-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-021,Vanguard,"$77,300.00",02/01/1994,02/14/1994,Investment,Asset,Active,05/01/1992
-151,02/20/1994,1994-02-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-021,Fidelity,"$183,000.00",02/01/1994,02/14/1994,Investment,Asset,Active,05/01/1992
-152,02/20/1994,1994-02-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-021,Aurora Bank,"$214,000.00",02/01/1994,02/14/1994,Loan,Liability,Active,05/01/1992
-153,02/20/1994,1994-02-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-021,Aurora Bank,$0.00,02/01/1994,02/14/1994,Depository,Asset,Active,05/01/1992
-154,03/20/1994,1994-03-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-022,Aurora Bank,"$4,700.00",03/01/1994,03/14/1994,Depository,Asset,Active,05/01/1992
-155,03/20/1994,1994-03-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-022,Harbor Card,"$2,130.00",03/01/1994,03/14/1994,Credit,Liability,Active,05/01/1992
-156,03/20/1994,1994-03-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-022,Fidelity,"$12,400.00",03/01/1994,03/14/1994,Depository,Asset,Active,05/01/1992
-157,03/20/1994,1994-03-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-022,Vanguard,"$78,600.00",03/01/1994,03/14/1994,Investment,Asset,Active,05/01/1992
-158,03/20/1994,1994-03-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-022,Fidelity,"$186,000.00",03/01/1994,03/14/1994,Investment,Asset,Active,05/01/1992
-159,03/20/1994,1994-03-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-022,Aurora Bank,"$213,000.00",03/01/1994,03/14/1994,Loan,Liability,Active,05/01/1992
-160,03/20/1994,1994-03-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-022,Aurora Bank,$0.00,03/01/1994,03/14/1994,Depository,Asset,Active,05/01/1992
-161,04/20/1994,1994-04-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-023,Aurora Bank,"$4,800.00",04/01/1994,04/18/1994,Depository,Asset,Active,05/01/1992
-162,04/20/1994,1994-04-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-023,Harbor Card,"$2,095.00",04/01/1994,04/18/1994,Credit,Liability,Active,05/01/1992
-163,04/20/1994,1994-04-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-023,Fidelity,"$12,600.00",04/01/1994,04/18/1994,Depository,Asset,Active,05/01/1992
-164,04/20/1994,1994-04-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-023,Vanguard,"$79,900.00",04/01/1994,04/18/1994,Investment,Asset,Active,05/01/1992
-165,04/20/1994,1994-04-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-023,Fidelity,"$189,000.00",04/01/1994,04/18/1994,Investment,Asset,Active,05/01/1992
-166,04/20/1994,1994-04-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-023,Aurora Bank,"$212,000.00",04/01/1994,04/18/1994,Loan,Liability,Active,05/01/1992
-167,04/20/1994,1994-04-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-023,Aurora Bank,$0.00,04/01/1994,04/18/1994,Depository,Asset,Active,05/01/1992
-168,05/20/1994,1994-05-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-024,Aurora Bank,"$4,900.00",05/01/1994,05/16/1994,Depository,Asset,Active,05/01/1992
-169,05/20/1994,1994-05-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-024,Harbor Card,"$2,060.00",05/01/1994,05/16/1994,Credit,Liability,Active,05/01/1992
-170,05/20/1994,1994-05-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-024,Fidelity,"$12,800.00",05/01/1994,05/16/1994,Depository,Asset,Active,05/01/1992
-171,05/20/1994,1994-05-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-024,Vanguard,"$81,200.00",05/01/1994,05/16/1994,Investment,Asset,Active,05/01/1992
-172,05/20/1994,1994-05-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-024,Fidelity,"$192,000.00",05/01/1994,05/16/1994,Investment,Asset,Active,05/01/1992
-173,05/20/1994,1994-05-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-024,Aurora Bank,"$211,000.00",05/01/1994,05/16/1994,Loan,Liability,Active,05/01/1992
-174,05/20/1994,1994-05-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-024,Aurora Bank,$0.00,05/01/1994,05/16/1994,Depository,Asset,Active,05/01/1992
-175,06/20/1994,1994-06-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-025,Aurora Bank,"$5,000.00",06/01/1994,06/20/1994,Depository,Asset,Active,05/01/1992
-176,06/20/1994,1994-06-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-025,Harbor Card,"$2,025.00",06/01/1994,06/20/1994,Credit,Liability,Active,05/01/1992
-177,06/20/1994,1994-06-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-025,Fidelity,"$13,000.00",06/01/1994,06/20/1994,Depository,Asset,Active,05/01/1992
-178,06/20/1994,1994-06-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-025,Vanguard,"$82,500.00",06/01/1994,06/20/1994,Investment,Asset,Active,05/01/1992
-179,06/20/1994,1994-06-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-025,Fidelity,"$195,000.00",06/01/1994,06/20/1994,Investment,Asset,Active,05/01/1992
-180,06/20/1994,1994-06-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-025,Aurora Bank,"$210,000.00",06/01/1994,06/20/1994,Loan,Liability,Active,05/01/1992
-181,06/20/1994,1994-06-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-025,Aurora Bank,$0.00,06/01/1994,06/20/1994,Depository,Asset,Active,05/01/1992
-182,07/20/1994,1994-07-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-026,Aurora Bank,"$5,100.00",07/01/1994,07/18/1994,Depository,Asset,Active,05/01/1992
-183,07/20/1994,1994-07-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-026,Harbor Card,"$1,990.00",07/01/1994,07/18/1994,Credit,Liability,Active,05/01/1992
-184,07/20/1994,1994-07-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-026,Fidelity,"$13,200.00",07/01/1994,07/18/1994,Depository,Asset,Active,05/01/1992
-185,07/20/1994,1994-07-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-026,Vanguard,"$83,800.00",07/01/1994,07/18/1994,Investment,Asset,Active,05/01/1992
-186,07/20/1994,1994-07-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-026,Fidelity,"$198,000.00",07/01/1994,07/18/1994,Investment,Asset,Active,05/01/1992
-187,07/20/1994,1994-07-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-026,Aurora Bank,"$209,000.00",07/01/1994,07/18/1994,Loan,Liability,Active,05/01/1992
-188,07/20/1994,1994-07-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-026,Aurora Bank,$0.00,07/01/1994,07/18/1994,Depository,Asset,Active,05/01/1992
-189,08/20/1994,1994-08-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-027,Aurora Bank,"$5,200.00",08/01/1994,08/15/1994,Depository,Asset,Active,05/01/1992
-190,08/20/1994,1994-08-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-027,Harbor Card,"$1,955.00",08/01/1994,08/15/1994,Credit,Liability,Active,05/01/1992
-191,08/20/1994,1994-08-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-027,Fidelity,"$13,400.00",08/01/1994,08/15/1994,Depository,Asset,Active,05/01/1992
-192,08/20/1994,1994-08-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-027,Vanguard,"$85,100.00",08/01/1994,08/15/1994,Investment,Asset,Active,05/01/1992
-193,08/20/1994,1994-08-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-027,Fidelity,"$201,000.00",08/01/1994,08/15/1994,Investment,Asset,Active,05/01/1992
-194,08/20/1994,1994-08-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-027,Aurora Bank,"$208,000.00",08/01/1994,08/15/1994,Loan,Liability,Active,05/01/1992
-195,08/20/1994,1994-08-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-027,Aurora Bank,$0.00,08/01/1994,08/15/1994,Depository,Asset,Active,05/01/1992
-196,09/20/1994,1994-09-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-028,Aurora Bank,"$5,300.00",09/01/1994,09/19/1994,Depository,Asset,Active,05/01/1992
-197,09/20/1994,1994-09-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-028,Harbor Card,"$1,920.00",09/01/1994,09/19/1994,Credit,Liability,Active,05/01/1992
-198,09/20/1994,1994-09-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-028,Fidelity,"$13,600.00",09/01/1994,09/19/1994,Depository,Asset,Active,05/01/1992
-199,09/20/1994,1994-09-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-028,Vanguard,"$86,400.00",09/01/1994,09/19/1994,Investment,Asset,Active,05/01/1992
-200,09/20/1994,1994-09-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-028,Fidelity,"$204,000.00",09/01/1994,09/19/1994,Investment,Asset,Active,05/01/1992
-201,09/20/1994,1994-09-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-028,Aurora Bank,"$207,000.00",09/01/1994,09/19/1994,Loan,Liability,Active,05/01/1992
-202,09/20/1994,1994-09-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-028,Aurora Bank,$0.00,09/01/1994,09/19/1994,Depository,Asset,Active,05/01/1992
-203,10/20/1994,1994-10-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-029,Aurora Bank,"$5,400.00",10/01/1994,10/17/1994,Depository,Asset,Active,05/01/1992
-204,10/20/1994,1994-10-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-029,Harbor Card,"$1,885.00",10/01/1994,10/17/1994,Credit,Liability,Active,05/01/1992
-205,10/20/1994,1994-10-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-029,Fidelity,"$13,800.00",10/01/1994,10/17/1994,Depository,Asset,Active,05/01/1992
-206,10/20/1994,1994-10-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-029,Vanguard,"$87,700.00",10/01/1994,10/17/1994,Investment,Asset,Active,05/01/1992
-207,10/20/1994,1994-10-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-029,Fidelity,"$207,000.00",10/01/1994,10/17/1994,Investment,Asset,Active,05/01/1992
-208,10/20/1994,1994-10-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-029,Aurora Bank,"$206,000.00",10/01/1994,10/17/1994,Loan,Liability,Active,05/01/1992
-209,10/20/1994,1994-10-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-029,Aurora Bank,$0.00,10/01/1994,10/17/1994,Depository,Asset,Active,05/01/1992
-210,11/20/1994,1994-11-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-030,Aurora Bank,"$5,500.00",11/01/1994,11/14/1994,Depository,Asset,Active,05/01/1992
-211,11/20/1994,1994-11-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-030,Harbor Card,"$1,850.00",11/01/1994,11/14/1994,Credit,Liability,Active,05/01/1992
-212,11/20/1994,1994-11-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-030,Fidelity,"$14,000.00",11/01/1994,11/14/1994,Depository,Asset,Active,05/01/1992
-213,11/20/1994,1994-11-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-030,Vanguard,"$89,000.00",11/01/1994,11/14/1994,Investment,Asset,Active,05/01/1992
-214,11/20/1994,1994-11-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-030,Fidelity,"$210,000.00",11/01/1994,11/14/1994,Investment,Asset,Active,05/01/1992
-215,11/20/1994,1994-11-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-030,Aurora Bank,"$205,000.00",11/01/1994,11/14/1994,Loan,Liability,Active,05/01/1992
-216,11/20/1994,1994-11-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-030,Aurora Bank,$0.00,11/01/1994,11/14/1994,Depository,Asset,Active,05/01/1992
-217,12/20/1994,1994-12-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-031,Aurora Bank,"$5,600.00",12/01/1994,12/19/1994,Depository,Asset,Active,05/01/1992
-218,12/20/1994,1994-12-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-031,Harbor Card,"$1,815.00",12/01/1994,12/19/1994,Credit,Liability,Active,05/01/1992
-219,12/20/1994,1994-12-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-031,Fidelity,"$14,200.00",12/01/1994,12/19/1994,Depository,Asset,Active,05/01/1992
-220,12/20/1994,1994-12-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-031,Vanguard,"$90,300.00",12/01/1994,12/19/1994,Investment,Asset,Active,05/01/1992
-221,12/20/1994,1994-12-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-031,Fidelity,"$213,000.00",12/01/1994,12/19/1994,Investment,Asset,Active,05/01/1992
-222,12/20/1994,1994-12-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-031,Aurora Bank,"$204,000.00",12/01/1994,12/19/1994,Loan,Liability,Active,05/01/1992
-223,12/20/1994,1994-12-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-031,Aurora Bank,$0.00,12/01/1994,12/19/1994,Depository,Asset,Active,05/01/1992
-224,01/20/1995,1995-01-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-032,Aurora Bank,"$5,700.00",01/01/1995,01/16/1995,Depository,Asset,Active,05/01/1992
-225,01/20/1995,1995-01-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-032,Harbor Card,"$1,780.00",01/01/1995,01/16/1995,Credit,Liability,Active,05/01/1992
-226,01/20/1995,1995-01-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-032,Fidelity,"$14,400.00",01/01/1995,01/16/1995,Depository,Asset,Active,05/01/1992
-227,01/20/1995,1995-01-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-032,Vanguard,"$91,600.00",01/01/1995,01/16/1995,Investment,Asset,Active,05/01/1992
-228,01/20/1995,1995-01-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-032,Fidelity,"$216,000.00",01/01/1995,01/16/1995,Investment,Asset,Active,05/01/1992
-229,01/20/1995,1995-01-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-032,Aurora Bank,"$203,000.00",01/01/1995,01/16/1995,Loan,Liability,Active,05/01/1992
-230,01/20/1995,1995-01-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-032,Aurora Bank,$0.00,01/01/1995,01/16/1995,Depository,Asset,Active,05/01/1992
-231,02/20/1995,1995-02-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-033,Aurora Bank,"$5,800.00",02/01/1995,02/20/1995,Depository,Asset,Active,05/01/1992
-232,02/20/1995,1995-02-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-033,Harbor Card,"$1,745.00",02/01/1995,02/20/1995,Credit,Liability,Active,05/01/1992
-233,02/20/1995,1995-02-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-033,Fidelity,"$14,600.00",02/01/1995,02/20/1995,Depository,Asset,Active,05/01/1992
-234,02/20/1995,1995-02-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-033,Vanguard,"$92,900.00",02/01/1995,02/20/1995,Investment,Asset,Active,05/01/1992
-235,02/20/1995,1995-02-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-033,Fidelity,"$219,000.00",02/01/1995,02/20/1995,Investment,Asset,Active,05/01/1992
-236,02/20/1995,1995-02-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-033,Aurora Bank,"$202,000.00",02/01/1995,02/20/1995,Loan,Liability,Active,05/01/1992
-237,02/20/1995,1995-02-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-033,Aurora Bank,$0.00,02/01/1995,02/20/1995,Depository,Asset,Active,05/01/1992
-238,03/20/1995,1995-03-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-034,Aurora Bank,"$5,900.00",03/01/1995,03/20/1995,Depository,Asset,Active,05/01/1992
-239,03/20/1995,1995-03-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-034,Harbor Card,"$1,710.00",03/01/1995,03/20/1995,Credit,Liability,Active,05/01/1992
-240,03/20/1995,1995-03-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-034,Fidelity,"$14,800.00",03/01/1995,03/20/1995,Depository,Asset,Active,05/01/1992
-241,03/20/1995,1995-03-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-034,Vanguard,"$94,200.00",03/01/1995,03/20/1995,Investment,Asset,Active,05/01/1992
-242,03/20/1995,1995-03-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-034,Fidelity,"$222,000.00",03/01/1995,03/20/1995,Investment,Asset,Active,05/01/1992
-243,03/20/1995,1995-03-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-034,Aurora Bank,"$201,000.00",03/01/1995,03/20/1995,Loan,Liability,Active,05/01/1992
-244,03/20/1995,1995-03-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-034,Aurora Bank,$0.00,03/01/1995,03/20/1995,Depository,Asset,Active,05/01/1992
-245,04/20/1995,1995-04-20 08:00:00,Checking-B,xxxx1001,acct000000000000AB01,bal-checking-b-035,Aurora Bank,"$6,000.00",04/01/1995,04/17/1995,Depository,Asset,Active,05/01/1992
-246,04/20/1995,1995-04-20 08:00:00,Credit-H,xxxx2002,acct000000000000CD02,bal-credit-h-035,Harbor Card,"$1,675.00",04/01/1995,04/17/1995,Credit,Liability,Active,05/01/1992
-247,04/20/1995,1995-04-20 08:00:00,HSA,xxxx3003,acct000000000000EF03,bal-hsa-035,Fidelity,"$15,000.00",04/01/1995,04/17/1995,Depository,Asset,Active,05/01/1992
-248,04/20/1995,1995-04-20 08:00:00,Individual Brokerage,xxxx4004,acct000000000000GH04,bal-individual-brokerage-035,Vanguard,"$95,500.00",04/01/1995,04/17/1995,Investment,Asset,Active,05/01/1992
-249,04/20/1995,1995-04-20 08:00:00,Corp IRA,xxxx5005,acct000000000000IJ05,bal-corp-ira-035,Fidelity,"$225,000.00",04/01/1995,04/17/1995,Investment,Asset,Active,05/01/1992
-250,04/20/1995,1995-04-20 08:00:00,Mortgage,xxxx6006,acct000000000000KL06,bal-mortgage-035,Aurora Bank,"$200,000.00",04/01/1995,04/17/1995,Loan,Liability,Active,05/01/1992
-251,04/20/1995,1995-04-20 08:00:00,ZeroSum-A,xxxx0001,acct000000000000ZS01,bal-zerosum-a-035,Aurora Bank,$0.00,04/01/1995,04/17/1995,Depository,Asset,Active,05/01/1992
+0,05/20/1992,1992-05-20 08:00:00,Main Checking,xxxx1001,demo-account-MC01,bal-demo-account-mc01-000,Aurora Bank,"$3,380.00",05/01/1992,05/18/1992,Depository,Asset,Active,05/01/1992
+1,05/20/1992,1992-05-20 08:00:00,Emergency Savings,xxxx1002,demo-account-ES02,bal-demo-account-es02-000,Aurora Bank,"$7,400.00",05/01/1992,05/18/1992,Depository,Asset,Active,05/01/1992
+2,05/20/1992,1992-05-20 08:00:00,Travel Fund,xxxx1003,demo-account-TF03,bal-demo-account-tf03-000,Aurora Bank,"$1,750.00",05/01/1992,05/18/1992,Depository,Asset,Active,05/01/1992
+3,05/20/1992,1992-05-20 08:00:00,Everyday Card,xxxx2001,demo-account-EC04,bal-demo-account-ec04-000,Harbor Card,"$1,570.00",05/01/1992,05/18/1992,Credit,Liability,Active,05/01/1992
+4,05/20/1992,1992-05-20 08:00:00,Travel Rewards Card,xxxx2002,demo-account-TR05,bal-demo-account-tr05-000,Harbor Card,$970.00,05/01/1992,05/18/1992,Credit,Liability,Active,05/01/1992
+5,05/20/1992,1992-05-20 08:00:00,Brokerage Account,xxxx3001,demo-account-BA06,bal-demo-account-ba06-000,Northstar Investments,"$60,400.00",05/01/1992,05/18/1992,Investment,Asset,Active,05/01/1992
+6,05/20/1992,1992-05-20 08:00:00,Health Savings Account,xxxx3002,demo-account-HS07,bal-demo-account-hs07-000,Northstar Investments,"$6,260.00",05/01/1992,05/18/1992,Depository,Asset,Active,05/01/1992
+7,05/20/1992,1992-05-20 08:00:00,Education Fund,xxxx3003,demo-account-EF08,bal-demo-account-ef08-000,Northstar Investments,"$12,450.00",05/01/1992,05/18/1992,Investment,Asset,Active,05/01/1992
+8,05/20/1992,1992-05-20 08:00:00,Workplace 401(k),xxxx4001,demo-account-WK09,bal-demo-account-wk09-000,Northstar Investments,"$91,200.00",05/01/1992,05/18/1992,Investment,Asset,Active,05/01/1992
+9,05/20/1992,1992-05-20 08:00:00,Roth IRA,xxxx4002,demo-account-RI10,bal-demo-account-ri10-000,Northstar Investments,"$21,350.00",05/01/1992,05/18/1992,Investment,Asset,Active,05/01/1992
+10,05/20/1992,1992-05-20 08:00:00,Home Loan,xxxx5001,demo-account-HL11,bal-demo-account-hl11-000,Aurora Bank,"$170,120.00",05/01/1992,05/18/1992,Loan,Liability,Active,05/01/1992
+11,05/20/1992,1992-05-20 08:00:00,Auto Loan,xxxx5002,demo-account-AL12,bal-demo-account-al12-000,Aurora Bank,"$12,060.00",05/01/1992,05/18/1992,Loan,Liability,Active,05/01/1992
+12,06/20/1992,1992-06-20 08:00:00,Main Checking,xxxx1001,demo-account-MC01,bal-demo-account-mc01-001,Aurora Bank,"$4,105.00",06/01/1992,06/15/1992,Depository,Asset,Active,05/01/1992
+13,06/20/1992,1992-06-20 08:00:00,Emergency Savings,xxxx1002,demo-account-ES02,bal-demo-account-es02-001,Aurora Bank,"$9,600.00",06/01/1992,06/15/1992,Depository,Asset,Active,05/01/1992
+14,06/20/1992,1992-06-20 08:00:00,Travel Fund,xxxx1003,demo-account-TF03,bal-demo-account-tf03-001,Aurora Bank,"$3,455.00",06/01/1992,06/15/1992,Depository,Asset,Active,05/01/1992
+15,06/20/1992,1992-06-20 08:00:00,Everyday Card,xxxx2001,demo-account-EC04,bal-demo-account-ec04-001,Harbor Card,$970.00,06/01/1992,06/15/1992,Credit,Liability,Active,05/01/1992
+16,06/20/1992,1992-06-20 08:00:00,Travel Rewards Card,xxxx2002,demo-account-TR05,bal-demo-account-tr05-001,Harbor Card,"$1,240.00",06/01/1992,06/15/1992,Credit,Liability,Active,05/01/1992
+17,06/20/1992,1992-06-20 08:00:00,Brokerage Account,xxxx3001,demo-account-BA06,bal-demo-account-ba06-001,Northstar Investments,"$66,960.00",06/01/1992,06/15/1992,Investment,Asset,Active,05/01/1992
+18,06/20/1992,1992-06-20 08:00:00,Health Savings Account,xxxx3002,demo-account-HS07,bal-demo-account-hs07-001,Northstar Investments,"$7,255.00",06/01/1992,06/15/1992,Depository,Asset,Active,05/01/1992
+19,06/20/1992,1992-06-20 08:00:00,Education Fund,xxxx3003,demo-account-EF08,bal-demo-account-ef08-001,Northstar Investments,"$14,370.00",06/01/1992,06/15/1992,Investment,Asset,Active,05/01/1992
+20,06/20/1992,1992-06-20 08:00:00,Workplace 401(k),xxxx4001,demo-account-WK09,bal-demo-account-wk09-001,Northstar Investments,"$99,550.00",06/01/1992,06/15/1992,Investment,Asset,Active,05/01/1992
+21,06/20/1992,1992-06-20 08:00:00,Roth IRA,xxxx4002,demo-account-RI10,bal-demo-account-ri10-001,Northstar Investments,"$23,440.00",06/01/1992,06/15/1992,Investment,Asset,Active,05/01/1992
+22,06/20/1992,1992-06-20 08:00:00,Home Loan,xxxx5001,demo-account-HL11,bal-demo-account-hl11-001,Aurora Bank,"$169,305.00",06/01/1992,06/15/1992,Loan,Liability,Active,05/01/1992
+23,06/20/1992,1992-06-20 08:00:00,Auto Loan,xxxx5002,demo-account-AL12,bal-demo-account-al12-001,Aurora Bank,"$11,385.00",06/01/1992,06/15/1992,Loan,Liability,Active,05/01/1992
+24,07/20/1992,1992-07-20 08:00:00,Main Checking,xxxx1001,demo-account-MC01,bal-demo-account-mc01-002,Aurora Bank,"$3,710.00",07/01/1992,07/20/1992,Depository,Asset,Active,05/01/1992
+25,07/20/1992,1992-07-20 08:00:00,Emergency Savings,xxxx1002,demo-account-ES02,bal-demo-account-es02-002,Aurora Bank,"$8,600.00",07/01/1992,07/20/1992,Depository,Asset,Active,05/01/1992
+26,07/20/1992,1992-07-20 08:00:00,Travel Fund,xxxx1003,demo-account-TF03,bal-demo-account-tf03-002,Aurora Bank,"$2,310.00",07/01/1992,07/20/1992,Depository,Asset,Active,05/01/1992
+27,07/20/1992,1992-07-20 08:00:00,Everyday Card,xxxx2001,demo-account-EC04,bal-demo-account-ec04-002,Harbor Card,"$1,840.00",07/01/1992,07/20/1992,Credit,Liability,Active,05/01/1992
+28,07/20/1992,1992-07-20 08:00:00,Travel Rewards Card,xxxx2002,demo-account-TR05,bal-demo-account-tr05-002,Harbor Card,$630.00,07/01/1992,07/20/1992,Credit,Liability,Active,05/01/1992
+29,07/20/1992,1992-07-20 08:00:00,Brokerage Account,xxxx3001,demo-account-BA06,bal-demo-account-ba06-002,Northstar Investments,"$64,020.00",07/01/1992,07/20/1992,Investment,Asset,Active,05/01/1992
+30,07/20/1992,1992-07-20 08:00:00,Health Savings Account,xxxx3002,demo-account-HS07,bal-demo-account-hs07-002,Northstar Investments,"$6,990.00",07/01/1992,07/20/1992,Depository,Asset,Active,05/01/1992
+31,07/20/1992,1992-07-20 08:00:00,Education Fund,xxxx3003,demo-account-EF08,bal-demo-account-ef08-002,Northstar Investments,"$13,570.00",07/01/1992,07/20/1992,Investment,Asset,Active,05/01/1992
+32,07/20/1992,1992-07-20 08:00:00,Workplace 401(k),xxxx4001,demo-account-WK09,bal-demo-account-wk09-002,Northstar Investments,"$96,000.00",07/01/1992,07/20/1992,Investment,Asset,Active,05/01/1992
+33,07/20/1992,1992-07-20 08:00:00,Roth IRA,xxxx4002,demo-account-RI10,bal-demo-account-ri10-002,Northstar Investments,"$22,400.00",07/01/1992,07/20/1992,Investment,Asset,Active,05/01/1992
+34,07/20/1992,1992-07-20 08:00:00,Home Loan,xxxx5001,demo-account-HL11,bal-demo-account-hl11-002,Aurora Bank,"$168,835.00",07/01/1992,07/20/1992,Loan,Liability,Active,05/01/1992
+35,07/20/1992,1992-07-20 08:00:00,Auto Loan,xxxx5002,demo-account-AL12,bal-demo-account-al12-002,Aurora Bank,"$11,450.00",07/01/1992,07/20/1992,Loan,Liability,Active,05/01/1992
+36,08/20/1992,1992-08-20 08:00:00,Main Checking,xxxx1001,demo-account-MC01,bal-demo-account-mc01-003,Aurora Bank,"$4,275.00",08/01/1992,08/17/1992,Depository,Asset,Active,05/01/1992
+37,08/20/1992,1992-08-20 08:00:00,Emergency Savings,xxxx1002,demo-account-ES02,bal-demo-account-es02-003,Aurora Bank,"$10,360.00",08/01/1992,08/17/1992,Depository,Asset,Active,05/01/1992
+38,08/20/1992,1992-08-20 08:00:00,Travel Fund,xxxx1003,demo-account-TF03,bal-demo-account-tf03-003,Aurora Bank,"$3,245.00",08/01/1992,08/17/1992,Depository,Asset,Active,05/01/1992
+39,08/20/1992,1992-08-20 08:00:00,Everyday Card,xxxx2001,demo-account-EC04,bal-demo-account-ec04-003,Harbor Card,$920.00,08/01/1992,08/17/1992,Credit,Liability,Active,05/01/1992
+40,08/20/1992,1992-08-20 08:00:00,Travel Rewards Card,xxxx2002,demo-account-TR05,bal-demo-account-tr05-003,Harbor Card,"$1,480.00",08/01/1992,08/17/1992,Credit,Liability,Active,05/01/1992
+41,08/20/1992,1992-08-20 08:00:00,Brokerage Account,xxxx3001,demo-account-BA06,bal-demo-account-ba06-003,Northstar Investments,"$70,080.00",08/01/1992,08/17/1992,Investment,Asset,Active,05/01/1992
+42,08/20/1992,1992-08-20 08:00:00,Health Savings Account,xxxx3002,demo-account-HS07,bal-demo-account-hs07-003,Northstar Investments,"$7,785.00",08/01/1992,08/17/1992,Depository,Asset,Active,05/01/1992
+43,08/20/1992,1992-08-20 08:00:00,Education Fund,xxxx3003,demo-account-EF08,bal-demo-account-ef08-003,Northstar Investments,"$15,090.00",08/01/1992,08/17/1992,Investment,Asset,Active,05/01/1992
+44,08/20/1992,1992-08-20 08:00:00,Workplace 401(k),xxxx4001,demo-account-WK09,bal-demo-account-wk09-003,Northstar Investments,"$105,650.00",08/01/1992,08/17/1992,Investment,Asset,Active,05/01/1992
+45,08/20/1992,1992-08-20 08:00:00,Roth IRA,xxxx4002,demo-account-RI10,bal-demo-account-ri10-003,Northstar Investments,"$24,720.00",08/01/1992,08/17/1992,Investment,Asset,Active,05/01/1992
+46,08/20/1992,1992-08-20 08:00:00,Home Loan,xxxx5001,demo-account-HL11,bal-demo-account-hl11-003,Aurora Bank,"$168,015.00",08/01/1992,08/17/1992,Loan,Liability,Active,05/01/1992
+47,08/20/1992,1992-08-20 08:00:00,Auto Loan,xxxx5002,demo-account-AL12,bal-demo-account-al12-003,Aurora Bank,"$10,855.00",08/01/1992,08/17/1992,Loan,Liability,Active,05/01/1992
+48,09/20/1992,1992-09-20 08:00:00,Main Checking,xxxx1001,demo-account-MC01,bal-demo-account-mc01-004,Aurora Bank,"$3,700.00",09/01/1992,09/14/1992,Depository,Asset,Active,05/01/1992
+49,09/20/1992,1992-09-20 08:00:00,Emergency Savings,xxxx1002,demo-account-ES02,bal-demo-account-es02-004,Aurora Bank,"$8,880.00",09/01/1992,09/14/1992,Depository,Asset,Active,05/01/1992
+50,09/20/1992,1992-09-20 08:00:00,Travel Fund,xxxx1003,demo-account-TF03,bal-demo-account-tf03-004,Aurora Bank,"$2,220.00",09/01/1992,09/14/1992,Depository,Asset,Active,05/01/1992
+51,09/20/1992,1992-09-20 08:00:00,Everyday Card,xxxx2001,demo-account-EC04,bal-demo-account-ec04-004,Harbor Card,"$1,460.00",09/01/1992,09/14/1992,Credit,Liability,Active,05/01/1992
+52,09/20/1992,1992-09-20 08:00:00,Travel Rewards Card,xxxx2002,demo-account-TR05,bal-demo-account-tr05-004,Harbor Card,$520.00,09/01/1992,09/14/1992,Credit,Liability,Active,05/01/1992
+53,09/20/1992,1992-09-20 08:00:00,Brokerage Account,xxxx3001,demo-account-BA06,bal-demo-account-ba06-004,Northstar Investments,"$64,340.00",09/01/1992,09/14/1992,Investment,Asset,Active,05/01/1992
+54,09/20/1992,1992-09-20 08:00:00,Health Savings Account,xxxx3002,demo-account-HS07,bal-demo-account-hs07-004,Northstar Investments,"$7,180.00",09/01/1992,09/14/1992,Depository,Asset,Active,05/01/1992
+55,09/20/1992,1992-09-20 08:00:00,Education Fund,xxxx3003,demo-account-EF08,bal-demo-account-ef08-004,Northstar Investments,"$13,660.00",09/01/1992,09/14/1992,Investment,Asset,Active,05/01/1992
+56,09/20/1992,1992-09-20 08:00:00,Workplace 401(k),xxxx4001,demo-account-WK09,bal-demo-account-wk09-004,Northstar Investments,"$98,100.00",09/01/1992,09/14/1992,Investment,Asset,Active,05/01/1992
+57,09/20/1992,1992-09-20 08:00:00,Roth IRA,xxxx4002,demo-account-RI10,bal-demo-account-ri10-004,Northstar Investments,"$22,890.00",09/01/1992,09/14/1992,Investment,Asset,Active,05/01/1992
+58,09/20/1992,1992-09-20 08:00:00,Home Loan,xxxx5001,demo-account-HL11,bal-demo-account-hl11-004,Aurora Bank,"$167,560.00",09/01/1992,09/14/1992,Loan,Liability,Active,05/01/1992
+59,09/20/1992,1992-09-20 08:00:00,Auto Loan,xxxx5002,demo-account-AL12,bal-demo-account-al12-004,Aurora Bank,"$10,940.00",09/01/1992,09/14/1992,Loan,Liability,Active,05/01/1992
+60,10/20/1992,1992-10-20 08:00:00,Main Checking,xxxx1001,demo-account-MC01,bal-demo-account-mc01-005,Aurora Bank,"$4,435.00",10/01/1992,10/19/1992,Depository,Asset,Active,05/01/1992
+61,10/20/1992,1992-10-20 08:00:00,Emergency Savings,xxxx1002,demo-account-ES02,bal-demo-account-es02-005,Aurora Bank,"$10,330.00",10/01/1992,10/19/1992,Depository,Asset,Active,05/01/1992
+62,10/20/1992,1992-10-20 08:00:00,Travel Fund,xxxx1003,demo-account-TF03,bal-demo-account-tf03-005,Aurora Bank,"$3,915.00",10/01/1992,10/19/1992,Depository,Asset,Active,05/01/1992
+63,10/20/1992,1992-10-20 08:00:00,Everyday Card,xxxx2001,demo-account-EC04,bal-demo-account-ec04-005,Harbor Card,$670.00,10/01/1992,10/19/1992,Credit,Liability,Active,05/01/1992
+64,10/20/1992,1992-10-20 08:00:00,Travel Rewards Card,xxxx2002,demo-account-TR05,bal-demo-account-tr05-005,Harbor Card,"$1,070.00",10/01/1992,10/19/1992,Credit,Liability,Active,05/01/1992
+65,10/20/1992,1992-10-20 08:00:00,Brokerage Account,xxxx3001,demo-account-BA06,bal-demo-account-ba06-005,Northstar Investments,"$68,900.00",10/01/1992,10/19/1992,Investment,Asset,Active,05/01/1992
+66,10/20/1992,1992-10-20 08:00:00,Health Savings Account,xxxx3002,demo-account-HS07,bal-demo-account-hs07-005,Northstar Investments,"$7,915.00",10/01/1992,10/19/1992,Depository,Asset,Active,05/01/1992
+67,10/20/1992,1992-10-20 08:00:00,Education Fund,xxxx3003,demo-account-EF08,bal-demo-account-ef08-005,Northstar Investments,"$15,130.00",10/01/1992,10/19/1992,Investment,Asset,Active,05/01/1992
+68,10/20/1992,1992-10-20 08:00:00,Workplace 401(k),xxxx4001,demo-account-WK09,bal-demo-account-wk09-005,Northstar Investments,"$104,850.00",10/01/1992,10/19/1992,Investment,Asset,Active,05/01/1992
+69,10/20/1992,1992-10-20 08:00:00,Roth IRA,xxxx4002,demo-account-RI10,bal-demo-account-ri10-005,Northstar Investments,"$24,530.00",10/01/1992,10/19/1992,Investment,Asset,Active,05/01/1992
+70,10/20/1992,1992-10-20 08:00:00,Home Loan,xxxx5001,demo-account-HL11,bal-demo-account-hl11-005,Aurora Bank,"$166,835.00",10/01/1992,10/19/1992,Loan,Liability,Active,05/01/1992
+71,10/20/1992,1992-10-20 08:00:00,Auto Loan,xxxx5002,demo-account-AL12,bal-demo-account-al12-005,Aurora Bank,"$10,525.00",10/01/1992,10/19/1992,Loan,Liability,Active,05/01/1992
+72,11/20/1992,1992-11-20 08:00:00,Main Checking,xxxx1001,demo-account-MC01,bal-demo-account-mc01-006,Aurora Bank,"$3,940.00",11/01/1992,11/16/1992,Depository,Asset,Active,05/01/1992
+73,11/20/1992,1992-11-20 08:00:00,Emergency Savings,xxxx1002,demo-account-ES02,bal-demo-account-es02-006,Aurora Bank,"$11,210.00",11/01/1992,11/16/1992,Depository,Asset,Active,05/01/1992
+74,11/20/1992,1992-11-20 08:00:00,Travel Fund,xxxx1003,demo-account-TF03,bal-demo-account-tf03-006,Aurora Bank,"$2,890.00",11/01/1992,11/16/1992,Depository,Asset,Active,05/01/1992
+75,11/20/1992,1992-11-20 08:00:00,Everyday Card,xxxx2001,demo-account-EC04,bal-demo-account-ec04-006,Harbor Card,"$1,680.00",11/01/1992,11/16/1992,Credit,Liability,Active,05/01/1992
+76,11/20/1992,1992-11-20 08:00:00,Travel Rewards Card,xxxx2002,demo-account-TR05,bal-demo-account-tr05-006,Harbor Card,"$1,320.00",11/01/1992,11/16/1992,Credit,Liability,Active,05/01/1992
+77,11/20/1992,1992-11-20 08:00:00,Brokerage Account,xxxx3001,demo-account-BA06,bal-demo-account-ba06-006,Northstar Investments,"$72,660.00",11/01/1992,11/16/1992,Investment,Asset,Active,05/01/1992
+78,11/20/1992,1992-11-20 08:00:00,Health Savings Account,xxxx3002,demo-account-HS07,bal-demo-account-hs07-006,Northstar Investments,"$8,440.00",11/01/1992,11/16/1992,Depository,Asset,Active,05/01/1992
+79,11/20/1992,1992-11-20 08:00:00,Education Fund,xxxx3003,demo-account-EF08,bal-demo-account-ef08-006,Northstar Investments,"$16,010.00",11/01/1992,11/16/1992,Investment,Asset,Active,05/01/1992
+80,11/20/1992,1992-11-20 08:00:00,Workplace 401(k),xxxx4001,demo-account-WK09,bal-demo-account-wk09-006,Northstar Investments,"$109,400.00",11/01/1992,11/16/1992,Investment,Asset,Active,05/01/1992
+81,11/20/1992,1992-11-20 08:00:00,Roth IRA,xxxx4002,demo-account-RI10,bal-demo-account-ri10-006,Northstar Investments,"$25,900.00",11/01/1992,11/16/1992,Investment,Asset,Active,05/01/1992
+82,11/20/1992,1992-11-20 08:00:00,Home Loan,xxxx5001,demo-account-HL11,bal-demo-account-hl11-006,Aurora Bank,"$166,370.00",11/01/1992,11/16/1992,Loan,Liability,Active,05/01/1992
+83,11/20/1992,1992-11-20 08:00:00,Auto Loan,xxxx5002,demo-account-AL12,bal-demo-account-al12-006,Aurora Bank,"$10,650.00",11/01/1992,11/16/1992,Loan,Liability,Active,05/01/1992
+84,12/20/1992,1992-12-20 08:00:00,Main Checking,xxxx1001,demo-account-MC01,bal-demo-account-mc01-007,Aurora Bank,"$4,295.00",12/01/1992,12/14/1992,Depository,Asset,Active,05/01/1992
+85,12/20/1992,1992-12-20 08:00:00,Emergency Savings,xxxx1002,demo-account-ES02,bal-demo-account-es02-007,Aurora Bank,"$10,140.00",12/01/1992,12/14/1992,Depository,Asset,Active,05/01/1992
+86,12/20/1992,1992-12-20 08:00:00,Travel Fund,xxxx1003,demo-account-TF03,bal-demo-account-tf03-007,Aurora Bank,"$3,695.00",12/01/1992,12/14/1992,Depository,Asset,Active,05/01/1992
+87,12/20/1992,1992-12-20 08:00:00,Everyday Card,xxxx2001,demo-account-EC04,bal-demo-account-ec04-007,Harbor Card,"$1,030.00",12/01/1992,12/14/1992,Credit,Liability,Active,05/01/1992
+88,12/20/1992,1992-12-20 08:00:00,Travel Rewards Card,xxxx2002,demo-account-TR05,bal-demo-account-tr05-007,Harbor Card,$570.00,12/01/1992,12/14/1992,Credit,Liability,Active,05/01/1992
+89,12/20/1992,1992-12-20 08:00:00,Brokerage Account,xxxx3001,demo-account-BA06,bal-demo-account-ba06-007,Northstar Investments,"$68,520.00",12/01/1992,12/14/1992,Investment,Asset,Active,05/01/1992
+90,12/20/1992,1992-12-20 08:00:00,Health Savings Account,xxxx3002,demo-account-HS07,bal-demo-account-hs07-007,Northstar Investments,"$7,485.00",12/01/1992,12/14/1992,Depository,Asset,Active,05/01/1992
+91,12/20/1992,1992-12-20 08:00:00,Education Fund,xxxx3003,demo-account-EF08,bal-demo-account-ef08-007,Northstar Investments,"$14,850.00",12/01/1992,12/14/1992,Investment,Asset,Active,05/01/1992
+92,12/20/1992,1992-12-20 08:00:00,Workplace 401(k),xxxx4001,demo-account-WK09,bal-demo-account-wk09-007,Northstar Investments,"$104,950.00",12/01/1992,12/14/1992,Investment,Asset,Active,05/01/1992
+93,12/20/1992,1992-12-20 08:00:00,Roth IRA,xxxx4002,demo-account-RI10,bal-demo-account-ri10-007,Northstar Investments,"$23,590.00",12/01/1992,12/14/1992,Investment,Asset,Active,05/01/1992
+94,12/20/1992,1992-12-20 08:00:00,Home Loan,xxxx5001,demo-account-HL11,bal-demo-account-hl11-007,Aurora Bank,"$165,555.00",12/01/1992,12/14/1992,Loan,Liability,Active,05/01/1992
+95,12/20/1992,1992-12-20 08:00:00,Auto Loan,xxxx5002,demo-account-AL12,bal-demo-account-al12-007,Aurora Bank,"$9,975.00",12/01/1992,12/14/1992,Loan,Liability,Active,05/01/1992
+96,01/20/1993,1993-01-20 08:00:00,Main Checking,xxxx1001,demo-account-MC01,bal-demo-account-mc01-008,Aurora Bank,"$3,740.00",01/01/1993,01/18/1993,Depository,Asset,Active,05/01/1992
+97,01/20/1993,1993-01-20 08:00:00,Emergency Savings,xxxx1002,demo-account-ES02,bal-demo-account-es02-008,Aurora Bank,"$9,480.00",01/01/1993,01/18/1993,Depository,Asset,Active,05/01/1992
+98,01/20/1993,1993-01-20 08:00:00,Travel Fund,xxxx1003,demo-account-TF03,bal-demo-account-tf03-008,Aurora Bank,"$2,350.00",01/01/1993,01/18/1993,Depository,Asset,Active,05/01/1992
+99,01/20/1993,1993-01-20 08:00:00,Everyday Card,xxxx2001,demo-account-EC04,bal-demo-account-ec04-008,Harbor Card,"$1,570.00",01/01/1993,01/18/1993,Credit,Liability,Active,05/01/1992
+100,01/20/1993,1993-01-20 08:00:00,Travel Rewards Card,xxxx2002,demo-account-TR05,bal-demo-account-tr05-008,Harbor Card,$970.00,01/01/1993,01/18/1993,Credit,Liability,Active,05/01/1992
+101,01/20/1993,1993-01-20 08:00:00,Brokerage Account,xxxx3001,demo-account-BA06,bal-demo-account-ba06-008,Northstar Investments,"$72,680.00",01/01/1993,01/18/1993,Investment,Asset,Active,05/01/1992
+102,01/20/1993,1993-01-20 08:00:00,Health Savings Account,xxxx3002,demo-account-HS07,bal-demo-account-hs07-008,Northstar Investments,"$8,480.00",01/01/1993,01/18/1993,Depository,Asset,Active,05/01/1992
+103,01/20/1993,1993-01-20 08:00:00,Education Fund,xxxx3003,demo-account-EF08,bal-demo-account-ef08-008,Northstar Investments,"$14,290.00",01/01/1993,01/18/1993,Investment,Asset,Active,05/01/1992
+104,01/20/1993,1993-01-20 08:00:00,Workplace 401(k),xxxx4001,demo-account-WK09,bal-demo-account-wk09-008,Northstar Investments,"$102,800.00",01/01/1993,01/18/1993,Investment,Asset,Active,05/01/1992
+105,01/20/1993,1993-01-20 08:00:00,Roth IRA,xxxx4002,demo-account-RI10,bal-demo-account-ri10-008,Northstar Investments,"$25,680.00",01/01/1993,01/18/1993,Investment,Asset,Active,05/01/1992
+106,01/20/1993,1993-01-20 08:00:00,Home Loan,xxxx5001,demo-account-HL11,bal-demo-account-hl11-008,Aurora Bank,"$165,085.00",01/01/1993,01/18/1993,Loan,Liability,Active,05/01/1992
+107,01/20/1993,1993-01-20 08:00:00,Auto Loan,xxxx5002,demo-account-AL12,bal-demo-account-al12-008,Aurora Bank,"$10,040.00",01/01/1993,01/18/1993,Loan,Liability,Active,05/01/1992
+108,02/20/1993,1993-02-20 08:00:00,Main Checking,xxxx1001,demo-account-MC01,bal-demo-account-mc01-009,Aurora Bank,"$4,465.00",02/01/1993,02/15/1993,Depository,Asset,Active,05/01/1992
+109,02/20/1993,1993-02-20 08:00:00,Emergency Savings,xxxx1002,demo-account-ES02,bal-demo-account-es02-009,Aurora Bank,"$11,680.00",02/01/1993,02/15/1993,Depository,Asset,Active,05/01/1992
+110,02/20/1993,1993-02-20 08:00:00,Travel Fund,xxxx1003,demo-account-TF03,bal-demo-account-tf03-009,Aurora Bank,"$4,055.00",02/01/1993,02/15/1993,Depository,Asset,Active,05/01/1992
+111,02/20/1993,1993-02-20 08:00:00,Everyday Card,xxxx2001,demo-account-EC04,bal-demo-account-ec04-009,Harbor Card,$970.00,02/01/1993,02/15/1993,Credit,Liability,Active,05/01/1992
+112,02/20/1993,1993-02-20 08:00:00,Travel Rewards Card,xxxx2002,demo-account-TR05,bal-demo-account-tr05-009,Harbor Card,"$1,240.00",02/01/1993,02/15/1993,Credit,Liability,Active,05/01/1992
+113,02/20/1993,1993-02-20 08:00:00,Brokerage Account,xxxx3001,demo-account-BA06,bal-demo-account-ba06-009,Northstar Investments,"$67,240.00",02/01/1993,02/15/1993,Investment,Asset,Active,05/01/1992
+114,02/20/1993,1993-02-20 08:00:00,Health Savings Account,xxxx3002,demo-account-HS07,bal-demo-account-hs07-009,Northstar Investments,"$8,215.00",02/01/1993,02/15/1993,Depository,Asset,Active,05/01/1992
+115,02/20/1993,1993-02-20 08:00:00,Education Fund,xxxx3003,demo-account-EF08,bal-demo-account-ef08-009,Northstar Investments,"$16,210.00",02/01/1993,02/15/1993,Investment,Asset,Active,05/01/1992
+116,02/20/1993,1993-02-20 08:00:00,Workplace 401(k),xxxx4001,demo-account-WK09,bal-demo-account-wk09-009,Northstar Investments,"$111,150.00",02/01/1993,02/15/1993,Investment,Asset,Active,05/01/1992
+117,02/20/1993,1993-02-20 08:00:00,Roth IRA,xxxx4002,demo-account-RI10,bal-demo-account-ri10-009,Northstar Investments,"$24,640.00",02/01/1993,02/15/1993,Investment,Asset,Active,05/01/1992
+118,02/20/1993,1993-02-20 08:00:00,Home Loan,xxxx5001,demo-account-HL11,bal-demo-account-hl11-009,Aurora Bank,"$164,265.00",02/01/1993,02/15/1993,Loan,Liability,Active,05/01/1992
+119,02/20/1993,1993-02-20 08:00:00,Auto Loan,xxxx5002,demo-account-AL12,bal-demo-account-al12-009,Aurora Bank,"$9,445.00",02/01/1993,02/15/1993,Loan,Liability,Active,05/01/1992
+120,03/20/1993,1993-03-20 08:00:00,Main Checking,xxxx1001,demo-account-MC01,bal-demo-account-mc01-010,Aurora Bank,"$4,070.00",03/01/1993,03/15/1993,Depository,Asset,Active,05/01/1992
+121,03/20/1993,1993-03-20 08:00:00,Emergency Savings,xxxx1002,demo-account-ES02,bal-demo-account-es02-010,Aurora Bank,"$10,680.00",03/01/1993,03/15/1993,Depository,Asset,Active,05/01/1992
+122,03/20/1993,1993-03-20 08:00:00,Travel Fund,xxxx1003,demo-account-TF03,bal-demo-account-tf03-010,Aurora Bank,"$2,910.00",03/01/1993,03/15/1993,Depository,Asset,Active,05/01/1992
+123,03/20/1993,1993-03-20 08:00:00,Everyday Card,xxxx2001,demo-account-EC04,bal-demo-account-ec04-010,Harbor Card,"$1,840.00",03/01/1993,03/15/1993,Credit,Liability,Active,05/01/1992
+124,03/20/1993,1993-03-20 08:00:00,Travel Rewards Card,xxxx2002,demo-account-TR05,bal-demo-account-tr05-010,Harbor Card,$630.00,03/01/1993,03/15/1993,Credit,Liability,Active,05/01/1992
+125,03/20/1993,1993-03-20 08:00:00,Brokerage Account,xxxx3001,demo-account-BA06,bal-demo-account-ba06-010,Northstar Investments,"$73,800.00",03/01/1993,03/15/1993,Investment,Asset,Active,05/01/1992
+126,03/20/1993,1993-03-20 08:00:00,Health Savings Account,xxxx3002,demo-account-HS07,bal-demo-account-hs07-010,Northstar Investments,"$9,010.00",03/01/1993,03/15/1993,Depository,Asset,Active,05/01/1992
+127,03/20/1993,1993-03-20 08:00:00,Education Fund,xxxx3003,demo-account-EF08,bal-demo-account-ef08-010,Northstar Investments,"$15,410.00",03/01/1993,03/15/1993,Investment,Asset,Active,05/01/1992
+128,03/20/1993,1993-03-20 08:00:00,Workplace 401(k),xxxx4001,demo-account-WK09,bal-demo-account-wk09-010,Northstar Investments,"$107,600.00",03/01/1993,03/15/1993,Investment,Asset,Active,05/01/1992
+129,03/20/1993,1993-03-20 08:00:00,Roth IRA,xxxx4002,demo-account-RI10,bal-demo-account-ri10-010,Northstar Investments,"$26,960.00",03/01/1993,03/15/1993,Investment,Asset,Active,05/01/1992
+130,03/20/1993,1993-03-20 08:00:00,Home Loan,xxxx5001,demo-account-HL11,bal-demo-account-hl11-010,Aurora Bank,"$163,810.00",03/01/1993,03/15/1993,Loan,Liability,Active,05/01/1992
+131,03/20/1993,1993-03-20 08:00:00,Auto Loan,xxxx5002,demo-account-AL12,bal-demo-account-al12-010,Aurora Bank,"$9,530.00",03/01/1993,03/15/1993,Loan,Liability,Active,05/01/1992
+132,04/20/1993,1993-04-20 08:00:00,Main Checking,xxxx1001,demo-account-MC01,bal-demo-account-mc01-011,Aurora Bank,"$4,635.00",04/01/1993,04/19/1993,Depository,Asset,Active,05/01/1992
+133,04/20/1993,1993-04-20 08:00:00,Emergency Savings,xxxx1002,demo-account-ES02,bal-demo-account-es02-011,Aurora Bank,"$12,440.00",04/01/1993,04/19/1993,Depository,Asset,Active,05/01/1992
+134,04/20/1993,1993-04-20 08:00:00,Travel Fund,xxxx1003,demo-account-TF03,bal-demo-account-tf03-011,Aurora Bank,"$3,845.00",04/01/1993,04/19/1993,Depository,Asset,Active,05/01/1992
+135,04/20/1993,1993-04-20 08:00:00,Everyday Card,xxxx2001,demo-account-EC04,bal-demo-account-ec04-011,Harbor Card,$920.00,04/01/1993,04/19/1993,Credit,Liability,Active,05/01/1992
+136,04/20/1993,1993-04-20 08:00:00,Travel Rewards Card,xxxx2002,demo-account-TR05,bal-demo-account-tr05-011,Harbor Card,"$1,480.00",04/01/1993,04/19/1993,Credit,Liability,Active,05/01/1992
+137,04/20/1993,1993-04-20 08:00:00,Brokerage Account,xxxx3001,demo-account-BA06,bal-demo-account-ba06-011,Northstar Investments,"$70,860.00",04/01/1993,04/19/1993,Investment,Asset,Active,05/01/1992
+138,04/20/1993,1993-04-20 08:00:00,Health Savings Account,xxxx3002,demo-account-HS07,bal-demo-account-hs07-011,Northstar Investments,"$8,405.00",04/01/1993,04/19/1993,Depository,Asset,Active,05/01/1992
+139,04/20/1993,1993-04-20 08:00:00,Education Fund,xxxx3003,demo-account-EF08,bal-demo-account-ef08-011,Northstar Investments,"$16,930.00",04/01/1993,04/19/1993,Investment,Asset,Active,05/01/1992
+140,04/20/1993,1993-04-20 08:00:00,Workplace 401(k),xxxx4001,demo-account-WK09,bal-demo-account-wk09-011,Northstar Investments,"$117,250.00",04/01/1993,04/19/1993,Investment,Asset,Active,05/01/1992
+141,04/20/1993,1993-04-20 08:00:00,Roth IRA,xxxx4002,demo-account-RI10,bal-demo-account-ri10-011,Northstar Investments,"$25,130.00",04/01/1993,04/19/1993,Investment,Asset,Active,05/01/1992
+142,04/20/1993,1993-04-20 08:00:00,Home Loan,xxxx5001,demo-account-HL11,bal-demo-account-hl11-011,Aurora Bank,"$163,085.00",04/01/1993,04/19/1993,Loan,Liability,Active,05/01/1992
+143,04/20/1993,1993-04-20 08:00:00,Auto Loan,xxxx5002,demo-account-AL12,bal-demo-account-al12-011,Aurora Bank,"$9,115.00",04/01/1993,04/19/1993,Loan,Liability,Active,05/01/1992
+144,05/20/1993,1993-05-20 08:00:00,Main Checking,xxxx1001,demo-account-MC01,bal-demo-account-mc01-012,Aurora Bank,"$4,060.00",05/01/1993,05/17/1993,Depository,Asset,Active,05/01/1992
+145,05/20/1993,1993-05-20 08:00:00,Emergency Savings,xxxx1002,demo-account-ES02,bal-demo-account-es02-012,Aurora Bank,"$10,960.00",05/01/1993,05/17/1993,Depository,Asset,Active,05/01/1992
+146,05/20/1993,1993-05-20 08:00:00,Travel Fund,xxxx1003,demo-account-TF03,bal-demo-account-tf03-012,Aurora Bank,"$2,820.00",05/01/1993,05/17/1993,Depository,Asset,Active,05/01/1992
+147,05/20/1993,1993-05-20 08:00:00,Everyday Card,xxxx2001,demo-account-EC04,bal-demo-account-ec04-012,Harbor Card,"$1,460.00",05/01/1993,05/17/1993,Credit,Liability,Active,05/01/1992
+148,05/20/1993,1993-05-20 08:00:00,Travel Rewards Card,xxxx2002,demo-account-TR05,bal-demo-account-tr05-012,Harbor Card,$520.00,05/01/1993,05/17/1993,Credit,Liability,Active,05/01/1992
+149,05/20/1993,1993-05-20 08:00:00,Brokerage Account,xxxx3001,demo-account-BA06,bal-demo-account-ba06-012,Northstar Investments,"$76,920.00",05/01/1993,05/17/1993,Investment,Asset,Active,05/01/1992
+150,05/20/1993,1993-05-20 08:00:00,Health Savings Account,xxxx3002,demo-account-HS07,bal-demo-account-hs07-012,Northstar Investments,"$9,140.00",05/01/1993,05/17/1993,Depository,Asset,Active,05/01/1992
+151,05/20/1993,1993-05-20 08:00:00,Education Fund,xxxx3003,demo-account-EF08,bal-demo-account-ef08-012,Northstar Investments,"$15,500.00",05/01/1993,05/17/1993,Investment,Asset,Active,05/01/1992
+152,05/20/1993,1993-05-20 08:00:00,Workplace 401(k),xxxx4001,demo-account-WK09,bal-demo-account-wk09-012,Northstar Investments,"$109,700.00",05/01/1993,05/17/1993,Investment,Asset,Active,05/01/1992
+153,05/20/1993,1993-05-20 08:00:00,Roth IRA,xxxx4002,demo-account-RI10,bal-demo-account-ri10-012,Northstar Investments,"$26,770.00",05/01/1993,05/17/1993,Investment,Asset,Active,05/01/1992
+154,05/20/1993,1993-05-20 08:00:00,Home Loan,xxxx5001,demo-account-HL11,bal-demo-account-hl11-012,Aurora Bank,"$162,620.00",05/01/1993,05/17/1993,Loan,Liability,Active,05/01/1992
+155,05/20/1993,1993-05-20 08:00:00,Auto Loan,xxxx5002,demo-account-AL12,bal-demo-account-al12-012,Aurora Bank,"$9,240.00",05/01/1993,05/17/1993,Loan,Liability,Active,05/01/1992
+156,06/20/1993,1993-06-20 08:00:00,Main Checking,xxxx1001,demo-account-MC01,bal-demo-account-mc01-013,Aurora Bank,"$4,795.00",06/01/1993,06/14/1993,Depository,Asset,Active,05/01/1992
+157,06/20/1993,1993-06-20 08:00:00,Emergency Savings,xxxx1002,demo-account-ES02,bal-demo-account-es02-013,Aurora Bank,"$12,410.00",06/01/1993,06/14/1993,Depository,Asset,Active,05/01/1992
+158,06/20/1993,1993-06-20 08:00:00,Travel Fund,xxxx1003,demo-account-TF03,bal-demo-account-tf03-013,Aurora Bank,"$4,515.00",06/01/1993,06/14/1993,Depository,Asset,Active,05/01/1992
+159,06/20/1993,1993-06-20 08:00:00,Everyday Card,xxxx2001,demo-account-EC04,bal-demo-account-ec04-013,Harbor Card,$670.00,06/01/1993,06/14/1993,Credit,Liability,Active,05/01/1992
+160,06/20/1993,1993-06-20 08:00:00,Travel Rewards Card,xxxx2002,demo-account-TR05,bal-demo-account-tr05-013,Harbor Card,"$1,070.00",06/01/1993,06/14/1993,Credit,Liability,Active,05/01/1992
+161,06/20/1993,1993-06-20 08:00:00,Brokerage Account,xxxx3001,demo-account-BA06,bal-demo-account-ba06-013,Northstar Investments,"$71,180.00",06/01/1993,06/14/1993,Investment,Asset,Active,05/01/1992
+162,06/20/1993,1993-06-20 08:00:00,Health Savings Account,xxxx3002,demo-account-HS07,bal-demo-account-hs07-013,Northstar Investments,"$9,665.00",06/01/1993,06/14/1993,Depository,Asset,Active,05/01/1992
+163,06/20/1993,1993-06-20 08:00:00,Education Fund,xxxx3003,demo-account-EF08,bal-demo-account-ef08-013,Northstar Investments,"$16,970.00",06/01/1993,06/14/1993,Investment,Asset,Active,05/01/1992
+164,06/20/1993,1993-06-20 08:00:00,Workplace 401(k),xxxx4001,demo-account-WK09,bal-demo-account-wk09-013,Northstar Investments,"$116,450.00",06/01/1993,06/14/1993,Investment,Asset,Active,05/01/1992
+165,06/20/1993,1993-06-20 08:00:00,Roth IRA,xxxx4002,demo-account-RI10,bal-demo-account-ri10-013,Northstar Investments,"$28,140.00",06/01/1993,06/14/1993,Investment,Asset,Active,05/01/1992
+166,06/20/1993,1993-06-20 08:00:00,Home Loan,xxxx5001,demo-account-HL11,bal-demo-account-hl11-013,Aurora Bank,"$161,805.00",06/01/1993,06/14/1993,Loan,Liability,Active,05/01/1992
+167,06/20/1993,1993-06-20 08:00:00,Auto Loan,xxxx5002,demo-account-AL12,bal-demo-account-al12-013,Aurora Bank,"$8,565.00",06/01/1993,06/14/1993,Loan,Liability,Active,05/01/1992
+168,07/20/1993,1993-07-20 08:00:00,Main Checking,xxxx1001,demo-account-MC01,bal-demo-account-mc01-014,Aurora Bank,"$4,300.00",07/01/1993,07/19/1993,Depository,Asset,Active,05/01/1992
+169,07/20/1993,1993-07-20 08:00:00,Emergency Savings,xxxx1002,demo-account-ES02,bal-demo-account-es02-014,Aurora Bank,"$13,290.00",07/01/1993,07/19/1993,Depository,Asset,Active,05/01/1992
+170,07/20/1993,1993-07-20 08:00:00,Travel Fund,xxxx1003,demo-account-TF03,bal-demo-account-tf03-014,Aurora Bank,"$3,490.00",07/01/1993,07/19/1993,Depository,Asset,Active,05/01/1992
+171,07/20/1993,1993-07-20 08:00:00,Everyday Card,xxxx2001,demo-account-EC04,bal-demo-account-ec04-014,Harbor Card,"$1,680.00",07/01/1993,07/19/1993,Credit,Liability,Active,05/01/1992
+172,07/20/1993,1993-07-20 08:00:00,Travel Rewards Card,xxxx2002,demo-account-TR05,bal-demo-account-tr05-014,Harbor Card,"$1,320.00",07/01/1993,07/19/1993,Credit,Liability,Active,05/01/1992
+173,07/20/1993,1993-07-20 08:00:00,Brokerage Account,xxxx3001,demo-account-BA06,bal-demo-account-ba06-014,Northstar Investments,"$75,740.00",07/01/1993,07/19/1993,Investment,Asset,Active,05/01/1992
+174,07/20/1993,1993-07-20 08:00:00,Health Savings Account,xxxx3002,demo-account-HS07,bal-demo-account-hs07-014,Northstar Investments,"$8,710.00",07/01/1993,07/19/1993,Depository,Asset,Active,05/01/1992
+175,07/20/1993,1993-07-20 08:00:00,Education Fund,xxxx3003,demo-account-EF08,bal-demo-account-ef08-014,Northstar Investments,"$17,850.00",07/01/1993,07/19/1993,Investment,Asset,Active,05/01/1992
+176,07/20/1993,1993-07-20 08:00:00,Workplace 401(k),xxxx4001,demo-account-WK09,bal-demo-account-wk09-014,Northstar Investments,"$121,000.00",07/01/1993,07/19/1993,Investment,Asset,Active,05/01/1992
+177,07/20/1993,1993-07-20 08:00:00,Roth IRA,xxxx4002,demo-account-RI10,bal-demo-account-ri10-014,Northstar Investments,"$25,830.00",07/01/1993,07/19/1993,Investment,Asset,Active,05/01/1992
+178,07/20/1993,1993-07-20 08:00:00,Home Loan,xxxx5001,demo-account-HL11,bal-demo-account-hl11-014,Aurora Bank,"$161,335.00",07/01/1993,07/19/1993,Loan,Liability,Active,05/01/1992
+179,07/20/1993,1993-07-20 08:00:00,Auto Loan,xxxx5002,demo-account-AL12,bal-demo-account-al12-014,Aurora Bank,"$8,630.00",07/01/1993,07/19/1993,Loan,Liability,Active,05/01/1992
+180,08/20/1993,1993-08-20 08:00:00,Main Checking,xxxx1001,demo-account-MC01,bal-demo-account-mc01-015,Aurora Bank,"$4,655.00",08/01/1993,08/16/1993,Depository,Asset,Active,05/01/1992
+181,08/20/1993,1993-08-20 08:00:00,Emergency Savings,xxxx1002,demo-account-ES02,bal-demo-account-es02-015,Aurora Bank,"$12,220.00",08/01/1993,08/16/1993,Depository,Asset,Active,05/01/1992
+182,08/20/1993,1993-08-20 08:00:00,Travel Fund,xxxx1003,demo-account-TF03,bal-demo-account-tf03-015,Aurora Bank,"$4,295.00",08/01/1993,08/16/1993,Depository,Asset,Active,05/01/1992
+183,08/20/1993,1993-08-20 08:00:00,Everyday Card,xxxx2001,demo-account-EC04,bal-demo-account-ec04-015,Harbor Card,"$1,030.00",08/01/1993,08/16/1993,Credit,Liability,Active,05/01/1992
+184,08/20/1993,1993-08-20 08:00:00,Travel Rewards Card,xxxx2002,demo-account-TR05,bal-demo-account-tr05-015,Harbor Card,$570.00,08/01/1993,08/16/1993,Credit,Liability,Active,05/01/1992
+185,08/20/1993,1993-08-20 08:00:00,Brokerage Account,xxxx3001,demo-account-BA06,bal-demo-account-ba06-015,Northstar Investments,"$79,500.00",08/01/1993,08/16/1993,Investment,Asset,Active,05/01/1992
+186,08/20/1993,1993-08-20 08:00:00,Health Savings Account,xxxx3002,demo-account-HS07,bal-demo-account-hs07-015,Northstar Investments,"$9,705.00",08/01/1993,08/16/1993,Depository,Asset,Active,05/01/1992
+187,08/20/1993,1993-08-20 08:00:00,Education Fund,xxxx3003,demo-account-EF08,bal-demo-account-ef08-015,Northstar Investments,"$16,690.00",08/01/1993,08/16/1993,Investment,Asset,Active,05/01/1992
+188,08/20/1993,1993-08-20 08:00:00,Workplace 401(k),xxxx4001,demo-account-WK09,bal-demo-account-wk09-015,Northstar Investments,"$116,550.00",08/01/1993,08/16/1993,Investment,Asset,Active,05/01/1992
+189,08/20/1993,1993-08-20 08:00:00,Roth IRA,xxxx4002,demo-account-RI10,bal-demo-account-ri10-015,Northstar Investments,"$27,920.00",08/01/1993,08/16/1993,Investment,Asset,Active,05/01/1992
+190,08/20/1993,1993-08-20 08:00:00,Home Loan,xxxx5001,demo-account-HL11,bal-demo-account-hl11-015,Aurora Bank,"$160,515.00",08/01/1993,08/16/1993,Loan,Liability,Active,05/01/1992
+191,08/20/1993,1993-08-20 08:00:00,Auto Loan,xxxx5002,demo-account-AL12,bal-demo-account-al12-015,Aurora Bank,"$8,035.00",08/01/1993,08/16/1993,Loan,Liability,Active,05/01/1992
+192,09/20/1993,1993-09-20 08:00:00,Main Checking,xxxx1001,demo-account-MC01,bal-demo-account-mc01-016,Aurora Bank,"$4,100.00",09/01/1993,09/20/1993,Depository,Asset,Active,05/01/1992
+193,09/20/1993,1993-09-20 08:00:00,Emergency Savings,xxxx1002,demo-account-ES02,bal-demo-account-es02-016,Aurora Bank,"$11,560.00",09/01/1993,09/20/1993,Depository,Asset,Active,05/01/1992
+194,09/20/1993,1993-09-20 08:00:00,Travel Fund,xxxx1003,demo-account-TF03,bal-demo-account-tf03-016,Aurora Bank,"$2,950.00",09/01/1993,09/20/1993,Depository,Asset,Active,05/01/1992
+195,09/20/1993,1993-09-20 08:00:00,Everyday Card,xxxx2001,demo-account-EC04,bal-demo-account-ec04-016,Harbor Card,"$1,570.00",09/01/1993,09/20/1993,Credit,Liability,Active,05/01/1992
+196,09/20/1993,1993-09-20 08:00:00,Travel Rewards Card,xxxx2002,demo-account-TR05,bal-demo-account-tr05-016,Harbor Card,$970.00,09/01/1993,09/20/1993,Credit,Liability,Active,05/01/1992
+197,09/20/1993,1993-09-20 08:00:00,Brokerage Account,xxxx3001,demo-account-BA06,bal-demo-account-ba06-016,Northstar Investments,"$75,360.00",09/01/1993,09/20/1993,Investment,Asset,Active,05/01/1992
+198,09/20/1993,1993-09-20 08:00:00,Health Savings Account,xxxx3002,demo-account-HS07,bal-demo-account-hs07-016,Northstar Investments,"$9,440.00",09/01/1993,09/20/1993,Depository,Asset,Active,05/01/1992
+199,09/20/1993,1993-09-20 08:00:00,Education Fund,xxxx3003,demo-account-EF08,bal-demo-account-ef08-016,Northstar Investments,"$16,130.00",09/01/1993,09/20/1993,Investment,Asset,Active,05/01/1992
+200,09/20/1993,1993-09-20 08:00:00,Workplace 401(k),xxxx4001,demo-account-WK09,bal-demo-account-wk09-016,Northstar Investments,"$114,400.00",09/01/1993,09/20/1993,Investment,Asset,Active,05/01/1992
+201,09/20/1993,1993-09-20 08:00:00,Roth IRA,xxxx4002,demo-account-RI10,bal-demo-account-ri10-016,Northstar Investments,"$26,880.00",09/01/1993,09/20/1993,Investment,Asset,Active,05/01/1992
+202,09/20/1993,1993-09-20 08:00:00,Home Loan,xxxx5001,demo-account-HL11,bal-demo-account-hl11-016,Aurora Bank,"$160,060.00",09/01/1993,09/20/1993,Loan,Liability,Active,05/01/1992
+203,09/20/1993,1993-09-20 08:00:00,Auto Loan,xxxx5002,demo-account-AL12,bal-demo-account-al12-016,Aurora Bank,"$8,120.00",09/01/1993,09/20/1993,Loan,Liability,Active,05/01/1992
+204,10/20/1993,1993-10-20 08:00:00,Main Checking,xxxx1001,demo-account-MC01,bal-demo-account-mc01-017,Aurora Bank,"$4,825.00",10/01/1993,10/18/1993,Depository,Asset,Active,05/01/1992
+205,10/20/1993,1993-10-20 08:00:00,Emergency Savings,xxxx1002,demo-account-ES02,bal-demo-account-es02-017,Aurora Bank,"$13,760.00",10/01/1993,10/18/1993,Depository,Asset,Active,05/01/1992
+206,10/20/1993,1993-10-20 08:00:00,Travel Fund,xxxx1003,demo-account-TF03,bal-demo-account-tf03-017,Aurora Bank,"$4,655.00",10/01/1993,10/18/1993,Depository,Asset,Active,05/01/1992
+207,10/20/1993,1993-10-20 08:00:00,Everyday Card,xxxx2001,demo-account-EC04,bal-demo-account-ec04-017,Harbor Card,$970.00,10/01/1993,10/18/1993,Credit,Liability,Active,05/01/1992
+208,10/20/1993,1993-10-20 08:00:00,Travel Rewards Card,xxxx2002,demo-account-TR05,bal-demo-account-tr05-017,Harbor Card,"$1,240.00",10/01/1993,10/18/1993,Credit,Liability,Active,05/01/1992
+209,10/20/1993,1993-10-20 08:00:00,Brokerage Account,xxxx3001,demo-account-BA06,bal-demo-account-ba06-017,Northstar Investments,"$79,520.00",10/01/1993,10/18/1993,Investment,Asset,Active,05/01/1992
+210,10/20/1993,1993-10-20 08:00:00,Health Savings Account,xxxx3002,demo-account-HS07,bal-demo-account-hs07-017,Northstar Investments,"$10,235.00",10/01/1993,10/18/1993,Depository,Asset,Active,05/01/1992
+211,10/20/1993,1993-10-20 08:00:00,Education Fund,xxxx3003,demo-account-EF08,bal-demo-account-ef08-017,Northstar Investments,"$18,050.00",10/01/1993,10/18/1993,Investment,Asset,Active,05/01/1992
+212,10/20/1993,1993-10-20 08:00:00,Workplace 401(k),xxxx4001,demo-account-WK09,bal-demo-account-wk09-017,Northstar Investments,"$122,750.00",10/01/1993,10/18/1993,Investment,Asset,Active,05/01/1992
+213,10/20/1993,1993-10-20 08:00:00,Roth IRA,xxxx4002,demo-account-RI10,bal-demo-account-ri10-017,Northstar Investments,"$29,200.00",10/01/1993,10/18/1993,Investment,Asset,Active,05/01/1992
+214,10/20/1993,1993-10-20 08:00:00,Home Loan,xxxx5001,demo-account-HL11,bal-demo-account-hl11-017,Aurora Bank,"$159,335.00",10/01/1993,10/18/1993,Loan,Liability,Active,05/01/1992
+215,10/20/1993,1993-10-20 08:00:00,Auto Loan,xxxx5002,demo-account-AL12,bal-demo-account-al12-017,Aurora Bank,"$7,705.00",10/01/1993,10/18/1993,Loan,Liability,Active,05/01/1992
+216,11/20/1993,1993-11-20 08:00:00,Main Checking,xxxx1001,demo-account-MC01,bal-demo-account-mc01-018,Aurora Bank,"$4,430.00",11/01/1993,11/15/1993,Depository,Asset,Active,05/01/1992
+217,11/20/1993,1993-11-20 08:00:00,Emergency Savings,xxxx1002,demo-account-ES02,bal-demo-account-es02-018,Aurora Bank,"$12,760.00",11/01/1993,11/15/1993,Depository,Asset,Active,05/01/1992
+218,11/20/1993,1993-11-20 08:00:00,Travel Fund,xxxx1003,demo-account-TF03,bal-demo-account-tf03-018,Aurora Bank,"$3,510.00",11/01/1993,11/15/1993,Depository,Asset,Active,05/01/1992
+219,11/20/1993,1993-11-20 08:00:00,Everyday Card,xxxx2001,demo-account-EC04,bal-demo-account-ec04-018,Harbor Card,"$1,840.00",11/01/1993,11/15/1993,Credit,Liability,Active,05/01/1992
+220,11/20/1993,1993-11-20 08:00:00,Travel Rewards Card,xxxx2002,demo-account-TR05,bal-demo-account-tr05-018,Harbor Card,$630.00,11/01/1993,11/15/1993,Credit,Liability,Active,05/01/1992
+221,11/20/1993,1993-11-20 08:00:00,Brokerage Account,xxxx3001,demo-account-BA06,bal-demo-account-ba06-018,Northstar Investments,"$74,080.00",11/01/1993,11/15/1993,Investment,Asset,Active,05/01/1992
+222,11/20/1993,1993-11-20 08:00:00,Health Savings Account,xxxx3002,demo-account-HS07,bal-demo-account-hs07-018,Northstar Investments,"$9,630.00",11/01/1993,11/15/1993,Depository,Asset,Active,05/01/1992
+223,11/20/1993,1993-11-20 08:00:00,Education Fund,xxxx3003,demo-account-EF08,bal-demo-account-ef08-018,Northstar Investments,"$17,250.00",11/01/1993,11/15/1993,Investment,Asset,Active,05/01/1992
+224,11/20/1993,1993-11-20 08:00:00,Workplace 401(k),xxxx4001,demo-account-WK09,bal-demo-account-wk09-018,Northstar Investments,"$119,200.00",11/01/1993,11/15/1993,Investment,Asset,Active,05/01/1992
+225,11/20/1993,1993-11-20 08:00:00,Roth IRA,xxxx4002,demo-account-RI10,bal-demo-account-ri10-018,Northstar Investments,"$27,370.00",11/01/1993,11/15/1993,Investment,Asset,Active,05/01/1992
+226,11/20/1993,1993-11-20 08:00:00,Home Loan,xxxx5001,demo-account-HL11,bal-demo-account-hl11-018,Aurora Bank,"$158,870.00",11/01/1993,11/15/1993,Loan,Liability,Active,05/01/1992
+227,11/20/1993,1993-11-20 08:00:00,Auto Loan,xxxx5002,demo-account-AL12,bal-demo-account-al12-018,Aurora Bank,"$7,830.00",11/01/1993,11/15/1993,Loan,Liability,Active,05/01/1992
+228,12/20/1993,1993-12-20 08:00:00,Main Checking,xxxx1001,demo-account-MC01,bal-demo-account-mc01-019,Aurora Bank,"$4,995.00",12/01/1993,12/20/1993,Depository,Asset,Active,05/01/1992
+229,12/20/1993,1993-12-20 08:00:00,Emergency Savings,xxxx1002,demo-account-ES02,bal-demo-account-es02-019,Aurora Bank,"$14,520.00",12/01/1993,12/20/1993,Depository,Asset,Active,05/01/1992
+230,12/20/1993,1993-12-20 08:00:00,Travel Fund,xxxx1003,demo-account-TF03,bal-demo-account-tf03-019,Aurora Bank,"$4,445.00",12/01/1993,12/20/1993,Depository,Asset,Active,05/01/1992
+231,12/20/1993,1993-12-20 08:00:00,Everyday Card,xxxx2001,demo-account-EC04,bal-demo-account-ec04-019,Harbor Card,$920.00,12/01/1993,12/20/1993,Credit,Liability,Active,05/01/1992
+232,12/20/1993,1993-12-20 08:00:00,Travel Rewards Card,xxxx2002,demo-account-TR05,bal-demo-account-tr05-019,Harbor Card,"$1,480.00",12/01/1993,12/20/1993,Credit,Liability,Active,05/01/1992
+233,12/20/1993,1993-12-20 08:00:00,Brokerage Account,xxxx3001,demo-account-BA06,bal-demo-account-ba06-019,Northstar Investments,"$80,640.00",12/01/1993,12/20/1993,Investment,Asset,Active,05/01/1992
+234,12/20/1993,1993-12-20 08:00:00,Health Savings Account,xxxx3002,demo-account-HS07,bal-demo-account-hs07-019,Northstar Investments,"$10,365.00",12/01/1993,12/20/1993,Depository,Asset,Active,05/01/1992
+235,12/20/1993,1993-12-20 08:00:00,Education Fund,xxxx3003,demo-account-EF08,bal-demo-account-ef08-019,Northstar Investments,"$18,770.00",12/01/1993,12/20/1993,Investment,Asset,Active,05/01/1992
+236,12/20/1993,1993-12-20 08:00:00,Workplace 401(k),xxxx4001,demo-account-WK09,bal-demo-account-wk09-019,Northstar Investments,"$128,850.00",12/01/1993,12/20/1993,Investment,Asset,Active,05/01/1992
+237,12/20/1993,1993-12-20 08:00:00,Roth IRA,xxxx4002,demo-account-RI10,bal-demo-account-ri10-019,Northstar Investments,"$29,010.00",12/01/1993,12/20/1993,Investment,Asset,Active,05/01/1992
+238,12/20/1993,1993-12-20 08:00:00,Home Loan,xxxx5001,demo-account-HL11,bal-demo-account-hl11-019,Aurora Bank,"$158,055.00",12/01/1993,12/20/1993,Loan,Liability,Active,05/01/1992
+239,12/20/1993,1993-12-20 08:00:00,Auto Loan,xxxx5002,demo-account-AL12,bal-demo-account-al12-019,Aurora Bank,"$7,155.00",12/01/1993,12/20/1993,Loan,Liability,Active,05/01/1992
+240,01/20/1994,1994-01-20 08:00:00,Main Checking,xxxx1001,demo-account-MC01,bal-demo-account-mc01-020,Aurora Bank,"$4,420.00",01/01/1994,01/17/1994,Depository,Asset,Active,05/01/1992
+241,01/20/1994,1994-01-20 08:00:00,Emergency Savings,xxxx1002,demo-account-ES02,bal-demo-account-es02-020,Aurora Bank,"$13,040.00",01/01/1994,01/17/1994,Depository,Asset,Active,05/01/1992
+242,01/20/1994,1994-01-20 08:00:00,Travel Fund,xxxx1003,demo-account-TF03,bal-demo-account-tf03-020,Aurora Bank,"$3,420.00",01/01/1994,01/17/1994,Depository,Asset,Active,05/01/1992
+243,01/20/1994,1994-01-20 08:00:00,Everyday Card,xxxx2001,demo-account-EC04,bal-demo-account-ec04-020,Harbor Card,"$1,460.00",01/01/1994,01/17/1994,Credit,Liability,Active,05/01/1992
+244,01/20/1994,1994-01-20 08:00:00,Travel Rewards Card,xxxx2002,demo-account-TR05,bal-demo-account-tr05-020,Harbor Card,$520.00,01/01/1994,01/17/1994,Credit,Liability,Active,05/01/1992
+245,01/20/1994,1994-01-20 08:00:00,Brokerage Account,xxxx3001,demo-account-BA06,bal-demo-account-ba06-020,Northstar Investments,"$77,700.00",01/01/1994,01/17/1994,Investment,Asset,Active,05/01/1992
+246,01/20/1994,1994-01-20 08:00:00,Health Savings Account,xxxx3002,demo-account-HS07,bal-demo-account-hs07-020,Northstar Investments,"$10,890.00",01/01/1994,01/17/1994,Depository,Asset,Active,05/01/1992
+247,01/20/1994,1994-01-20 08:00:00,Education Fund,xxxx3003,demo-account-EF08,bal-demo-account-ef08-020,Northstar Investments,"$17,340.00",01/01/1994,01/17/1994,Investment,Asset,Active,05/01/1992
+248,01/20/1994,1994-01-20 08:00:00,Workplace 401(k),xxxx4001,demo-account-WK09,bal-demo-account-wk09-020,Northstar Investments,"$121,300.00",01/01/1994,01/17/1994,Investment,Asset,Active,05/01/1992
+249,01/20/1994,1994-01-20 08:00:00,Roth IRA,xxxx4002,demo-account-RI10,bal-demo-account-ri10-020,Northstar Investments,"$30,380.00",01/01/1994,01/17/1994,Investment,Asset,Active,05/01/1992
+250,01/20/1994,1994-01-20 08:00:00,Home Loan,xxxx5001,demo-account-HL11,bal-demo-account-hl11-020,Aurora Bank,"$157,585.00",01/01/1994,01/17/1994,Loan,Liability,Active,05/01/1992
+251,01/20/1994,1994-01-20 08:00:00,Auto Loan,xxxx5002,demo-account-AL12,bal-demo-account-al12-020,Aurora Bank,"$7,220.00",01/01/1994,01/17/1994,Loan,Liability,Active,05/01/1992
+252,02/20/1994,1994-02-20 08:00:00,Main Checking,xxxx1001,demo-account-MC01,bal-demo-account-mc01-021,Aurora Bank,"$5,155.00",02/01/1994,02/14/1994,Depository,Asset,Active,05/01/1992
+253,02/20/1994,1994-02-20 08:00:00,Emergency Savings,xxxx1002,demo-account-ES02,bal-demo-account-es02-021,Aurora Bank,"$14,490.00",02/01/1994,02/14/1994,Depository,Asset,Active,05/01/1992
+254,02/20/1994,1994-02-20 08:00:00,Travel Fund,xxxx1003,demo-account-TF03,bal-demo-account-tf03-021,Aurora Bank,"$5,115.00",02/01/1994,02/14/1994,Depository,Asset,Active,05/01/1992
+255,02/20/1994,1994-02-20 08:00:00,Everyday Card,xxxx2001,demo-account-EC04,bal-demo-account-ec04-021,Harbor Card,$670.00,02/01/1994,02/14/1994,Credit,Liability,Active,05/01/1992
+256,02/20/1994,1994-02-20 08:00:00,Travel Rewards Card,xxxx2002,demo-account-TR05,bal-demo-account-tr05-021,Harbor Card,"$1,070.00",02/01/1994,02/14/1994,Credit,Liability,Active,05/01/1992
+257,02/20/1994,1994-02-20 08:00:00,Brokerage Account,xxxx3001,demo-account-BA06,bal-demo-account-ba06-021,Northstar Investments,"$83,760.00",02/01/1994,02/14/1994,Investment,Asset,Active,05/01/1992
+258,02/20/1994,1994-02-20 08:00:00,Health Savings Account,xxxx3002,demo-account-HS07,bal-demo-account-hs07-021,Northstar Investments,"$9,935.00",02/01/1994,02/14/1994,Depository,Asset,Active,05/01/1992
+259,02/20/1994,1994-02-20 08:00:00,Education Fund,xxxx3003,demo-account-EF08,bal-demo-account-ef08-021,Northstar Investments,"$18,810.00",02/01/1994,02/14/1994,Investment,Asset,Active,05/01/1992
+260,02/20/1994,1994-02-20 08:00:00,Workplace 401(k),xxxx4001,demo-account-WK09,bal-demo-account-wk09-021,Northstar Investments,"$128,050.00",02/01/1994,02/14/1994,Investment,Asset,Active,05/01/1992
+261,02/20/1994,1994-02-20 08:00:00,Roth IRA,xxxx4002,demo-account-RI10,bal-demo-account-ri10-021,Northstar Investments,"$28,070.00",02/01/1994,02/14/1994,Investment,Asset,Active,05/01/1992
+262,02/20/1994,1994-02-20 08:00:00,Home Loan,xxxx5001,demo-account-HL11,bal-demo-account-hl11-021,Aurora Bank,"$156,765.00",02/01/1994,02/14/1994,Loan,Liability,Active,05/01/1992
+263,02/20/1994,1994-02-20 08:00:00,Auto Loan,xxxx5002,demo-account-AL12,bal-demo-account-al12-021,Aurora Bank,"$6,625.00",02/01/1994,02/14/1994,Loan,Liability,Active,05/01/1992
+264,03/20/1994,1994-03-20 08:00:00,Main Checking,xxxx1001,demo-account-MC01,bal-demo-account-mc01-022,Aurora Bank,"$4,660.00",03/01/1994,03/14/1994,Depository,Asset,Active,05/01/1992
+265,03/20/1994,1994-03-20 08:00:00,Emergency Savings,xxxx1002,demo-account-ES02,bal-demo-account-es02-022,Aurora Bank,"$15,370.00",03/01/1994,03/14/1994,Depository,Asset,Active,05/01/1992
+266,03/20/1994,1994-03-20 08:00:00,Travel Fund,xxxx1003,demo-account-TF03,bal-demo-account-tf03-022,Aurora Bank,"$4,090.00",03/01/1994,03/14/1994,Depository,Asset,Active,05/01/1992
+267,03/20/1994,1994-03-20 08:00:00,Everyday Card,xxxx2001,demo-account-EC04,bal-demo-account-ec04-022,Harbor Card,"$1,680.00",03/01/1994,03/14/1994,Credit,Liability,Active,05/01/1992
+268,03/20/1994,1994-03-20 08:00:00,Travel Rewards Card,xxxx2002,demo-account-TR05,bal-demo-account-tr05-022,Harbor Card,"$1,320.00",03/01/1994,03/14/1994,Credit,Liability,Active,05/01/1992
+269,03/20/1994,1994-03-20 08:00:00,Brokerage Account,xxxx3001,demo-account-BA06,bal-demo-account-ba06-022,Northstar Investments,"$78,020.00",03/01/1994,03/14/1994,Investment,Asset,Active,05/01/1992
+270,03/20/1994,1994-03-20 08:00:00,Health Savings Account,xxxx3002,demo-account-HS07,bal-demo-account-hs07-022,Northstar Investments,"$10,930.00",03/01/1994,03/14/1994,Depository,Asset,Active,05/01/1992
+271,03/20/1994,1994-03-20 08:00:00,Education Fund,xxxx3003,demo-account-EF08,bal-demo-account-ef08-022,Northstar Investments,"$19,690.00",03/01/1994,03/14/1994,Investment,Asset,Active,05/01/1992
+272,03/20/1994,1994-03-20 08:00:00,Workplace 401(k),xxxx4001,demo-account-WK09,bal-demo-account-wk09-022,Northstar Investments,"$132,600.00",03/01/1994,03/14/1994,Investment,Asset,Active,05/01/1992
+273,03/20/1994,1994-03-20 08:00:00,Roth IRA,xxxx4002,demo-account-RI10,bal-demo-account-ri10-022,Northstar Investments,"$30,160.00",03/01/1994,03/14/1994,Investment,Asset,Active,05/01/1992
+274,03/20/1994,1994-03-20 08:00:00,Home Loan,xxxx5001,demo-account-HL11,bal-demo-account-hl11-022,Aurora Bank,"$156,310.00",03/01/1994,03/14/1994,Loan,Liability,Active,05/01/1992
+275,03/20/1994,1994-03-20 08:00:00,Auto Loan,xxxx5002,demo-account-AL12,bal-demo-account-al12-022,Aurora Bank,"$6,710.00",03/01/1994,03/14/1994,Loan,Liability,Active,05/01/1992
+276,04/20/1994,1994-04-20 08:00:00,Main Checking,xxxx1001,demo-account-MC01,bal-demo-account-mc01-023,Aurora Bank,"$5,015.00",04/01/1994,04/18/1994,Depository,Asset,Active,05/01/1992
+277,04/20/1994,1994-04-20 08:00:00,Emergency Savings,xxxx1002,demo-account-ES02,bal-demo-account-es02-023,Aurora Bank,"$14,300.00",04/01/1994,04/18/1994,Depository,Asset,Active,05/01/1992
+278,04/20/1994,1994-04-20 08:00:00,Travel Fund,xxxx1003,demo-account-TF03,bal-demo-account-tf03-023,Aurora Bank,"$4,895.00",04/01/1994,04/18/1994,Depository,Asset,Active,05/01/1992
+279,04/20/1994,1994-04-20 08:00:00,Everyday Card,xxxx2001,demo-account-EC04,bal-demo-account-ec04-023,Harbor Card,"$1,030.00",04/01/1994,04/18/1994,Credit,Liability,Active,05/01/1992
+280,04/20/1994,1994-04-20 08:00:00,Travel Rewards Card,xxxx2002,demo-account-TR05,bal-demo-account-tr05-023,Harbor Card,$570.00,04/01/1994,04/18/1994,Credit,Liability,Active,05/01/1992
+281,04/20/1994,1994-04-20 08:00:00,Brokerage Account,xxxx3001,demo-account-BA06,bal-demo-account-ba06-023,Northstar Investments,"$82,580.00",04/01/1994,04/18/1994,Investment,Asset,Active,05/01/1992
+282,04/20/1994,1994-04-20 08:00:00,Health Savings Account,xxxx3002,demo-account-HS07,bal-demo-account-hs07-023,Northstar Investments,"$10,665.00",04/01/1994,04/18/1994,Depository,Asset,Active,05/01/1992
+283,04/20/1994,1994-04-20 08:00:00,Education Fund,xxxx3003,demo-account-EF08,bal-demo-account-ef08-023,Northstar Investments,"$18,530.00",04/01/1994,04/18/1994,Investment,Asset,Active,05/01/1992
+284,04/20/1994,1994-04-20 08:00:00,Workplace 401(k),xxxx4001,demo-account-WK09,bal-demo-account-wk09-023,Northstar Investments,"$128,150.00",04/01/1994,04/18/1994,Investment,Asset,Active,05/01/1992
+285,04/20/1994,1994-04-20 08:00:00,Roth IRA,xxxx4002,demo-account-RI10,bal-demo-account-ri10-023,Northstar Investments,"$29,120.00",04/01/1994,04/18/1994,Investment,Asset,Active,05/01/1992
+286,04/20/1994,1994-04-20 08:00:00,Home Loan,xxxx5001,demo-account-HL11,bal-demo-account-hl11-023,Aurora Bank,"$155,585.00",04/01/1994,04/18/1994,Loan,Liability,Active,05/01/1992
+287,04/20/1994,1994-04-20 08:00:00,Auto Loan,xxxx5002,demo-account-AL12,bal-demo-account-al12-023,Aurora Bank,"$6,295.00",04/01/1994,04/18/1994,Loan,Liability,Active,05/01/1992
+288,05/20/1994,1994-05-20 08:00:00,Main Checking,xxxx1001,demo-account-MC01,bal-demo-account-mc01-024,Aurora Bank,"$4,460.00",05/01/1994,05/16/1994,Depository,Asset,Active,05/01/1992
+289,05/20/1994,1994-05-20 08:00:00,Emergency Savings,xxxx1002,demo-account-ES02,bal-demo-account-es02-024,Aurora Bank,"$13,640.00",05/01/1994,05/16/1994,Depository,Asset,Active,05/01/1992
+290,05/20/1994,1994-05-20 08:00:00,Travel Fund,xxxx1003,demo-account-TF03,bal-demo-account-tf03-024,Aurora Bank,"$3,550.00",05/01/1994,05/16/1994,Depository,Asset,Active,05/01/1992
+291,05/20/1994,1994-05-20 08:00:00,Everyday Card,xxxx2001,demo-account-EC04,bal-demo-account-ec04-024,Harbor Card,"$1,570.00",05/01/1994,05/16/1994,Credit,Liability,Active,05/01/1992
+292,05/20/1994,1994-05-20 08:00:00,Travel Rewards Card,xxxx2002,demo-account-TR05,bal-demo-account-tr05-024,Harbor Card,$970.00,05/01/1994,05/16/1994,Credit,Liability,Active,05/01/1992
+293,05/20/1994,1994-05-20 08:00:00,Brokerage Account,xxxx3001,demo-account-BA06,bal-demo-account-ba06-024,Northstar Investments,"$86,340.00",05/01/1994,05/16/1994,Investment,Asset,Active,05/01/1992
+294,05/20/1994,1994-05-20 08:00:00,Health Savings Account,xxxx3002,demo-account-HS07,bal-demo-account-hs07-024,Northstar Investments,"$11,460.00",05/01/1994,05/16/1994,Depository,Asset,Active,05/01/1992
+295,05/20/1994,1994-05-20 08:00:00,Education Fund,xxxx3003,demo-account-EF08,bal-demo-account-ef08-024,Northstar Investments,"$17,970.00",05/01/1994,05/16/1994,Investment,Asset,Active,05/01/1992
+296,05/20/1994,1994-05-20 08:00:00,Workplace 401(k),xxxx4001,demo-account-WK09,bal-demo-account-wk09-024,Northstar Investments,"$126,000.00",05/01/1994,05/16/1994,Investment,Asset,Active,05/01/1992
+297,05/20/1994,1994-05-20 08:00:00,Roth IRA,xxxx4002,demo-account-RI10,bal-demo-account-ri10-024,Northstar Investments,"$31,440.00",05/01/1994,05/16/1994,Investment,Asset,Active,05/01/1992
+298,05/20/1994,1994-05-20 08:00:00,Home Loan,xxxx5001,demo-account-HL11,bal-demo-account-hl11-024,Aurora Bank,"$155,120.00",05/01/1994,05/16/1994,Loan,Liability,Active,05/01/1992
+299,05/20/1994,1994-05-20 08:00:00,Auto Loan,xxxx5002,demo-account-AL12,bal-demo-account-al12-024,Aurora Bank,"$6,420.00",05/01/1994,05/16/1994,Loan,Liability,Active,05/01/1992
+300,06/20/1994,1994-06-20 08:00:00,Main Checking,xxxx1001,demo-account-MC01,bal-demo-account-mc01-025,Aurora Bank,"$5,185.00",06/01/1994,06/20/1994,Depository,Asset,Active,05/01/1992
+301,06/20/1994,1994-06-20 08:00:00,Emergency Savings,xxxx1002,demo-account-ES02,bal-demo-account-es02-025,Aurora Bank,"$15,840.00",06/01/1994,06/20/1994,Depository,Asset,Active,05/01/1992
+302,06/20/1994,1994-06-20 08:00:00,Travel Fund,xxxx1003,demo-account-TF03,bal-demo-account-tf03-025,Aurora Bank,"$5,255.00",06/01/1994,06/20/1994,Depository,Asset,Active,05/01/1992
+303,06/20/1994,1994-06-20 08:00:00,Everyday Card,xxxx2001,demo-account-EC04,bal-demo-account-ec04-025,Harbor Card,$970.00,06/01/1994,06/20/1994,Credit,Liability,Active,05/01/1992
+304,06/20/1994,1994-06-20 08:00:00,Travel Rewards Card,xxxx2002,demo-account-TR05,bal-demo-account-tr05-025,Harbor Card,"$1,240.00",06/01/1994,06/20/1994,Credit,Liability,Active,05/01/1992
+305,06/20/1994,1994-06-20 08:00:00,Brokerage Account,xxxx3001,demo-account-BA06,bal-demo-account-ba06-025,Northstar Investments,"$82,200.00",06/01/1994,06/20/1994,Investment,Asset,Active,05/01/1992
+306,06/20/1994,1994-06-20 08:00:00,Health Savings Account,xxxx3002,demo-account-HS07,bal-demo-account-hs07-025,Northstar Investments,"$10,855.00",06/01/1994,06/20/1994,Depository,Asset,Active,05/01/1992
+307,06/20/1994,1994-06-20 08:00:00,Education Fund,xxxx3003,demo-account-EF08,bal-demo-account-ef08-025,Northstar Investments,"$19,890.00",06/01/1994,06/20/1994,Investment,Asset,Active,05/01/1992
+308,06/20/1994,1994-06-20 08:00:00,Workplace 401(k),xxxx4001,demo-account-WK09,bal-demo-account-wk09-025,Northstar Investments,"$134,350.00",06/01/1994,06/20/1994,Investment,Asset,Active,05/01/1992
+309,06/20/1994,1994-06-20 08:00:00,Roth IRA,xxxx4002,demo-account-RI10,bal-demo-account-ri10-025,Northstar Investments,"$29,610.00",06/01/1994,06/20/1994,Investment,Asset,Active,05/01/1992
+310,06/20/1994,1994-06-20 08:00:00,Home Loan,xxxx5001,demo-account-HL11,bal-demo-account-hl11-025,Aurora Bank,"$154,305.00",06/01/1994,06/20/1994,Loan,Liability,Active,05/01/1992
+311,06/20/1994,1994-06-20 08:00:00,Auto Loan,xxxx5002,demo-account-AL12,bal-demo-account-al12-025,Aurora Bank,"$5,745.00",06/01/1994,06/20/1994,Loan,Liability,Active,05/01/1992
+312,07/20/1994,1994-07-20 08:00:00,Main Checking,xxxx1001,demo-account-MC01,bal-demo-account-mc01-026,Aurora Bank,"$4,790.00",07/01/1994,07/18/1994,Depository,Asset,Active,05/01/1992
+313,07/20/1994,1994-07-20 08:00:00,Emergency Savings,xxxx1002,demo-account-ES02,bal-demo-account-es02-026,Aurora Bank,"$14,840.00",07/01/1994,07/18/1994,Depository,Asset,Active,05/01/1992
+314,07/20/1994,1994-07-20 08:00:00,Travel Fund,xxxx1003,demo-account-TF03,bal-demo-account-tf03-026,Aurora Bank,"$4,110.00",07/01/1994,07/18/1994,Depository,Asset,Active,05/01/1992
+315,07/20/1994,1994-07-20 08:00:00,Everyday Card,xxxx2001,demo-account-EC04,bal-demo-account-ec04-026,Harbor Card,"$1,840.00",07/01/1994,07/18/1994,Credit,Liability,Active,05/01/1992
+316,07/20/1994,1994-07-20 08:00:00,Travel Rewards Card,xxxx2002,demo-account-TR05,bal-demo-account-tr05-026,Harbor Card,$630.00,07/01/1994,07/18/1994,Credit,Liability,Active,05/01/1992
+317,07/20/1994,1994-07-20 08:00:00,Brokerage Account,xxxx3001,demo-account-BA06,bal-demo-account-ba06-026,Northstar Investments,"$86,360.00",07/01/1994,07/18/1994,Investment,Asset,Active,05/01/1992
+318,07/20/1994,1994-07-20 08:00:00,Health Savings Account,xxxx3002,demo-account-HS07,bal-demo-account-hs07-026,Northstar Investments,"$11,590.00",07/01/1994,07/18/1994,Depository,Asset,Active,05/01/1992
+319,07/20/1994,1994-07-20 08:00:00,Education Fund,xxxx3003,demo-account-EF08,bal-demo-account-ef08-026,Northstar Investments,"$19,090.00",07/01/1994,07/18/1994,Investment,Asset,Active,05/01/1992
+320,07/20/1994,1994-07-20 08:00:00,Workplace 401(k),xxxx4001,demo-account-WK09,bal-demo-account-wk09-026,Northstar Investments,"$130,800.00",07/01/1994,07/18/1994,Investment,Asset,Active,05/01/1992
+321,07/20/1994,1994-07-20 08:00:00,Roth IRA,xxxx4002,demo-account-RI10,bal-demo-account-ri10-026,Northstar Investments,"$31,250.00",07/01/1994,07/18/1994,Investment,Asset,Active,05/01/1992
+322,07/20/1994,1994-07-20 08:00:00,Home Loan,xxxx5001,demo-account-HL11,bal-demo-account-hl11-026,Aurora Bank,"$153,835.00",07/01/1994,07/18/1994,Loan,Liability,Active,05/01/1992
+323,07/20/1994,1994-07-20 08:00:00,Auto Loan,xxxx5002,demo-account-AL12,bal-demo-account-al12-026,Aurora Bank,"$5,810.00",07/01/1994,07/18/1994,Loan,Liability,Active,05/01/1992
+324,08/20/1994,1994-08-20 08:00:00,Main Checking,xxxx1001,demo-account-MC01,bal-demo-account-mc01-027,Aurora Bank,"$5,355.00",08/01/1994,08/15/1994,Depository,Asset,Active,05/01/1992
+325,08/20/1994,1994-08-20 08:00:00,Emergency Savings,xxxx1002,demo-account-ES02,bal-demo-account-es02-027,Aurora Bank,"$16,600.00",08/01/1994,08/15/1994,Depository,Asset,Active,05/01/1992
+326,08/20/1994,1994-08-20 08:00:00,Travel Fund,xxxx1003,demo-account-TF03,bal-demo-account-tf03-027,Aurora Bank,"$5,045.00",08/01/1994,08/15/1994,Depository,Asset,Active,05/01/1992
+327,08/20/1994,1994-08-20 08:00:00,Everyday Card,xxxx2001,demo-account-EC04,bal-demo-account-ec04-027,Harbor Card,$920.00,08/01/1994,08/15/1994,Credit,Liability,Active,05/01/1992
+328,08/20/1994,1994-08-20 08:00:00,Travel Rewards Card,xxxx2002,demo-account-TR05,bal-demo-account-tr05-027,Harbor Card,"$1,480.00",08/01/1994,08/15/1994,Credit,Liability,Active,05/01/1992
+329,08/20/1994,1994-08-20 08:00:00,Brokerage Account,xxxx3001,demo-account-BA06,bal-demo-account-ba06-027,Northstar Investments,"$80,920.00",08/01/1994,08/15/1994,Investment,Asset,Active,05/01/1992
+330,08/20/1994,1994-08-20 08:00:00,Health Savings Account,xxxx3002,demo-account-HS07,bal-demo-account-hs07-027,Northstar Investments,"$12,115.00",08/01/1994,08/15/1994,Depository,Asset,Active,05/01/1992
+331,08/20/1994,1994-08-20 08:00:00,Education Fund,xxxx3003,demo-account-EF08,bal-demo-account-ef08-027,Northstar Investments,"$20,610.00",08/01/1994,08/15/1994,Investment,Asset,Active,05/01/1992
+332,08/20/1994,1994-08-20 08:00:00,Workplace 401(k),xxxx4001,demo-account-WK09,bal-demo-account-wk09-027,Northstar Investments,"$140,450.00",08/01/1994,08/15/1994,Investment,Asset,Active,05/01/1992
+333,08/20/1994,1994-08-20 08:00:00,Roth IRA,xxxx4002,demo-account-RI10,bal-demo-account-ri10-027,Northstar Investments,"$32,620.00",08/01/1994,08/15/1994,Investment,Asset,Active,05/01/1992
+334,08/20/1994,1994-08-20 08:00:00,Home Loan,xxxx5001,demo-account-HL11,bal-demo-account-hl11-027,Aurora Bank,"$153,015.00",08/01/1994,08/15/1994,Loan,Liability,Active,05/01/1992
+335,08/20/1994,1994-08-20 08:00:00,Auto Loan,xxxx5002,demo-account-AL12,bal-demo-account-al12-027,Aurora Bank,"$5,215.00",08/01/1994,08/15/1994,Loan,Liability,Active,05/01/1992
+336,09/20/1994,1994-09-20 08:00:00,Main Checking,xxxx1001,demo-account-MC01,bal-demo-account-mc01-028,Aurora Bank,"$4,780.00",09/01/1994,09/19/1994,Depository,Asset,Active,05/01/1992
+337,09/20/1994,1994-09-20 08:00:00,Emergency Savings,xxxx1002,demo-account-ES02,bal-demo-account-es02-028,Aurora Bank,"$15,120.00",09/01/1994,09/19/1994,Depository,Asset,Active,05/01/1992
+338,09/20/1994,1994-09-20 08:00:00,Travel Fund,xxxx1003,demo-account-TF03,bal-demo-account-tf03-028,Aurora Bank,"$4,020.00",09/01/1994,09/19/1994,Depository,Asset,Active,05/01/1992
+339,09/20/1994,1994-09-20 08:00:00,Everyday Card,xxxx2001,demo-account-EC04,bal-demo-account-ec04-028,Harbor Card,"$1,460.00",09/01/1994,09/19/1994,Credit,Liability,Active,05/01/1992
+340,09/20/1994,1994-09-20 08:00:00,Travel Rewards Card,xxxx2002,demo-account-TR05,bal-demo-account-tr05-028,Harbor Card,$520.00,09/01/1994,09/19/1994,Credit,Liability,Active,05/01/1992
+341,09/20/1994,1994-09-20 08:00:00,Brokerage Account,xxxx3001,demo-account-BA06,bal-demo-account-ba06-028,Northstar Investments,"$87,480.00",09/01/1994,09/19/1994,Investment,Asset,Active,05/01/1992
+342,09/20/1994,1994-09-20 08:00:00,Health Savings Account,xxxx3002,demo-account-HS07,bal-demo-account-hs07-028,Northstar Investments,"$11,160.00",09/01/1994,09/19/1994,Depository,Asset,Active,05/01/1992
+343,09/20/1994,1994-09-20 08:00:00,Education Fund,xxxx3003,demo-account-EF08,bal-demo-account-ef08-028,Northstar Investments,"$19,180.00",09/01/1994,09/19/1994,Investment,Asset,Active,05/01/1992
+344,09/20/1994,1994-09-20 08:00:00,Workplace 401(k),xxxx4001,demo-account-WK09,bal-demo-account-wk09-028,Northstar Investments,"$132,900.00",09/01/1994,09/19/1994,Investment,Asset,Active,05/01/1992
+345,09/20/1994,1994-09-20 08:00:00,Roth IRA,xxxx4002,demo-account-RI10,bal-demo-account-ri10-028,Northstar Investments,"$30,310.00",09/01/1994,09/19/1994,Investment,Asset,Active,05/01/1992
+346,09/20/1994,1994-09-20 08:00:00,Home Loan,xxxx5001,demo-account-HL11,bal-demo-account-hl11-028,Aurora Bank,"$152,560.00",09/01/1994,09/19/1994,Loan,Liability,Active,05/01/1992
+347,09/20/1994,1994-09-20 08:00:00,Auto Loan,xxxx5002,demo-account-AL12,bal-demo-account-al12-028,Aurora Bank,"$5,300.00",09/01/1994,09/19/1994,Loan,Liability,Active,05/01/1992
+348,10/20/1994,1994-10-20 08:00:00,Main Checking,xxxx1001,demo-account-MC01,bal-demo-account-mc01-029,Aurora Bank,"$5,515.00",10/01/1994,10/17/1994,Depository,Asset,Active,05/01/1992
+349,10/20/1994,1994-10-20 08:00:00,Emergency Savings,xxxx1002,demo-account-ES02,bal-demo-account-es02-029,Aurora Bank,"$16,570.00",10/01/1994,10/17/1994,Depository,Asset,Active,05/01/1992
+350,10/20/1994,1994-10-20 08:00:00,Travel Fund,xxxx1003,demo-account-TF03,bal-demo-account-tf03-029,Aurora Bank,"$5,715.00",10/01/1994,10/17/1994,Depository,Asset,Active,05/01/1992
+351,10/20/1994,1994-10-20 08:00:00,Everyday Card,xxxx2001,demo-account-EC04,bal-demo-account-ec04-029,Harbor Card,$670.00,10/01/1994,10/17/1994,Credit,Liability,Active,05/01/1992
+352,10/20/1994,1994-10-20 08:00:00,Travel Rewards Card,xxxx2002,demo-account-TR05,bal-demo-account-tr05-029,Harbor Card,"$1,070.00",10/01/1994,10/17/1994,Credit,Liability,Active,05/01/1992
+353,10/20/1994,1994-10-20 08:00:00,Brokerage Account,xxxx3001,demo-account-BA06,bal-demo-account-ba06-029,Northstar Investments,"$84,540.00",10/01/1994,10/17/1994,Investment,Asset,Active,05/01/1992
+354,10/20/1994,1994-10-20 08:00:00,Health Savings Account,xxxx3002,demo-account-HS07,bal-demo-account-hs07-029,Northstar Investments,"$12,155.00",10/01/1994,10/17/1994,Depository,Asset,Active,05/01/1992
+355,10/20/1994,1994-10-20 08:00:00,Education Fund,xxxx3003,demo-account-EF08,bal-demo-account-ef08-029,Northstar Investments,"$20,650.00",10/01/1994,10/17/1994,Investment,Asset,Active,05/01/1992
+356,10/20/1994,1994-10-20 08:00:00,Workplace 401(k),xxxx4001,demo-account-WK09,bal-demo-account-wk09-029,Northstar Investments,"$139,650.00",10/01/1994,10/17/1994,Investment,Asset,Active,05/01/1992
+357,10/20/1994,1994-10-20 08:00:00,Roth IRA,xxxx4002,demo-account-RI10,bal-demo-account-ri10-029,Northstar Investments,"$32,400.00",10/01/1994,10/17/1994,Investment,Asset,Active,05/01/1992
+358,10/20/1994,1994-10-20 08:00:00,Home Loan,xxxx5001,demo-account-HL11,bal-demo-account-hl11-029,Aurora Bank,"$151,835.00",10/01/1994,10/17/1994,Loan,Liability,Active,05/01/1992
+359,10/20/1994,1994-10-20 08:00:00,Auto Loan,xxxx5002,demo-account-AL12,bal-demo-account-al12-029,Aurora Bank,"$4,885.00",10/01/1994,10/17/1994,Loan,Liability,Active,05/01/1992
+360,11/20/1994,1994-11-20 08:00:00,Main Checking,xxxx1001,demo-account-MC01,bal-demo-account-mc01-030,Aurora Bank,"$5,020.00",11/01/1994,11/14/1994,Depository,Asset,Active,05/01/1992
+361,11/20/1994,1994-11-20 08:00:00,Emergency Savings,xxxx1002,demo-account-ES02,bal-demo-account-es02-030,Aurora Bank,"$17,450.00",11/01/1994,11/14/1994,Depository,Asset,Active,05/01/1992
+362,11/20/1994,1994-11-20 08:00:00,Travel Fund,xxxx1003,demo-account-TF03,bal-demo-account-tf03-030,Aurora Bank,"$4,690.00",11/01/1994,11/14/1994,Depository,Asset,Active,05/01/1992
+363,11/20/1994,1994-11-20 08:00:00,Everyday Card,xxxx2001,demo-account-EC04,bal-demo-account-ec04-030,Harbor Card,"$1,680.00",11/01/1994,11/14/1994,Credit,Liability,Active,05/01/1992
+364,11/20/1994,1994-11-20 08:00:00,Travel Rewards Card,xxxx2002,demo-account-TR05,bal-demo-account-tr05-030,Harbor Card,"$1,320.00",11/01/1994,11/14/1994,Credit,Liability,Active,05/01/1992
+365,11/20/1994,1994-11-20 08:00:00,Brokerage Account,xxxx3001,demo-account-BA06,bal-demo-account-ba06-030,Northstar Investments,"$90,600.00",11/01/1994,11/14/1994,Investment,Asset,Active,05/01/1992
+366,11/20/1994,1994-11-20 08:00:00,Health Savings Account,xxxx3002,demo-account-HS07,bal-demo-account-hs07-030,Northstar Investments,"$11,890.00",11/01/1994,11/14/1994,Depository,Asset,Active,05/01/1992
+367,11/20/1994,1994-11-20 08:00:00,Education Fund,xxxx3003,demo-account-EF08,bal-demo-account-ef08-030,Northstar Investments,"$21,530.00",11/01/1994,11/14/1994,Investment,Asset,Active,05/01/1992
+368,11/20/1994,1994-11-20 08:00:00,Workplace 401(k),xxxx4001,demo-account-WK09,bal-demo-account-wk09-030,Northstar Investments,"$144,200.00",11/01/1994,11/14/1994,Investment,Asset,Active,05/01/1992
+369,11/20/1994,1994-11-20 08:00:00,Roth IRA,xxxx4002,demo-account-RI10,bal-demo-account-ri10-030,Northstar Investments,"$31,360.00",11/01/1994,11/14/1994,Investment,Asset,Active,05/01/1992
+370,11/20/1994,1994-11-20 08:00:00,Home Loan,xxxx5001,demo-account-HL11,bal-demo-account-hl11-030,Aurora Bank,"$151,370.00",11/01/1994,11/14/1994,Loan,Liability,Active,05/01/1992
+371,11/20/1994,1994-11-20 08:00:00,Auto Loan,xxxx5002,demo-account-AL12,bal-demo-account-al12-030,Aurora Bank,"$5,010.00",11/01/1994,11/14/1994,Loan,Liability,Active,05/01/1992
+372,12/20/1994,1994-12-20 08:00:00,Main Checking,xxxx1001,demo-account-MC01,bal-demo-account-mc01-031,Aurora Bank,"$5,375.00",12/01/1994,12/19/1994,Depository,Asset,Active,05/01/1992
+373,12/20/1994,1994-12-20 08:00:00,Emergency Savings,xxxx1002,demo-account-ES02,bal-demo-account-es02-031,Aurora Bank,"$16,380.00",12/01/1994,12/19/1994,Depository,Asset,Active,05/01/1992
+374,12/20/1994,1994-12-20 08:00:00,Travel Fund,xxxx1003,demo-account-TF03,bal-demo-account-tf03-031,Aurora Bank,"$5,495.00",12/01/1994,12/19/1994,Depository,Asset,Active,05/01/1992
+375,12/20/1994,1994-12-20 08:00:00,Everyday Card,xxxx2001,demo-account-EC04,bal-demo-account-ec04-031,Harbor Card,"$1,030.00",12/01/1994,12/19/1994,Credit,Liability,Active,05/01/1992
+376,12/20/1994,1994-12-20 08:00:00,Travel Rewards Card,xxxx2002,demo-account-TR05,bal-demo-account-tr05-031,Harbor Card,$570.00,12/01/1994,12/19/1994,Credit,Liability,Active,05/01/1992
+377,12/20/1994,1994-12-20 08:00:00,Brokerage Account,xxxx3001,demo-account-BA06,bal-demo-account-ba06-031,Northstar Investments,"$84,860.00",12/01/1994,12/19/1994,Investment,Asset,Active,05/01/1992
+378,12/20/1994,1994-12-20 08:00:00,Health Savings Account,xxxx3002,demo-account-HS07,bal-demo-account-hs07-031,Northstar Investments,"$12,685.00",12/01/1994,12/19/1994,Depository,Asset,Active,05/01/1992
+379,12/20/1994,1994-12-20 08:00:00,Education Fund,xxxx3003,demo-account-EF08,bal-demo-account-ef08-031,Northstar Investments,"$20,370.00",12/01/1994,12/19/1994,Investment,Asset,Active,05/01/1992
+380,12/20/1994,1994-12-20 08:00:00,Workplace 401(k),xxxx4001,demo-account-WK09,bal-demo-account-wk09-031,Northstar Investments,"$139,750.00",12/01/1994,12/19/1994,Investment,Asset,Active,05/01/1992
+381,12/20/1994,1994-12-20 08:00:00,Roth IRA,xxxx4002,demo-account-RI10,bal-demo-account-ri10-031,Northstar Investments,"$33,680.00",12/01/1994,12/19/1994,Investment,Asset,Active,05/01/1992
+382,12/20/1994,1994-12-20 08:00:00,Home Loan,xxxx5001,demo-account-HL11,bal-demo-account-hl11-031,Aurora Bank,"$150,555.00",12/01/1994,12/19/1994,Loan,Liability,Active,05/01/1992
+383,12/20/1994,1994-12-20 08:00:00,Auto Loan,xxxx5002,demo-account-AL12,bal-demo-account-al12-031,Aurora Bank,"$4,335.00",12/01/1994,12/19/1994,Loan,Liability,Active,05/01/1992
+384,01/20/1995,1995-01-20 08:00:00,Main Checking,xxxx1001,demo-account-MC01,bal-demo-account-mc01-032,Aurora Bank,"$4,820.00",01/01/1995,01/16/1995,Depository,Asset,Active,05/01/1992
+385,01/20/1995,1995-01-20 08:00:00,Emergency Savings,xxxx1002,demo-account-ES02,bal-demo-account-es02-032,Aurora Bank,"$15,720.00",01/01/1995,01/16/1995,Depository,Asset,Active,05/01/1992
+386,01/20/1995,1995-01-20 08:00:00,Travel Fund,xxxx1003,demo-account-TF03,bal-demo-account-tf03-032,Aurora Bank,"$4,150.00",01/01/1995,01/16/1995,Depository,Asset,Active,05/01/1992
+387,01/20/1995,1995-01-20 08:00:00,Everyday Card,xxxx2001,demo-account-EC04,bal-demo-account-ec04-032,Harbor Card,"$1,570.00",01/01/1995,01/16/1995,Credit,Liability,Active,05/01/1992
+388,01/20/1995,1995-01-20 08:00:00,Travel Rewards Card,xxxx2002,demo-account-TR05,bal-demo-account-tr05-032,Harbor Card,$970.00,01/01/1995,01/16/1995,Credit,Liability,Active,05/01/1992
+389,01/20/1995,1995-01-20 08:00:00,Brokerage Account,xxxx3001,demo-account-BA06,bal-demo-account-ba06-032,Northstar Investments,"$89,420.00",01/01/1995,01/16/1995,Investment,Asset,Active,05/01/1992
+390,01/20/1995,1995-01-20 08:00:00,Health Savings Account,xxxx3002,demo-account-HS07,bal-demo-account-hs07-032,Northstar Investments,"$12,080.00",01/01/1995,01/16/1995,Depository,Asset,Active,05/01/1992
+391,01/20/1995,1995-01-20 08:00:00,Education Fund,xxxx3003,demo-account-EF08,bal-demo-account-ef08-032,Northstar Investments,"$19,810.00",01/01/1995,01/16/1995,Investment,Asset,Active,05/01/1992
+392,01/20/1995,1995-01-20 08:00:00,Workplace 401(k),xxxx4001,demo-account-WK09,bal-demo-account-wk09-032,Northstar Investments,"$137,600.00",01/01/1995,01/16/1995,Investment,Asset,Active,05/01/1992
+393,01/20/1995,1995-01-20 08:00:00,Roth IRA,xxxx4002,demo-account-RI10,bal-demo-account-ri10-032,Northstar Investments,"$31,850.00",01/01/1995,01/16/1995,Investment,Asset,Active,05/01/1992
+394,01/20/1995,1995-01-20 08:00:00,Home Loan,xxxx5001,demo-account-HL11,bal-demo-account-hl11-032,Aurora Bank,"$150,085.00",01/01/1995,01/16/1995,Loan,Liability,Active,05/01/1992
+395,01/20/1995,1995-01-20 08:00:00,Auto Loan,xxxx5002,demo-account-AL12,bal-demo-account-al12-032,Aurora Bank,"$4,400.00",01/01/1995,01/16/1995,Loan,Liability,Active,05/01/1992
+396,02/20/1995,1995-02-20 08:00:00,Main Checking,xxxx1001,demo-account-MC01,bal-demo-account-mc01-033,Aurora Bank,"$5,545.00",02/01/1995,02/20/1995,Depository,Asset,Active,05/01/1992
+397,02/20/1995,1995-02-20 08:00:00,Emergency Savings,xxxx1002,demo-account-ES02,bal-demo-account-es02-033,Aurora Bank,"$17,920.00",02/01/1995,02/20/1995,Depository,Asset,Active,05/01/1992
+398,02/20/1995,1995-02-20 08:00:00,Travel Fund,xxxx1003,demo-account-TF03,bal-demo-account-tf03-033,Aurora Bank,"$5,855.00",02/01/1995,02/20/1995,Depository,Asset,Active,05/01/1992
+399,02/20/1995,1995-02-20 08:00:00,Everyday Card,xxxx2001,demo-account-EC04,bal-demo-account-ec04-033,Harbor Card,$970.00,02/01/1995,02/20/1995,Credit,Liability,Active,05/01/1992
+400,02/20/1995,1995-02-20 08:00:00,Travel Rewards Card,xxxx2002,demo-account-TR05,bal-demo-account-tr05-033,Harbor Card,"$1,240.00",02/01/1995,02/20/1995,Credit,Liability,Active,05/01/1992
+401,02/20/1995,1995-02-20 08:00:00,Brokerage Account,xxxx3001,demo-account-BA06,bal-demo-account-ba06-033,Northstar Investments,"$93,180.00",02/01/1995,02/20/1995,Investment,Asset,Active,05/01/1992
+402,02/20/1995,1995-02-20 08:00:00,Health Savings Account,xxxx3002,demo-account-HS07,bal-demo-account-hs07-033,Northstar Investments,"$12,815.00",02/01/1995,02/20/1995,Depository,Asset,Active,05/01/1992
+403,02/20/1995,1995-02-20 08:00:00,Education Fund,xxxx3003,demo-account-EF08,bal-demo-account-ef08-033,Northstar Investments,"$21,730.00",02/01/1995,02/20/1995,Investment,Asset,Active,05/01/1992
+404,02/20/1995,1995-02-20 08:00:00,Workplace 401(k),xxxx4001,demo-account-WK09,bal-demo-account-wk09-033,Northstar Investments,"$145,950.00",02/01/1995,02/20/1995,Investment,Asset,Active,05/01/1992
+405,02/20/1995,1995-02-20 08:00:00,Roth IRA,xxxx4002,demo-account-RI10,bal-demo-account-ri10-033,Northstar Investments,"$33,490.00",02/01/1995,02/20/1995,Investment,Asset,Active,05/01/1992
+406,02/20/1995,1995-02-20 08:00:00,Home Loan,xxxx5001,demo-account-HL11,bal-demo-account-hl11-033,Aurora Bank,"$149,265.00",02/01/1995,02/20/1995,Loan,Liability,Active,05/01/1992
+407,02/20/1995,1995-02-20 08:00:00,Auto Loan,xxxx5002,demo-account-AL12,bal-demo-account-al12-033,Aurora Bank,"$3,805.00",02/01/1995,02/20/1995,Loan,Liability,Active,05/01/1992
+408,03/20/1995,1995-03-20 08:00:00,Main Checking,xxxx1001,demo-account-MC01,bal-demo-account-mc01-034,Aurora Bank,"$5,150.00",03/01/1995,03/20/1995,Depository,Asset,Active,05/01/1992
+409,03/20/1995,1995-03-20 08:00:00,Emergency Savings,xxxx1002,demo-account-ES02,bal-demo-account-es02-034,Aurora Bank,"$16,920.00",03/01/1995,03/20/1995,Depository,Asset,Active,05/01/1992
+410,03/20/1995,1995-03-20 08:00:00,Travel Fund,xxxx1003,demo-account-TF03,bal-demo-account-tf03-034,Aurora Bank,"$4,710.00",03/01/1995,03/20/1995,Depository,Asset,Active,05/01/1992
+411,03/20/1995,1995-03-20 08:00:00,Everyday Card,xxxx2001,demo-account-EC04,bal-demo-account-ec04-034,Harbor Card,"$1,840.00",03/01/1995,03/20/1995,Credit,Liability,Active,05/01/1992
+412,03/20/1995,1995-03-20 08:00:00,Travel Rewards Card,xxxx2002,demo-account-TR05,bal-demo-account-tr05-034,Harbor Card,$630.00,03/01/1995,03/20/1995,Credit,Liability,Active,05/01/1992
+413,03/20/1995,1995-03-20 08:00:00,Brokerage Account,xxxx3001,demo-account-BA06,bal-demo-account-ba06-034,Northstar Investments,"$89,040.00",03/01/1995,03/20/1995,Investment,Asset,Active,05/01/1992
+414,03/20/1995,1995-03-20 08:00:00,Health Savings Account,xxxx3002,demo-account-HS07,bal-demo-account-hs07-034,Northstar Investments,"$13,340.00",03/01/1995,03/20/1995,Depository,Asset,Active,05/01/1992
+415,03/20/1995,1995-03-20 08:00:00,Education Fund,xxxx3003,demo-account-EF08,bal-demo-account-ef08-034,Northstar Investments,"$20,930.00",03/01/1995,03/20/1995,Investment,Asset,Active,05/01/1992
+416,03/20/1995,1995-03-20 08:00:00,Workplace 401(k),xxxx4001,demo-account-WK09,bal-demo-account-wk09-034,Northstar Investments,"$142,400.00",03/01/1995,03/20/1995,Investment,Asset,Active,05/01/1992
+417,03/20/1995,1995-03-20 08:00:00,Roth IRA,xxxx4002,demo-account-RI10,bal-demo-account-ri10-034,Northstar Investments,"$34,860.00",03/01/1995,03/20/1995,Investment,Asset,Active,05/01/1992
+418,03/20/1995,1995-03-20 08:00:00,Home Loan,xxxx5001,demo-account-HL11,bal-demo-account-hl11-034,Aurora Bank,"$148,810.00",03/01/1995,03/20/1995,Loan,Liability,Active,05/01/1992
+419,03/20/1995,1995-03-20 08:00:00,Auto Loan,xxxx5002,demo-account-AL12,bal-demo-account-al12-034,Aurora Bank,"$3,890.00",03/01/1995,03/20/1995,Loan,Liability,Active,05/01/1992
+420,04/20/1995,1995-04-20 08:00:00,Main Checking,xxxx1001,demo-account-MC01,bal-demo-account-mc01-035,Aurora Bank,"$5,715.00",04/01/1995,04/17/1995,Depository,Asset,Active,05/01/1992
+421,04/20/1995,1995-04-20 08:00:00,Emergency Savings,xxxx1002,demo-account-ES02,bal-demo-account-es02-035,Aurora Bank,"$18,680.00",04/01/1995,04/17/1995,Depository,Asset,Active,05/01/1992
+422,04/20/1995,1995-04-20 08:00:00,Travel Fund,xxxx1003,demo-account-TF03,bal-demo-account-tf03-035,Aurora Bank,"$5,645.00",04/01/1995,04/17/1995,Depository,Asset,Active,05/01/1992
+423,04/20/1995,1995-04-20 08:00:00,Everyday Card,xxxx2001,demo-account-EC04,bal-demo-account-ec04-035,Harbor Card,$920.00,04/01/1995,04/17/1995,Credit,Liability,Active,05/01/1992
+424,04/20/1995,1995-04-20 08:00:00,Travel Rewards Card,xxxx2002,demo-account-TR05,bal-demo-account-tr05-035,Harbor Card,"$1,480.00",04/01/1995,04/17/1995,Credit,Liability,Active,05/01/1992
+425,04/20/1995,1995-04-20 08:00:00,Brokerage Account,xxxx3001,demo-account-BA06,bal-demo-account-ba06-035,Northstar Investments,"$93,200.00",04/01/1995,04/17/1995,Investment,Asset,Active,05/01/1992
+426,04/20/1995,1995-04-20 08:00:00,Health Savings Account,xxxx3002,demo-account-HS07,bal-demo-account-hs07-035,Northstar Investments,"$12,385.00",04/01/1995,04/17/1995,Depository,Asset,Active,05/01/1992
+427,04/20/1995,1995-04-20 08:00:00,Education Fund,xxxx3003,demo-account-EF08,bal-demo-account-ef08-035,Northstar Investments,"$22,450.00",04/01/1995,04/17/1995,Investment,Asset,Active,05/01/1992
+428,04/20/1995,1995-04-20 08:00:00,Workplace 401(k),xxxx4001,demo-account-WK09,bal-demo-account-wk09-035,Northstar Investments,"$152,050.00",04/01/1995,04/17/1995,Investment,Asset,Active,05/01/1992
+429,04/20/1995,1995-04-20 08:00:00,Roth IRA,xxxx4002,demo-account-RI10,bal-demo-account-ri10-035,Northstar Investments,"$32,550.00",04/01/1995,04/17/1995,Investment,Asset,Active,05/01/1992
+430,04/20/1995,1995-04-20 08:00:00,Home Loan,xxxx5001,demo-account-HL11,bal-demo-account-hl11-035,Aurora Bank,"$148,085.00",04/01/1995,04/17/1995,Loan,Liability,Active,05/01/1992
+431,04/20/1995,1995-04-20 08:00:00,Auto Loan,xxxx5002,demo-account-AL12,bal-demo-account-al12-035,Aurora Bank,"$3,475.00",04/01/1995,04/17/1995,Loan,Liability,Active,05/01/1992

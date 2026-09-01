@@ -570,14 +570,14 @@ class TestPageFilterDefaults:
 
         assert result["exclude_groups"] == [
             "Bills",
-            "Income",
             "Donations",
+            "Income",
             "Maintenance",
             "Travel",
         ]
         assert result["exclude_categories"] == [
-            "Christmas",
             "Given Gift",
+            "Groceries",
             "Tax Return Payment",
         ]
         assert result["filter_large_expenses"] is False
