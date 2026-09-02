@@ -88,10 +88,26 @@ duplicate_require_same_description = true
 [financial_independence]
 expected_return_rate = 7.0
 withdrawal_rate = 4.0
+# Fixed funding goal shown on the Home-page financial-safety card.
+target_amount = 5_000_000
 spending_lookback_months = 12
 projection_years = 50
 included_account_patterns = []
 included_groups = ["Savings", "Investments", "Retirement"]
+
+[financial_safety]
+# Count liquid balances from these groups toward the emergency fund.
+emergency_fund_target_months = 6
+emergency_fund_included_groups = ["Savings"]
+emergency_fund_included_account_patterns = []
+emergency_fund_spending_lookback_months = 6
+# Exclude irregular categories or groups that you would not fund in an emergency.
+emergency_fund_exclude_categories = []
+emergency_fund_exclude_groups = ["Travel", "Donations"]
+# Debt progress uses the first recorded balance unless you set an ISO date here.
+debt_included_groups = ["Credit Cards", "Home Loan", "Auto Loan"]
+debt_included_account_patterns = []
+debt_baseline_date = ""
 
 [weekly_summary]
 average_weeks = 8

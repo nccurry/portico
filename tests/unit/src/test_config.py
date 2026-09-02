@@ -38,6 +38,12 @@ def test_defaults_match_the_public_application_profile(tmp_path: Path) -> None:
         "Investments",
         "Retirement",
     )
+    assert settings.financial_independence.target_amount == 5_000_000
+    assert settings.financial_safety.emergency_fund_target_months == 6
+    assert settings.financial_safety.emergency_fund_included_groups == ("Savings",)
+    assert settings.financial_safety.emergency_fund_exclude_groups == ("Travel", "Donations")
+    assert settings.financial_safety.debt_included_groups == ("Credit Cards", "Home Loan", "Auto Loan")
+    assert settings.financial_safety.debt_baseline_date is None
 
 
 def test_local_file_and_environment_override_defaults(tmp_path: Path) -> None:
@@ -68,6 +74,9 @@ default_view = "all"
 history_months = 18
 [data_health]
 stale_account_days = 30
+[financial_safety]
+emergency_fund_target_months = 4
+debt_baseline_date = 2024-01-15
 [subscriptions]
 minimum_confidence = 90
 [weekly_summary]
@@ -85,6 +94,8 @@ top_merchant_count = 5
     assert settings.spending.default_view == "all"
     assert settings.budget.history_months == 18
     assert settings.data_health.stale_account_days == 30
+    assert settings.financial_safety.emergency_fund_target_months == 4
+    assert settings.financial_safety.debt_baseline_date == datetime(2024, 1, 15).date()
     assert settings.subscriptions.minimum_confidence == 90
     assert settings.weekly_summary.average_weeks == 12
     assert settings.weekly_summary.rolling_weeks == 6
@@ -130,6 +141,10 @@ def test_unreadable_local_path_is_rejected(tmp_path: Path) -> None:
             "withdrawal_rate must be between 0.5 and 10",
         ),
         (
+            "[financial_independence]\ntarget_amount = 0\n",
+            r"target_amount must be between 1 and 1e\+08",
+        ),
+        (
             "[reporting]\nlookback_months = [12, 3]\n",
             "lookback_months must be in ascending order",
         ),
@@ -148,6 +163,14 @@ def test_unreadable_local_path_is_rejected(tmp_path: Path) -> None:
         (
             "[budget]\nhistory_months = 0\n",
             "history_months must be between 1 and 120",
+        ),
+        (
+            "[financial_safety]\nemergency_fund_target_months = 0\n",
+            "emergency_fund_target_months must be between 1 and 24",
+        ),
+        (
+            '[financial_safety]\ndebt_baseline_date = "not-a-date"\n',
+            "debt_baseline_date must be an ISO 8601 date or an empty string",
         ),
         (
             "[weekly_summary]\nrolling_weeks = 53\n",

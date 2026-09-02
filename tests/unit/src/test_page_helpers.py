@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 from pytest import MonkeyPatch
 
-from src.page_helpers import extract_merchant_name, render_demo_banner
+from src.page_helpers import extract_merchant_name, render_demo_banner, render_time_frame_control
 
 
 def test_demo_banner_identifies_synthetic_data(monkeypatch: MonkeyPatch) -> None:
@@ -18,6 +18,31 @@ def test_demo_banner_identifies_synthetic_data(monkeypatch: MonkeyPatch) -> None
     assert messages == [
         "Demo data is active. The dashboard uses committed synthetic records and does not contact Google Sheets."
     ]
+
+
+def test_time_frame_control_uses_the_shared_presentation(monkeypatch: MonkeyPatch) -> None:
+    call: dict[str, object] = {}
+
+    def segmented_control(label: str, **kwargs: object) -> str:
+        call["label"] = label
+        call.update(kwargs)
+        return "1Y"
+
+    monkeypatch.setattr("src.page_helpers.st.segmented_control", segmented_control)
+
+    selected = render_time_frame_control(["3M", "1Y", "All"], default="1Y", key="page_lookback")
+
+    assert selected == "1Y"
+    assert call == {
+        "label": "Time frame",
+        "options": ["3M", "1Y", "All"],
+        "default": "1Y",
+        "required": True,
+        "key": "page_lookback",
+        "help": "Controls the time period shown on this page.",
+        "persist_state": "page",
+        "width": "stretch",
+    }
 
 
 class TestExtractMerchantName:

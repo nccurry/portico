@@ -34,6 +34,7 @@ BUDGET_PERFORMANCE_COLUMNS = [
     "Success_Rate",
     "Trend",
 ]
+BUDGET_PACE_COLUMNS = ["Date", "Actual_Cumulative", "Ideal_Cumulative"]
 
 
 def get_default_budget_groups(
@@ -244,6 +245,52 @@ def filter_budget_transactions(
     if groups is not None:
         transactions = transactions[transactions["Group"].isin(groups)]
     return transactions
+
+
+def build_daily_budget_pace(
+    budget_df: pd.DataFrame,
+    transactions_df: pd.DataFrame,
+    month_str: str,
+    filters: BudgetFilters,
+    groups: Sequence[str],
+    *,
+    through_date: pd.Timestamp,
+) -> pd.DataFrame:
+    """Return cumulative actual spending against a straight-line monthly budget pace."""
+    if not groups:
+        return pd.DataFrame(columns=BUDGET_PACE_COLUMNS)
+
+    month = pd.Period(month_str, freq="M")
+    month_start = month.start_time.tz_localize("UTC")
+    month_end = month.end_time.normalize().tz_localize("UTC")
+    through = pd.Timestamp(through_date)
+    through = through.tz_localize("UTC") if through.tzinfo is None else through.tz_convert("UTC")
+    if through.normalize() < month_start:
+        return pd.DataFrame(columns=BUDGET_PACE_COLUMNS)
+    end = min(through.normalize(), month_end)
+
+    budget_rows = _budget_rows(budget_df, [month_str], filters, groups)
+    budget = float(pd.to_numeric(budget_rows["Budget"], errors="coerce").fillna(0.0).sum())
+    transactions = filter_budget_transactions(
+        transactions_df,
+        month_str,
+        filters,
+        groups=groups,
+    ).copy()
+    transactions["Date"] = pd.to_datetime(transactions["Date"], errors="coerce", utc=True).dt.normalize()
+    transactions = transactions[transactions["Date"].between(month_start, end)]
+    actual_by_day = -pd.to_numeric(transactions.groupby("Date")["Amount"].sum(), errors="coerce").fillna(0.0)
+    dates = pd.date_range(month_start, end, freq="D")
+    actual = actual_by_day.reindex(dates, fill_value=0.0).cumsum()
+    day_numbers = pd.Series(range(1, len(dates) + 1), index=dates, dtype=float)
+    ideal = budget * day_numbers / month.days_in_month
+    return pd.DataFrame(
+        {
+            "Date": dates,
+            "Actual_Cumulative": actual.to_numpy(),
+            "Ideal_Cumulative": ideal.to_numpy(),
+        }
+    )
 
 
 def _group_budget_comparison(

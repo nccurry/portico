@@ -1,3 +1,5 @@
+from collections.abc import Sequence
+
 import pandas as pd
 import streamlit as st
 
@@ -14,6 +16,7 @@ __all__ = [
     "get_transaction_column_config",
     "render_data_refresh_controls",
     "render_demo_banner",
+    "render_time_frame_control",
 ]
 
 
@@ -49,6 +52,26 @@ def render_demo_banner() -> None:
             "Demo data is active. The dashboard uses committed synthetic records and does not contact Google Sheets.",
             icon=":material/science:",
         )
+
+
+def render_time_frame_control(
+    options: Sequence[str],
+    *,
+    default: str,
+    key: str,
+) -> str:
+    """Render the shared page-level reporting-period control."""
+    selected = st.segmented_control(
+        "Time frame",
+        options=list(options),
+        default=default,
+        required=True,
+        key=key,
+        help="Controls the time period shown on this page.",
+        persist_state="page",
+        width="stretch",
+    )
+    return selected if isinstance(selected, str) and selected in options else default
 
 
 def display_transactions_expander(

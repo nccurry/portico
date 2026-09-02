@@ -7,7 +7,7 @@ import re
 import tomllib
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -116,10 +116,26 @@ class FinancialIndependenceSettings:
 
     expected_return_rate: float
     withdrawal_rate: float
+    target_amount: float
     spending_lookback_months: int
     projection_years: int
     included_account_patterns: tuple[str, ...]
     included_groups: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class FinancialSafetySettings:
+    """Household policy for emergency-fund and debt progress."""
+
+    emergency_fund_target_months: int
+    emergency_fund_included_groups: tuple[str, ...]
+    emergency_fund_included_account_patterns: tuple[str, ...]
+    emergency_fund_spending_lookback_months: int
+    emergency_fund_exclude_categories: tuple[str, ...]
+    emergency_fund_exclude_groups: tuple[str, ...]
+    debt_included_groups: tuple[str, ...]
+    debt_included_account_patterns: tuple[str, ...]
+    debt_baseline_date: date | None
 
 
 @dataclass(frozen=True)
@@ -152,6 +168,7 @@ class Settings:
     budget: BudgetSettings
     data_health: DataHealthSettings
     financial_independence: FinancialIndependenceSettings
+    financial_safety: FinancialSafetySettings
     weekly_summary: WeeklySummarySettings
     merchants: MerchantSettings
 
@@ -181,10 +198,22 @@ _SECTION_KEYS = {
     "financial_independence": {
         "expected_return_rate",
         "withdrawal_rate",
+        "target_amount",
         "spending_lookback_months",
         "projection_years",
         "included_account_patterns",
         "included_groups",
+    },
+    "financial_safety": {
+        "emergency_fund_target_months",
+        "emergency_fund_included_groups",
+        "emergency_fund_included_account_patterns",
+        "emergency_fund_spending_lookback_months",
+        "emergency_fund_exclude_categories",
+        "emergency_fund_exclude_groups",
+        "debt_included_groups",
+        "debt_included_account_patterns",
+        "debt_baseline_date",
     },
     "weekly_summary": {"average_weeks", "rolling_weeks", "top_merchant_count"},
     "merchants": {"aliases"},
@@ -323,6 +352,20 @@ def _utc_datetime(section: Mapping[str, Any], key: str) -> datetime:
     return timestamp.astimezone(UTC)
 
 
+def _optional_date(section: Mapping[str, Any], key: str) -> date | None:
+    value = section.get(key)
+    if isinstance(value, date) and not isinstance(value, datetime):
+        return value
+    if not isinstance(value, str):
+        raise ConfigError(f"{key} must be an ISO 8601 date or an empty string")
+    if not value.strip():
+        return None
+    try:
+        return date.fromisoformat(value)
+    except ValueError as error:
+        raise ConfigError(f"{key} must be an ISO 8601 date or an empty string") from error
+
+
 def _merchant_aliases(section: Mapping[str, Any]) -> tuple[tuple[str, tuple[str, ...]], ...]:
     aliases = section["aliases"]
     assert isinstance(aliases, Mapping)
@@ -350,6 +393,7 @@ def _build_settings(document: Mapping[str, Any], project_root: Path) -> Settings
     budget = document["budget"]
     data_health = document["data_health"]
     financial_independence = document["financial_independence"]
+    financial_safety = document["financial_safety"]
     weekly_summary = document["weekly_summary"]
     merchants = document["merchants"]
     assert all(
@@ -365,6 +409,7 @@ def _build_settings(document: Mapping[str, Any], project_root: Path) -> Settings
             budget,
             data_health,
             financial_independence,
+            financial_safety,
             weekly_summary,
             merchants,
         )
@@ -382,6 +427,12 @@ def _build_settings(document: Mapping[str, Any], project_root: Path) -> Settings
     if spending_lookback_months not in FI_SPENDING_LOOKBACK_OPTIONS:
         options = ", ".join(str(value) for value in FI_SPENDING_LOOKBACK_OPTIONS)
         raise ConfigError(f"spending_lookback_months must be one of: {options}")
+    emergency_fund_spending_lookback_months = _integer(
+        financial_safety,
+        "emergency_fund_spending_lookback_months",
+        1,
+        120,
+    )
     lookback_months = _integers(reporting, "lookback_months", 1, 120)
     if not 2 <= len(lookback_months) <= 5:
         raise ConfigError("lookback_months must contain between 2 and 5 values")
@@ -438,10 +489,25 @@ def _build_settings(document: Mapping[str, Any], project_root: Path) -> Settings
         financial_independence=FinancialIndependenceSettings(
             expected_return_rate=_number(financial_independence, "expected_return_rate", 0, 20),
             withdrawal_rate=_number(financial_independence, "withdrawal_rate", 0.5, 10),
+            target_amount=_number(financial_independence, "target_amount", 1, 100_000_000),
             spending_lookback_months=spending_lookback_months,
             projection_years=_integer(financial_independence, "projection_years", 1, 100),
             included_account_patterns=_strings(financial_independence, "included_account_patterns"),
             included_groups=_strings(financial_independence, "included_groups"),
+        ),
+        financial_safety=FinancialSafetySettings(
+            emergency_fund_target_months=_integer(financial_safety, "emergency_fund_target_months", 1, 24),
+            emergency_fund_included_groups=_strings(financial_safety, "emergency_fund_included_groups"),
+            emergency_fund_included_account_patterns=_strings(
+                financial_safety,
+                "emergency_fund_included_account_patterns",
+            ),
+            emergency_fund_spending_lookback_months=emergency_fund_spending_lookback_months,
+            emergency_fund_exclude_categories=_strings(financial_safety, "emergency_fund_exclude_categories"),
+            emergency_fund_exclude_groups=_strings(financial_safety, "emergency_fund_exclude_groups"),
+            debt_included_groups=_strings(financial_safety, "debt_included_groups"),
+            debt_included_account_patterns=_strings(financial_safety, "debt_included_account_patterns"),
+            debt_baseline_date=_optional_date(financial_safety, "debt_baseline_date"),
         ),
         weekly_summary=WeeklySummarySettings(
             average_weeks=_integer(weekly_summary, "average_weeks", 1, 52),

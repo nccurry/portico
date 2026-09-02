@@ -13,6 +13,7 @@ from streamlit.elements.arrow import DataframeState
 from src.analysis.budget import (
     build_budget_history,
     build_budget_performance,
+    build_daily_budget_pace,
     filter_budget_transactions,
     get_default_budget_groups,
     get_ytd_group_budget_vs_actual,
@@ -80,16 +81,15 @@ def _month_progress(
     dates = pd.to_datetime(transactions["Date"], errors="coerce", utc=True)
     valid = transactions.assign(_Date=dates).dropna(subset=["_Date"])
     latest = None if valid.empty else cast(pd.Timestamp, valid["_Date"].max())
-    anchor = reporting_anchor()
-    if anchor.strftime("%Y-%m") == selected_month:
+    anchor = reporting_anchor(transactions, anchor_to_data=True)
+    selected_period = pd.Period(selected_month, freq="M")
+    anchor_period = pd.Period(anchor.strftime("%Y-%m"), freq="M")
+    if selected_period > anchor_period:
+        return 0.0, latest
+    if selected_period == anchor_period:
         days = calendar.monthrange(anchor.year, anchor.month)[1]
         return anchor.day / days, latest
-    if latest is None:
-        return 1.0, None
-    if latest.strftime("%Y-%m") != selected_month:
-        return 1.0, latest
-    days = calendar.monthrange(latest.year, latest.month)[1]
-    return latest.day / days, latest
+    return 1.0, latest
 
 
 def _add_status(
@@ -169,6 +169,29 @@ def create_budget_pulse_chart(
         alt.LayerChart,
         (bars + targets + typical).properties(height=max(240, len(performance) * height_per_row)),
     )
+
+
+def create_daily_budget_pace_chart(pace: pd.DataFrame) -> alt.LayerChart:
+    """Show cumulative actual spending against the selected budget's ideal pace."""
+    actual = (
+        alt.Chart(pace)
+        .mark_line(color=COLOR_NET_WORTH, strokeWidth=3, point=True)
+        .encode(
+            x=alt.X("Date:T", title=None, axis=alt.Axis(format="%b %d", labelAngle=-35)),
+            y=alt.Y("Actual_Cumulative:Q", title="Cumulative spending ($)", axis=alt.Axis(format="$,.2s")),
+            tooltip=[
+                alt.Tooltip("Date:T", title="Date", format="%b %d, %Y"),
+                alt.Tooltip("Actual_Cumulative:Q", title="Actual spending", format="$,.2f"),
+                alt.Tooltip("Ideal_Cumulative:Q", title="Ideal pace", format="$,.2f"),
+            ],
+        )
+    )
+    ideal = (
+        alt.Chart(pace)
+        .mark_line(color=COLOR_BUDGET, strokeDash=[6, 4], strokeWidth=2)
+        .encode(x=alt.X("Date:T"), y=alt.Y("Ideal_Cumulative:Q"))
+    )
+    return cast(alt.LayerChart, (actual + ideal).resolve_scale(y="shared").properties(height=270))
 
 
 def _performance_column_config(entity_label: str) -> ColumnConfig:
@@ -335,6 +358,41 @@ def _render_summary(
             delta_color="off",
             border=True,
         )
+
+
+def _render_daily_budget_pace(
+    budget_df: pd.DataFrame,
+    transactions_df: pd.DataFrame,
+    *,
+    selected_month: str,
+    groups: Sequence[str],
+    filters: BudgetFilters,
+) -> None:
+    """Render the selected budget's cumulative daily pace."""
+    anchor = reporting_anchor(transactions_df, anchor_to_data=True)
+    selected_period = pd.Period(selected_month, freq="M")
+    anchor_period = pd.Period(anchor.strftime("%Y-%m"), freq="M")
+    through_date = anchor if selected_period >= anchor_period else selected_period.end_time
+    pace = build_daily_budget_pace(
+        budget_df,
+        transactions_df,
+        selected_month,
+        filters,
+        groups,
+        through_date=through_date,
+    )
+    with st.container(border=True):
+        st.subheader(
+            "Daily budget pace",
+            help=(
+                "Cumulative spending compared with a straight-line share of your selected budget. "
+                "Unbudgeted categories in the selected groups count toward actual spending."
+            ),
+        )
+        if pace.empty:
+            st.info("No daily pace is available for this month.")
+            return
+        value_safe_altair_chart(create_daily_budget_pace_chart(pace), width="stretch")
 
 
 def _render_group_detail(
@@ -516,8 +574,9 @@ def main() -> None:
         st.caption(f"Spending through {latest.strftime('%B %d, %Y').replace(' 0', ' ')}")
 
     current_month = rolling_month_window(1)[1]
+    latest_month = latest.strftime("%Y-%m") if latest is not None else current_month
     months = sorted(
-        {*transactions_df["Month"].dropna().astype(str).unique(), current_month},
+        {*transactions_df["Month"].dropna().astype(str).unique(), current_month, latest_month},
         reverse=True,
     )
     if not months:
@@ -530,7 +589,7 @@ def main() -> None:
         selected_month = st.selectbox(
             "Month",
             months,
-            index=0,
+            index=months.index(latest_month),
             key="budget_month",
             persist_state="page",
         )
@@ -618,6 +677,13 @@ def main() -> None:
         category_performance,
         selected_month=str(selected_month),
         month_progress=month_progress,
+    )
+    _render_daily_budget_pace(
+        budget_df,
+        transactions_df,
+        selected_month=str(selected_month),
+        groups=selected_groups,
+        filters=filters,
     )
 
     with st.container(border=True):

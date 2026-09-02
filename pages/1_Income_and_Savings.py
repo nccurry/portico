@@ -20,7 +20,7 @@ from src.constants import (
 )
 from src.custom_types import SavingsSummary
 from src.filters import render_income_expense_filters
-from src.page_helpers import render_data_refresh_controls
+from src.page_helpers import render_data_refresh_controls, render_time_frame_control
 from src.reporting_periods import month_lookback_options, rolling_month_window
 from src.spreadsheet import TransactionsSpreadsheet, load_transactions_data
 from src.value_visibility import mask_value, value_safe_altair_chart, value_safe_dataframe
@@ -674,15 +674,13 @@ def main() -> None:
     default_lookback = next(
         label for label, months in lookback_options.items() if months == settings.reporting.default_lookback_months
     )
-    with st.container(horizontal=True, vertical_alignment="bottom"):
-        lookback = st.segmented_control(
-            "Time frame",
-            options=list(lookback_options),
-            default=default_lookback,
-            required=True,
-            key="income_lookback",
-            persist_state="page",
-        )
+    lookback = render_time_frame_control(
+        list(lookback_options),
+        default=default_lookback,
+        key="income_lookback",
+    )
+    controls = st.columns([2, 1], vertical_alignment="bottom")
+    with controls[0]:
         calculation_view = st.segmented_control(
             "Calculation",
             options=CALCULATION_VIEWS,
@@ -694,7 +692,9 @@ def main() -> None:
                 "with everything included. You can adjust either view directly."
             ),
             persist_state="page",
+            width="stretch",
         )
+    with controls[1]:
         adjust_slot = st.empty()
 
     transactions_spreadsheet = load_transactions_data()
