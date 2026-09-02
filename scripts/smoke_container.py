@@ -98,7 +98,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "--security-opt",
                 "no-new-privileges:true",
                 "--env",
-                "PORTICO_DATA_SOURCE=demo",
+                "PORTICO_CONFIG_PATH=/app/config/demo.toml",
                 "--publish",
                 "127.0.0.1::8501",
                 args.image,

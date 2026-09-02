@@ -21,6 +21,7 @@ from urllib.request import Request, urlopen
 
 import pandas as pd
 
+from src.analysis.merchants import configured_merchant_aliases
 from src.config import get_settings
 from src.scrubbing import SpreadsheetSchemaError, scrub_categories, scrub_transactions
 from src.sheet_config import SheetConfigError, parse_sheet_location
@@ -340,12 +341,17 @@ def was_sent(period_end: dt.date, path: Path = DEFAULT_STATE_PATH) -> bool:
 def build_report(config: NotifierConfig, period: ReportPeriod) -> WeeklyExpenseReport:
     """Load source data and calculate one report."""
     transactions, metadata = load_report_data(config)
+    try:
+        merchant_aliases = configured_merchant_aliases()
+    except ValueError as error:
+        raise NotifierError(f"Merchant alias configuration is invalid: {error}") from error
     return calculate_weekly_report(
         transactions,
         metadata,
         config.categories,
         period,
         top_merchant_count=get_settings().weekly_summary.top_merchant_count,
+        merchant_aliases=merchant_aliases,
     )
 
 

@@ -11,7 +11,7 @@ from src.analysis.spending import build_spending_ledger
 from src.analysis.subscriptions import build_subscription_inventory, build_subscription_lifecycles
 from src.config import get_settings
 from src.custom_types import SpendingFilters
-from src.filters import calculate_date_range, spending_filters_for_view
+from src.filters import calculate_date_range
 from src.spreadsheet import calculate_net_worth_summary
 from src.transaction_filters import apply_transaction_filters
 from tests.custom_types import FullDatasetFactory, SpreadsheetBundle
@@ -242,14 +242,22 @@ class TestDemoShowcase:
         full_dataset: SpreadsheetBundle,
     ) -> None:
         transactions, _bal, _cats, _accounts = full_dataset
-        settings = get_settings().spending
-        filters: SpendingFilters = spending_filters_for_view(settings.view("discretionary"))
-        filters["expense_threshold"] = 999_999
+        settings = get_settings()
+        filters: SpendingFilters = {
+            "include_groups": [],
+            "include_categories": [],
+            "exclude_groups": [],
+            "exclude_categories": [],
+            "filter_large_expenses": False,
+            "expense_threshold": 999_999,
+        }
         discretionary = build_spending_ledger(
             transactions.scrubbed_df,
             filters,
             start_month="1994-05",
             end_month="1995-05",
+            transaction_set_key="discretionary",
+            transaction_sets=settings.transaction_sets,
         )
         included = discretionary.loc[discretionary["Included"], "Category"]
         assert "Rent" not in set(included)

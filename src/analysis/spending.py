@@ -5,8 +5,10 @@ from collections.abc import Mapping, Sequence
 import pandas as pd
 
 from src.analysis.merchants import enrich_with_merchant
+from src.config import TransactionSetSettings
 from src.custom_types import SpendingFilters, SpendingSummary
 from src.transaction_filters import matching_transaction_terms
+from src.transaction_sets import transaction_set_mask
 
 OVERVIEW_COLUMNS = [
     "Entity",
@@ -48,6 +50,8 @@ def _spending_exclusion_reason(
     amount: float,
     description: object,
     filters: SpendingFilters,
+    transaction_set_included: bool,
+    transaction_set_label: str | None,
 ) -> str:
     reasons: list[str] = []
     include_groups = set(filters.get("include_groups", ()))
@@ -56,6 +60,12 @@ def _spending_exclusion_reason(
     include_mode = bool(include_groups or include_categories or filters.get("include_transactions_like"))
 
     _append_reason(reasons, group == "Transfer", "Transfer group")
+    if transaction_set_label is not None:
+        _append_reason(
+            reasons,
+            not transaction_set_included,
+            f"Outside configured set: {transaction_set_label}",
+        )
     if include_mode:
         _append_reason(
             reasons,
@@ -92,6 +102,9 @@ def build_spending_ledger(
     *,
     start_month: str | None = None,
     end_month: str | None = None,
+    transaction_set_key: str | None = None,
+    transaction_sets: Sequence[TransactionSetSettings] = (),
+    merchant_aliases: Mapping[str, str] | None = None,
 ) -> pd.DataFrame:
     """Return period expense rows annotated with inclusion and net spending.
 
@@ -112,6 +125,21 @@ def build_spending_ledger(
         ledger["Net_Spend"] = pd.Series(dtype="float64")
         return ledger
 
+    transaction_set_label: str | None = None
+    transaction_set_membership = pd.Series(True, index=ledger.index, dtype="bool")
+    if transaction_set_key is not None:
+        transaction_set_by_key = {configured.key: configured for configured in transaction_sets}
+        selected_set = transaction_set_by_key.get(transaction_set_key)
+        if selected_set is None:
+            raise ValueError(f"Unknown transaction set: {transaction_set_key}")
+        transaction_set_label = selected_set.label
+        transaction_set_membership = transaction_set_mask(
+            ledger,
+            transaction_set_key=transaction_set_key,
+            transaction_sets=transaction_sets,
+            aliases=merchant_aliases,
+        )
+
     groups = ledger["Group"].fillna("Unknown").astype(str).tolist()
     categories = ledger["Category"].fillna("Unknown").astype(str).tolist()
     descriptions = ledger["Full Description"].tolist() if "Full Description" in ledger else ["Unknown"] * len(ledger)
@@ -123,12 +151,15 @@ def build_spending_ledger(
             amount=float(amount),
             description=description,
             filters=filters,
+            transaction_set_included=transaction_set_included,
+            transaction_set_label=transaction_set_label,
         )
-        for group, category, amount, description in zip(
+        for group, category, amount, description, transaction_set_included in zip(
             groups,
             categories,
             amounts.tolist(),
             descriptions,
+            transaction_set_membership.tolist(),
             strict=True,
         )
     ]
@@ -146,10 +177,30 @@ def _included(ledger: pd.DataFrame) -> pd.DataFrame:
 
 def included_spending_rows(
     transactions: pd.DataFrame,
-    filters: SpendingFilters,
+    filters: SpendingFilters | None = None,
+    *,
+    transaction_set_key: str | None = None,
+    transaction_sets: Sequence[TransactionSetSettings] = (),
+    merchant_aliases: Mapping[str, str] | None = None,
 ) -> pd.DataFrame:
     """Return all expense rows included by the shared spending policy."""
-    return _included(build_spending_ledger(transactions, filters))
+    active_filters = filters or {
+        "include_groups": [],
+        "include_categories": [],
+        "exclude_groups": [],
+        "exclude_categories": [],
+        "filter_large_expenses": False,
+        "expense_threshold": 0,
+    }
+    return _included(
+        build_spending_ledger(
+            transactions,
+            active_filters,
+            transaction_set_key=transaction_set_key,
+            transaction_sets=transaction_sets,
+            merchant_aliases=merchant_aliases,
+        )
+    )
 
 
 def _group_for_category(ledgers: Sequence[pd.DataFrame]) -> dict[str, str]:

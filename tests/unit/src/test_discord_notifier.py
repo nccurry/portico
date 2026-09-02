@@ -8,14 +8,17 @@ from dataclasses import replace
 from email.message import Message
 from io import BytesIO, TextIOWrapper
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 from urllib.error import HTTPError
 
+import pandas as pd
 import pytest
 
 from src.discord_notifier import (
     NotifierConfig,
     NotifierError,
+    build_report,
     google_export_url,
     load_config,
     load_state,
@@ -170,6 +173,33 @@ def test_read_google_sheet_returns_csv_without_streamlit() -> None:
         )
 
     assert frame.to_dict(orient="records") == [{"Column A": 1, "Column B": 2}]
+
+
+def test_build_report_passes_configured_merchant_aliases() -> None:
+    aliases = {"AMAZON MKTPL": "AMAZON", "AMAZON COM": "AMAZON"}
+    settings = SimpleNamespace(weekly_summary=SimpleNamespace(top_merchant_count=3))
+    transactions = pd.DataFrame()
+    metadata = pd.DataFrame()
+
+    with (
+        patch("src.discord_notifier.load_report_data", return_value=(transactions, metadata)),
+        patch("src.discord_notifier.configured_merchant_aliases", return_value=aliases),
+        patch("src.discord_notifier.get_settings", return_value=settings),
+        patch("src.discord_notifier.calculate_weekly_report", return_value=sample_report()) as calculate,
+    ):
+        report = build_report(sample_config(), sample_report().period)
+
+    assert report == sample_report()
+    assert calculate.call_args.kwargs["merchant_aliases"] == aliases
+
+
+def test_build_report_reports_invalid_merchant_aliases() -> None:
+    with (
+        patch("src.discord_notifier.load_report_data", return_value=(pd.DataFrame(), pd.DataFrame())),
+        patch("src.discord_notifier.configured_merchant_aliases", side_effect=ValueError("conflicting alias")),
+        pytest.raises(NotifierError, match="Merchant alias configuration is invalid"),
+    ):
+        build_report(sample_config(), sample_report().period)
 
 
 def test_report_payload_has_expected_totals_and_disables_mentions() -> None:

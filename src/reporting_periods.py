@@ -8,10 +8,10 @@ from src.config import get_settings
 
 
 def current_timestamp() -> pd.Timestamp:
-    """Return the demo reference time or the current UTC time."""
+    """Return the configured local-data reference time or the current UTC time."""
     settings = get_settings()
-    if settings.data.is_demo:
-        return pd.Timestamp(settings.data.demo_reference_date)
+    if settings.data.reference_date is not None:
+        return pd.Timestamp(settings.data.reference_date)
     return pd.Timestamp.now(tz="UTC")
 
 

@@ -1,4 +1,4 @@
-"""Classes for interacting with Google Sheets spreadsheets."""
+"""Classes for loading and scrubbing configured spreadsheet data."""
 
 import datetime
 from abc import ABCMeta, abstractmethod
@@ -47,7 +47,7 @@ class NetWorthSummary(TypedDict):
 
 
 class Spreadsheet(metaclass=ABCMeta):
-    """Class used to interact with Spreadsheet data in Google Sheets"""
+    """Class used to load and scrub one configured spreadsheet source."""
 
     # Friendly name for this spreadsheet (must match the connection name in secrets.toml)
     name: ClassVar[str]
@@ -59,26 +59,28 @@ class Spreadsheet(metaclass=ABCMeta):
     scrubbed_df: pd.DataFrame
 
     def __init__(self) -> None:
-        """Load the spreadsheet from Google Sheets and scrub it."""
+        """Load the spreadsheet from the configured source and scrub it."""
         self.load()
         try:
             self.scrub()
         except SpreadsheetSchemaError as e:
             st.error(str(e))
-            st.info("Check that the configured Google Sheet tab matches the expected Tiller sheet.")
+            st.info("Check that the configured source matches the expected Tiller sheet.")
             st.stop()
             raise
 
     def load(self) -> None:
         """Load raw data from the configured source."""
         settings = get_settings()
-        if settings.data.is_demo:
-            path = settings.data.demo_directory / f"{self.name}.csv"
+        if settings.data.source == "local_csv":
+            directory = settings.data.directory
+            assert directory is not None
+            path = directory / f"{self.name}.csv"
             try:
                 self.raw_df = pd.read_csv(path)
             except Exception:
-                st.error(f"Failed to load demo data ({self.name}).")
-                st.info("Restore the committed files under demo/data, then restart the app.")
+                st.error(f"Failed to load local CSV data ({self.name}).")
+                st.info("Check the selected data.directory and the four required Tiller CSV files.")
                 st.stop()
             return
 

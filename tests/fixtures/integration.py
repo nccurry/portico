@@ -96,11 +96,12 @@ def reference_date() -> pd.Timestamp:
     """
     settings = load_settings(
         defaults_path=_PROJECT_ROOT / "config" / "defaults.toml",
-        local_path=_PROJECT_ROOT / "tests" / "fixtures" / "missing.toml",
+        override_path=_PROJECT_ROOT / "config" / "demo.toml",
         environ={},
         project_root=_PROJECT_ROOT,
     )
-    return pd.Timestamp(settings.data.demo_reference_date)
+    assert settings.data.reference_date is not None
+    return pd.Timestamp(settings.data.reference_date)
 
 
 @pytest.fixture

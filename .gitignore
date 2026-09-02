@@ -1,7 +1,7 @@
 .streamlit/*
 !.streamlit/config.toml
 !.streamlit/secrets.example.toml
-config/local.toml
+config/override.toml
 .venv
 .tools/
 .local/

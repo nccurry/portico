@@ -5,7 +5,7 @@ from collections.abc import Sequence
 import pandas as pd
 import streamlit as st
 
-from src.config import SpendingViewSettings, get_settings
+from src.config import TransactionSetSettings, get_settings
 from src.constants import (
     FI_SPENDING_LOOKBACK_OPTIONS,
     MAX_SAVINGS_RATE,
@@ -19,20 +19,6 @@ from src.custom_types import (
     SpendingFilters,
 )
 from src.reporting_periods import calculate_date_range as _calculate_date_range
-
-
-def spending_filters_for_view(view: SpendingViewSettings) -> SpendingFilters:
-    """Return the shared filter policy for one configured spending view."""
-    return {
-        "include_groups": list(view.include_groups),
-        "include_categories": list(view.include_categories),
-        "include_transactions_like": list(view.include_transactions_like),
-        "exclude_groups": list(view.exclude_groups),
-        "exclude_categories": list(view.exclude_categories),
-        "exclude_transactions_like": list(view.exclude_transactions_like),
-        "filter_large_expenses": False,
-        "expense_threshold": get_settings().thresholds.expense,
-    }
 
 
 def _transaction_like_multiselect(
@@ -264,19 +250,16 @@ def render_spending_filters(
     all_categories: list[str],
     all_groups: list[str],
     *,
-    view: SpendingViewSettings,
+    transaction_set: TransactionSetSettings,
 ) -> SpendingFilters:
-    """Render editable filters for one configured spending view."""
-    configured = spending_filters_for_view(view)
-    default_categories = [category for category in configured["exclude_categories"] if category in all_categories]
-    default_groups = [group for group in configured["exclude_groups"] if group in all_groups]
-    default_include_groups = [group for group in configured["include_groups"] if group in all_groups]
-    default_include_categories = [
-        category for category in configured["include_categories"] if category in all_categories
-    ]
-    default_include_transactions_like = configured["include_transactions_like"]
-    default_exclude_transactions_like = configured["exclude_transactions_like"]
-    prefix = f"spending_{view.key}"
+    """Render page-local narrowing controls over one configured transaction set."""
+    default_categories: list[str] = []
+    default_groups: list[str] = []
+    default_include_groups: list[str] = []
+    default_include_categories: list[str] = []
+    default_include_transactions_like: list[str] = []
+    default_exclude_transactions_like: list[str] = []
+    prefix = f"spending_{transaction_set.key}"
 
     defaults = {
         f"{prefix}_exclude_categories": default_categories,
@@ -284,7 +267,7 @@ def render_spending_filters(
         f"{prefix}_include_transactions_like": default_include_transactions_like,
         f"{prefix}_exclude_transactions_like": default_exclude_transactions_like,
         f"{prefix}_filter_large_expenses": False,
-        f"{prefix}_expense_threshold": configured["expense_threshold"],
+        f"{prefix}_expense_threshold": get_settings().thresholds.expense,
     }
     for key, value in defaults.items():
         st.session_state.setdefault(key, value)

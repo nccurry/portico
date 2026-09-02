@@ -107,6 +107,34 @@ def test_categorized_subscription_appears_after_one_charge() -> None:
     assert pd.isna(inventory.iloc[0]["Monthly_Run_Rate"])
 
 
+def test_merchant_aliases_reconcile_subscription_inventory_and_details() -> None:
+    transactions = pd.concat(
+        [
+            _merchant_rows("AMAZON MKTPL*1234", ["2026-01-01"], [-12.00]),
+            _merchant_rows("AMAZON COM", ["2026-02-01"], [-14.00]),
+        ],
+        ignore_index=True,
+    )
+    aliases = {"AMAZON MKTPL": "AMAZON", "AMAZON COM": "AMAZON"}
+
+    inventory = build_subscription_inventory(
+        transactions,
+        [SUBSCRIPTION_CATEGORY],
+        aliases=aliases,
+    )
+    details = get_subscription_transactions(
+        transactions,
+        "Amazon",
+        categories=[SUBSCRIPTION_CATEGORY],
+        aliases=aliases,
+    )
+
+    assert inventory[["Merchant", "Charge_Count"]].to_dict("records") == [
+        {"Merchant": "AMAZON", "Charge_Count": 2},
+    ]
+    assert len(details) == 2
+
+
 @pytest.mark.parametrize(
     ("dates", "expected_cadence", "expected_monthly"),
     [
@@ -707,7 +735,7 @@ def test_subscription_history_lookback_filters_only_trailing_rows(
     assert visible.index.tolist() == history.tail(expected_rows).index.tolist()
 
 
-def test_discovery_surfaces_non_bill_and_excludes_bill_category() -> None:
+def test_discovery_surfaces_non_bill_and_respects_explicit_category_exclusions() -> None:
     dates = ["2026-01-15", "2026-02-15", "2026-03-15", "2026-04-15"]
     candidate = _merchant_rows(
         "SURPRISE SOFTWARE",
@@ -727,6 +755,7 @@ def test_discovery_surfaces_non_bill_and_excludes_bill_category() -> None:
     candidates = find_subscription_candidates(
         pd.concat([candidate, utility], ignore_index=True),
         [SUBSCRIPTION_CATEGORY],
+        excluded_categories=["Electric Bill"],
     )
 
     assert candidates["Merchant"].tolist() == ["SURPRISE SOFTWARE"]
@@ -735,20 +764,19 @@ def test_discovery_surfaces_non_bill_and_excludes_bill_category() -> None:
 
 
 @pytest.mark.parametrize(
-    ("category", "group", "excluded_categories"),
+    ("category", "group"),
     [
-        ("Electric", "Bills", []),
-        ("Rent", "Housing", []),
-        ("Personal Loan", "Debt", []),
-        ("Brokerage Investment", "Savings", []),
-        ("Coffee", "Transfer", []),
-        ("Software", "Shopping", ["Software"]),
+        ("Electric", "Bills"),
+        ("Rent", "Housing"),
+        ("Personal Loan", "Debt"),
+        ("Brokerage Investment", "Savings"),
+        ("Coffee", "Transfer"),
+        ("Software", "Shopping"),
     ],
 )
-def test_discovery_excludes_fixed_obligations_and_user_choices(
+def test_discovery_excludes_exact_user_selected_categories(
     category: str,
     group: str,
-    excluded_categories: list[str],
 ) -> None:
     transactions = _merchant_rows(
         "RECURRING MERCHANT",
@@ -761,10 +789,24 @@ def test_discovery_excludes_fixed_obligations_and_user_choices(
     candidates = find_subscription_candidates(
         transactions,
         [SUBSCRIPTION_CATEGORY],
-        excluded_categories=excluded_categories,
+        excluded_categories=[category],
     )
 
     assert candidates.empty
+
+
+def test_discovery_does_not_interpret_category_text_as_a_hidden_regex_policy() -> None:
+    transactions = _merchant_rows(
+        "RECURRING MERCHANT",
+        ["2026-01-15", "2026-02-15", "2026-03-15", "2026-04-15"],
+        [-120.0] * 4,
+        category="Personal Loan",
+        group="Debt",
+    )
+
+    candidates = find_subscription_candidates(transactions, [SUBSCRIPTION_CATEGORY])
+
+    assert candidates["Merchant"].tolist() == ["MERCHANT"]
 
 
 def test_discovery_rejects_frequent_purchase_merchants() -> None:

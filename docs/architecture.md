@@ -168,18 +168,18 @@ logged and does not stop the dashboard.
 
 ### Data sources
 
-Live mode uses `st-gsheets-connection` and the URLs in
-`.streamlit/secrets.toml`. Native demo mode reads the committed CSV files in
-`demo/data`. Both native modes create the same spreadsheet classes and
-normalized DataFrames. Pages and calculations must not contain separate native
-demo behavior. The shared demo banner is the only intended presentation
-difference.
+The default Google Sheets profile uses `st-gsheets-connection` and the URLs in
+`.streamlit/secrets.toml`. An explicit `local_csv` profile reads a directory of
+CSV exports. [`config/demo.toml`](../config/demo.toml) is one such profile for
+the committed files in `demo/data`. Both sources create the same spreadsheet
+classes and normalized DataFrames. Pages and calculations must not contain
+source-specific behavior. The optional demo banner is the only intended
+presentation difference.
 
-The browser demo starts native demo mode and packages `Home.py`, every page,
-the required source modules, settings, and the same CSV files. It has no
-browser-specific financial calculations. Demo mode uses the configured
-`demo_reference_date` as its current time, so reports and loaded timestamps stay
-inside the synthetic data period.
+The browser demo selects the local CSV profile and packages `Home.py`, every
+page, the required source modules, settings, and the same CSV files. It has no
+browser-specific financial calculations. Its `[data].reference_date` keeps
+reports and loaded timestamps inside the synthetic data period.
 
 ### State and caching
 
@@ -212,23 +212,25 @@ control clears the Streamlit data and resource caches.
 
 ### Configuration and secrets
 
-`config/defaults.toml` contains tracked behavior defaults. An ignored
-`config/local.toml` can override household-specific values. Container
-deployments mount only that override file, leaving the image-owned defaults
-available on every release. Narrow environment variables select the data source
-and configuration path.
+`config/defaults.toml` is the tracked, canonical application configuration. It
+contains the maintainer's household policy. Portico does not automatically load
+an override file. An explicitly selected `PORTICO_CONFIG_PATH` may add a
+deployment-specific override without replacing the image's canonical defaults.
+The selected profile owns the data source; environment variables only select the
+optional override path.
 
 `src/config.py` merges these sources, rejects unknown keys, validates ranges,
 and returns frozen typed settings. New settings need a safe tracked default and
 runtime validation.
 
 Configuration owns household policy and initial control values. This includes
-report periods, named spending views and their exclusions, discretionary and regular-report exclusions, budget history,
-subscription discovery, data-health thresholds, emergency-fund and debt policy,
-FI funding goals and assumptions, weekly summary windows, and merchant aliases.
-The same named policy must mean the same thing
-on every page. In particular, every Discretionary view uses the configured
-`[spending.views.discretionary]` policy.
+report periods, named transaction sets, the page filter sets that expose them,
+discretionary and regular-report exclusions, budget history, subscription
+discovery, data-health thresholds, emergency-fund and debt policy, FI funding
+goals and assumptions, weekly summary windows, and merchant aliases. The same
+named transaction set must mean the same thing on every page. In particular,
+the spending, merchant, and year-over-year Discretionary views resolve the same
+`[transaction_sets.discretionary]` policy.
 
 Configuration does not own Tiller column meanings, financial formulas, Transfer
 handling, chart layout, colors, widget safety limits, or validation rules. Those
@@ -305,7 +307,7 @@ command and relies on delivery state to prevent duplicates.
 | `scripts/container_entrypoint.py` | Container process and optional Discord schedule |
 | `scripts/generate_demo_data.py` | Regenerates all four date-based synthetic workbook CSV files |
 | `scripts/` | Bootstrap, diagnostics, local commands, and build tools |
-| `config/` | Tracked application defaults and ignored local overrides |
+| `config/` | Canonical application configuration and optional ignored explicit overrides |
 | `demo/data/` | Canonical synthetic workbook data |
 | `tests/unit/` | Direct behavior tests for functions and pages |
 | `tests/integration/` | Cross-sheet pipelines and Streamlit AppTest coverage |

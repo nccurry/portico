@@ -1,4 +1,4 @@
-"""Load validated application settings from tracked and local TOML files."""
+"""Load validated application settings from tracked and selected TOML files."""
 
 from __future__ import annotations
 
@@ -24,16 +24,12 @@ class ConfigError(ValueError):
 
 @dataclass(frozen=True)
 class DataSettings:
-    """Data source and demo-file settings."""
+    """Selected source and optional local-data settings."""
 
-    mode: str
-    demo_directory: Path
-    demo_reference_date: datetime
-
-    @property
-    def is_demo(self) -> bool:
-        """Return whether the app uses synthetic demo data."""
-        return self.mode == "demo"
+    source: str
+    directory: Path | None
+    reference_date: datetime | None
+    show_demo_banner: bool
 
 
 @dataclass(frozen=True)
@@ -65,49 +61,38 @@ class IncomeSavingsSettings:
 
 
 @dataclass(frozen=True)
-class SpendingViewSettings:
-    """One configured spending-report view."""
+class TransactionSetSettings:
+    """One named, reusable selection of expense transactions."""
 
     key: str
     label: str
-    include_groups: tuple[str, ...]
-    include_categories: tuple[str, ...]
-    include_transactions_like: tuple[str, ...]
-    exclude_groups: tuple[str, ...]
-    exclude_categories: tuple[str, ...]
-    exclude_transactions_like: tuple[str, ...]
+    groups: tuple[str, ...]
+    categories: tuple[str, ...]
+    accounts: tuple[str, ...]
+    merchants: tuple[str, ...]
+    transactions_like: tuple[str, ...]
+    includes: tuple[str, ...]
+    excludes: tuple[str, ...]
 
 
 @dataclass(frozen=True)
-class SpendingSettings:
-    """Configured views for spending reports."""
+class FilterSetSettings:
+    """The ordered transaction-set choices exposed by one report."""
 
-    default_view: str
-    views: tuple[SpendingViewSettings, ...]
-
-    def view(self, key: str) -> SpendingViewSettings:
-        """Return a configured view by its stable configuration key."""
-        return next(view for view in self.views if view.key == key)
+    key: str
+    options: tuple[str, ...]
+    default: str
 
 
 @dataclass(frozen=True)
 class SubscriptionSettings:
     """Defaults for subscription views and detection."""
 
-    known_category_terms: tuple[str, ...]
+    known_categories: tuple[str, ...]
     minimum_confidence: int
     stale_after_days: int
     default_exclude_categories: tuple[str, ...]
     detection_excluded_categories: tuple[str, ...]
-    detection_excluded_pattern: str
-
-
-@dataclass(frozen=True)
-class YearOverYearSettings:
-    """Defaults for the fixed year-over-year presets."""
-
-    utility_group_terms: tuple[str, ...]
-    utility_category_terms: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -166,7 +151,7 @@ class WeeklySummarySettings:
 
 @dataclass(frozen=True)
 class MerchantSettings:
-    """Local merchant-description aliases."""
+    """Configured merchant-description aliases."""
 
     aliases: tuple[tuple[str, tuple[str, ...]], ...]
 
@@ -179,9 +164,9 @@ class Settings:
     reporting: ReportingSettings
     thresholds: ThresholdSettings
     income_savings: IncomeSavingsSettings
-    spending: SpendingSettings
+    transaction_sets: tuple[TransactionSetSettings, ...]
+    filter_sets: tuple[FilterSetSettings, ...]
     subscriptions: SubscriptionSettings
-    year_over_year: YearOverYearSettings
     budget: BudgetSettings
     data_health: DataHealthSettings
     financial_independence: FinancialIndependenceSettings
@@ -189,22 +174,33 @@ class Settings:
     weekly_summary: WeeklySummarySettings
     merchants: MerchantSettings
 
+    def transaction_set(self, key: str) -> TransactionSetSettings:
+        """Return a configured transaction set by its stable key."""
+        for transaction_set in self.transaction_sets:
+            if transaction_set.key == key:
+                return transaction_set
+        raise KeyError(f"Unknown transaction set: {key}")
+
+    def filter_set(self, key: str) -> FilterSetSettings:
+        """Return a configured report filter set by its stable key."""
+        for filter_set in self.filter_sets:
+            if filter_set.key == key:
+                return filter_set
+        raise KeyError(f"Unknown filter set: {key}")
+
 
 _SECTION_KEYS = {
-    "data": {"mode", "demo_directory", "demo_reference_date"},
+    "data": {"source", "directory", "reference_date", "show_demo_banner"},
     "reporting": {"lookback_months", "default_lookback_months"},
     "thresholds": {"expense", "income", "duplicate_minimum", "duplicate_days"},
     "income_savings": {"default_view", "target_rate", "exclude_categories", "exclude_groups"},
-    "spending": {"default_view", "views"},
     "subscriptions": {
-        "known_category_terms",
+        "known_categories",
         "minimum_confidence",
         "stale_after_days",
         "default_exclude_categories",
         "detection_excluded_categories",
-        "detection_excluded_pattern",
     },
-    "year_over_year": {"utility_group_terms", "utility_category_terms"},
     "budget": {"history_months"},
     "data_health": {
         "stale_account_days",
@@ -235,17 +231,18 @@ _SECTION_KEYS = {
     "weekly_summary": {"average_weeks", "rolling_weeks", "top_merchant_count"},
     "merchants": {"aliases"},
 }
-
-_SPENDING_VIEW_KEYS = {
+_TRANSACTION_SET_KEYS = {
     "label",
-    "include_groups",
-    "include_categories",
-    "include_transactions_like",
-    "exclude_groups",
-    "exclude_categories",
-    "exclude_transactions_like",
+    "groups",
+    "categories",
+    "accounts",
+    "merchants",
+    "transactions_like",
+    "includes",
+    "excludes",
 }
-_SPENDING_VIEW_KEY_PATTERN = re.compile(r"[a-z][a-z0-9_]*")
+_FILTER_SET_KEYS = {"options", "default"}
+_CONFIG_KEY_PATTERN = re.compile(r"[a-z][a-z0-9_]*")
 
 
 def _read_toml(path: Path) -> dict[str, Any]:
@@ -271,8 +268,30 @@ def _merge(base: dict[str, Any], override: Mapping[str, Any]) -> dict[str, Any]:
     return merged
 
 
+def _validate_dynamic_tables(
+    document: Mapping[str, Any],
+    *,
+    section_name: str,
+    allowed_keys: set[str],
+    item_name: str,
+) -> None:
+    section = document.get(section_name)
+    if not isinstance(section, Mapping) or not section:
+        raise ConfigError(f"Configuration section [{section_name}] must be a non-empty table")
+    for key, item in section.items():
+        if not isinstance(key, str) or _CONFIG_KEY_PATTERN.fullmatch(key) is None:
+            raise ConfigError(f"{item_name} keys must use lowercase letters, numbers, and underscores")
+        if not isinstance(item, Mapping):
+            raise ConfigError(f"Configuration section [{section_name}.{key}] must be a table")
+        unknown_keys = set(item) - allowed_keys
+        if unknown_keys:
+            names = ", ".join(sorted(unknown_keys))
+            raise ConfigError(f"Unknown key(s) in [{section_name}.{key}]: {names}")
+
+
 def _validate_keys(document: Mapping[str, Any]) -> None:
-    unknown_sections = set(document) - set(_SECTION_KEYS)
+    allowed_sections = {*_SECTION_KEYS, "transaction_sets", "filter_sets"}
+    unknown_sections = set(document) - allowed_sections
     if unknown_sections:
         names = ", ".join(sorted(unknown_sections))
         raise ConfigError(f"Unknown configuration section(s): {names}")
@@ -286,18 +305,18 @@ def _validate_keys(document: Mapping[str, Any]) -> None:
             names = ", ".join(sorted(unknown_keys))
             raise ConfigError(f"Unknown key(s) in [{section_name}]: {names}")
 
-    spending_views = document["spending"].get("views")
-    if not isinstance(spending_views, Mapping) or not spending_views:
-        raise ConfigError("Configuration section [spending.views] must be a non-empty table")
-    for key, view in spending_views.items():
-        if not isinstance(key, str) or _SPENDING_VIEW_KEY_PATTERN.fullmatch(key) is None:
-            raise ConfigError("Spending view keys must use lowercase letters, numbers, and underscores")
-        if not isinstance(view, Mapping):
-            raise ConfigError(f"Configuration section [spending.views.{key}] must be a table")
-        unknown_keys = set(view) - _SPENDING_VIEW_KEYS
-        if unknown_keys:
-            names = ", ".join(sorted(unknown_keys))
-            raise ConfigError(f"Unknown key(s) in [spending.views.{key}]: {names}")
+    _validate_dynamic_tables(
+        document,
+        section_name="transaction_sets",
+        allowed_keys=_TRANSACTION_SET_KEYS,
+        item_name="Transaction set",
+    )
+    _validate_dynamic_tables(
+        document,
+        section_name="filter_sets",
+        allowed_keys=_FILTER_SET_KEYS,
+        item_name="Filter set",
+    )
 
     aliases = document["merchants"].get("aliases")
     if not isinstance(aliases, Mapping):
@@ -328,6 +347,10 @@ def _boolean(section: Mapping[str, Any], key: str) -> bool:
     if type(value) is not bool:
         raise ConfigError(f"{key} must be true or false")
     return value
+
+
+def _optional_boolean(section: Mapping[str, Any], key: str, default: bool = False) -> bool:
+    return default if key not in section else _boolean(section, key)
 
 
 def _string(section: Mapping[str, Any], key: str) -> str:
@@ -375,18 +398,6 @@ def _integers(section: Mapping[str, Any], key: str, minimum: int, maximum: int) 
     return result
 
 
-def _demo_directory(section: Mapping[str, Any], project_root: Path) -> Path:
-    configured = Path(_string(section, "demo_directory"))
-    if configured.is_absolute():
-        raise ConfigError("demo_directory must be relative to the repository root")
-    resolved = (project_root / configured).resolve()
-    try:
-        resolved.relative_to(project_root.resolve())
-    except ValueError as error:
-        raise ConfigError("demo_directory must stay inside the repository") from error
-    return resolved
-
-
 def _utc_datetime(section: Mapping[str, Any], key: str) -> datetime:
     value = _string(section, key)
     try:
@@ -427,44 +438,128 @@ def _merchant_aliases(section: Mapping[str, Any]) -> tuple[tuple[str, tuple[str,
     return tuple(normalized)
 
 
-def _spending_views(section: Mapping[str, Any]) -> tuple[SpendingViewSettings, ...]:
-    """Parse ordered, named spending views from configuration."""
-    configured_views = section["views"]
-    assert isinstance(configured_views, Mapping)
-    views: list[SpendingViewSettings] = []
+def _references(section: Mapping[str, Any], key: str) -> tuple[str, ...]:
+    references = _optional_strings(section, key)
+    if any(_CONFIG_KEY_PATTERN.fullmatch(reference) is None for reference in references):
+        raise ConfigError(f"{key} must contain transaction set keys")
+    return references
+
+
+def _transaction_sets(document: Mapping[str, Any]) -> tuple[TransactionSetSettings, ...]:
+    configured_sets = document["transaction_sets"]
+    assert isinstance(configured_sets, Mapping)
+    sets: list[TransactionSetSettings] = []
     labels: set[str] = set()
-    for key, configured_view in configured_views.items():
+    for key, configured_set in configured_sets.items():
         assert isinstance(key, str)
-        assert isinstance(configured_view, Mapping)
-        label = _string(configured_view, "label")
+        assert isinstance(configured_set, Mapping)
+        label = _string(configured_set, "label")
         normalized_label = label.casefold()
         if normalized_label in labels:
-            raise ConfigError("Spending view labels must not contain duplicates")
+            raise ConfigError("Transaction set labels must not contain duplicates")
         labels.add(normalized_label)
-        views.append(
-            SpendingViewSettings(
+        sets.append(
+            TransactionSetSettings(
                 key=key,
                 label=label,
-                include_groups=_optional_strings(configured_view, "include_groups"),
-                include_categories=_optional_strings(configured_view, "include_categories"),
-                include_transactions_like=_optional_strings(configured_view, "include_transactions_like"),
-                exclude_groups=_optional_strings(configured_view, "exclude_groups"),
-                exclude_categories=_optional_strings(configured_view, "exclude_categories"),
-                exclude_transactions_like=_optional_strings(configured_view, "exclude_transactions_like"),
+                groups=_optional_strings(configured_set, "groups"),
+                categories=_optional_strings(configured_set, "categories"),
+                accounts=_optional_strings(configured_set, "accounts"),
+                merchants=_optional_strings(configured_set, "merchants"),
+                transactions_like=_optional_strings(configured_set, "transactions_like"),
+                includes=_references(configured_set, "includes"),
+                excludes=_references(configured_set, "excludes"),
             )
         )
-    return tuple(views)
+
+    known_keys = {transaction_set.key for transaction_set in sets}
+    for transaction_set in sets:
+        unknown = (set(transaction_set.includes) | set(transaction_set.excludes)) - known_keys
+        if unknown:
+            names = ", ".join(sorted(unknown))
+            raise ConfigError(f"Transaction set {transaction_set.key} references unknown set(s): {names}")
+
+    by_key = {transaction_set.key: transaction_set for transaction_set in sets}
+    active: list[str] = []
+    visited: set[str] = set()
+
+    def visit(key: str) -> None:
+        if key in active:
+            cycle = " -> ".join([*active, key])
+            raise ConfigError(f"Transaction set references contain a cycle: {cycle}")
+        if key in visited:
+            return
+        active.append(key)
+        current = by_key[key]
+        for reference in (*current.includes, *current.excludes):
+            visit(reference)
+        active.pop()
+        visited.add(key)
+
+    for transaction_set in sets:
+        visit(transaction_set.key)
+    return tuple(sets)
 
 
-def _build_settings(document: Mapping[str, Any], project_root: Path) -> Settings:
+def _filter_sets(
+    document: Mapping[str, Any],
+    transaction_sets: tuple[TransactionSetSettings, ...],
+) -> tuple[FilterSetSettings, ...]:
+    configured_sets = document["filter_sets"]
+    assert isinstance(configured_sets, Mapping)
+    known_transaction_sets = {transaction_set.key for transaction_set in transaction_sets}
+    sets: list[FilterSetSettings] = []
+    for key, configured_set in configured_sets.items():
+        assert isinstance(key, str)
+        assert isinstance(configured_set, Mapping)
+        options = _strings(configured_set, "options")
+        if not options:
+            raise ConfigError(f"filter set {key} must expose at least one option")
+        unknown = set(options) - known_transaction_sets
+        if unknown:
+            names = ", ".join(sorted(unknown))
+            raise ConfigError(f"Filter set {key} references unknown transaction set(s): {names}")
+        default = _string(configured_set, "default")
+        if default not in options:
+            raise ConfigError(f"Filter set {key} default must be one of its options")
+        sets.append(FilterSetSettings(key=key, options=options, default=default))
+    return tuple(sets)
+
+
+def _local_directory(section: Mapping[str, Any], base: Path) -> Path:
+    configured = Path(_string(section, "directory"))
+    return configured.resolve() if configured.is_absolute() else (base / configured).resolve()
+
+
+def _data_settings(section: Mapping[str, Any], directory_base: Path) -> DataSettings:
+    source = _choice(section, "source", {"google_sheets", "local_csv"})
+    has_local_options = any(key in section for key in {"directory", "reference_date", "show_demo_banner"})
+    if source == "google_sheets":
+        if has_local_options:
+            raise ConfigError("data directory, reference_date, and show_demo_banner require data.source = 'local_csv'")
+        return DataSettings(
+            source=source,
+            directory=None,
+            reference_date=None,
+            show_demo_banner=False,
+        )
+    if "directory" not in section:
+        raise ConfigError("data.directory is required when data.source = 'local_csv'")
+    return DataSettings(
+        source=source,
+        directory=_local_directory(section, directory_base),
+        reference_date=_utc_datetime(section, "reference_date") if "reference_date" in section else None,
+        show_demo_banner=_optional_boolean(section, "show_demo_banner"),
+    )
+
+
+def _build_settings(document: Mapping[str, Any], directory_base: Path) -> Settings:
     _validate_keys(document)
     data = document["data"]
     reporting = document["reporting"]
     thresholds = document["thresholds"]
     income_savings = document["income_savings"]
-    spending = document["spending"]
     subscriptions = document["subscriptions"]
-    year_over_year = document["year_over_year"]
     budget = document["budget"]
     data_health = document["data_health"]
     financial_independence = document["financial_independence"]
@@ -478,9 +573,7 @@ def _build_settings(document: Mapping[str, Any], project_root: Path) -> Settings
             reporting,
             thresholds,
             income_savings,
-            spending,
             subscriptions,
-            year_over_year,
             budget,
             data_health,
             financial_independence,
@@ -490,14 +583,6 @@ def _build_settings(document: Mapping[str, Any], project_root: Path) -> Settings
         )
     )
 
-    mode = _string(data, "mode")
-    if mode not in {"google_sheets", "demo"}:
-        raise ConfigError("data.mode must be 'google_sheets' or 'demo'")
-    pattern = _string(subscriptions, "detection_excluded_pattern")
-    try:
-        re.compile(pattern)
-    except re.error as error:
-        raise ConfigError(f"detection_excluded_pattern is not a valid regular expression: {error}") from error
     spending_lookback_months = _integer(financial_independence, "spending_lookback_months", 1, 120)
     if spending_lookback_months not in FI_SPENDING_LOOKBACK_OPTIONS:
         options = ", ".join(str(value) for value in FI_SPENDING_LOOKBACK_OPTIONS)
@@ -514,17 +599,10 @@ def _build_settings(document: Mapping[str, Any], project_root: Path) -> Settings
     default_lookback_months = _integer(reporting, "default_lookback_months", 1, 120)
     if default_lookback_months not in lookback_months:
         raise ConfigError("default_lookback_months must be included in lookback_months")
-    spending_views = _spending_views(spending)
-    default_spending_view = _string(spending, "default_view").casefold()
-    if default_spending_view not in {view.key for view in spending_views}:
-        raise ConfigError("default_view must name a configured spending view")
+    transaction_sets = _transaction_sets(document)
 
     return Settings(
-        data=DataSettings(
-            mode=mode,
-            demo_directory=_demo_directory(data, project_root),
-            demo_reference_date=_utc_datetime(data, "demo_reference_date"),
-        ),
+        data=_data_settings(data, directory_base),
         reporting=ReportingSettings(
             lookback_months=lookback_months,
             default_lookback_months=default_lookback_months,
@@ -541,21 +619,14 @@ def _build_settings(document: Mapping[str, Any], project_root: Path) -> Settings
             exclude_categories=_strings(income_savings, "exclude_categories"),
             exclude_groups=_strings(income_savings, "exclude_groups"),
         ),
-        spending=SpendingSettings(
-            default_view=default_spending_view,
-            views=spending_views,
-        ),
+        transaction_sets=transaction_sets,
+        filter_sets=_filter_sets(document, transaction_sets),
         subscriptions=SubscriptionSettings(
-            known_category_terms=_strings(subscriptions, "known_category_terms"),
+            known_categories=_strings(subscriptions, "known_categories"),
             minimum_confidence=_integer(subscriptions, "minimum_confidence", 70, 100),
             stale_after_days=_integer(subscriptions, "stale_after_days", 1, 365),
             default_exclude_categories=_strings(subscriptions, "default_exclude_categories"),
             detection_excluded_categories=_strings(subscriptions, "detection_excluded_categories"),
-            detection_excluded_pattern=pattern,
-        ),
-        year_over_year=YearOverYearSettings(
-            utility_group_terms=_strings(year_over_year, "utility_group_terms"),
-            utility_category_terms=_strings(year_over_year, "utility_category_terms"),
         ),
         budget=BudgetSettings(history_months=_integer(budget, "history_months", 1, 120)),
         data_health=DataHealthSettings(
@@ -599,28 +670,29 @@ def _build_settings(document: Mapping[str, Any], project_root: Path) -> Settings
 def load_settings(
     *,
     defaults_path: Path = DEFAULTS_PATH,
-    local_path: Path | None = None,
+    override_path: Path | None = None,
     environ: Mapping[str, str] | None = None,
     project_root: Path = PROJECT_ROOT,
 ) -> Settings:
-    """Load tracked defaults, an optional local file, and narrow environment overrides."""
+    """Load canonical defaults and one explicit configuration overlay."""
     environment = os.environ if environ is None else environ
     document = _read_toml(defaults_path)
+    directory_base = defaults_path.resolve().parent
 
-    configured_local = environment.get("PORTICO_CONFIG_PATH")
-    configured_path = Path(configured_local) if configured_local else None
+    configured_override = environment.get("PORTICO_CONFIG_PATH")
+    configured_path = Path(configured_override) if configured_override else None
     if configured_path is not None and not configured_path.is_absolute():
         configured_path = project_root / configured_path
-    selected_local = configured_path or local_path or project_root / "config" / "local.toml"
-    if selected_local.exists():
-        document = _merge(document, _read_toml(selected_local))
-    elif configured_local:
-        raise ConfigError("PORTICO_CONFIG_PATH does not exist")
-
-    data_mode = environment.get("PORTICO_DATA_SOURCE")
-    if data_mode:
-        document = _merge(document, {"data": {"mode": data_mode}})
-    return _build_settings(document, project_root)
+    selected_override = configured_path or override_path
+    if selected_override is not None:
+        if not selected_override.exists() and configured_override:
+            raise ConfigError("PORTICO_CONFIG_PATH does not exist")
+        overlay = _read_toml(selected_override)
+        document = _merge(document, overlay)
+        overlay_data = overlay.get("data")
+        if isinstance(overlay_data, Mapping) and "directory" in overlay_data:
+            directory_base = selected_override.resolve().parent
+    return _build_settings(document, directory_base)
 
 
 @lru_cache(maxsize=1)

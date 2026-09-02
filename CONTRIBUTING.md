@@ -27,13 +27,13 @@ uv sync --locked --dev
 On Linux, start the demo with:
 
 ```console
-PORTICO_DATA_SOURCE=demo uv run --locked streamlit run Home.py
+PORTICO_CONFIG_PATH=config/demo.toml uv run --locked streamlit run Home.py
 ```
 
 On Windows PowerShell, start it with:
 
 ```powershell
-$env:PORTICO_DATA_SOURCE = "demo"
+$env:PORTICO_CONFIG_PATH = "config/demo.toml"
 uv run --locked streamlit run Home.py
 ```
 

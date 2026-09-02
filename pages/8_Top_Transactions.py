@@ -187,12 +187,14 @@ def _render_transaction_table(transactions: pd.DataFrame) -> None:
 def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
     """Render the transaction filtering and inspection workbench."""
     st.title("Transactions")
-    lookback = render_time_frame_control(
-        list(LOOKBACK_DAYS),
-        default="1Y",
-        key="top_transactions_lookback",
-    )
     transactions = transactions_spreadsheet.scrubbed_df.copy()
+    controls = st.container(horizontal=True, wrap=True, vertical_alignment="bottom")
+    with controls:
+        lookback = render_time_frame_control(
+            list(LOOKBACK_DAYS),
+            default="1Y",
+            key="top_transactions_lookback",
+        )
     if transactions.empty:
         st.info("No transactions are available.", icon=":material/receipt_long:")
         return
@@ -201,24 +203,22 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
     if latest is not None:
         st.caption(f"Latest transaction {latest.strftime('%b %d, %Y')}")
 
-    control_columns = st.columns([2, 3], vertical_alignment="bottom")
-    with control_columns[0]:
+    with controls:
         type_view = st.segmented_control(
             "Type",
             list(TYPE_VIEWS),
             default="All",
             key="top_transactions_type",
             persist_state="page",
-            width="stretch",
+            width="content",
         )
-    with control_columns[1]:
         focus = st.segmented_control(
             "Focus",
             list(FOCUS_OPTIONS),
             default="All transactions",
             key="top_transactions_focus",
             persist_state="page",
-            width="stretch",
+            width="content",
         )
 
     all_groups = sorted(transactions["Group"].dropna().astype(str).unique())

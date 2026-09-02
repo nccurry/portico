@@ -93,6 +93,13 @@ def build_merchant_aliases(config: Mapping[str, object]) -> dict[str, str]:
     return aliases
 
 
+def configured_merchant_aliases() -> dict[str, str]:
+    """Return the validated merchant aliases selected by application settings."""
+    from src.config import get_settings
+
+    return build_merchant_aliases(dict(get_settings().merchants.aliases))
+
+
 def extract_merchant_name(
     description: object,
     method: str = "first_word",

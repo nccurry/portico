@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 import pandas as pd
@@ -155,6 +156,7 @@ def calculate_weekly_report(
     period: ReportPeriod,
     *,
     top_merchant_count: int = TOP_VENDOR_COUNT,
+    merchant_aliases: Mapping[str, str] | None = None,
 ) -> WeeklyExpenseReport:
     """Calculate weekly spending, averages, and rolling comparisons."""
     validate_selected_categories(categories, metadata)
@@ -181,7 +183,7 @@ def calculate_weekly_report(
                 average_amount=_average_weekly_spending(comparison_rows, period.average_weeks),
                 rolling_amount=_spending(rolling_rows),
                 previous_rolling_amount=_spending(previous_rolling_rows),
-                top_vendors=_top_vendors(current_rows, top_merchant_count),
+                top_vendors=_top_vendors(current_rows, top_merchant_count, aliases=merchant_aliases),
             )
         )
     category_totals_tuple = tuple(category_totals)
@@ -213,12 +215,19 @@ def _average_weekly_spending(rows: pd.DataFrame, weeks: int) -> float:
     return _money(_spending(rows) / weeks)
 
 
-def _top_vendors(rows: pd.DataFrame, count: int) -> tuple[VendorTotal, ...]:
+def _top_vendors(
+    rows: pd.DataFrame,
+    count: int,
+    *,
+    aliases: Mapping[str, str] | None = None,
+) -> tuple[VendorTotal, ...]:
     """Return the largest positive net vendor totals for the current week."""
     if rows.empty:
         return ()
 
-    vendors = rows.assign(Vendor=rows["Full Description"].map(normalize_merchant_name))
+    vendors = rows.assign(
+        Vendor=rows["Full Description"].map(lambda description: normalize_merchant_name(description, aliases=aliases))
+    )
     totals = vendors.groupby("Vendor", as_index=False)["Amount"].sum()
     totals["Amount"] = -totals["Amount"]
     totals = totals[totals["Amount"] > 0].sort_values(["Amount", "Vendor"], ascending=[False, True])

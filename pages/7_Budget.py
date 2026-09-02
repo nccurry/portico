@@ -47,7 +47,7 @@ def _format_currency(value: float, *, signed: bool = False) -> str:
 
 def _categories_sheet_url() -> str | None:
     """Return the configured Categories sheet URL without exposing credentials."""
-    if get_settings().data.is_demo:
+    if get_settings().data.source == "local_csv":
         return None
     try:
         config = st.secrets["connections"]["categories"]
@@ -592,21 +592,22 @@ def main() -> None:
         return
 
     available_groups = transactions_spreadsheet.get_all_groups()
-    controls = st.columns([1, 3.2, 1.15, 1.15], vertical_alignment="bottom")
-    with controls[0]:
+    controls = st.container(horizontal=True, wrap=True, vertical_alignment="bottom")
+    with controls:
         selected_month = st.selectbox(
             "Month",
             months,
             index=months.index(latest_month),
             key="budget_month",
             persist_state="page",
+            width=180,
         )
     default_groups = get_default_budget_groups(
         budget_df,
         str(selected_month),
         available_groups,
     )
-    with controls[1]:
+    with controls:
         selected_groups_value = st.pills(
             "Budget groups",
             available_groups,
@@ -616,19 +617,18 @@ def main() -> None:
             persist_state="session",
         )
     selected_groups = list(selected_groups_value or [])
-    with controls[2]:
+    with controls:
         adjusted_filters = render_budget_filters(
             transactions_spreadsheet.get_all_categories(),
             selected_groups,
         )
-    with controls[3]:
         sheet_url = _categories_sheet_url()
         if sheet_url:
             st.link_button(
                 "Edit in Tiller",
                 sheet_url,
                 icon=":material/open_in_new:",
-                width="stretch",
+                width="content",
             )
 
     if not selected_groups:

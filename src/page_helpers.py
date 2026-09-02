@@ -3,7 +3,7 @@ from collections.abc import Sequence
 import pandas as pd
 import streamlit as st
 
-from src.analysis.merchants import build_merchant_aliases, extract_merchant_name
+from src.analysis.merchants import configured_merchant_aliases, extract_merchant_name
 from src.config import get_settings
 from src.custom_types import ColumnConfig
 from src.reporting_periods import current_timestamp
@@ -18,12 +18,6 @@ __all__ = [
     "render_demo_banner",
     "render_time_frame_control",
 ]
-
-
-def configured_merchant_aliases() -> dict[str, str]:
-    """Return validated merchant aliases from application settings."""
-    configured = dict(get_settings().merchants.aliases)
-    return build_merchant_aliases(configured)
 
 
 def get_transaction_column_config() -> ColumnConfig:
@@ -47,7 +41,7 @@ def get_transaction_column_config() -> ColumnConfig:
 
 def render_demo_banner() -> None:
     """Show a shared banner when the app uses synthetic demo data."""
-    if get_settings().data.is_demo:
+    if get_settings().data.show_demo_banner:
         st.info(
             "Demo data is active. The dashboard uses committed synthetic records and does not contact Google Sheets.",
             icon=":material/science:",
@@ -69,7 +63,7 @@ def render_time_frame_control(
         key=key,
         help="Controls the time period shown on this page.",
         persist_state="page",
-        width="stretch",
+        width="content",
     )
     return selected if isinstance(selected, str) and selected in options else default
 

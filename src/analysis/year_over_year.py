@@ -1,11 +1,13 @@
 """Pure calculations for single-entity year-over-year spending comparisons."""
 
 import calendar
+from collections.abc import Mapping, Sequence
 from typing import cast
 
 import pandas as pd
 
 from src.analysis.spending import included_spending_rows
+from src.config import TransactionSetSettings
 from src.custom_types import SpendingFilters, YearOverYearSummary
 
 HISTORY_COLUMNS = [
@@ -28,33 +30,9 @@ def spending_entities(transactions: pd.DataFrame, dimension: str) -> list[str]:
     return sorted(value for value in values.unique() if value)
 
 
-def utility_bill_categories(
-    transactions: pd.DataFrame,
-    *,
-    group_terms: tuple[str, ...],
-    category_terms: tuple[str, ...],
-) -> list[str]:
-    """Return utility categories ordered by total net spending."""
+def ordered_spending_categories(transactions: pd.DataFrame) -> list[str]:
+    """Return expense categories ordered by total included net spending."""
     expenses = transactions[transactions["Type"].eq("Expense")].copy()
-    categories = expenses["Category"].fillna("").astype(str).str.strip()
-    groups = expenses["Group"].fillna("").astype(str).str.strip()
-    normalized_group_terms = tuple(term.casefold() for term in group_terms)
-    normalized_category_terms = tuple(term.casefold() for term in category_terms)
-    group_matches = groups.str.casefold().apply(lambda value: any(term in value for term in normalized_group_terms))
-    category_matches = categories.str.casefold().apply(
-        lambda value: any(term in value for term in normalized_category_terms)
-    )
-    mask = group_matches & category_matches
-    return _ordered_categories(expenses, categories, mask)
-
-
-def discretionary_categories(
-    transactions: pd.DataFrame,
-    *,
-    filters: SpendingFilters,
-) -> list[str]:
-    """Return categories allowed by the discretionary spending policy."""
-    expenses = included_spending_rows(transactions, filters)
     categories = expenses["Category"].fillna("").astype(str).str.strip()
     mask = pd.Series(True, index=expenses.index, dtype="bool")
     return _ordered_categories(expenses, categories, mask)
@@ -108,6 +86,9 @@ def build_year_over_year_history(
     dimension: str,
     entity: str,
     filters: SpendingFilters | None = None,
+    transaction_set_key: str | None = None,
+    transaction_sets: Sequence[TransactionSetSettings] = (),
+    merchant_aliases: Mapping[str, str] | None = None,
 ) -> pd.DataFrame:
     """Return comparable calendar-month spending lines for one entity.
 
@@ -128,7 +109,13 @@ def build_year_over_year_history(
         .dropna()
     )
     expenses = _prepared_expenses(
-        included_spending_rows(transactions, filters) if filters is not None else transactions
+        included_spending_rows(
+            transactions,
+            filters,
+            transaction_set_key=transaction_set_key,
+            transaction_sets=transaction_sets,
+            merchant_aliases=merchant_aliases,
+        )
     )
     selected = expenses[expenses[dimension].astype(str).eq(entity)]
     if selected.empty or coverage_dates.empty:

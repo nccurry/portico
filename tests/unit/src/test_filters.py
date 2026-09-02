@@ -568,7 +568,7 @@ class TestPageFilterDefaults:
             result = render_spending_filters(
                 ["Christmas", "Misc Shopping", "Groceries"],
                 ["Bills", "Income", "Donations", "Maintenance", "Travel", "Food", "Shopping"],
-                view=get_settings().spending.view("all"),
+                transaction_set=get_settings().transaction_set("all"),
             )
 
         assert result["exclude_groups"] == []
@@ -594,21 +594,11 @@ class TestPageFilterDefaults:
                     "Groceries",
                 ],
                 ["Bills", "Income", "Donations", "Maintenance", "Travel", "Food", "Shopping"],
-                view=get_settings().spending.view("discretionary"),
+                transaction_set=get_settings().transaction_set("discretionary"),
             )
 
-        assert result["exclude_groups"] == [
-            "Bills",
-            "Donations",
-            "Income",
-            "Maintenance",
-            "Travel",
-        ]
-        assert result["exclude_categories"] == [
-            "Given Gift",
-            "Groceries",
-            "Tax Return Payment",
-        ]
+        assert result["exclude_groups"] == []
+        assert result["exclude_categories"] == []
         assert result["include_transactions_like"] == []
         assert result["exclude_transactions_like"] == []
         assert result["filter_large_expenses"] is False
@@ -622,7 +612,7 @@ class TestPageFilterDefaults:
             result = render_spending_filters(
                 ["Groceries"],
                 ["Food", "Travel"],
-                view=get_settings().spending.view("all"),
+                transaction_set=get_settings().transaction_set("all"),
             )
 
         assert result["exclude_groups"] == ["Travel"]

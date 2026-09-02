@@ -79,7 +79,7 @@ docker pull ghcr.io/nccurry/portico:latest
 docker run --rm --init --name portico \
   --read-only --tmpfs /tmp:size=64m,mode=1777 \
   --cap-drop ALL --security-opt no-new-privileges:true \
-  --env PORTICO_DATA_SOURCE=demo \
+  --env PORTICO_CONFIG_PATH=/app/config/demo.toml \
   --publish 127.0.0.1:8501:8501 \
   ghcr.io/nccurry/portico:latest
 ```
@@ -91,8 +91,9 @@ Press `Ctrl+C` to stop the demo.
 
 ## Connect Google Sheets
 
-Google Sheets is the only supported live data source. No service account is
-required.
+Google Sheets is the default live data source. No service account is required.
+Portico also supports an explicit local CSV profile; see
+[Use local CSV data](#use-local-csv-data).
 
 Clone the repository to get the configuration and secrets templates:
 
@@ -138,15 +139,11 @@ Never commit `.streamlit/secrets.toml`. Git ignores this file by default.
 
 ### Check and start Portico
 
-Create an empty local override file, then pull the latest image and check the
-workbook:
+Pull the latest image and check the workbook:
 
 ```console
-touch config/local.toml
 docker pull ghcr.io/nccurry/portico:latest
 docker run --rm \
-  --env PORTICO_DATA_SOURCE=google_sheets \
-  --mount "type=bind,source=$(pwd)/config/local.toml,target=/app/config/local.toml,readonly" \
   --mount "type=bind,source=$(pwd)/.streamlit/secrets.toml,target=/app/.streamlit/secrets.toml,readonly" \
   ghcr.io/nccurry/portico:latest python -m scripts.doctor
 ```
@@ -163,7 +160,6 @@ docker run --detach --init --name portico --restart unless-stopped \
   --read-only --tmpfs /tmp:size=64m,mode=1777 \
   --cap-drop ALL --security-opt no-new-privileges:true \
   --env-file .env \
-  --mount "type=bind,source=$(pwd)/config/local.toml,target=/app/config/local.toml,readonly" \
   --mount "type=bind,source=$(pwd)/.streamlit/secrets.toml,target=/app/.streamlit/secrets.toml,readonly" \
   --mount "type=volume,source=portico-state,target=/app/.local" \
   --publish 127.0.0.1:8501:8501 \
@@ -280,36 +276,41 @@ schedule between container runs. The host address and port stay in the
 
 ## Configuration
 
-Tracked defaults live in [`config/defaults.toml`](config/defaults.toml). The
-defaults match the maintainer's Tiller setup, but contain no private account or
-transaction data. They cover report periods, calculation policies, thresholds,
-subscription detection, emergency-fund and debt targets, financial-independence
-assumptions, Discord summary windows, and merchant aliases.
+[`config/defaults.toml`](config/defaults.toml) is Portico's canonical
+configuration. It reflects the maintainer's household policy and controls report
+periods, calculation policies, thresholds, subscription detection,
+emergency-fund and debt targets, financial-independence assumptions, Discord
+summary windows, named transaction sets, page filter sets, and merchant aliases.
+Edit this file when you run your own checkout.
 
-Create the ignored file `config/local.toml`. Add only the values that differ
-from the defaults. Portico stops with an error
-for unknown keys, wrong types, unsafe paths, duplicate values, and values outside
-the supported ranges. Restart Portico after changing a TOML file.
+Portico does not automatically load an override file. It stops with an error for
+unknown keys, wrong types, duplicate values, and values outside the supported
+ranges. Restart Portico after changing a TOML file.
+
+If you are upgrading from an older setup, move the settings you want to keep
+into `config/defaults.toml`. Alternatively, rename the file to
+`config/override.toml` and set `PORTICO_CONFIG_PATH` when you deliberately need
+a deployment-specific delta.
 
 ### Dashboard settings
 
-These are the main settings most households may want to override:
+These are the main settings you may want to change:
 
 | Section | Setting | What it controls |
 | --- | --- | --- |
 | `reporting` | `lookback_months` | Calendar-month choices shown on income, spending, and merchant pages. Use 2–5 ascending values. |
 | `reporting` | `default_lookback_months` | Initially selected reporting period. It must appear in `lookback_months`. |
-| `spending` | `default_view` | Start spending and merchant pages in the configured view with this key. |
-| `spending.views.<key>` | `label`, `include_*`, `exclude_*` | Defines a spending view shared by category, merchant, and discretionary year-over-year reports. `*_transactions_like` matches case-insensitive, literal text in Tiller’s Full Description; include rules form a union and exclusions win. |
+| `data` | `source` | Select `google_sheets` (the default) or `local_csv`. Local CSV profiles also require `directory`; they may set `reference_date` and `show_demo_banner`. |
+| `transaction_sets.<key>` | `label`, `groups`, `categories`, `accounts`, `merchants`, `transactions_like`, `includes`, `excludes` | Defines one reusable expense policy. Direct selectors and included sets are combined; excluded sets are removed last. A set with neither direct selectors nor includes means every expense row. Groups, categories, and accounts are exact sheet values; merchants use the shared merchant aliases; `transactions_like` is case-insensitive literal text in Full Description. |
+| `filter_sets.<key>` | `options`, `default` | Lists the named transaction sets offered by a page. `spending` is shared by the category and merchant pages; `year_over_year` adds Utilities alongside All spending and Discretionary. |
 | `income_savings` | `default_view` | Start income and savings in `regular` or `actual` view. |
 | `income_savings` | `exclude_categories`, `exclude_groups` | One-off activity removed from the Regular calculation. |
 | `income_savings` | `target_rate` | Savings-rate target shown on the income page. |
 | `thresholds` | `expense`, `income` | Default limits offered by the large-transaction filters. |
 | `budget` | `history_months` | Months used for budget history and trailing results. |
-| `subscriptions` | `known_category_terms` | Text used to select the initial known-subscription categories. |
+| `subscriptions` | `known_categories`, `detection_excluded_categories` | Exact Categories-sheet values used for the known inventory and excluded from automatic discovery. |
 | `subscriptions` | `minimum_confidence`, `stale_after_days` | Discovery cutoff and stale-data warning. |
 | `subscriptions` | `default_exclude_categories` | Categories selected by default in Additional discovery exclusions. |
-| `year_over_year` | `utility_group_terms`, `utility_category_terms` | Text used by the Utility bills preset. |
 | `data_health` | `stale_account_days` | Age at which an account balance is stale. |
 | `data_health` | `duplicate_require_same_*` | Initial duplicate-detection matching rules. |
 | `financial_independence` | FI funding target, return, withdrawal, history, projection, account, and group settings | Home-page FI funding progress and FI scenario assumptions. |
@@ -317,47 +318,73 @@ These are the main settings most households may want to override:
 | `weekly_summary` | `average_weeks`, `rolling_weeks`, `top_merchant_count` | Discord comparison windows and merchant detail. |
 | `merchants.aliases` | Merchant name and description fragments | Combine several transaction descriptions under one merchant name. |
 
-The page controls remain editable. They let you try another view without
-changing the TOML file. Those choices last for the browser session only.
+The View controls choose among the configured transaction sets. Other page
+controls can narrow that set for exploration, but cannot broaden it. Those
+choices last for the browser session only.
+
+### Use local CSV data
+
+Local CSV is a first-class data source, not a separate application mode. Create
+an explicit profile next to your CSV directory, using the four exported files
+`transactions.csv`, `balance_history.csv`, `categories.csv`, and `accounts.csv`:
+
+```toml
+[data]
+source = "local_csv"
+directory = "/data"
+```
+
+`directory` may be absolute or relative to the TOML file that defines it. An
+optional timezone-aware `reference_date` makes reporting deterministic, and
+`show_demo_banner = true` marks synthetic data. [`config/demo.toml`](config/demo.toml)
+is the committed example profile for `demo/data`.
+
+In Docker, bind-mount the profile and CSV directory separately and select the
+mounted profile:
+
+```console
+docker run --rm --init --name portico \
+  --read-only --tmpfs /tmp:size=64m,mode=1777 \
+  --cap-drop ALL --security-opt no-new-privileges:true \
+  --env PORTICO_CONFIG_PATH=/app/config/exports.toml \
+  --mount "type=bind,source=$(pwd)/config/exports.toml,target=/app/config/exports.toml,readonly" \
+  --mount "type=bind,source=$(pwd)/data,target=/data,readonly" \
+  --publish 127.0.0.1:8501:8501 \
+  ghcr.io/nccurry/portico:latest
+```
 
 ### Configure a Docker deployment
 
-The image owns `/app/config/defaults.toml`. The setup command mounts only the
-ignored local override file at `/app/config/local.toml`, so upgrades always use
-the defaults shipped with that release.
+The image includes `/app/config/defaults.toml` and `/app/config/demo.toml`.
+Most Google Sheets deployments do not need a configuration mount. Do not
+bind-mount a replacement configuration directory or an older `defaults.toml`:
+either can hide new required settings in a later image release.
 
-Create and edit the override on the Docker host:
-
-```console
-touch config/local.toml
-nano config/local.toml
-docker restart portico
-```
-
-The bind mount is read-only to Portico. Editing the host file is enough; do not
-edit files inside the container. Do not mount a host directory over
-`/app/config`; that hides release defaults and can make a newer image fail to
-start.
-
-For an existing directory-mounted deployment, move household changes to
-`config/local.toml`, remove the directory mount, and recreate the container
-with the start command above. A host `defaults.toml` is no longer needed.
-
-To keep the override under another name, set its path inside the container:
+For a deliberate deployment-specific delta, create an ignored override file and
+select it explicitly:
 
 ```console
-PORTICO_CONFIG_PATH=/app/config/household.toml
+touch config/override.toml
+nano config/override.toml
 ```
 
-Add that line to `.env`, create `config/household.toml`, and replace the
-`local.toml` mount in the start command with:
+Add this line to `.env`:
 
 ```console
---mount "type=bind,source=$(pwd)/config/household.toml,target=/app/config/household.toml,readonly"
+PORTICO_CONFIG_PATH=/app/config/override.toml
 ```
 
-Environment variables are fixed when Docker creates the container, so remove
-the existing container and run the start command again:
+Then add this read-only mount to the Docker command:
+
+```console
+--mount "type=bind,source=$(pwd)/config/override.toml,target=/app/config/override.toml,readonly"
+```
+
+The selected override merges onto the image's canonical defaults. This is an
+explicit deployment mechanism, not an automatically loaded local configuration.
+Mount the selected TOML file itself, not the whole `/app/config` directory.
+Environment variables are fixed when Docker creates the container, so remove the
+existing container and run the start command again:
 
 ```console
 docker stop portico
@@ -371,15 +398,13 @@ These environment variables change the main application settings:
 
 | Variable | Use |
 | --- | --- |
-| `PORTICO_CONFIG_PATH` | Select a different local TOML file. |
-| `PORTICO_DATA_SOURCE` | Select `google_sheets` or `demo`. |
+| `PORTICO_CONFIG_PATH` | Apply an explicitly selected TOML override to the canonical defaults. |
 | `PORTICO_DISCORD_ENABLED` | Set to `true` to enable scheduled Discord summaries. The default is `false`. |
 | `PORTICO_DISCORD_CRON` | Set the five-field cron schedule. The default is `0 9 * * 0` (Sunday at 9:00 AM). |
 | `TZ` | Set the IANA timezone used by the Discord schedule, such as `America/Chicago`. |
 
-Keep household category names, account names, and merchant aliases in
-`config/local.toml`. Keep Google Sheets and Discord URLs in
-`.streamlit/secrets.toml`.
+Keep household policy in `config/defaults.toml`. Keep Google Sheets and Discord
+URLs in `.streamlit/secrets.toml`.
 
 ## Optional Discord summary
 
@@ -395,9 +420,9 @@ The report includes:
 - A comparison between the latest group of weeks and the prior group
 - Total expenses and the number of uncategorized transactions
 
-The tracked defaults use an eight-week average, a four-week comparison, and
-three merchants per category. Change those values under `[weekly_summary]` in
-`config/local.toml`.
+The canonical configuration uses an eight-week average, a four-week comparison,
+and three merchants per category. Change those values under `[weekly_summary]`
+in `config/defaults.toml`.
 
 ### Create the Discord webhook
 
@@ -542,9 +567,9 @@ uv run --locked mypy
 uv run --locked pytest
 ```
 
-Set `PORTICO_DATA_SOURCE=demo` and run
+Set `PORTICO_CONFIG_PATH=config/demo.toml` and run
 `uv run --locked streamlit run Home.py` to start the synthetic demo without
-Task. PowerShell uses `$env:PORTICO_DATA_SOURCE = "demo"`.
+Task. PowerShell uses `$env:PORTICO_CONFIG_PATH = "config/demo.toml"`.
 
 ### Checks
 

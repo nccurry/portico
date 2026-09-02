@@ -135,12 +135,11 @@ def create_cash_flow_history_chart(
     """Build the coordinated cash-flow and savings-rate history chart."""
     chart_data = monthly.copy()
     chart_data["Month_Key"] = chart_data["Month"].astype(str)
-    chart_data["Month_Label"] = pd.PeriodIndex(chart_data["Month_Key"], freq="M").strftime("%b %Y")
+    chart_data["Month_Date"] = pd.PeriodIndex(chart_data["Month_Key"], freq="M").to_timestamp()
     chart_data["Spending_Chart"] = -chart_data["Net_Expenses"]
-    month_order = chart_data["Month_Label"].tolist()
 
-    bar_data = chart_data[["Month_Key", "Month_Label", "Income", "Spending_Chart"]].melt(
-        id_vars=["Month_Key", "Month_Label"],
+    bar_data = chart_data[["Month_Key", "Month_Date", "Income", "Spending_Chart"]].melt(
+        id_vars=["Month_Key", "Month_Date"],
         value_vars=["Income", "Spending_Chart"],
         var_name="Series",
         value_name="Amount",
@@ -162,18 +161,17 @@ def create_cash_flow_history_chart(
         clear="dblclick",
     )
     month_axis = alt.X(
-        "Month_Label:O",
+        "Month_Date:T",
         title=None,
-        sort=month_order,
         axis=alt.Axis(
+            format="%b %Y",
             labelAngle=-35,
             labelOverlap=True,
         ),
     )
     hidden_month_axis = alt.X(
-        "Month_Label:O",
+        "Month_Date:T",
         title=None,
-        sort=month_order,
         axis=alt.Axis(labels=False, ticks=False),
     )
 
@@ -674,13 +672,13 @@ def main() -> None:
     default_lookback = next(
         label for label, months in lookback_options.items() if months == settings.reporting.default_lookback_months
     )
-    lookback = render_time_frame_control(
-        list(lookback_options),
-        default=default_lookback,
-        key="income_lookback",
-    )
-    controls = st.columns([2, 1], vertical_alignment="bottom")
-    with controls[0]:
+    controls = st.container(horizontal=True, wrap=True, vertical_alignment="bottom")
+    with controls:
+        lookback = render_time_frame_control(
+            list(lookback_options),
+            default=default_lookback,
+            key="income_lookback",
+        )
         calculation_view = st.segmented_control(
             "Calculation",
             options=CALCULATION_VIEWS,
@@ -692,9 +690,8 @@ def main() -> None:
                 "with everything included. You can adjust either view directly."
             ),
             persist_state="page",
-            width="stretch",
+            width="content",
         )
-    with controls[1]:
         adjust_slot = st.empty()
 
     transactions_spreadsheet = load_transactions_data()

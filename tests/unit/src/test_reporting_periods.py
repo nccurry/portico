@@ -12,8 +12,8 @@ def test_month_lookback_options_use_compact_labels() -> None:
     assert month_lookback_options((1, 3, 12, 24)) == {"1M": 1, "3M": 3, "1Y": 12, "2Y": 24}
 
 
-def test_current_timestamp_uses_the_demo_reference_date(monkeypatch: pytest.MonkeyPatch) -> None:
-    settings = SimpleNamespace(data=SimpleNamespace(is_demo=True, demo_reference_date="1995-04-20T00:00:00+00:00"))
+def test_current_timestamp_uses_the_local_csv_reference_date(monkeypatch: pytest.MonkeyPatch) -> None:
+    settings = SimpleNamespace(data=SimpleNamespace(reference_date="1995-04-20T00:00:00+00:00"))
     monkeypatch.setattr("src.reporting_periods.get_settings", lambda: settings)
 
     assert current_timestamp() == pd.Timestamp("1995-04-20T00:00:00+00:00")

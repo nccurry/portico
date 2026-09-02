@@ -283,6 +283,29 @@ def test_report_limits_vendors_to_top_three(category_metadata: pd.DataFrame) -> 
     assert [(vendor.name, vendor.amount) for vendor in limited.categories[0].top_vendors] == [("ALPHA MARKET", 100.0)]
 
 
+def test_report_condenses_top_vendors_with_merchant_aliases(category_metadata: pd.DataFrame) -> None:
+    transactions = pd.DataFrame(
+        {
+            "Date": pd.to_datetime(["2026-07-26", "2026-07-27"], utc=True),
+            "Category": ["Everyday Food", "Everyday Food"],
+            "Amount": [-40.0, -60.0],
+            "Group": ["Food", "Food"],
+            "Type": ["Expense", "Expense"],
+            "Full Description": ["AMAZON MKTPL*1234", "AMAZON COM"],
+        }
+    )
+
+    report = calculate_weekly_report(
+        transactions,
+        category_metadata,
+        ("Everyday Food",),
+        completed_week(dt.date(2026, 8, 2)),
+        merchant_aliases={"AMAZON MKTPL": "AMAZON", "AMAZON COM": "AMAZON"},
+    )
+
+    assert [(vendor.name, vendor.amount) for vendor in report.categories[0].top_vendors] == [("AMAZON", 100.0)]
+
+
 def test_selected_average_uses_combined_unrounded_spending() -> None:
     metadata = pd.DataFrame(
         {

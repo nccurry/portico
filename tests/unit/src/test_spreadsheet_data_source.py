@@ -17,14 +17,14 @@ class ExampleSpreadsheet(Spreadsheet):
         self.scrubbed_df = self.raw_df
 
 
-def test_demo_load_reads_csv_without_opening_connection(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
+def test_local_csv_load_reads_csv_without_opening_connection(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
     pd.DataFrame({"value": [1]}).to_csv(tmp_path / "example.csv", index=False)
-    settings = SimpleNamespace(data=SimpleNamespace(is_demo=True, demo_directory=tmp_path))
+    settings = SimpleNamespace(data=SimpleNamespace(source="local_csv", directory=tmp_path))
     monkeypatch.setattr("src.spreadsheet.get_settings", lambda: settings)
     monkeypatch.setitem(sys.modules, "streamlit_gsheets", None)
 
     def reject_connection(*args: object, **kwargs: object) -> Never:
-        raise AssertionError("demo mode must not open a Google Sheets connection")
+        raise AssertionError("local CSV mode must not open a Google Sheets connection")
 
     monkeypatch.setattr("src.spreadsheet.st.connection", reject_connection)
     spreadsheet = ExampleSpreadsheet()
@@ -34,7 +34,7 @@ def test_demo_load_reads_csv_without_opening_connection(monkeypatch: MonkeyPatch
 
 def test_live_load_reads_google_sheets_connection(monkeypatch: MonkeyPatch) -> None:
     expected = pd.DataFrame({"value": [2]})
-    settings = SimpleNamespace(data=SimpleNamespace(is_demo=False))
+    settings = SimpleNamespace(data=SimpleNamespace(source="google_sheets"))
     connection = SimpleNamespace(read=lambda: expected)
     monkeypatch.setattr("src.spreadsheet.get_settings", lambda: settings)
     monkeypatch.setattr("src.spreadsheet.st.connection", lambda **kwargs: connection)

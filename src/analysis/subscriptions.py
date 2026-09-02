@@ -1,11 +1,12 @@
 """Subscription inventory and recurring-charge discovery."""
 
+from collections.abc import Mapping
 from itertools import pairwise
 from typing import Final, cast
 
 import pandas as pd
 
-from src.analysis.merchants import _mode_or_first, normalize_merchant_name
+from src.analysis.merchants import _mode_or_first, configured_merchant_aliases, normalize_merchant_name
 from src.config import get_settings
 from src.custom_types import SubscriptionSummary
 from src.reporting_periods import current_timestamp
@@ -71,12 +72,14 @@ LIFECYCLE_COLUMNS: Final[list[str]] = [
 def build_subscription_inventory(
     transactions: pd.DataFrame,
     subscription_categories: list[str],
+    *,
+    aliases: Mapping[str, str] | None = None,
 ) -> pd.DataFrame:
     """Build a merchant-level inventory from Tiller subscription categories."""
     if transactions.empty or not subscription_categories:
         return pd.DataFrame(columns=INVENTORY_COLUMNS)
 
-    expenses = _prepare_expenses(transactions)
+    expenses = _prepare_expenses(transactions, aliases=aliases)
     known = expenses[expenses["Category"].isin(subscription_categories)].copy()
     if known.empty:
         return pd.DataFrame(columns=INVENTORY_COLUMNS)
@@ -99,12 +102,13 @@ def find_subscription_candidates(
     *,
     excluded_categories: list[str] | None = None,
     min_confidence: int = 80,
+    aliases: Mapping[str, str] | None = None,
 ) -> pd.DataFrame:
     """Find strong recurring non-bill charges outside subscription categories."""
     if transactions.empty:
         return pd.DataFrame(columns=CANDIDATE_COLUMNS)
 
-    expenses = _prepare_expenses(transactions)
+    expenses = _prepare_expenses(transactions, aliases=aliases)
     eligible = _eligible_candidate_expenses(
         expenses,
         [*subscription_categories, *(excluded_categories or [])],
@@ -168,13 +172,14 @@ def build_subscription_history(
     *,
     lifecycles: pd.DataFrame | None = None,
     through_date: pd.Timestamp | None = None,
+    aliases: Mapping[str, str] | None = None,
 ) -> pd.DataFrame:
     """Return monthly actual spend, rolling average, and active merchant count."""
     columns = ["Month", "Actual_Spend", "Rolling_Average", "Active_Merchants"]
     if transactions.empty or not subscription_categories:
         return pd.DataFrame(columns=columns)
 
-    known = _prepare_expenses(transactions)
+    known = _prepare_expenses(transactions, aliases=aliases)
     known = known[known["Category"].isin(subscription_categories)].copy()
     if known.empty:
         return pd.DataFrame(columns=columns)
@@ -195,6 +200,7 @@ def build_subscription_history(
             transactions,
             inventory,
             subscription_categories,
+            aliases=aliases,
         )
     active_by_month: dict[pd.Timestamp, set[str]] = {month: set() for month in months}
     for lifecycle in lifecycles.itertuples(index=False):
@@ -225,12 +231,14 @@ def build_subscription_lifecycles(
     transactions: pd.DataFrame,
     inventory: pd.DataFrame,
     subscription_categories: list[str],
+    *,
+    aliases: Mapping[str, str] | None = None,
 ) -> pd.DataFrame:
     """Build observed and inferred lifecycle episodes for known subscriptions."""
     if transactions.empty or not subscription_categories:
         return pd.DataFrame(columns=LIFECYCLE_COLUMNS)
 
-    known = _prepare_expenses(transactions)
+    known = _prepare_expenses(transactions, aliases=aliases)
     known = known[known["Category"].isin(subscription_categories)].copy()
     if known.empty:
         return pd.DataFrame(columns=LIFECYCLE_COLUMNS)
@@ -327,10 +335,12 @@ def summarize_subscriptions(
     inventory: pd.DataFrame,
     transactions: pd.DataFrame,
     subscription_categories: list[str],
+    *,
+    aliases: Mapping[str, str] | None = None,
 ) -> SubscriptionSummary:
     """Return active inventory and actual trailing-year subscription metrics."""
     latest_data_date = _latest_date(transactions) if not transactions.empty else current_timestamp()
-    known = _prepare_expenses(transactions) if not transactions.empty else pd.DataFrame()
+    known = _prepare_expenses(transactions, aliases=aliases) if not transactions.empty else pd.DataFrame()
     if not known.empty:
         known = known[known["Category"].isin(subscription_categories)]
         trailing_start = latest_data_date - pd.DateOffset(years=1)
@@ -365,24 +375,35 @@ def get_subscription_transactions(
     *,
     categories: list[str] | None = None,
     excluded_categories: list[str] | None = None,
+    aliases: Mapping[str, str] | None = None,
 ) -> pd.DataFrame:
     """Return transactions matching one normalized merchant."""
-    expenses = _prepare_expenses(transactions)
+    merchant_aliases = configured_merchant_aliases() if aliases is None else aliases
+    expenses = _prepare_expenses(transactions, aliases=merchant_aliases)
     if categories is not None:
         expenses = expenses[expenses["Category"].isin(categories)]
     elif excluded_categories is not None:
         expenses = _eligible_candidate_expenses(expenses, excluded_categories)
-    target = normalize_merchant_name(merchant, method="first_three")
+    target = normalize_merchant_name(merchant, method="first_three", aliases=merchant_aliases)
     return expenses[expenses["Merchant"] == target].sort_values("Date", ascending=False)
 
 
-def _prepare_expenses(transactions: pd.DataFrame) -> pd.DataFrame:
+def _prepare_expenses(
+    transactions: pd.DataFrame,
+    *,
+    aliases: Mapping[str, str] | None = None,
+) -> pd.DataFrame:
     """Normalize expense transactions for subscription analysis."""
+    merchant_aliases = configured_merchant_aliases() if aliases is None else aliases
     expenses = transactions[transactions["Type"] == "Expense"].copy()
     expenses["Date"] = pd.to_datetime(expenses["Date"], utc=True)
     expenses["Amount_Abs"] = expenses["Amount"].abs()
     expenses["Merchant"] = expenses["Full Description"].map(
-        lambda value: normalize_merchant_name(value, method="first_three")
+        lambda value: normalize_merchant_name(
+            value,
+            method="first_three",
+            aliases=merchant_aliases,
+        )
     )
     expenses["Month_Key"] = expenses["Date"].dt.strftime("%Y-%m")
     return expenses
@@ -394,20 +415,9 @@ def _eligible_candidate_expenses(
 ) -> pd.DataFrame:
     """Keep non-bill expenses that are eligible for subscription discovery."""
     settings = get_settings().subscriptions
-    category_text = expenses["Category"].fillna("").astype(str)
     return expenses[
         (~expenses["Category"].isin(excluded_categories))
         & (~expenses["Category"].isin(settings.detection_excluded_categories))
-        & (
-            ~category_text.str.contains(
-                settings.detection_excluded_pattern,
-                case=False,
-                na=False,
-                regex=True,
-            )
-        )
-        & (~category_text.str.upper().str.endswith("BILL"))
-        & (~expenses["Group"].fillna("").str.contains("Bill|Transfer", case=False, regex=True))
     ].copy()
 
 

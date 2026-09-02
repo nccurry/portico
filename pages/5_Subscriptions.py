@@ -1,6 +1,6 @@
 """Subscription inventory, history, and recurring-charge discovery."""
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from typing import Any, Literal, cast
 
 import altair as alt
@@ -17,7 +17,7 @@ from src.analysis.subscriptions import (
 )
 from src.config import get_settings
 from src.custom_types import SubscriptionSummary
-from src.page_helpers import get_transaction_column_config, render_data_refresh_controls
+from src.page_helpers import configured_merchant_aliases, get_transaction_column_config, render_data_refresh_controls
 from src.reporting_periods import current_timestamp, reporting_anchor
 from src.spreadsheet import TransactionsSpreadsheet, load_transactions_data
 from src.value_visibility import mask_value, value_safe_altair_chart, value_safe_dataframe
@@ -377,6 +377,7 @@ def _render_merchant_detail(
     *,
     categories: list[str] | None,
     excluded_categories: list[str] | None = None,
+    aliases: Mapping[str, str],
 ) -> None:
     """Render evidence and transaction history for a selected merchant."""
     row = inventory[inventory["Merchant"] == merchant].iloc[0]
@@ -385,6 +386,7 @@ def _render_merchant_detail(
         merchant,
         categories=categories,
         excluded_categories=excluded_categories,
+        aliases=aliases,
     )
     accounts = sorted(charges["Account"].dropna().astype(str).unique())
 
@@ -517,16 +519,19 @@ def _analyze_subscription_data(
     discovery_exclusions: tuple[str, ...],
     discovery_confidence: int,
     history_through: pd.Timestamp,
+    merchant_aliases: tuple[tuple[str, str], ...],
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, SubscriptionSummary]:
     """Build all subscription views once for a stable set of inputs."""
     categories = list(subscription_categories)
-    inventory = build_subscription_inventory(transactions, categories)
-    lifecycles = build_subscription_lifecycles(transactions, inventory, categories)
+    aliases = dict(merchant_aliases)
+    inventory = build_subscription_inventory(transactions, categories, aliases=aliases)
+    lifecycles = build_subscription_lifecycles(transactions, inventory, categories, aliases=aliases)
     candidates = find_subscription_candidates(
         transactions,
         categories,
         excluded_categories=list(discovery_exclusions),
         min_confidence=discovery_confidence,
+        aliases=aliases,
     )
     history = build_subscription_history(
         transactions,
@@ -534,8 +539,9 @@ def _analyze_subscription_data(
         categories,
         lifecycles=lifecycles,
         through_date=history_through,
+        aliases=aliases,
     )
-    summary = summarize_subscriptions(inventory, transactions, categories)
+    summary = summarize_subscriptions(inventory, transactions, categories, aliases=aliases)
     return inventory, lifecycles, candidates, history, summary
 
 
@@ -551,12 +557,14 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
         return
 
     settings = get_settings().subscriptions
+    try:
+        aliases = configured_merchant_aliases()
+    except ValueError as error:
+        st.error(f"Merchant alias configuration is invalid: {error}")
+        return
     latest_data_date = pd.Timestamp(transactions["Date"].max())
     all_categories = transactions_spreadsheet.get_all_categories()
-    known_terms = tuple(term.casefold() for term in settings.known_category_terms)
-    default_subscription_categories = [
-        category for category in all_categories if any(term in category.casefold() for term in known_terms)
-    ]
+    default_subscription_categories = [category for category in settings.known_categories if category in all_categories]
     default_discovery_exclusions = [
         category
         for category in settings.default_exclude_categories
@@ -604,6 +612,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
         tuple(discovery_exclusions),
         discovery_confidence,
         history_through,
+        tuple(sorted(aliases.items())),
     )
 
     annual_change = summary["annual_change_pct"]
@@ -657,6 +666,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
                 active,
                 selected,
                 categories=subscription_categories,
+                aliases=aliases,
             )
 
     st.subheader("Subscription history")
@@ -670,7 +680,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
             icon=":material/info:",
         )
     else:
-        controls = st.container(horizontal=True, vertical_alignment="bottom")
+        controls = st.container(horizontal=True, wrap=True, vertical_alignment="bottom")
         lookback = controls.selectbox(
             "Lookback",
             options=[
@@ -682,6 +692,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
             ],
             index=2,
             key="subscription_history_lookback",
+            width=180,
         )
         scope_choice = controls.segmented_control(
             "Timeline scope",
@@ -745,6 +756,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
                 selected,
                 categories=None,
                 excluded_categories=[*subscription_categories, *discovery_exclusions],
+                aliases=aliases,
             )
 
     inactive = inventory[inventory["Status"] == "Inactive"].sort_values(
@@ -762,6 +774,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
                 inactive,
                 selected,
                 categories=subscription_categories,
+                aliases=aliases,
             )
 
 

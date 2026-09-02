@@ -18,6 +18,7 @@ SITE_FILES = (
 APPLICATION_FILES = (
     Path(".streamlit/config.toml"),
     Path("config/defaults.toml"),
+    Path("config/demo.toml"),
     Path("demo/__init__.py"),
     Path("demo/pages/__init__.py"),
     Path("demo/pages/streamlit_compat.py"),

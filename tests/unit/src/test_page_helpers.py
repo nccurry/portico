@@ -9,7 +9,7 @@ from src.page_helpers import extract_merchant_name, render_demo_banner, render_t
 
 def test_demo_banner_identifies_synthetic_data(monkeypatch: MonkeyPatch) -> None:
     messages: list[str] = []
-    settings = SimpleNamespace(data=SimpleNamespace(is_demo=True))
+    settings = SimpleNamespace(data=SimpleNamespace(show_demo_banner=True))
     monkeypatch.setattr("src.page_helpers.get_settings", lambda: settings)
     monkeypatch.setattr("src.page_helpers.st.info", lambda message, **kwargs: messages.append(message))
 
@@ -41,7 +41,7 @@ def test_time_frame_control_uses_the_shared_presentation(monkeypatch: MonkeyPatc
         "key": "page_lookback",
         "help": "Controls the time period shown on this page.",
         "persist_state": "page",
-        "width": "stretch",
+        "width": "content",
     }
 
 

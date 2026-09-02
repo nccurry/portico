@@ -419,11 +419,6 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
     default_lookback = next(
         label for label, months in lookback_options.items() if months == settings.reporting.default_lookback_months
     )
-    lookback = render_time_frame_control(
-        list(lookback_options),
-        default=default_lookback,
-        key="merchant_lookback",
-    )
     try:
         merchant_aliases = configured_merchant_aliases()
     except ValueError as error:
@@ -442,25 +437,28 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
 
     expense_categories = sorted(expenses["Category"].dropna().astype(str).unique())
     expense_groups = sorted(expenses["Group"].dropna().astype(str).unique())
-    spending_views = settings.spending.views
-    default_view = settings.spending.view(settings.spending.default_view)
-    controls = st.columns(
-        [1.6, 1.6, 2.25],
-        vertical_alignment="bottom",
-        wrap=False,
-    )
-    with controls[0]:
-        view_label = st.segmented_control(
+    spending_filter_set = settings.filter_set("spending")
+    transaction_sets = [settings.transaction_set(key) for key in spending_filter_set.options]
+    default_transaction_set = settings.transaction_set(spending_filter_set.default)
+    controls = st.container(horizontal=True, wrap=True, vertical_alignment="bottom")
+    with controls:
+        lookback = render_time_frame_control(
+            list(lookback_options),
+            default=default_lookback,
+            key="merchant_lookback",
+        )
+        transaction_set_label = st.segmented_control(
             "View",
-            [view.label for view in spending_views],
-            default=default_view.label,
+            [transaction_set.label for transaction_set in transaction_sets],
+            default=default_transaction_set.label,
             required=True,
             key="merchant_view",
             persist_state="page",
-            width="stretch",
+            width="content",
         )
-    view = next(configured_view for configured_view in spending_views if configured_view.label == view_label)
-    with controls[1]:
+        transaction_set = next(
+            configured for configured in transaction_sets if configured.label == transaction_set_label
+        )
         comparison = st.segmented_control(
             "Compare with",
             COMPARISON_VIEWS,
@@ -468,13 +466,12 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
             required=True,
             key="merchant_comparison",
             persist_state="page",
-            width="stretch",
+            width="content",
         )
-    with controls[2]:
         filters = render_spending_filters(
             expense_categories,
             expense_groups,
-            view=view,
+            transaction_set=transaction_set,
         )
 
     lookback_months = lookback_options[str(lookback)]
@@ -495,6 +492,9 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
             filters,
             start_month=current_start,
             end_month=current_end,
+            transaction_set_key=transaction_set.key,
+            transaction_sets=settings.transaction_sets,
+            merchant_aliases=merchant_aliases,
         ),
         "normalized",
         aliases=merchant_aliases,
@@ -505,6 +505,9 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
             filters,
             start_month=comparison_start,
             end_month=comparison_end,
+            transaction_set_key=transaction_set.key,
+            transaction_sets=settings.transaction_sets,
+            merchant_aliases=merchant_aliases,
         ),
         "normalized",
         aliases=merchant_aliases,
@@ -563,7 +566,9 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
             selected_merchant = _render_overview_table(
                 filtered,
                 comparison_label=comparison_text,
-                state_key=(f"merchant_overview_{lookback}_{view.key}_{comparison}_{crc32(repr(filters).encode()):08x}"),
+                state_key=(
+                    f"merchant_overview_{lookback}_{transaction_set.key}_{comparison}_{crc32(repr(filters).encode()):08x}"
+                ),
             )
         with ranking_column:
             st.markdown("**Top merchants by spending**")

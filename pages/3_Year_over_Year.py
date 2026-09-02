@@ -1,6 +1,7 @@
 """Compare one spending group or category across calendar years."""
 
 import calendar
+from collections.abc import Mapping, Sequence
 from typing import cast
 
 import altair as alt
@@ -11,34 +12,21 @@ from src.analysis.spending import included_spending_rows
 from src.analysis.year_over_year import (
     build_year_over_year_history,
     build_year_totals,
-    discretionary_categories,
+    ordered_spending_categories,
     spending_entities,
     summarize_year_over_year,
-    utility_bill_categories,
 )
-from src.config import get_settings
+from src.config import TransactionSetSettings, get_settings
 from src.constants import COLOR_NET_WORTH
-from src.custom_types import SpendingFilters, YearOverYearSummary
-from src.filters import spending_filters_for_view
-from src.page_helpers import render_data_refresh_controls
+from src.custom_types import YearOverYearSummary
+from src.page_helpers import configured_merchant_aliases, render_data_refresh_controls
 from src.reporting_periods import latest_data_timestamp, rolling_month_window
 from src.spreadsheet import TransactionsSpreadsheet, load_transactions_data
 from src.value_visibility import mask_value, value_safe_altair_chart, value_safe_dataframe
 
 MONTHS = list(calendar.month_abbr[1:])
 PRIOR_YEAR_COLORS = ["#CBD5E1", "#94A3B8", "#64748B", "#475569", "#334155"]
-VIEW_OPTIONS = [
-    "Utility bills",
-    "Discretionary spending",
-    "Single category",
-    "Single group",
-]
 MAX_DEFAULT_PRESET_CATEGORIES = 8
-
-
-def _discretionary_filters() -> SpendingFilters:
-    """Return the configured household discretionary-spending policy."""
-    return spending_filters_for_view(get_settings().spending.view("discretionary"))
 
 
 def _preferred_entity(entities: list[str], dimension: str) -> str:
@@ -153,15 +141,14 @@ def _create_year_chart(
 def _render_metrics(summary: YearOverYearSummary, *, border: bool) -> None:
     current_year = summary["current_year"]
     previous_year = summary["previous_year"]
-    month_name = calendar.month_name[summary["through_month"]]
     with st.container(horizontal=True):
         st.metric(
-            f"{current_year} through {month_name}",
+            str(current_year),
             _format_currency(summary["current_total"]),
             border=border,
         )
         st.metric(
-            (f"{previous_year} through {month_name}" if previous_year is not None else "Previous year"),
+            (str(previous_year) if previous_year is not None else "Previous year"),
             _format_currency(summary["previous_total"]),
             border=border,
         )
@@ -250,13 +237,17 @@ def _render_comparison(
     entity: str,
     through_month: int,
     compact: bool,
-    filters: SpendingFilters | None = None,
+    transaction_set_key: str | None = None,
+    transaction_sets: Sequence[TransactionSetSettings] = (),
+    merchant_aliases: Mapping[str, str] | None = None,
 ) -> None:
     history = build_year_over_year_history(
         transactions,
         dimension=dimension,
         entity=entity,
-        filters=filters,
+        transaction_set_key=transaction_set_key,
+        transaction_sets=transaction_sets,
+        merchant_aliases=merchant_aliases,
     )
     if history.empty:
         return
@@ -266,13 +257,19 @@ def _render_comparison(
     )
     with st.container(border=True):
         st.subheader(entity)
+        st.caption(f"Through {calendar.month_name[through_month]}")
         _render_metrics(summary, border=False)
         value_safe_altair_chart(
             _create_year_chart(history, height=280 if compact else 470),
             width="stretch",
         )
         _render_details(
-            included_spending_rows(transactions, filters) if filters is not None else transactions,
+            included_spending_rows(
+                transactions,
+                transaction_set_key=transaction_set_key,
+                transaction_sets=transaction_sets,
+                merchant_aliases=merchant_aliases,
+            ),
             history,
             dimension=dimension,
             entity=entity,
@@ -281,31 +278,28 @@ def _render_comparison(
 
 
 def _preset_selection(
-    transactions: pd.DataFrame,
+    eligible_transactions: pd.DataFrame,
     *,
-    view: str,
-    discretionary_filters: SpendingFilters | None = None,
+    transaction_set: TransactionSetSettings,
 ) -> list[str]:
-    available = spending_entities(transactions, "Category")
-    if view == "Utility bills":
-        settings = get_settings()
-        defaults = utility_bill_categories(
-            transactions,
-            group_terms=settings.year_over_year.utility_group_terms,
-            category_terms=settings.year_over_year.utility_category_terms,
-        )
-    elif view == "Discretionary spending":
-        if discretionary_filters is None:
-            raise ValueError("Discretionary spending requires spending filters")
-        defaults = discretionary_categories(
-            transactions,
-            filters=discretionary_filters,
-        )
+    available = ordered_spending_categories(eligible_transactions)
+    defaults = available[:MAX_DEFAULT_PRESET_CATEGORIES]
+    key = f"year_over_year_{transaction_set.key}_categories"
+    configuration_key = f"{key}_configuration"
+    configuration = (
+        transaction_set.groups,
+        transaction_set.categories,
+        transaction_set.accounts,
+        transaction_set.merchants,
+        transaction_set.transactions_like,
+        transaction_set.includes,
+        transaction_set.excludes,
+    )
+    if st.session_state.get(configuration_key) != configuration:
+        st.session_state[key] = defaults
+        st.session_state[configuration_key] = configuration
     else:
-        raise ValueError(f"Unsupported year-over-year preset: {view}")
-    defaults = defaults[:MAX_DEFAULT_PRESET_CATEGORIES]
-    key = f"year_over_year_{view.lower().replace(' ', '_')}_categories"
-    st.session_state.setdefault(key, defaults)
+        st.session_state.setdefault(key, defaults)
     with st.popover(
         "Choose categories",
         icon=":material/tune:",
@@ -323,6 +317,12 @@ def _preset_selection(
 def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
     """Render curated or single-entity year-over-year comparisons."""
     st.title("Year over year")
+    settings = get_settings()
+    try:
+        merchant_aliases = configured_merchant_aliases()
+    except ValueError as error:
+        st.error(f"Merchant alias configuration is invalid: {error}")
+        return
     transactions = transactions_spreadsheet.scrubbed_df.copy()
     expenses = transactions[transactions["Type"].eq("Expense")]
     if expenses.empty:
@@ -336,22 +336,33 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
     if latest is not None:
         st.caption(f"Latest data {latest.strftime('%b %d, %Y')} · includes {cutoff.strftime('%b %Y')} to date")
 
+    configured_filter_set = settings.filter_set("year_over_year")
+    configured_transaction_sets = [settings.transaction_set(key) for key in configured_filter_set.options]
+    configured_labels = {transaction_set.label: transaction_set for transaction_set in configured_transaction_sets}
+    single_views = ["Single category", "Single group"]
+    default_view = settings.transaction_set(configured_filter_set.default).label
+
     controls = st.columns([3, 2], vertical_alignment="bottom")
     with controls[0]:
         view = st.segmented_control(
             "View",
-            VIEW_OPTIONS,
-            default="Utility bills",
+            [*configured_labels, *single_views],
+            default=default_view,
             key="year_over_year_view",
             persist_state="page",
         )
-    if view in {"Utility bills", "Discretionary spending"}:
-        discretionary_filters = _discretionary_filters() if view == "Discretionary spending" else None
+    selected_transaction_set = configured_labels.get(str(view))
+    if selected_transaction_set is not None:
+        eligible_transactions = included_spending_rows(
+            analysis_transactions,
+            transaction_set_key=selected_transaction_set.key,
+            transaction_sets=settings.transaction_sets,
+            merchant_aliases=merchant_aliases,
+        )
         with controls[1]:
             selected_entities = _preset_selection(
-                analysis_transactions,
-                view=str(view),
-                discretionary_filters=discretionary_filters,
+                eligible_transactions,
+                transaction_set=selected_transaction_set,
             )
         if not selected_entities:
             st.info("Choose at least one category to compare.")
@@ -363,7 +374,9 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
                 entity=entity,
                 through_month=cutoff.month,
                 compact=True,
-                filters=discretionary_filters,
+                transaction_set_key=selected_transaction_set.key,
+                transaction_sets=settings.transaction_sets,
+                merchant_aliases=merchant_aliases,
             )
         return
 
@@ -387,6 +400,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
         entity=str(entity),
         through_month=cutoff.month,
         compact=False,
+        merchant_aliases=merchant_aliases,
     )
 
 

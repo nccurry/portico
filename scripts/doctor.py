@@ -1,4 +1,4 @@
-"""Validate demo data or link-readable Google Sheets configuration."""
+"""Validate configured local CSV data or link-readable Google Sheets data."""
 
 from __future__ import annotations
 
@@ -118,10 +118,12 @@ def run_doctor(
     timeout: float = 10.0,
     sheet_reader: SheetReader = _read_google_sheet,
 ) -> list[DoctorResult]:
-    """Run safe checks for the selected data mode."""
-    results = [DoctorResult("configuration", True, f"data mode is {settings.data.mode}")]
-    if settings.data.is_demo:
-        sources = {name: settings.data.demo_directory / f"{name}.csv" for name in SHEET_NAMES}
+    """Run safe checks for the selected data source."""
+    results = [DoctorResult("configuration", True, f"data source is {settings.data.source}")]
+    if settings.data.source == "local_csv":
+        directory = settings.data.directory
+        assert directory is not None
+        sources = {name: directory / f"{name}.csv" for name in SHEET_NAMES}
         for name, path in sources.items():
             try:
                 dataframe = pd.read_csv(path)
@@ -129,7 +131,7 @@ def run_doctor(
             except Exception as error:
                 results.append(DoctorResult(name, False, _safe_error(error)))
             else:
-                results.append(DoctorResult(name, True, "synthetic data is readable and has the expected schema"))
+                results.append(DoctorResult(name, True, "local CSV data is readable and has the expected schema"))
         return results
 
     try:

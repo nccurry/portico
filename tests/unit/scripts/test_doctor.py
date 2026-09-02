@@ -12,11 +12,11 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DEFAULTS = PROJECT_ROOT / "config" / "defaults.toml"
 
 
-def test_demo_doctor_validates_committed_data(tmp_path: Path) -> None:
+def test_demo_profile_doctor_validates_committed_data(tmp_path: Path) -> None:
     settings = load_settings(
         defaults_path=DEFAULTS,
-        local_path=tmp_path / "missing.toml",
-        environ={"PORTICO_DATA_SOURCE": "demo"},
+        override_path=PROJECT_ROOT / "config" / "demo.toml",
+        environ={},
         project_root=PROJECT_ROOT,
     )
 
@@ -49,7 +49,6 @@ spreadsheet = "https://docs.google.com/spreadsheets/d/book/edit?gid=4"
     )
     settings = load_settings(
         defaults_path=DEFAULTS,
-        local_path=tmp_path / "missing.toml",
         environ={},
         project_root=PROJECT_ROOT,
     )
@@ -88,7 +87,6 @@ def test_duplicate_sheet_tab_is_rejected(tmp_path: Path) -> None:
 def test_unreadable_secrets_path_is_reported(tmp_path: Path) -> None:
     settings = load_settings(
         defaults_path=DEFAULTS,
-        local_path=tmp_path / "missing.toml",
         environ={},
         project_root=PROJECT_ROOT,
     )
@@ -111,7 +109,6 @@ def test_network_failure_does_not_print_exception_details(tmp_path: Path) -> Non
     )
     settings = load_settings(
         defaults_path=DEFAULTS,
-        local_path=tmp_path / "missing.toml",
         environ={},
         project_root=PROJECT_ROOT,
     )
@@ -128,13 +125,13 @@ def test_network_failure_does_not_print_exception_details(tmp_path: Path) -> Non
 
 @pytest.mark.parametrize("timeout", ["0", "-1", "nan", "inf", "-inf"])
 def test_main_rejects_invalid_timeouts(monkeypatch: MonkeyPatch, timeout: str) -> None:
-    monkeypatch.setenv("PORTICO_DATA_SOURCE", "demo")
+    monkeypatch.setenv("PORTICO_CONFIG_PATH", str(PROJECT_ROOT / "config" / "demo.toml"))
 
     assert main([f"--timeout={timeout}"]) == 2
 
 
 def test_main_returns_stable_status_codes(monkeypatch: MonkeyPatch) -> None:
-    monkeypatch.setenv("PORTICO_DATA_SOURCE", "demo")
+    monkeypatch.setenv("PORTICO_CONFIG_PATH", str(PROJECT_ROOT / "config" / "demo.toml"))
 
     assert main([]) == EXIT_OK
     assert EXIT_CHECK_FAILED == 1

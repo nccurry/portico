@@ -8,12 +8,11 @@ from src.analysis.year_over_year import (
     TOTAL_COLUMNS,
     build_year_over_year_history,
     build_year_totals,
-    discretionary_categories,
+    ordered_spending_categories,
     spending_entities,
     summarize_year_over_year,
-    utility_bill_categories,
 )
-from src.custom_types import SpendingFilters
+from src.config import TransactionSetSettings
 
 
 def _transactions(rows: list[dict[str, object]]) -> pd.DataFrame:
@@ -26,24 +25,6 @@ def _transactions(rows: list[dict[str, object]]) -> pd.DataFrame:
         "Full Description": "STORE PURCHASE",
     }
     return pd.DataFrame([defaults | row for row in rows])
-
-
-def _spending_filters(
-    *,
-    excluded_groups: list[str] | None = None,
-    excluded_categories: list[str] | None = None,
-    excluded_transactions_like: list[str] | None = None,
-) -> SpendingFilters:
-    return {
-        "include_groups": [],
-        "include_categories": [],
-        "include_transactions_like": [],
-        "exclude_groups": excluded_groups or [],
-        "exclude_categories": excluded_categories or [],
-        "exclude_transactions_like": excluded_transactions_like or [],
-        "filter_large_expenses": False,
-        "expense_threshold": 0,
-    }
 
 
 def test_spending_entities_are_expense_only_and_sorted() -> None:
@@ -65,7 +46,7 @@ def test_spending_entities_rejects_unknown_dimension() -> None:
         spending_entities(_transactions([]), "Merchant")
 
 
-def test_utility_bill_preset_uses_configured_groups_and_utility_names() -> None:
+def test_ordered_spending_categories_uses_the_rows_already_selected_by_a_transaction_set() -> None:
     transactions = _transactions(
         [
             {"Category": "Electric", "Amount": -300.0},
@@ -76,18 +57,16 @@ def test_utility_bill_preset_uses_configured_groups_and_utility_names() -> None:
         ]
     )
 
-    assert utility_bill_categories(
-        transactions,
-        group_terms=("bill", "housing"),
-        category_terms=("electric", "water", "internet", "rent"),
-    ) == [
+    selected = transactions[transactions["Category"].isin(["Electric", "Water Bill", "Rent"])]
+
+    assert ordered_spending_categories(selected) == [
         "Rent",
         "Electric",
         "Water Bill",
     ]
 
 
-def test_discretionary_preset_uses_shared_spending_exclusions() -> None:
+def test_configured_discretionary_history_uses_the_shared_transaction_set() -> None:
     transactions = _transactions(
         [
             {"Category": "Video Games", "Group": "Entertainment", "Amount": -50.0},
@@ -105,58 +84,45 @@ def test_discretionary_preset_uses_shared_spending_exclusions() -> None:
         ]
     )
 
-    assert discretionary_categories(
-        transactions,
-        filters=_spending_filters(
-            excluded_categories=["Given Gift", "Tax Return Payment"],
-            excluded_groups=["Bills", "Travel"],
+    transaction_sets = (
+        TransactionSetSettings("all", "All", (), (), (), (), (), (), ()),
+        TransactionSetSettings(
+            "non_discretionary",
+            "Non-discretionary",
+            ("Bills", "Travel"),
+            ("Given Gift", "Tax Return Payment"),
+            (),
+            (),
+            (),
+            (),
+            (),
         ),
-    ) == [
-        "Groceries",
-        "Misc Shopping",
-        "Restaurants / Bars",
-        "Video Games",
-    ]
-
-
-def test_discretionary_preset_and_history_exclude_transaction_description_fragments() -> None:
-    transactions = _transactions(
-        [
-            {
-                "Category": "Shopping",
-                "Group": "Shopping",
-                "Full Description": "ACH IRS TAX PAYMENT",
-                "Amount": -1_000.0,
-            },
-            {
-                "Category": "Shopping",
-                "Group": "Shopping",
-                "Full Description": "COFFEE CORNER",
-                "Amount": -20.0,
-            },
-            {
-                "Category": "Trip",
-                "Group": "Shopping",
-                "Full Description": "AIRBNB 12345",
-                "Amount": -500.0,
-            },
-        ]
+        TransactionSetSettings(
+            "discretionary",
+            "Discretionary",
+            (),
+            (),
+            (),
+            (),
+            ("IRS", "AIRBNB"),
+            ("all",),
+            ("non_discretionary",),
+        ),
     )
-    filters = _spending_filters(excluded_transactions_like=["IRS", "AIRBNB"])
 
-    assert discretionary_categories(
-        transactions,
-        filters=filters,
-    ) == ["Shopping"]
+    assert ordered_spending_categories(
+        transactions[transactions["Category"].isin(["Video Games", "Misc Shopping", "Restaurants / Bars", "Groceries"])]
+    ) == ["Groceries", "Misc Shopping", "Restaurants / Bars", "Video Games"]
 
     history = build_year_over_year_history(
         transactions,
         dimension="Category",
-        entity="Shopping",
-        filters=filters,
+        entity="Misc Shopping",
+        transaction_set_key="discretionary",
+        transaction_sets=transaction_sets,
     )
 
-    assert history.loc[history["Month"].eq(1), "Spending"].tolist() == pytest.approx([20.0])
+    assert history.loc[history["Month"].eq(1), "Spending"].tolist() == pytest.approx([200.0])
 
 
 def test_history_zero_fills_covered_months_and_preserves_refunds() -> None:
