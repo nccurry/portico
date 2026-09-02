@@ -255,8 +255,11 @@ def _make_app(
         "src.spreadsheet.load_accounts_data": accts,
     }
 
-    # Stack the patches — each target → the corresponding spreadsheet object
-    ctx = [patch(target, return_value=lookup[target]) for target in patches]
+    # Stack the patches — each target → the corresponding spreadsheet object.
+    requested_patches = list(patches)
+    if page_file == "../Home.py" and "src.spreadsheet.load_transactions_data" not in requested_patches:
+        requested_patches.append("src.spreadsheet.load_transactions_data")
+    ctx = [patch(target, return_value=lookup[target]) for target in requested_patches]
     for c in ctx:
         c.start()
 
@@ -275,7 +278,10 @@ def _make_app(
 
 def _make_home_app_from_balance(balances: object) -> AppTest:
     """Run Home with an explicitly supplied balance spreadsheet."""
-    with patch("src.spreadsheet.load_balance_history_data", return_value=balances):
+    with (
+        patch("src.spreadsheet.load_balance_history_data", return_value=balances),
+        patch("src.spreadsheet.load_transactions_data", return_value=object()),
+    ):
         return AppTest.from_file(_PAGE_DIR / "../Home.py", default_timeout=30).run()
 
 
@@ -463,10 +469,10 @@ class TestHomeSmoke:
         )
         assert not at.exception
         assert at.title[0].value == "Accounts and net worth"
-        assert {caption.value for caption in at.caption} == {
+        assert {
             "Latest balance update Apr 20, 1995",
             "Loaded 1995-04-20 00:00 UTC",
-        }
+        } <= {caption.value for caption in at.caption}
         assert at.segmented_control[0].key == "home_balance_lookback"
         assert at.segmented_control[0].label == "Time frame"
         assert at.segmented_control[0].value == "1Y"
@@ -476,10 +482,21 @@ class TestHomeSmoke:
         assert all(not metric.proto.chart_data for metric in at.metric[:3])
         assert [heading.value for heading in at.subheader] == [
             "Net worth history",
+            "What changed",
             "Account groups",
+            "Financial safety",
         ]
+        help_by_heading = {heading.value: heading.proto.help for heading in at.subheader}
+        assert help_by_heading["What changed"] == (
+            "Balance movement by account group across the selected time frame. "
+            "Transfers can offset between groups; this is not an investment-return calculation."
+        )
+        assert help_by_heading["Financial safety"] == (
+            "Emergency-fund and debt settings come from `[financial_safety]`. "
+            "The FI funding target and account scope come from `[financial_independence]`."
+        )
         charts = at.get("vega_lite_chart")
-        assert len(charts) == 1
+        assert len(charts) == 2
         assert all(field in charts[0].proto.spec for field in ["Assets", "Liabilities", "Net_Worth"])
         assert '"point"' not in charts[0].proto.spec
         metric_labels = [metric.label for metric in at.metric]
@@ -499,7 +516,10 @@ class TestHomeSmoke:
         assert liabilities.value == "$151,560"
         assert liabilities.delta == "-$10,320"
         assert liabilities.proto.chart_data[0] > liabilities.proto.chart_data[-1]
-        assert len(at.metric) == 8
+        assert len(at.metric) == 11
+        assert len(at.columns) == 9
+        assert all(column.weight == pytest.approx(0.5) for column in at.columns[:6])
+        assert all(column.weight == pytest.approx(1 / 3) for column in at.columns[6:])
         assert len(at.dataframe) == len(group_names)
         assert all(table.key != "home_balance_groups" for table in at.dataframe)
         assert all(
@@ -557,7 +577,7 @@ class TestHomeSmoke:
         assert not at.exception
         assert at.segmented_control[0].value == "3M"
         assert at.metric[0].delta.endswith("over 3M")
-        assert len(at.get("vega_lite_chart")) == 1
+        assert len(at.get("vega_lite_chart")) == 2
         assert "Investments" in _metric_labels(at)
 
     def test_navigation_switches_to_registered_page(
@@ -943,8 +963,8 @@ class TestSpendingByCategorySmoke:
         )
         assert not at.exception
         assert at.title[0].value == "Spending by category"
-        toolbar_weights = [column.weight for column in at.columns[:4]]
-        assert toolbar_weights == pytest.approx([value / 7.05 for value in (1.6, 1.6, 1.6, 2.25)])
+        toolbar_weights = [column.weight for column in at.columns[:3]]
+        assert toolbar_weights == pytest.approx([value / 5.45 for value in (1.6, 1.6, 2.25)])
         assert [(control.label, control.value, control.options) for control in at.segmented_control] == [
             ("Time frame", "1Y", ["3M", "6M", "1Y", "2Y"]),
             ("View", "Discretionary", ["All spending", "Discretionary"]),
@@ -1447,8 +1467,8 @@ class TestMerchantAnalysisSmoke:
         )
         assert not at.exception
         assert at.title[0].value == "Spending by merchant"
-        toolbar_weights = [column.weight for column in at.columns[:4]]
-        assert toolbar_weights == pytest.approx([value / 7.05 for value in (1.6, 1.6, 1.6, 2.25)])
+        toolbar_weights = [column.weight for column in at.columns[:3]]
+        assert toolbar_weights == pytest.approx([value / 5.45 for value in (1.6, 1.6, 2.25)])
         assert all(control.proto.required for control in at.segmented_control)
         assert _metric_labels(at) == [
             "Total spending",
@@ -1662,7 +1682,7 @@ class TestBudgetSmoke:
         assert len(at.get("popover")) == 1
         assert at.multiselect(key="budget_exclude_groups").value == []
         assert at.multiselect(key="budget_exclude_categories").value == []
-        assert len(at.get("vega_lite_chart")) == 3
+        assert len(at.get("vega_lite_chart")) == 4
 
         overview = next(table for table in at.dataframe if str(table.key).startswith("budget_group_performance_"))
         assert list(overview.value.columns) == [
@@ -1679,7 +1699,14 @@ class TestBudgetSmoke:
         ]
         assert {"Bills", "Food", "Housing", "Shopping"}.issubset(set(overview.value["Entity"]))
 
-        pulse_spec = json.loads(at.get("vega_lite_chart")[0].proto.spec)
+        pace_spec = json.loads(at.get("vega_lite_chart")[0].proto.spec)
+        assert [layer["mark"]["type"] for layer in pace_spec["layer"]] == ["line", "line"]
+        assert pace_spec["layer"][0]["mark"]["point"] is True
+        assert pace_spec["resolve"]["scale"]["y"] == "shared"
+        assert pace_spec["layer"][0]["encoding"]["y"]["field"] == "Actual_Cumulative"
+        assert pace_spec["layer"][1]["encoding"]["y"]["field"] == "Ideal_Cumulative"
+
+        pulse_spec = json.loads(at.get("vega_lite_chart")[1].proto.spec)
         assert [layer["mark"]["type"] for layer in pulse_spec["layer"]] == [
             "bar",
             "tick",
@@ -1935,7 +1962,7 @@ class TestTopTransactionsSmoke:
 
         assert not at.exception
         assert [message.value for message in at.info] == ["No transactions are available."]
-        assert not at.segmented_control
+        assert [(control.label, control.value) for control in at.segmented_control] == [("Time frame", "1Y")]
         assert not at.metric
         assert not at.dataframe
 

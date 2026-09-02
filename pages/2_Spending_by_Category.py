@@ -20,7 +20,7 @@ from src.config import get_settings
 from src.constants import COLOR_EXPENSE, COLOR_PLACEHOLDER
 from src.custom_types import ColumnConfig, SpendingSummary
 from src.filters import render_spending_filters
-from src.page_helpers import configured_merchant_aliases, render_data_refresh_controls
+from src.page_helpers import configured_merchant_aliases, render_data_refresh_controls, render_time_frame_control
 from src.reporting_periods import latest_data_timestamp, month_lookback_options, rolling_month_window
 from src.spreadsheet import TransactionsSpreadsheet, load_transactions_data
 from src.value_visibility import mask_value, value_safe_altair_chart, value_safe_dataframe
@@ -668,6 +668,16 @@ def _render_entity_detail(
 def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
     """Render the spending overview and selected-entity drill-down."""
     st.title("Spending by category")
+    settings = get_settings()
+    lookback_options = month_lookback_options(settings.reporting.lookback_months)
+    default_lookback = next(
+        label for label, months in lookback_options.items() if months == settings.reporting.default_lookback_months
+    )
+    lookback = render_time_frame_control(
+        list(lookback_options),
+        default=default_lookback,
+        key="spending_lookback",
+    )
     transactions = transactions_spreadsheet.scrubbed_df.copy()
     expenses = transactions[transactions["Type"] == "Expense"]
     if expenses.empty:
@@ -681,28 +691,13 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
 
     expense_categories = sorted(expenses["Category"].dropna().astype(str).unique())
     expense_groups = sorted(expenses["Group"].dropna().astype(str).unique())
-    settings = get_settings()
-    lookback_options = month_lookback_options(settings.reporting.lookback_months)
-    default_lookback = next(
-        label for label, months in lookback_options.items() if months == settings.reporting.default_lookback_months
-    )
     default_view = "Discretionary" if settings.spending.default_view == "discretionary" else "All spending"
     controls = st.columns(
-        [1.6, 1.6, 1.6, 2.25],
+        [1.6, 1.6, 2.25],
         vertical_alignment="bottom",
         wrap=False,
     )
     with controls[0]:
-        lookback = st.segmented_control(
-            "Time frame",
-            list(lookback_options),
-            default=default_lookback,
-            required=True,
-            key="spending_lookback",
-            persist_state="page",
-            width="stretch",
-        )
-    with controls[1]:
         view = st.segmented_control(
             "View",
             SPENDING_VIEWS,
@@ -712,7 +707,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
             persist_state="page",
             width="stretch",
         )
-    with controls[2]:
+    with controls[1]:
         comparison = st.segmented_control(
             "Compare with",
             COMPARISON_VIEWS,
@@ -722,7 +717,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
             persist_state="page",
             width="stretch",
         )
-    with controls[3]:
+    with controls[2]:
         filters = render_spending_filters(
             expense_categories,
             expense_groups,

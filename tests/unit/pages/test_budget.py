@@ -149,18 +149,96 @@ class TestDefaultBudgetGroups:
 
 
 class TestBudgetPulseAnalysis:
-    def test_current_month_progress_uses_today_when_transactions_are_older(self) -> None:
+    def test_month_progress_uses_latest_transaction_date_when_live_data_lags(self) -> None:
         transactions = pd.DataFrame({"Date": [pd.Timestamp("2026-03-20", tz="UTC")]})
 
-        with patch.object(
-            budget_page,
-            "reporting_anchor",
-            return_value=pd.Timestamp("2026-04-15", tz="UTC"),
-        ):
-            progress, latest = budget_page._month_progress(transactions, "2026-04")
+        progress, latest = budget_page._month_progress(transactions, "2026-03")
 
-        assert progress == pytest.approx(0.5)
+        assert progress == pytest.approx(20 / 31)
         assert latest == pd.Timestamp("2026-03-20", tz="UTC")
+
+    def test_month_progress_is_zero_for_a_month_after_the_latest_import(self) -> None:
+        transactions = pd.DataFrame({"Date": [pd.Timestamp("2026-03-20", tz="UTC")]})
+
+        progress, latest = budget_page._month_progress(transactions, "2026-04")
+
+        assert progress == 0
+        assert latest == pd.Timestamp("2026-03-20", tz="UTC")
+
+
+class TestDailyBudgetPace:
+    def test_cumulative_spending_is_compared_with_straight_line_budget_pace(self) -> None:
+        budgets = pd.DataFrame(
+            [
+                {
+                    "Category": "Groceries",
+                    "Group": "Food",
+                    "Type": "Expense",
+                    "Month": "2024-01",
+                    "Budget": 310,
+                }
+            ]
+        )
+        transactions = pd.DataFrame(
+            [
+                {
+                    "Date": pd.Timestamp("2024-01-01", tz="UTC"),
+                    "Month": "2024-01",
+                    "Type": "Expense",
+                    "Group": "Food",
+                    "Category": "Groceries",
+                    "Amount": -20,
+                },
+                {
+                    "Date": pd.Timestamp("2024-01-03", tz="UTC"),
+                    "Month": "2024-01",
+                    "Type": "Expense",
+                    "Group": "Food",
+                    "Category": "Dining",
+                    "Amount": -30,
+                },
+            ]
+        )
+        filters: BudgetFilters = {
+            "exclude_groups": [],
+            "exclude_categories": [],
+            "filter_large_expenses": False,
+            "expense_threshold": 3000,
+        }
+
+        pace = _mod.build_daily_budget_pace(
+            budgets,
+            transactions,
+            "2024-01",
+            filters,
+            ["Food"],
+            through_date=pd.Timestamp("2024-01-31", tz="UTC"),
+        )
+
+        assert list(pace.columns) == _mod.BUDGET_PACE_COLUMNS
+        assert len(pace) == 31
+        assert pace["Actual_Cumulative"].iloc[:4].tolist() == pytest.approx([20, 20, 50, 50])
+        assert pace["Actual_Cumulative"].iloc[-1] == pytest.approx(50)
+        assert pace["Ideal_Cumulative"].iloc[:4].tolist() == pytest.approx([10, 20, 30, 40])
+        assert pace["Ideal_Cumulative"].iloc[-1] == pytest.approx(310)
+
+    def test_future_budget_month_has_no_pace_data(self) -> None:
+        filters: BudgetFilters = {
+            "exclude_groups": [],
+            "exclude_categories": [],
+            "filter_large_expenses": False,
+            "expense_threshold": 3000,
+        }
+        pace = _mod.build_daily_budget_pace(
+            pd.DataFrame(columns=["Month", "Type", "Group", "Category", "Budget"]),
+            pd.DataFrame(columns=["Date", "Month", "Type", "Group", "Category", "Amount"]),
+            "2024-02",
+            filters,
+            ["Food"],
+            through_date=pd.Timestamp("2024-01-31", tz="UTC"),
+        )
+
+        assert pace.empty
 
     @pytest.fixture
     def filters(self) -> BudgetFilters:

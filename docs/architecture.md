@@ -222,8 +222,9 @@ runtime validation.
 
 Configuration owns household policy and initial control values. This includes
 report periods, discretionary and regular-report exclusions, budget history,
-subscription discovery, data-health thresholds, FI assumptions, weekly summary
-windows, and merchant aliases. The same named policy must mean the same thing
+subscription discovery, data-health thresholds, emergency-fund and debt policy,
+FI funding goals and assumptions, weekly summary windows, and merchant aliases.
+The same named policy must mean the same thing
 on every page. In particular, every Discretionary view uses the exclusions in
 `[spending]`.
 
@@ -241,7 +242,8 @@ configuration, logs, fixtures, or error messages.
 application. Page-specific controls stay in their page modules.
 
 `src/analysis` owns report calculations for budgets, spending, income,
-subscriptions, merchants, net worth, data health, and financial independence.
+subscriptions, merchants, net worth, financial safety, data health, and
+financial independence.
 These modules return DataFrames or typed summaries instead of rendered UI.
 
 Some existing calculations still accept spreadsheet wrappers or read settings

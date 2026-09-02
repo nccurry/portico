@@ -1,6 +1,6 @@
 [project]
 name = "portico"
-version = "1.0.0"
+version = "1.1.0"
 description = "A private, self-hosted Streamlit dashboard for Google Sheets-powered personal finance analysis."
 readme = "README.md"
 license = "Apache-2.0"

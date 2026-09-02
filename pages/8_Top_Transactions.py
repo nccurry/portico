@@ -21,7 +21,7 @@ from src.constants import (
     COLOR_PLACEHOLDER,
     TRANSACTION_TABLE_HEIGHT,
 )
-from src.page_helpers import configured_merchant_aliases, render_data_refresh_controls
+from src.page_helpers import configured_merchant_aliases, render_data_refresh_controls, render_time_frame_control
 from src.reporting_periods import latest_data_timestamp, reporting_anchor
 from src.spreadsheet import TransactionsSpreadsheet, load_transactions_data
 from src.value_visibility import mask_value, value_safe_altair_chart, value_safe_dataframe
@@ -187,6 +187,11 @@ def _render_transaction_table(transactions: pd.DataFrame) -> None:
 def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
     """Render the transaction filtering and inspection workbench."""
     st.title("Transactions")
+    lookback = render_time_frame_control(
+        list(LOOKBACK_DAYS),
+        default="1Y",
+        key="top_transactions_lookback",
+    )
     transactions = transactions_spreadsheet.scrubbed_df.copy()
     if transactions.empty:
         st.info("No transactions are available.", icon=":material/receipt_long:")
@@ -196,17 +201,8 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
     if latest is not None:
         st.caption(f"Latest transaction {latest.strftime('%b %d, %Y')}")
 
-    control_columns = st.columns([2, 2, 3], vertical_alignment="bottom")
+    control_columns = st.columns([2, 3], vertical_alignment="bottom")
     with control_columns[0]:
-        lookback = st.segmented_control(
-            "Time frame",
-            list(LOOKBACK_DAYS),
-            default="1Y",
-            key="top_transactions_lookback",
-            persist_state="page",
-            width="stretch",
-        )
-    with control_columns[1]:
         type_view = st.segmented_control(
             "Type",
             list(TYPE_VIEWS),
@@ -215,7 +211,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
             persist_state="page",
             width="stretch",
         )
-    with control_columns[2]:
+    with control_columns[1]:
         focus = st.segmented_control(
             "Focus",
             list(FOCUS_OPTIONS),

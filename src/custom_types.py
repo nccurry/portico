@@ -167,3 +167,21 @@ class FISummary(TypedDict):
     sustainable_spending: float
     fi_target: float
     fi_gap: float
+
+
+class FinancialSafetySummary(TypedDict):
+    """Emergency-fund, debt, and FI funding progress for the Home page."""
+
+    emergency_fund_balance: float
+    emergency_fund_average_monthly_spending: float
+    emergency_fund_target: float
+    emergency_fund_months_covered: float | None
+    emergency_fund_target_months: int
+    debt_balance: float
+    debt_baseline_balance: float
+    debt_paid_down: float
+    debt_progress_pct: float | None
+    debt_baseline_label: str | None
+    fi_portfolio_value: float
+    fi_target: float
+    fi_progress_pct: float | None

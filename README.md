@@ -30,8 +30,8 @@
 ---
 
 Portico turns a Google Sheets workbook into focused views for income, spending,
-subscriptions, budgets, net worth, financial independence, and data health. The
-app reads your sheets but does not change them.
+subscriptions, budgets, net worth, financial safety, financial independence, and
+data health. The app reads your sheets but does not change them.
 
 Portico works with any Google Sheets workbook that has the required tabs and
 columns. Its data model follows the
@@ -245,7 +245,7 @@ docker rm portico
 # Run the same docker run command from the setup section.
 ```
 
-Use `ghcr.io/nccurry/portico:1.0.0` instead of `latest` when you want to pin an
+Use `ghcr.io/nccurry/portico:1.1.0` instead of `latest` when you want to pin an
 exact release.
 
 Portico stores configuration and secrets on the host. The `portico-state`
@@ -281,8 +281,8 @@ schedule between container runs. The host address and port stay in the
 Tracked defaults live in [`config/defaults.toml`](config/defaults.toml). The
 defaults match the maintainer's Tiller setup, but contain no private account or
 transaction data. They cover report periods, calculation policies, thresholds,
-subscription detection, financial-independence assumptions, Discord summary
-windows, and merchant aliases.
+subscription detection, emergency-fund and debt targets, financial-independence
+assumptions, Discord summary windows, and merchant aliases.
 
 Create the ignored file `config/local.toml`. Add only the values that differ
 from the defaults. Portico stops with an error
@@ -310,7 +310,8 @@ These are the main settings most households may want to override:
 | `year_over_year` | `utility_group_terms`, `utility_category_terms` | Text used by the Utility bills preset. |
 | `data_health` | `stale_account_days` | Age at which an account balance is stale. |
 | `data_health` | `duplicate_require_same_*` | Initial duplicate-detection matching rules. |
-| `financial_independence` | Return, withdrawal, history, projection, account, and group settings | Initial FI assumptions and portfolio scope. |
+| `financial_independence` | FI funding target, return, withdrawal, history, projection, account, and group settings | Home-page FI funding progress and FI scenario assumptions. |
+| `financial_safety` | Emergency-fund target, expense baseline, liquid-account scope, and debt baseline | Home-page safety progress. Emergency spending uses complete months only; leave `debt_baseline_date` empty to use the first recorded balance. |
 | `weekly_summary` | `average_weeks`, `rolling_weeks`, `top_merchant_count` | Discord comparison windows and merchant detail. |
 | `merchants.aliases` | Merchant name and description fragments | Combine several transaction descriptions under one merchant name. |
 

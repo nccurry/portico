@@ -11,6 +11,7 @@ from src.analysis.data_health import (
     find_missing_account_mappings,
     find_stale_accounts,
 )
+from src.analysis.financial_safety import build_financial_safety_summary
 from src.analysis.home import (
     build_account_inventory,
     build_balance_group_inventory,
@@ -24,11 +25,14 @@ from src.constants import (
     SPARKLINE_LOOKBACK_DEFAULT,
     SPARKLINE_LOOKBACK_OPTIONS,
 )
-from src.page_helpers import render_data_refresh_controls, render_demo_banner
-from src.reporting_periods import latest_data_timestamp, reporting_anchor
+from src.custom_types import FinancialSafetySummary
+from src.page_helpers import render_data_refresh_controls, render_demo_banner, render_time_frame_control
+from src.reporting_periods import current_timestamp, latest_data_timestamp, reporting_anchor
 from src.spreadsheet import (
     BalanceHistorySpreadsheet,
+    TransactionsSpreadsheet,
     load_balance_history_data,
+    load_transactions_data,
 )
 from src.value_visibility import (
     mask_chart_values,
@@ -97,6 +101,33 @@ def create_financial_position_chart(history: pd.DataFrame) -> alt.LayerChart:
     )
     zero = alt.Chart(pd.DataFrame({"Value": [0]})).mark_rule(color="#64748B", opacity=0.55).encode(y="Value:Q")
     return cast(alt.LayerChart, alt.layer(areas, zero, net_worth).properties(height=330))
+
+
+def create_net_worth_attribution_chart(groups: pd.DataFrame) -> alt.Chart:
+    """Show which account groups contributed to the selected net-worth movement."""
+    order = groups.sort_values("Period_Change")["Group"].tolist()
+    return cast(
+        alt.Chart,
+        (
+            alt.Chart(groups)
+            .mark_bar(cornerRadiusEnd=3)
+            .encode(
+                x=alt.X("Period_Change:Q", title="Net-worth movement ($)", axis=alt.Axis(format="$,.2s")),
+                y=alt.Y("Group:N", title=None, sort=order),
+                color=alt.condition(
+                    "datum.Period_Change >= 0",
+                    alt.value(COLOR_ASSET),
+                    alt.value(COLOR_LIABILITY),
+                ),
+                tooltip=[
+                    alt.Tooltip("Group:N", title="Account group"),
+                    alt.Tooltip("Period_Change:Q", title="Net-worth movement", format="$,.0f"),
+                    alt.Tooltip("Net_Contribution:Q", title="Current contribution", format="$,.0f"),
+                ],
+            )
+            .properties(height=max(180, len(groups) * 42))
+        ),
+    )
 
 
 @st.cache_data(show_spinner=False)
@@ -224,6 +255,98 @@ def _render_financial_position(
         )
 
 
+def _render_net_worth_attribution(groups: pd.DataFrame) -> None:
+    """Render a group-level explanation of the selected net-worth movement."""
+    if groups.empty:
+        return
+    with st.container(border=True):
+        st.subheader(
+            "What changed",
+            help=(
+                "Balance movement by account group across the selected time frame. "
+                "Transfers can offset between groups; this is not an investment-return calculation."
+            ),
+        )
+        st.altair_chart(mask_chart_values(create_net_worth_attribution_chart(groups)), width="stretch")
+
+
+def _progress_bar(value: float | None) -> float:
+    """Clamp a percentage for Streamlit's 0-to-1 progress indicator."""
+    if value is None:
+        return 0.0
+    return min(max(value / 100, 0.0), 1.0)
+
+
+def _render_financial_safety(summary: FinancialSafetySummary) -> None:
+    """Render concise progress toward emergency, debt, and FI safety goals."""
+    emergency_months = summary["emergency_fund_months_covered"]
+    debt_progress = summary["debt_progress_pct"]
+    fi_progress = summary["fi_progress_pct"]
+    with st.container(border=True):
+        st.subheader(
+            "Financial safety",
+            help=(
+                "Emergency-fund and debt settings come from `[financial_safety]`. "
+                "The FI funding target and account scope come from `[financial_independence]`."
+            ),
+        )
+        columns = st.columns(3, gap="medium")
+        with columns[0]:
+            emergency_delta = (
+                f"{mask_value(f'{emergency_months:.1f}')} of "
+                f"{mask_value(str(summary['emergency_fund_target_months']))} months covered"
+                if emergency_months is not None
+                else "Need expense history to set a target"
+            )
+            st.metric(
+                "Emergency fund",
+                _format_currency(summary["emergency_fund_balance"]),
+                delta=emergency_delta,
+                delta_color="off",
+            )
+            st.progress(
+                _progress_bar(
+                    None
+                    if emergency_months is None
+                    else emergency_months / summary["emergency_fund_target_months"] * 100
+                )
+            )
+            st.caption(f"Target {_format_currency(summary['emergency_fund_target'])}")
+        with columns[1]:
+            debt_label = summary["debt_baseline_label"]
+            debt_delta = (
+                f"{_format_currency(summary['debt_paid_down'], show_plus=True)} paid down since {debt_label}"
+                if debt_label is not None
+                else "Set debt groups to track payoff progress"
+            )
+            st.metric(
+                "Debt balance",
+                _format_currency(summary["debt_balance"]),
+                delta=debt_delta,
+            )
+            st.progress(_progress_bar(debt_progress))
+            if debt_progress is not None:
+                st.caption(f"{mask_value(f'{debt_progress:.0f}%')} of starting balance paid down")
+        with columns[2]:
+            fi_delta = (
+                f"{_format_currency(summary['fi_portfolio_value'] - summary['fi_target'], show_plus=True)} vs target"
+                if fi_progress is not None
+                else "Need expense history to calculate a target"
+            )
+            st.metric(
+                "FI funding",
+                mask_value(f"{fi_progress:.0f}%") if fi_progress is not None else "Not available",
+                delta=fi_delta,
+            )
+            st.progress(_progress_bar(fi_progress))
+            st.caption(f"Target {_format_currency(summary['fi_target'])}")
+        st.page_link(
+            "pages/9_Financial_Independence.py",
+            label="Explore FI scenarios",
+            icon=":material/arrow_forward:",
+        )
+
+
 def _render_account_group(group_row: pd.Series, accounts: pd.DataFrame) -> None:
     """Render one balance group and its current accounts."""
     group = str(group_row["Group"])
@@ -323,6 +446,7 @@ def _render_account_groups(groups: pd.DataFrame, accounts: pd.DataFrame) -> None
 
 def configure_page(
     balance_history_spreadsheet: BalanceHistorySpreadsheet,
+    transactions_spreadsheet: TransactionsSpreadsheet,
     lookback: str,
 ) -> None:
     """Render the accounts and net-worth overview from loaded Tiller sheets."""
@@ -348,7 +472,17 @@ def configure_page(
         return
 
     _render_financial_position(history, start_date, lookback)
+    _render_net_worth_attribution(groups)
     _render_account_groups(groups, accounts)
+    _render_financial_safety(
+        build_financial_safety_summary(
+            balances,
+            transactions_spreadsheet.scrubbed_df.copy(),
+            get_settings().financial_safety,
+            get_settings().financial_independence,
+            as_of=current_timestamp(),
+        )
+    )
     _render_global_status(balance_as_of, balances)
 
 
@@ -370,22 +504,20 @@ def main() -> None:
     def home_page() -> None:
         render_data_refresh_controls()
         st.title("Accounts and net worth")
-        lookback = st.segmented_control(
-            "Time frame",
-            options=list(SPARKLINE_LOOKBACK_OPTIONS),
+        lookback = render_time_frame_control(
+            list(SPARKLINE_LOOKBACK_OPTIONS),
             default=SPARKLINE_LOOKBACK_DEFAULT,
             key="home_balance_lookback",
-            help="Controls every balance, movement, and trend shown on this page.",
-            width="stretch",
         )
         selected_lookback = str(lookback) if lookback in SPARKLINE_LOOKBACK_OPTIONS else SPARKLINE_LOOKBACK_DEFAULT
         loading = st.empty()
         loading.skeleton(height=300)
         try:
             balance_history = load_balance_history_data()
+            transactions = load_transactions_data()
         finally:
             loading.empty()
-        configure_page(balance_history, selected_lookback)
+        configure_page(balance_history, transactions, selected_lookback)
 
     page = st.navigation(
         {
