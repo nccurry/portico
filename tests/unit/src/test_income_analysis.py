@@ -15,7 +15,9 @@ from tests.custom_types import TransactionsSpreadsheetFactory
 
 def _transactions(rows: list[dict[str, object]]) -> pd.DataFrame:
     columns = ["Month", "Amount", "Type", "Category", "Group", "Description"]
-    return pd.DataFrame(rows, columns=columns)
+    transactions = pd.DataFrame(rows, columns=columns)
+    transactions["Full Description"] = [str(row.get("Full Description", row["Description"])) for row in rows]
+    return transactions
 
 
 class TestBuildIncomeExpenseLedger:
@@ -155,7 +157,7 @@ class TestBuildIncomeExpenseLedger:
             "INCOME OVER LIMIT": False,
         }
 
-    def test_include_mode_uses_union_and_ignores_excludes(self) -> None:
+    def test_exclusions_override_the_union_of_include_rules(self) -> None:
         transactions = _transactions(
             [
                 {
@@ -195,12 +197,60 @@ class TestBuildIncomeExpenseLedger:
 
         included = dict(zip(ledger["Description"], ledger["Included"], strict=True))
         assert included == {
-            "GROUP MATCH": True,
-            "CATEGORY MATCH": True,
+            "GROUP MATCH": False,
+            "CATEGORY MATCH": False,
             "NO MATCH": False,
         }
         assert ledger.loc[ledger["Description"] == "NO MATCH", "Exclusion_Reason"].item() == (
-            "Outside included groups/categories"
+            "Outside included groups/categories/transactions"
+        )
+
+    def test_transaction_description_rules_apply_to_income_and_expenses(self) -> None:
+        transactions = _transactions(
+            [
+                {
+                    "Month": "2024-01",
+                    "Amount": 1_000,
+                    "Type": "Income",
+                    "Category": "Salary",
+                    "Group": "Income",
+                    "Description": "PAYROLL",
+                    "Full Description": "EMPLOYER PAYROLL",
+                },
+                {
+                    "Month": "2024-01",
+                    "Amount": -20,
+                    "Type": "Expense",
+                    "Category": "Coffee",
+                    "Group": "Food",
+                    "Description": "COFFEE",
+                    "Full Description": "COFFEE CORNER",
+                },
+                {
+                    "Month": "2024-01",
+                    "Amount": -500,
+                    "Type": "Expense",
+                    "Category": "Tax",
+                    "Group": "Bills",
+                    "Description": "IRS",
+                    "Full Description": "ACH IRS PAYMENT",
+                },
+            ]
+        )
+        filters: TransactionFilterOptions = {
+            "include_transactions_like": ["coffee", "payroll"],
+            "exclude_transactions_like": ["IRS"],
+        }
+
+        ledger = build_income_expense_ledger(transactions, filters)
+
+        assert dict(zip(ledger["Description"], ledger["Included"], strict=True)) == {
+            "PAYROLL": True,
+            "COFFEE": True,
+            "IRS": False,
+        }
+        assert ledger.loc[ledger["Description"] == "IRS", "Exclusion_Reason"].item() == (
+            "Outside included groups/categories/transactions; Excluded transaction like: IRS"
         )
 
     def test_same_named_income_exclusion_does_not_exclude_expense(

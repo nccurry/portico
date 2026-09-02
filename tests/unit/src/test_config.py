@@ -19,6 +19,8 @@ def test_defaults_match_the_public_application_profile(tmp_path: Path) -> None:
     assert settings.thresholds.expense == 3000
     assert settings.income_savings.default_view == "regular"
     assert settings.spending.default_view == "discretionary"
+    assert [view.key for view in settings.spending.views] == ["all", "discretionary"]
+    assert settings.spending.view("discretionary").exclude_transactions_like == ()
     assert settings.subscriptions.known_category_terms == ("subscription",)
     assert settings.subscriptions.minimum_confidence == 80
     assert settings.subscriptions.stale_after_days == 45
@@ -70,6 +72,8 @@ lookback_months = [1, 3, 18]
 default_lookback_months = 3
 [spending]
 default_view = "all"
+[spending.views.discretionary]
+exclude_transactions_like = ["IRS", "CHECK"]
 [budget]
 history_months = 18
 [data_health]
@@ -92,6 +96,7 @@ top_merchant_count = 5
     assert settings.reporting.lookback_months == (1, 3, 18)
     assert settings.reporting.default_lookback_months == 3
     assert settings.spending.default_view == "all"
+    assert settings.spending.view("discretionary").exclude_transactions_like == ("IRS", "CHECK")
     assert settings.budget.history_months == 18
     assert settings.data_health.stale_account_days == 30
     assert settings.financial_safety.emergency_fund_target_months == 4
@@ -102,11 +107,46 @@ top_merchant_count = 5
     assert settings.weekly_summary.top_merchant_count == 5
 
 
+def test_spending_views_support_configured_labels_and_filters(tmp_path: Path) -> None:
+    local = tmp_path / "local.toml"
+    local.write_text(
+        """
+[spending]
+default_view = "routine"
+[spending.views.routine]
+label = "Routine purchases"
+include_groups = ["Food", "Shopping"]
+include_transactions_like = ["Coffee"]
+exclude_transactions_like = ["Gift card"]
+""".strip(),
+        encoding="utf-8",
+    )
+
+    settings = load_settings(defaults_path=DEFAULTS, local_path=local, environ={}, project_root=PROJECT_ROOT)
+
+    assert settings.spending.default_view == "routine"
+    assert settings.spending.view("routine").label == "Routine purchases"
+    assert settings.spending.view("routine").include_groups == ("Food", "Shopping")
+    assert settings.spending.view("routine").include_transactions_like == ("Coffee",)
+    assert settings.spending.view("routine").exclude_transactions_like == ("Gift card",)
+
+
 def test_unknown_local_key_is_rejected(tmp_path: Path) -> None:
     local = tmp_path / "local.toml"
     local.write_text("[thresholds]\nexpnese = 1250\n", encoding="utf-8")
 
     with pytest.raises(ConfigError, match=r"Unknown key.*expnese"):
+        load_settings(defaults_path=DEFAULTS, local_path=local, environ={}, project_root=PROJECT_ROOT)
+
+
+def test_unknown_spending_view_key_is_rejected(tmp_path: Path) -> None:
+    local = tmp_path / "local.toml"
+    local.write_text(
+        '[spending.views.discretionary]\nexclude_merchants_like = ["IRS"]\n',
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ConfigError, match=r"Unknown key.*exclude_merchants_like"):
         load_settings(defaults_path=DEFAULTS, local_path=local, environ={}, project_root=PROJECT_ROOT)
 
 
@@ -154,7 +194,7 @@ def test_unreadable_local_path_is_rejected(tmp_path: Path) -> None:
         ),
         (
             '[spending]\ndefault_view = "sometimes"\n',
-            "default_view must be one of: all, discretionary",
+            "default_view must name a configured spending view",
         ),
         (
             "[subscriptions]\nminimum_confidence = 69\n",

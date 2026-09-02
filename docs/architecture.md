@@ -213,20 +213,22 @@ control clears the Streamlit data and resource caches.
 ### Configuration and secrets
 
 `config/defaults.toml` contains tracked behavior defaults. An ignored
-`config/local.toml` can override household-specific values. Narrow environment
-variables select the data source and configuration path.
+`config/local.toml` can override household-specific values. Container
+deployments mount only that override file, leaving the image-owned defaults
+available on every release. Narrow environment variables select the data source
+and configuration path.
 
 `src/config.py` merges these sources, rejects unknown keys, validates ranges,
 and returns frozen typed settings. New settings need a safe tracked default and
 runtime validation.
 
 Configuration owns household policy and initial control values. This includes
-report periods, discretionary and regular-report exclusions, budget history,
+report periods, named spending views and their exclusions, discretionary and regular-report exclusions, budget history,
 subscription discovery, data-health thresholds, emergency-fund and debt policy,
 FI funding goals and assumptions, weekly summary windows, and merchant aliases.
 The same named policy must mean the same thing
-on every page. In particular, every Discretionary view uses the exclusions in
-`[spending]`.
+on every page. In particular, every Discretionary view uses the configured
+`[spending.views.discretionary]` policy.
 
 Configuration does not own Tiller column meanings, financial formulas, Transfer
 handling, chart layout, colors, widget safety limits, or validation rules. Those

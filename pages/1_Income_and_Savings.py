@@ -135,12 +135,12 @@ def create_cash_flow_history_chart(
     """Build the coordinated cash-flow and savings-rate history chart."""
     chart_data = monthly.copy()
     chart_data["Month_Key"] = chart_data["Month"].astype(str)
-    chart_data["Month_Date"] = pd.to_datetime(chart_data["Month"] + "-01")
+    chart_data["Month_Label"] = pd.PeriodIndex(chart_data["Month_Key"], freq="M").strftime("%b %Y")
     chart_data["Spending_Chart"] = -chart_data["Net_Expenses"]
-    month_ticks = chart_data["Month_Date"].dt.strftime("%Y-%m-%d").tolist()
+    month_order = chart_data["Month_Label"].tolist()
 
-    bar_data = chart_data[["Month_Key", "Month_Date", "Income", "Spending_Chart"]].melt(
-        id_vars=["Month_Key", "Month_Date"],
+    bar_data = chart_data[["Month_Key", "Month_Label", "Income", "Spending_Chart"]].melt(
+        id_vars=["Month_Key", "Month_Label"],
         value_vars=["Income", "Spending_Chart"],
         var_name="Series",
         value_name="Amount",
@@ -162,18 +162,18 @@ def create_cash_flow_history_chart(
         clear="dblclick",
     )
     month_axis = alt.X(
-        "Month_Date:T",
+        "Month_Label:O",
         title=None,
+        sort=month_order,
         axis=alt.Axis(
-            format="%b %Y",
             labelAngle=-35,
             labelOverlap=True,
-            values=month_ticks,
         ),
     )
     hidden_month_axis = alt.X(
-        "Month_Date:T",
+        "Month_Label:O",
         title=None,
+        sort=month_order,
         axis=alt.Axis(labels=False, ticks=False),
     )
 

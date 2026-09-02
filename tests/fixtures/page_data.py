@@ -169,8 +169,10 @@ def basic_spending_filters() -> SpendingFilters:
     return {
         "include_groups": [],
         "include_categories": [],
+        "include_transactions_like": [],
         "exclude_groups": [],
         "exclude_categories": [],
+        "exclude_transactions_like": [],
         "filter_large_expenses": False,
         "expense_threshold": 50000,
     }

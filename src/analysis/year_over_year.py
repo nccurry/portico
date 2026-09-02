@@ -5,7 +5,8 @@ from typing import cast
 
 import pandas as pd
 
-from src.custom_types import YearOverYearSummary
+from src.analysis.spending import included_spending_rows
+from src.custom_types import SpendingFilters, YearOverYearSummary
 
 HISTORY_COLUMNS = [
     "Year",
@@ -50,14 +51,12 @@ def utility_bill_categories(
 def discretionary_categories(
     transactions: pd.DataFrame,
     *,
-    excluded_categories: tuple[str, ...],
-    excluded_groups: tuple[str, ...],
+    filters: SpendingFilters,
 ) -> list[str]:
     """Return categories allowed by the discretionary spending policy."""
-    expenses = transactions[transactions["Type"].eq("Expense")].copy()
+    expenses = included_spending_rows(transactions, filters)
     categories = expenses["Category"].fillna("").astype(str).str.strip()
-    groups = expenses["Group"].fillna("").astype(str).str.strip()
-    mask = ~categories.isin(excluded_categories) & ~groups.isin(excluded_groups) & groups.ne("Transfer")
+    mask = pd.Series(True, index=expenses.index, dtype="bool")
     return _ordered_categories(expenses, categories, mask)
 
 
@@ -108,6 +107,7 @@ def build_year_over_year_history(
     *,
     dimension: str,
     entity: str,
+    filters: SpendingFilters | None = None,
 ) -> pd.DataFrame:
     """Return comparable calendar-month spending lines for one entity.
 
@@ -127,7 +127,9 @@ def build_year_over_year_history(
         .dt.tz_convert(None)
         .dropna()
     )
-    expenses = _prepared_expenses(transactions)
+    expenses = _prepared_expenses(
+        included_spending_rows(transactions, filters) if filters is not None else transactions
+    )
     selected = expenses[expenses[dimension].astype(str).eq(entity)]
     if selected.empty or coverage_dates.empty:
         return pd.DataFrame(columns=HISTORY_COLUMNS)

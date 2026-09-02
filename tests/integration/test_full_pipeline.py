@@ -11,8 +11,9 @@ from src.analysis.spending import build_spending_ledger
 from src.analysis.subscriptions import build_subscription_inventory, build_subscription_lifecycles
 from src.config import get_settings
 from src.custom_types import SpendingFilters
-from src.filters import apply_transaction_filters, calculate_date_range
+from src.filters import calculate_date_range, spending_filters_for_view
 from src.spreadsheet import calculate_net_worth_summary
+from src.transaction_filters import apply_transaction_filters
 from tests.custom_types import FullDatasetFactory, SpreadsheetBundle
 
 # ---------------------------------------------------------------------------
@@ -242,14 +243,8 @@ class TestDemoShowcase:
     ) -> None:
         transactions, _bal, _cats, _accounts = full_dataset
         settings = get_settings().spending
-        filters: SpendingFilters = {
-            "include_groups": [],
-            "include_categories": [],
-            "exclude_groups": list(settings.exclude_groups),
-            "exclude_categories": list(settings.exclude_categories),
-            "filter_large_expenses": False,
-            "expense_threshold": 999_999,
-        }
+        filters: SpendingFilters = spending_filters_for_view(settings.view("discretionary"))
+        filters["expense_threshold"] = 999_999
         discretionary = build_spending_ledger(
             transactions.scrubbed_df,
             filters,

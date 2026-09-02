@@ -23,7 +23,7 @@ from src.constants import (
     COLOR_SAVINGS,
 )
 from src.custom_types import FIFilters, FISummary, TransactionFilterOptions
-from src.filters import apply_transaction_filters, render_fi_filters
+from src.filters import render_fi_filters
 from src.page_helpers import render_data_refresh_controls
 from src.reporting_periods import latest_data_timestamp, rolling_month_window
 from src.spreadsheet import (
@@ -34,6 +34,7 @@ from src.spreadsheet import (
     load_balance_history_data,
     load_transactions_data,
 )
+from src.transaction_filters import apply_transaction_filters
 from src.value_visibility import (
     MASKED_VALUE,
     mask_value,
@@ -63,6 +64,8 @@ def _build_spending_filters(filters: FIFilters) -> TransactionFilterOptions:
     return {
         "exclude_groups": filters["exclude_groups"],
         "exclude_categories": filters["exclude_categories"],
+        "include_transactions_like": filters.get("include_transactions_like", []),
+        "exclude_transactions_like": filters.get("exclude_transactions_like", []),
         "filter_large_expenses": filters["filter_large_expenses"],
         "expense_threshold": filters["expense_threshold"],
     }

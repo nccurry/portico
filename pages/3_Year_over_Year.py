@@ -7,6 +7,7 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
+from src.analysis.spending import included_spending_rows
 from src.analysis.year_over_year import (
     build_year_over_year_history,
     build_year_totals,
@@ -17,7 +18,8 @@ from src.analysis.year_over_year import (
 )
 from src.config import get_settings
 from src.constants import COLOR_NET_WORTH
-from src.custom_types import YearOverYearSummary
+from src.custom_types import SpendingFilters, YearOverYearSummary
+from src.filters import spending_filters_for_view
 from src.page_helpers import render_data_refresh_controls
 from src.reporting_periods import latest_data_timestamp, rolling_month_window
 from src.spreadsheet import TransactionsSpreadsheet, load_transactions_data
@@ -32,6 +34,11 @@ VIEW_OPTIONS = [
     "Single group",
 ]
 MAX_DEFAULT_PRESET_CATEGORIES = 8
+
+
+def _discretionary_filters() -> SpendingFilters:
+    """Return the configured household discretionary-spending policy."""
+    return spending_filters_for_view(get_settings().spending.view("discretionary"))
 
 
 def _preferred_entity(entities: list[str], dimension: str) -> str:
@@ -243,11 +250,13 @@ def _render_comparison(
     entity: str,
     through_month: int,
     compact: bool,
+    filters: SpendingFilters | None = None,
 ) -> None:
     history = build_year_over_year_history(
         transactions,
         dimension=dimension,
         entity=entity,
+        filters=filters,
     )
     if history.empty:
         return
@@ -263,7 +272,7 @@ def _render_comparison(
             width="stretch",
         )
         _render_details(
-            transactions,
+            included_spending_rows(transactions, filters) if filters is not None else transactions,
             history,
             dimension=dimension,
             entity=entity,
@@ -275,20 +284,22 @@ def _preset_selection(
     transactions: pd.DataFrame,
     *,
     view: str,
+    discretionary_filters: SpendingFilters | None = None,
 ) -> list[str]:
     available = spending_entities(transactions, "Category")
-    settings = get_settings()
     if view == "Utility bills":
+        settings = get_settings()
         defaults = utility_bill_categories(
             transactions,
             group_terms=settings.year_over_year.utility_group_terms,
             category_terms=settings.year_over_year.utility_category_terms,
         )
     elif view == "Discretionary spending":
+        if discretionary_filters is None:
+            raise ValueError("Discretionary spending requires spending filters")
         defaults = discretionary_categories(
             transactions,
-            excluded_categories=settings.spending.exclude_categories,
-            excluded_groups=settings.spending.exclude_groups,
+            filters=discretionary_filters,
         )
     else:
         raise ValueError(f"Unsupported year-over-year preset: {view}")
@@ -335,10 +346,12 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
             persist_state="page",
         )
     if view in {"Utility bills", "Discretionary spending"}:
+        discretionary_filters = _discretionary_filters() if view == "Discretionary spending" else None
         with controls[1]:
             selected_entities = _preset_selection(
                 analysis_transactions,
                 view=str(view),
+                discretionary_filters=discretionary_filters,
             )
         if not selected_entities:
             st.info("Choose at least one category to compare.")
@@ -350,6 +363,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
                 entity=entity,
                 through_month=cutoff.month,
                 compact=True,
+                filters=discretionary_filters,
             )
         return
 

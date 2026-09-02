@@ -15,6 +15,7 @@ from unittest.mock import patch
 
 import pandas as pd
 import pytest
+from pytest import MonkeyPatch
 from streamlit.testing.v1 import AppTest
 
 from src.config import clear_settings_cache
@@ -316,6 +317,32 @@ def _dataset_with_non_discretionary_expenses(
     rows["Category"] = ["Given Gift", "Tax Return Payment"]
     rows["Amount"] = [-8_000.0, -7_000.0]
     rows["Full Description"] = ["gift test merchant", "tax test merchant"]
+    latest = pd.to_datetime(transactions.scrubbed_df["Date"], utc=True).max()
+    rows["Date"] = latest
+    rows["Month"] = latest.strftime("%Y-%m")
+    transactions.scrubbed_df = pd.concat(
+        [transactions.scrubbed_df, rows],
+        ignore_index=True,
+    )
+    return bundle
+
+
+def _dataset_with_configured_one_off_merchants(
+    make_full_dataset: FullDatasetFactory,
+) -> SpreadsheetBundle:
+    """Add one-off merchant rows inside otherwise discretionary groups."""
+    bundle = make_full_dataset()
+    transactions = bundle[0]
+    rows = transactions.scrubbed_df.loc[transactions.scrubbed_df["Category"].eq("Shopping")].iloc[:4].copy()
+    rows["Category"] = ["IRS payment", "Paper check", "Home loan", "Airbnb"]
+    rows["Group"] = "Shopping"
+    rows["Amount"] = [-8_000.0, -7_000.0, -6_000.0, -5_000.0]
+    rows["Full Description"] = [
+        "ACH IRS TAX PAYMENT",
+        "CHECK #1234",
+        "HOME LOAN PAYMENT",
+        "AIRBNB 12345",
+    ]
     latest = pd.to_datetime(transactions.scrubbed_df["Date"], utc=True).max()
     rows["Date"] = latest
     rows["Month"] = latest.strftime("%Y-%m")
@@ -661,6 +688,103 @@ default_view = "all"
         assert spending.segmented_control(key="spending_lookback").value == "3M"
         assert spending.segmented_control(key="spending_view").value == "All spending"
 
+    def test_configured_spending_view_is_available_on_category_and_merchant_pages(
+        self,
+        make_full_dataset: FullDatasetFactory,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        local_config = tmp_path / "local.toml"
+        local_config.write_text(
+            """
+[spending]
+default_view = "routine"
+[spending.views.routine]
+label = "Routine purchases"
+include_groups = ["Food", "Shopping"]
+exclude_transactions_like = ["Gift card"]
+""".strip(),
+            encoding="utf-8",
+        )
+        monkeypatch.setenv("PORTICO_CONFIG_PATH", str(local_config))
+        clear_settings_cache()
+
+        category = _make_app(
+            "2_Spending_by_Category.py",
+            make_full_dataset,
+            ["src.spreadsheet.load_transactions_data"],
+        )
+        merchant = _make_app(
+            "6_Merchant_Analysis.py",
+            make_full_dataset,
+            ["src.spreadsheet.load_transactions_data"],
+        )
+
+        assert not category.exception
+        assert not merchant.exception
+        assert category.segmented_control(key="spending_view").value == "Routine purchases"
+        assert merchant.segmented_control(key="merchant_view").value == "Routine purchases"
+        assert category.multiselect(key="spending_routine_exclude_transactions_like").value == ["Gift card"]
+        assert merchant.multiselect(key="spending_routine_exclude_transactions_like").value == ["Gift card"]
+
+
+@pytest.mark.uses_real_dates
+class TestDiscretionaryPolicySmoke:
+    def test_configured_one_off_merchants_are_excluded_from_every_discretionary_view(
+        self,
+        make_full_dataset: FullDatasetFactory,
+        monkeypatch: MonkeyPatch,
+        tmp_path: Path,
+    ) -> None:
+        local = tmp_path / "local.toml"
+        local.write_text(
+            '[spending.views.discretionary]\nexclude_transactions_like = ["IRS", "CHECK", "HOME LOAN", "AIRBNB"]\n',
+            encoding="utf-8",
+        )
+        monkeypatch.setenv("PORTICO_CONFIG_PATH", str(local))
+        clear_settings_cache()
+        bundle = _dataset_with_configured_one_off_merchants(make_full_dataset)
+        categories = {"IRS payment", "Paper check", "Home loan", "Airbnb"}
+
+        spending = _make_app(
+            "2_Spending_by_Category.py",
+            lambda: bundle,
+            ["src.spreadsheet.load_transactions_data"],
+        )
+        assert not spending.exception
+        overview = next(table.value for table in spending.dataframe if str(table.key).startswith("spending_overview_"))
+        assert not categories & set(overview["Entity"])
+        excluded = _table_with_columns(
+            spending,
+            {"Description", "Exclusion reason"},
+        ).set_index("Description")
+        assert excluded.loc["ACH IRS TAX PAYMENT", "Exclusion reason"] == "Excluded transaction like: IRS"
+        assert excluded.loc["CHECK #1234", "Exclusion reason"] == "Excluded transaction like: CHECK"
+        assert excluded.loc["HOME LOAN PAYMENT", "Exclusion reason"] == "Excluded transaction like: HOME LOAN"
+        assert excluded.loc["AIRBNB 12345", "Exclusion reason"] == "Excluded transaction like: AIRBNB"
+
+        merchants = _make_app(
+            "6_Merchant_Analysis.py",
+            lambda: bundle,
+            ["src.spreadsheet.load_transactions_data"],
+        )
+        assert not merchants.exception
+        merchant_overview = next(
+            table.value for table in merchants.dataframe if str(table.key).startswith("merchant_overview_")
+        )
+        for term in ("IRS", "CHECK", "HOME LOAN", "AIRBNB"):
+            assert not merchant_overview["Merchant"].str.contains(term, case=False, regex=False).any()
+
+        year_over_year = _make_app(
+            "3_Year_over_Year.py",
+            lambda: bundle,
+            ["src.spreadsheet.load_transactions_data"],
+            _select_year_over_year_discretionary,
+        )
+        assert not year_over_year.exception
+        selected = year_over_year.multiselect(key="year_over_year_discretionary_spending_categories").value
+        assert not categories & set(selected)
+
 
 @pytest.mark.uses_real_dates
 class TestIncomeAndSavingsSmoke:
@@ -689,10 +813,12 @@ class TestIncomeAndSavingsSmoke:
         assert calculation.options == ["Regular", "Actual"]
 
         assert len(at.get("popover")) == 1
-        assert len(at.multiselect) == 3
+        assert len(at.multiselect) == 5
         assert len(at.toggle) == 2
         expense_groups = at.multiselect(key="income_regular_exclude_expense_groups")
         assert not expense_groups.disabled
+        assert at.multiselect(key="income_regular_include_transactions_like").value == []
+        assert at.multiselect(key="income_regular_exclude_transactions_like").value == []
         assert not at.toggle(key="income_regular_filter_large_income").value
         assert not at.toggle(key="income_regular_filter_large_expenses").value
         assert any(button.label == "Reset defaults" for button in at.button)
@@ -713,10 +839,13 @@ class TestIncomeAndSavingsSmoke:
         ]
         spec = json.loads(charts[0].proto.spec)
         assert len(spec["vconcat"]) == 2
-        month_axis = spec["vconcat"][1]["layer"][0]["encoding"]["x"]["axis"]
-        month_ticks = month_axis["values"]
-        assert len(month_ticks) == len(set(month_ticks)) == 12
-        assert all(str(value).endswith("-01") for value in month_ticks)
+        rate_x = spec["vconcat"][1]["layer"][0]["encoding"]["x"]
+        cash_x = spec["vconcat"][0]["layer"][0]["encoding"]["x"]
+        assert rate_x["field"] == cash_x["field"] == "Month_Label"
+        assert rate_x["type"] == cash_x["type"] == "ordinal"
+        assert rate_x["sort"] == cash_x["sort"]
+        assert len(rate_x["sort"]) == len(set(rate_x["sort"])) == 12
+        assert all(" " in str(value) for value in rate_x["sort"])
         month_picks = {
             str(param.get("name")): param
             for param in _chart_params(spec)
@@ -813,7 +942,7 @@ class TestIncomeAndSavingsSmoke:
 
         assert not at.exception
         assert at.segmented_control(key="income_calculation_view").value == "Actual"
-        assert len(at.multiselect) == 3
+        assert len(at.multiselect) == 5
         assert len(at.toggle) == 2
         assert at.multiselect(key="income_actual_exclude_income_categories").value == []
         assert at.multiselect(key="income_actual_exclude_expense_groups").value == []
@@ -1005,6 +1134,8 @@ class TestSpendingByCategorySmoke:
         assert "Groceries" not in set(overview["Entity"])
         assert {"Restaurants", "Coffee", "Shopping"}.issubset(set(overview["Entity"]))
         assert overview["Spending"].sum() > 0
+        assert at.multiselect(key="spending_discretionary_include_transactions_like").value == []
+        assert at.multiselect(key="spending_discretionary_exclude_transactions_like").value == []
 
     def test_group_selection_drives_composition_and_transactions(
         self,
@@ -1682,6 +1813,8 @@ class TestBudgetSmoke:
         assert len(at.get("popover")) == 1
         assert at.multiselect(key="budget_exclude_groups").value == []
         assert at.multiselect(key="budget_exclude_categories").value == []
+        assert at.multiselect(key="budget_include_transactions_like").value == []
+        assert at.multiselect(key="budget_exclude_transactions_like").value == []
         assert len(at.get("vega_lite_chart")) == 4
 
         overview = next(table for table in at.dataframe if str(table.key).startswith("budget_group_performance_"))
@@ -1987,6 +2120,8 @@ class TestFinancialIndependenceSmoke:
         assert len(at.get("popover")) == 1
         assert at.multiselect(key="fi_include_accounts").value
         assert at.selectbox(key="fi_spending_lookback").value == 12
+        assert at.multiselect(key="fi_include_transactions_like").value == []
+        assert at.multiselect(key="fi_exclude_transactions_like").value == []
         scenario_values = {
             widget.label: widget.value for widget in at.number_input if str(widget.key).startswith("fi_scenario_")
         }

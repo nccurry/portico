@@ -18,8 +18,10 @@ class TransactionFilterOptions(TypedDict, total=False):
 
     include_groups: ReadOnly[Sequence[str]]
     include_categories: ReadOnly[Sequence[str]]
+    include_transactions_like: ReadOnly[Sequence[str]]
     exclude_groups: ReadOnly[Sequence[str]]
     exclude_categories: ReadOnly[Sequence[str]]
+    exclude_transactions_like: ReadOnly[Sequence[str]]
     exclude_income_categories: ReadOnly[Sequence[str]]
     exclude_expense_categories: ReadOnly[Sequence[str]]
     filter_large_income: ReadOnly[bool]
