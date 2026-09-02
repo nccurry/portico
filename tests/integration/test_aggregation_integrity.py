@@ -12,8 +12,8 @@ from src.analysis.income import process_income_expense_data
 from src.analysis.spending import build_spending_ledger, build_spending_overview
 from src.config import get_settings
 from src.custom_types import IncomeExpenseFilters, SpendingFilters, TransactionFilterOptions
-from src.filters import apply_transaction_filters
 from src.spreadsheet import get_all_accounts, get_portfolio_value
+from src.transaction_filters import apply_transaction_filters
 from tests.custom_types import FullDatasetFactory, TransactionsSpreadsheetFactory
 
 # ---------------------------------------------------------------------------
@@ -144,8 +144,10 @@ class TestSpendingAggregation:
         filters: SpendingFilters = {
             "include_groups": [],
             "include_categories": [],
+            "include_transactions_like": [],
             "exclude_groups": [],
             "exclude_categories": [],
+            "exclude_transactions_like": [],
             "filter_large_expenses": False,
             "expense_threshold": 999999,
         }
@@ -172,8 +174,10 @@ class TestSpendingAggregation:
         filters: SpendingFilters = {
             "include_groups": [],
             "include_categories": [],
+            "include_transactions_like": [],
             "exclude_groups": [],
             "exclude_categories": [],
+            "exclude_transactions_like": [],
             "filter_large_expenses": False,
             "expense_threshold": 999999,
         }
@@ -200,8 +204,10 @@ class TestSpendingAggregation:
         filters: SpendingFilters = {
             "include_groups": [],
             "include_categories": [],
+            "include_transactions_like": [],
             "exclude_groups": [],
             "exclude_categories": [],
+            "exclude_transactions_like": [],
             "filter_large_expenses": False,
             "expense_threshold": 999999,
         }

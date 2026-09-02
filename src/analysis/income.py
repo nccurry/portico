@@ -7,6 +7,7 @@ import pandas as pd
 from src.config import get_settings
 from src.custom_types import IncomeExpenseFilters, SavingsSummary, TransactionFilterOptions
 from src.spreadsheet import TransactionsSpreadsheet
+from src.transaction_filters import matching_transaction_terms
 
 MONTHLY_CASH_FLOW_COLUMNS = [
     "Month",
@@ -44,6 +45,7 @@ def _row_exclusion_reasons(
     category: str,
     transaction_type: str,
     amount: float,
+    description: object,
     filters: TransactionFilterOptions,
 ) -> str:
     """Describe every filter rule that excludes one transaction."""
@@ -51,7 +53,8 @@ def _row_exclusion_reasons(
     reasons: list[str] = []
     include_groups = set(filters.get("include_groups", ()))
     include_categories = set(filters.get("include_categories", ()))
-    include_mode = bool(include_groups or include_categories)
+    included_transactions = matching_transaction_terms(description, filters.get("include_transactions_like", ()))
+    include_mode = bool(include_groups or include_categories or filters.get("include_transactions_like"))
 
     if transaction_type == "Income" and "exclude_income_categories" in filters:
         excluded_categories = set(filters["exclude_income_categories"])
@@ -64,20 +67,22 @@ def _row_exclusion_reasons(
     if include_mode:
         _append_reason(
             reasons,
-            group not in include_groups and category not in include_categories,
-            "Outside included groups/categories",
+            group not in include_groups and category not in include_categories and not included_transactions,
+            "Outside included groups/categories/transactions",
         )
-    else:
-        _append_reason(
-            reasons,
-            group in filters.get("exclude_groups", ()),
-            f"Excluded group: {group}",
-        )
-        _append_reason(
-            reasons,
-            category in excluded_categories,
-            f"Excluded {transaction_type.lower()} category: {category}",
-        )
+
+    _append_reason(
+        reasons,
+        group in filters.get("exclude_groups", ()),
+        f"Excluded group: {group}",
+    )
+    _append_reason(
+        reasons,
+        category in excluded_categories,
+        f"Excluded {transaction_type.lower()} category: {category}",
+    )
+    for term in matching_transaction_terms(description, filters.get("exclude_transactions_like", ())):
+        reasons.append(f"Excluded transaction like: {term}")
 
     if transaction_type == "Income" and filters.get("filter_large_income"):
         threshold = float(filters.get("income_threshold", thresholds.income))
@@ -127,19 +132,22 @@ def build_income_expense_ledger(
     categories = ledger["Category"].astype(str).tolist()
     transaction_types = ledger["Type"].astype(str).tolist()
     amounts = ledger["Amount"].astype(float).tolist()
+    descriptions = ledger["Full Description"].tolist() if "Full Description" in ledger else [""] * len(ledger)
     exclusion_reasons = [
         _row_exclusion_reasons(
             group=group,
             category=category,
             transaction_type=transaction_type,
             amount=amount,
+            description=description,
             filters=filters,
         )
-        for group, category, transaction_type, amount in zip(
+        for group, category, transaction_type, amount, description in zip(
             groups,
             categories,
             transaction_types,
             amounts,
+            descriptions,
             strict=True,
         )
     ]

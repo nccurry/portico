@@ -138,13 +138,15 @@ Never commit `.streamlit/secrets.toml`. Git ignores this file by default.
 
 ### Check and start Portico
 
-Pull the latest image and check the workbook:
+Create an empty local override file, then pull the latest image and check the
+workbook:
 
 ```console
+touch config/local.toml
 docker pull ghcr.io/nccurry/portico:latest
 docker run --rm \
   --env PORTICO_DATA_SOURCE=google_sheets \
-  --mount "type=bind,source=$(pwd)/config,target=/app/config,readonly" \
+  --mount "type=bind,source=$(pwd)/config/local.toml,target=/app/config/local.toml,readonly" \
   --mount "type=bind,source=$(pwd)/.streamlit/secrets.toml,target=/app/.streamlit/secrets.toml,readonly" \
   ghcr.io/nccurry/portico:latest python -m scripts.doctor
 ```
@@ -161,7 +163,7 @@ docker run --detach --init --name portico --restart unless-stopped \
   --read-only --tmpfs /tmp:size=64m,mode=1777 \
   --cap-drop ALL --security-opt no-new-privileges:true \
   --env-file .env \
-  --mount "type=bind,source=$(pwd)/config,target=/app/config,readonly" \
+  --mount "type=bind,source=$(pwd)/config/local.toml,target=/app/config/local.toml,readonly" \
   --mount "type=bind,source=$(pwd)/.streamlit/secrets.toml,target=/app/.streamlit/secrets.toml,readonly" \
   --mount "type=volume,source=portico-state,target=/app/.local" \
   --publish 127.0.0.1:8501:8501 \
@@ -297,8 +299,8 @@ These are the main settings most households may want to override:
 | --- | --- | --- |
 | `reporting` | `lookback_months` | Calendar-month choices shown on income, spending, and merchant pages. Use 2–5 ascending values. |
 | `reporting` | `default_lookback_months` | Initially selected reporting period. It must appear in `lookback_months`. |
-| `spending` | `default_view` | Start spending and merchant pages in `discretionary` or `all` view. |
-| `spending` | `exclude_categories`, `exclude_groups` | What Portico removes from every Discretionary view, including year-over-year. |
+| `spending` | `default_view` | Start spending and merchant pages in the configured view with this key. |
+| `spending.views.<key>` | `label`, `include_*`, `exclude_*` | Defines a spending view shared by category, merchant, and discretionary year-over-year reports. `*_transactions_like` matches case-insensitive, literal text in Tiller’s Full Description; include rules form a union and exclusions win. |
 | `income_savings` | `default_view` | Start income and savings in `regular` or `actual` view. |
 | `income_savings` | `exclude_categories`, `exclude_groups` | One-off activity removed from the Regular calculation. |
 | `income_savings` | `target_rate` | Savings-rate target shown on the income page. |
@@ -320,9 +322,9 @@ changing the TOML file. Those choices last for the browser session only.
 
 ### Configure a Docker deployment
 
-The setup command mounts the host `config` directory at `/app/config` in the
-container. Portico automatically reads `/app/config/defaults.toml` and then
-`/app/config/local.toml`.
+The image owns `/app/config/defaults.toml`. The setup command mounts only the
+ignored local override file at `/app/config/local.toml`, so upgrades always use
+the defaults shipped with that release.
 
 Create and edit the override on the Docker host:
 
@@ -333,7 +335,13 @@ docker restart portico
 ```
 
 The bind mount is read-only to Portico. Editing the host file is enough; do not
-edit files inside the container.
+edit files inside the container. Do not mount a host directory over
+`/app/config`; that hides release defaults and can make a newer image fail to
+start.
+
+For an existing directory-mounted deployment, move household changes to
+`config/local.toml`, remove the directory mount, and recreate the container
+with the start command above. A host `defaults.toml` is no longer needed.
 
 To keep the override under another name, set its path inside the container:
 
@@ -341,9 +349,15 @@ To keep the override under another name, set its path inside the container:
 PORTICO_CONFIG_PATH=/app/config/household.toml
 ```
 
-Add that line to `.env` and create `config/household.toml`. Environment
-variables are fixed when Docker creates the container, so remove the existing
-container and run the start command again:
+Add that line to `.env`, create `config/household.toml`, and replace the
+`local.toml` mount in the start command with:
+
+```console
+--mount "type=bind,source=$(pwd)/config/household.toml,target=/app/config/household.toml,readonly"
+```
+
+Environment variables are fixed when Docker creates the container, so remove
+the existing container and run the start command again:
 
 ```console
 docker stop portico
@@ -351,8 +365,7 @@ docker rm portico
 # Run the docker run command from "Start Portico" again.
 ```
 
-The named `portico-state` volume remains available. The standard `--mount` in
-the start command makes the new configuration file available.
+The named `portico-state` volume remains available.
 
 These environment variables change the main application settings:
 

@@ -65,13 +65,21 @@ def _passthrough_filters() -> BudgetFilters:
     return {
         "exclude_groups": [],
         "exclude_categories": [],
+        "include_transactions_like": [],
+        "exclude_transactions_like": [],
         "filter_large_expenses": False,
         "expense_threshold": 0,
     }
 
 
 def _has_adjustments(filters: BudgetFilters) -> bool:
-    return bool(filters["exclude_groups"] or filters["exclude_categories"] or filters["filter_large_expenses"])
+    return bool(
+        filters["exclude_groups"]
+        or filters["exclude_categories"]
+        or filters.get("include_transactions_like")
+        or filters.get("exclude_transactions_like")
+        or filters["filter_large_expenses"]
+    )
 
 
 def _month_progress(

@@ -337,7 +337,7 @@ tasks:
         --env TZ={{.TIMEZONE | quote}}
         --env PORTICO_DISCORD_ENABLED={{.DISCORD_ENABLED | quote}}
         --env PORTICO_DISCORD_CRON={{.DISCORD_CRON | quote}}
-        --mount "type=bind,source={{.ROOT_DIR}}/config,target=/app/config,readonly"
+        --mount "type=bind,source={{.ROOT_DIR}}/config/local.toml,target=/app/config/local.toml,readonly"
         --mount "type=bind,source={{.ROOT_DIR}}/.streamlit/secrets.toml,target=/app/.streamlit/secrets.toml,readonly"
         --mount "type=volume,source=portico-state,target=/app/.local"
         --publish {{.ADDRESS}}:{{.PORT}}:8501

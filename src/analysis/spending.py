@@ -4,8 +4,9 @@ from collections.abc import Mapping, Sequence
 
 import pandas as pd
 
-from src.analysis.merchants import normalize_merchant_name
+from src.analysis.merchants import enrich_with_merchant
 from src.custom_types import SpendingFilters, SpendingSummary
+from src.transaction_filters import matching_transaction_terms
 
 OVERVIEW_COLUMNS = [
     "Entity",
@@ -45,31 +46,35 @@ def _spending_exclusion_reason(
     group: str,
     category: str,
     amount: float,
+    description: object,
     filters: SpendingFilters,
 ) -> str:
     reasons: list[str] = []
     include_groups = set(filters.get("include_groups", ()))
     include_categories = set(filters.get("include_categories", ()))
-    include_mode = bool(include_groups or include_categories)
+    included_transactions = matching_transaction_terms(description, filters.get("include_transactions_like", ()))
+    include_mode = bool(include_groups or include_categories or filters.get("include_transactions_like"))
 
     _append_reason(reasons, group == "Transfer", "Transfer group")
     if include_mode:
         _append_reason(
             reasons,
-            group not in include_groups and category not in include_categories,
-            "Outside included groups/categories",
+            group not in include_groups and category not in include_categories and not included_transactions,
+            "Outside included groups/categories/transactions",
         )
-    else:
-        _append_reason(
-            reasons,
-            group in filters.get("exclude_groups", ()),
-            f"Excluded group: {group}",
-        )
-        _append_reason(
-            reasons,
-            category in filters.get("exclude_categories", ()),
-            f"Excluded category: {category}",
-        )
+
+    _append_reason(
+        reasons,
+        group in filters.get("exclude_groups", ()),
+        f"Excluded group: {group}",
+    )
+    _append_reason(
+        reasons,
+        category in filters.get("exclude_categories", ()),
+        f"Excluded category: {category}",
+    )
+    for term in matching_transaction_terms(description, filters.get("exclude_transactions_like", ())):
+        reasons.append(f"Excluded transaction like: {term}")
 
     if filters.get("filter_large_expenses"):
         threshold = float(filters["expense_threshold"])
@@ -85,16 +90,21 @@ def build_spending_ledger(
     transactions: pd.DataFrame,
     filters: SpendingFilters,
     *,
-    start_month: str,
-    end_month: str,
+    start_month: str | None = None,
+    end_month: str | None = None,
 ) -> pd.DataFrame:
     """Return period expense rows annotated with inclusion and net spending.
 
-    ``start_month`` is inclusive and ``end_month`` is exclusive. Purchases have
-    positive ``Net_Spend`` values; positive expense refunds reduce spending.
+    When provided, ``start_month`` is inclusive and ``end_month`` is exclusive.
+    Purchases have positive ``Net_Spend`` values; positive expense refunds reduce
+    spending.
     """
+    if (start_month is None) != (end_month is None):
+        raise ValueError("start_month and end_month must be provided together")
+
     ledger = transactions[transactions["Type"] == "Expense"].copy()
-    ledger = ledger[(ledger["Month"].astype(str) >= start_month) & (ledger["Month"].astype(str) < end_month)].copy()
+    if start_month is not None and end_month is not None:
+        ledger = ledger[(ledger["Month"].astype(str) >= start_month) & (ledger["Month"].astype(str) < end_month)].copy()
 
     if ledger.empty:
         ledger["Included"] = pd.Series(dtype="bool")
@@ -104,18 +114,21 @@ def build_spending_ledger(
 
     groups = ledger["Group"].fillna("Unknown").astype(str).tolist()
     categories = ledger["Category"].fillna("Unknown").astype(str).tolist()
+    descriptions = ledger["Full Description"].tolist() if "Full Description" in ledger else ["Unknown"] * len(ledger)
     amounts = pd.to_numeric(ledger["Amount"], errors="coerce").fillna(0.0)
     reasons = [
         _spending_exclusion_reason(
             group=group,
             category=category,
             amount=float(amount),
+            description=description,
             filters=filters,
         )
-        for group, category, amount in zip(
+        for group, category, amount, description in zip(
             groups,
             categories,
             amounts.tolist(),
+            descriptions,
             strict=True,
         )
     ]
@@ -129,6 +142,14 @@ def _included(ledger: pd.DataFrame) -> pd.DataFrame:
     if ledger.empty:
         return ledger
     return ledger[ledger["Included"]].copy()
+
+
+def included_spending_rows(
+    transactions: pd.DataFrame,
+    filters: SpendingFilters,
+) -> pd.DataFrame:
+    """Return all expense rows included by the shared spending policy."""
+    return _included(build_spending_ledger(transactions, filters))
 
 
 def _group_for_category(ledgers: Sequence[pd.DataFrame]) -> dict[str, str]:
@@ -270,16 +291,10 @@ def build_merchant_breakdown(
     included = _included(ledger)
     if included.empty:
         return pd.DataFrame(columns=MERCHANT_COLUMNS)
-    descriptions = included.get(
-        "Full Description",
-        pd.Series("Unknown", index=included.index, dtype="string"),
-    )
-    included["Merchant"] = descriptions.map(
-        lambda description: normalize_merchant_name(
-            description,
-            method="first_two",
-            aliases=aliases,
-        )
+    included = enrich_with_merchant(
+        included,
+        "normalized",
+        aliases=aliases,
     )
     grouped = (
         included.groupby("Merchant", dropna=False)

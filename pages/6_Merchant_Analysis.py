@@ -27,7 +27,6 @@ from src.reporting_periods import latest_data_timestamp, month_lookback_options,
 from src.spreadsheet import TransactionsSpreadsheet, load_transactions_data
 from src.value_visibility import mask_value, value_safe_altair_chart, value_safe_dataframe
 
-SPENDING_VIEWS = ["All spending", "Discretionary"]
 COMPARISON_VIEWS = ["Previous period", "Last year"]
 SELECTED_MERCHANT_KEY = "merchant_selected_name"
 DETAIL_MONTH_KEY = "merchant_detail_month"
@@ -443,22 +442,24 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
 
     expense_categories = sorted(expenses["Category"].dropna().astype(str).unique())
     expense_groups = sorted(expenses["Group"].dropna().astype(str).unique())
-    default_view = "Discretionary" if settings.spending.default_view == "discretionary" else "All spending"
+    spending_views = settings.spending.views
+    default_view = settings.spending.view(settings.spending.default_view)
     controls = st.columns(
         [1.6, 1.6, 2.25],
         vertical_alignment="bottom",
         wrap=False,
     )
     with controls[0]:
-        view = st.segmented_control(
+        view_label = st.segmented_control(
             "View",
-            SPENDING_VIEWS,
-            default=default_view,
+            [view.label for view in spending_views],
+            default=default_view.label,
             required=True,
             key="merchant_view",
             persist_state="page",
             width="stretch",
         )
+    view = next(configured_view for configured_view in spending_views if configured_view.label == view_label)
     with controls[1]:
         comparison = st.segmented_control(
             "Compare with",
@@ -473,7 +474,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
         filters = render_spending_filters(
             expense_categories,
             expense_groups,
-            view=str(view),
+            view=view,
         )
 
     lookback_months = lookback_options[str(lookback)]
@@ -562,7 +563,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
             selected_merchant = _render_overview_table(
                 filtered,
                 comparison_label=comparison_text,
-                state_key=(f"merchant_overview_{lookback}_{view}_{comparison}_{crc32(repr(filters).encode()):08x}"),
+                state_key=(f"merchant_overview_{lookback}_{view.key}_{comparison}_{crc32(repr(filters).encode()):08x}"),
             )
         with ranking_column:
             st.markdown("**Top merchants by spending**")

@@ -65,12 +65,29 @@ class IncomeSavingsSettings:
 
 
 @dataclass(frozen=True)
+class SpendingViewSettings:
+    """One configured spending-report view."""
+
+    key: str
+    label: str
+    include_groups: tuple[str, ...]
+    include_categories: tuple[str, ...]
+    include_transactions_like: tuple[str, ...]
+    exclude_groups: tuple[str, ...]
+    exclude_categories: tuple[str, ...]
+    exclude_transactions_like: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class SpendingSettings:
-    """Defaults for discretionary-spending reports."""
+    """Configured views for spending reports."""
 
     default_view: str
-    exclude_categories: tuple[str, ...]
-    exclude_groups: tuple[str, ...]
+    views: tuple[SpendingViewSettings, ...]
+
+    def view(self, key: str) -> SpendingViewSettings:
+        """Return a configured view by its stable configuration key."""
+        return next(view for view in self.views if view.key == key)
 
 
 @dataclass(frozen=True)
@@ -178,7 +195,7 @@ _SECTION_KEYS = {
     "reporting": {"lookback_months", "default_lookback_months"},
     "thresholds": {"expense", "income", "duplicate_minimum", "duplicate_days"},
     "income_savings": {"default_view", "target_rate", "exclude_categories", "exclude_groups"},
-    "spending": {"default_view", "exclude_categories", "exclude_groups"},
+    "spending": {"default_view", "views"},
     "subscriptions": {
         "known_category_terms",
         "minimum_confidence",
@@ -219,6 +236,17 @@ _SECTION_KEYS = {
     "merchants": {"aliases"},
 }
 
+_SPENDING_VIEW_KEYS = {
+    "label",
+    "include_groups",
+    "include_categories",
+    "include_transactions_like",
+    "exclude_groups",
+    "exclude_categories",
+    "exclude_transactions_like",
+}
+_SPENDING_VIEW_KEY_PATTERN = re.compile(r"[a-z][a-z0-9_]*")
+
 
 def _read_toml(path: Path) -> dict[str, Any]:
     try:
@@ -257,6 +285,19 @@ def _validate_keys(document: Mapping[str, Any]) -> None:
         if unknown_keys:
             names = ", ".join(sorted(unknown_keys))
             raise ConfigError(f"Unknown key(s) in [{section_name}]: {names}")
+
+    spending_views = document["spending"].get("views")
+    if not isinstance(spending_views, Mapping) or not spending_views:
+        raise ConfigError("Configuration section [spending.views] must be a non-empty table")
+    for key, view in spending_views.items():
+        if not isinstance(key, str) or _SPENDING_VIEW_KEY_PATTERN.fullmatch(key) is None:
+            raise ConfigError("Spending view keys must use lowercase letters, numbers, and underscores")
+        if not isinstance(view, Mapping):
+            raise ConfigError(f"Configuration section [spending.views.{key}] must be a table")
+        unknown_keys = set(view) - _SPENDING_VIEW_KEYS
+        if unknown_keys:
+            names = ", ".join(sorted(unknown_keys))
+            raise ConfigError(f"Unknown key(s) in [spending.views.{key}]: {names}")
 
     aliases = document["merchants"].get("aliases")
     if not isinstance(aliases, Mapping):
@@ -313,6 +354,11 @@ def _strings(section: Mapping[str, Any], key: str) -> tuple[str, ...]:
     if len(normalized) != len(set(normalized)):
         raise ConfigError(f"{key} must not contain duplicates")
     return result
+
+
+def _optional_strings(section: Mapping[str, Any], key: str) -> tuple[str, ...]:
+    """Return an optional list setting, defaulting to an empty tuple."""
+    return () if key not in section else _strings(section, key)
 
 
 def _integers(section: Mapping[str, Any], key: str, minimum: int, maximum: int) -> tuple[int, ...]:
@@ -381,6 +427,35 @@ def _merchant_aliases(section: Mapping[str, Any]) -> tuple[tuple[str, tuple[str,
     return tuple(normalized)
 
 
+def _spending_views(section: Mapping[str, Any]) -> tuple[SpendingViewSettings, ...]:
+    """Parse ordered, named spending views from configuration."""
+    configured_views = section["views"]
+    assert isinstance(configured_views, Mapping)
+    views: list[SpendingViewSettings] = []
+    labels: set[str] = set()
+    for key, configured_view in configured_views.items():
+        assert isinstance(key, str)
+        assert isinstance(configured_view, Mapping)
+        label = _string(configured_view, "label")
+        normalized_label = label.casefold()
+        if normalized_label in labels:
+            raise ConfigError("Spending view labels must not contain duplicates")
+        labels.add(normalized_label)
+        views.append(
+            SpendingViewSettings(
+                key=key,
+                label=label,
+                include_groups=_optional_strings(configured_view, "include_groups"),
+                include_categories=_optional_strings(configured_view, "include_categories"),
+                include_transactions_like=_optional_strings(configured_view, "include_transactions_like"),
+                exclude_groups=_optional_strings(configured_view, "exclude_groups"),
+                exclude_categories=_optional_strings(configured_view, "exclude_categories"),
+                exclude_transactions_like=_optional_strings(configured_view, "exclude_transactions_like"),
+            )
+        )
+    return tuple(views)
+
+
 def _build_settings(document: Mapping[str, Any], project_root: Path) -> Settings:
     _validate_keys(document)
     data = document["data"]
@@ -439,6 +514,10 @@ def _build_settings(document: Mapping[str, Any], project_root: Path) -> Settings
     default_lookback_months = _integer(reporting, "default_lookback_months", 1, 120)
     if default_lookback_months not in lookback_months:
         raise ConfigError("default_lookback_months must be included in lookback_months")
+    spending_views = _spending_views(spending)
+    default_spending_view = _string(spending, "default_view").casefold()
+    if default_spending_view not in {view.key for view in spending_views}:
+        raise ConfigError("default_view must name a configured spending view")
 
     return Settings(
         data=DataSettings(
@@ -463,9 +542,8 @@ def _build_settings(document: Mapping[str, Any], project_root: Path) -> Settings
             exclude_groups=_strings(income_savings, "exclude_groups"),
         ),
         spending=SpendingSettings(
-            default_view=_choice(spending, "default_view", {"all", "discretionary"}),
-            exclude_categories=_strings(spending, "exclude_categories"),
-            exclude_groups=_strings(spending, "exclude_groups"),
+            default_view=default_spending_view,
+            views=spending_views,
         ),
         subscriptions=SubscriptionSettings(
             known_category_terms=_strings(subscriptions, "known_category_terms"),

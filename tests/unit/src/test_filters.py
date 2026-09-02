@@ -1,4 +1,4 @@
-"""Tests for src/filters.py — calculate_date_range and apply_transaction_filters."""
+"""Tests for filter controls and the shared transaction filter pipeline."""
 
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
@@ -8,13 +8,13 @@ import pandas as pd
 from src.config import get_settings
 from src.custom_types import FIFilters, TransactionFilterOptions
 from src.filters import (
-    apply_transaction_filters,
     calculate_date_range,
     default_fi_accounts,
     render_fi_filters,
     render_income_expense_filters,
     render_spending_filters,
 )
+from src.transaction_filters import apply_transaction_filters
 from tests._helpers import _df_from_rows, _make_row
 
 # ---------------------------------------------------------------------------
@@ -281,15 +281,32 @@ class TestApplyTransactionFilters:
         assert "Transfer" not in result["Group"].values
         assert len(result) == 1
 
-    def test_include_groups_with_exclude_categories(self, scrubbed_transactions_df: pd.DataFrame) -> None:
-        """Include groups takes precedence — exclude_categories is ignored when includes are set."""
+    def test_exclude_categories_override_included_groups(self, scrubbed_transactions_df: pd.DataFrame) -> None:
+        """Exclusions take precedence after the union of include rules."""
         filters: TransactionFilterOptions = {
             "include_groups": ["Food"],
             "exclude_categories": ["Groceries"],
         }
         result = apply_transaction_filters(scrubbed_transactions_df, filters)
-        # Include takes precedence, so Groceries is still included (it's in Food group)
-        assert "Groceries" in result["Category"].values
+        assert "Groceries" not in result["Category"].values
+
+    def test_transaction_name_filters_are_case_insensitive_literal_substrings(self) -> None:
+        df = _df_from_rows(
+            _make_row("2024-01-01", "Coffee", -5.0, "Food", "Expense", desc="COFFEE CORNER"),
+            _make_row("2024-01-02", "Tax", -500.0, "Bills", "Expense", desc="ACH IRS TAX PAYMENT"),
+            _make_row("2024-01-03", "Dining", -20.0, "Food", "Expense", desc="CHECKERS RESTAURANT"),
+        )
+
+        result = apply_transaction_filters(
+            df,
+            {
+                "include_groups": ["Food"],
+                "include_transactions_like": ["irs tax"],
+                "exclude_transactions_like": ["CHECK"],
+            },
+        )
+
+        assert result["Full Description"].tolist() == ["COFFEE CORNER", "ACH IRS TAX PAYMENT"]
 
     def test_expense_threshold_exactly_equal_kept(self) -> None:
         """An expense exactly equal to the threshold is kept (uses <=, not <)."""
@@ -461,6 +478,8 @@ class TestPageFilterDefaults:
             "Exclude income categories",
             "Exclude expense groups",
             "Exclude expense categories",
+            "Include transaction names containing",
+            "Exclude transaction names containing",
         ]
         assert len(mock_st.toggle.call_args_list) == 2
         mock_st.button.assert_called_once()
@@ -470,6 +489,8 @@ class TestPageFilterDefaults:
             result["exclude_income_categories"],
             result["exclude_expense_categories"],
             result["exclude_groups"],
+            [],
+            [],
         )
         mock_st.markdown.assert_not_called()
         mock_st.write.assert_not_called()
@@ -490,10 +511,12 @@ class TestPageFilterDefaults:
         assert "exclude_categories" not in result
         assert result["filter_large_income"] is False
         assert result["filter_large_expenses"] is False
-        assert len(mock_st.multiselect.call_args_list) == 3
+        assert len(mock_st.multiselect.call_args_list) == 5
         assert len(mock_st.toggle.call_args_list) == 2
         assert mock_st.button.call_args.kwargs["args"] == (
             "income_actual",
+            [],
+            [],
             [],
             [],
             [],
@@ -509,6 +532,8 @@ class TestPageFilterDefaults:
                     "income_regular_exclude_income_categories": ["RSU"],
                     "income_regular_exclude_expense_groups": [],
                     "income_regular_exclude_expense_categories": ["Home Repairs"],
+                    "income_regular_include_transactions_like": ["PAYROLL"],
+                    "income_regular_exclude_transactions_like": ["BONUS"],
                 }
             )
             result = render_income_expense_filters(
@@ -521,6 +546,8 @@ class TestPageFilterDefaults:
         assert result["exclude_groups"] == []
         assert result["exclude_income_categories"] == ["RSU"]
         assert result["exclude_expense_categories"] == ["Home Repairs"]
+        assert result["include_transactions_like"] == ["PAYROLL"]
+        assert result["exclude_transactions_like"] == ["BONUS"]
         assert "exclude_categories" not in result
         assert result["filter_large_income"] is False
         assert result["filter_large_expenses"] is False
@@ -541,11 +568,13 @@ class TestPageFilterDefaults:
             result = render_spending_filters(
                 ["Christmas", "Misc Shopping", "Groceries"],
                 ["Bills", "Income", "Donations", "Maintenance", "Travel", "Food", "Shopping"],
-                view="All spending",
+                view=get_settings().spending.view("all"),
             )
 
         assert result["exclude_groups"] == []
         assert result["exclude_categories"] == []
+        assert result["include_transactions_like"] == []
+        assert result["exclude_transactions_like"] == []
         assert result["filter_large_expenses"] is False
         mock_st.popover.assert_called_once_with(
             "Adjust view",
@@ -565,7 +594,7 @@ class TestPageFilterDefaults:
                     "Groceries",
                 ],
                 ["Bills", "Income", "Donations", "Maintenance", "Travel", "Food", "Shopping"],
-                view="Discretionary",
+                view=get_settings().spending.view("discretionary"),
             )
 
         assert result["exclude_groups"] == [
@@ -580,6 +609,8 @@ class TestPageFilterDefaults:
             "Groceries",
             "Tax Return Payment",
         ]
+        assert result["include_transactions_like"] == []
+        assert result["exclude_transactions_like"] == []
         assert result["filter_large_expenses"] is False
         assert all(call.kwargs["persist_state"] == "page" for call in mock_st.multiselect.call_args_list)
         mock_st.button.assert_called_once()
@@ -591,7 +622,7 @@ class TestPageFilterDefaults:
             result = render_spending_filters(
                 ["Groceries"],
                 ["Food", "Travel"],
-                view="All spending",
+                view=get_settings().spending.view("all"),
             )
 
         assert result["exclude_groups"] == ["Travel"]
@@ -615,6 +646,8 @@ class TestPageFilterDefaults:
             "include_accounts": ["Savings"],
             "exclude_groups": [],
             "exclude_categories": [],
+            "include_transactions_like": [],
+            "exclude_transactions_like": [],
             "filter_large_expenses": False,
             "expense_threshold": get_settings().thresholds.expense,
             "spending_lookback_months": get_settings().financial_independence.spending_lookback_months,

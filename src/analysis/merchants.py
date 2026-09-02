@@ -135,6 +135,10 @@ def normalize_merchant_name(
     text = _clean_merchant_text(description)
     if not text:
         return "Unknown"
+    words = text.split()
+    if len(words) > 1 and words[-1] == "REFUND":
+        words.pop()
+        text = " ".join(words)
 
     aliases = aliases or {}
     normalized_aliases = sorted(
@@ -145,7 +149,6 @@ def normalize_merchant_name(
         if pattern and pattern in text:
             return replacement
 
-    words = text.split()
     if method == "first_word":
         return words[0]
     if method == "first_two":
@@ -162,7 +165,11 @@ def enrich_with_merchant(
     """Add a ``Merchant`` column derived from ``Full Description``."""
     enriched = df.copy()
     enriched["Merchant"] = enriched["Full Description"].apply(
-        lambda x: extract_merchant_name(x, extraction_method, aliases=aliases)
+        lambda x: extract_merchant_name(
+            x,
+            extraction_method,
+            aliases=aliases,
+        )
     )
     return enriched
 

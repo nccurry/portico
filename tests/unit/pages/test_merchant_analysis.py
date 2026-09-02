@@ -112,6 +112,24 @@ class TestEnrichWithMerchant:
 
         assert enriched["Merchant"].tolist() == ["AMAZON", "AMAZON", "ASCEND"]
 
+    def test_normalized_method_removes_the_refund_marker(self) -> None:
+        transactions = pd.DataFrame(
+            {
+                "Full Description": [
+                    "POS PURCHASE KROGER #1234 STORE",
+                    "KROGER #1234 STORE REFUND",
+                ]
+            }
+        )
+
+        enriched = enrich_with_merchant(
+            transactions,
+            "normalized",
+        )
+
+        assert enriched["Merchant"].tolist() == ["KROGER STORE", "KROGER STORE"]
+        assert normalize_merchant_name("Refund") == "REFUND"
+
 
 class TestMerchantAliases:
     def test_builds_normalized_rules_from_strings_and_lists(self) -> None:

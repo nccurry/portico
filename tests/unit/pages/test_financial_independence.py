@@ -16,7 +16,7 @@ from src.analysis.financial_independence import (
     project_portfolio,
 )
 from src.custom_types import TransactionFilterOptions
-from src.filters import apply_transaction_filters
+from src.transaction_filters import apply_transaction_filters
 
 
 class TestCalculateFiMetrics:

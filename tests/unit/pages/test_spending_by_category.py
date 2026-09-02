@@ -20,8 +20,10 @@ def _filters(**overrides: object) -> SpendingFilters:
     filters: SpendingFilters = {
         "include_groups": [],
         "include_categories": [],
+        "include_transactions_like": [],
         "exclude_groups": [],
         "exclude_categories": [],
+        "exclude_transactions_like": [],
         "filter_large_expenses": False,
         "expense_threshold": 3_000,
     }
@@ -148,6 +150,36 @@ class TestBuildSpendingLedger:
         )
 
         assert ledger["Included"].tolist() == [True, True, False]
+
+    def test_excludes_transaction_description_fragments(self) -> None:
+        ledger = build_spending_ledger(
+            _transactions(
+                [
+                    {"Full Description": "ACH IRS TAX PAYMENT", "Category": "Shopping"},
+                    {"Full Description": "CHECK #1234", "Category": "Shopping"},
+                    {"Full Description": "POS ASCEND FCU 123456789", "Category": "Shopping"},
+                    {"Full Description": "HOME LOAN PAYMENT", "Category": "Shopping"},
+                    {"Full Description": "AIRBNB 12345", "Category": "Shopping"},
+                    {"Full Description": "COFFEE SHOP", "Category": "Shopping"},
+                ]
+            ),
+            _filters(
+                include_categories=["Shopping"],
+                exclude_transactions_like=["IRS", "CHECK", "ASCEND FCU", "HOME LOAN", "AIRBNB"],
+            ),
+            start_month="2024-01",
+            end_month="2024-02",
+        )
+
+        assert ledger["Included"].tolist() == [False, False, False, False, False, True]
+        assert ledger["Exclusion_Reason"].tolist() == [
+            "Excluded transaction like: IRS",
+            "Excluded transaction like: CHECK",
+            "Excluded transaction like: ASCEND FCU",
+            "Excluded transaction like: HOME LOAN",
+            "Excluded transaction like: AIRBNB",
+            "",
+        ]
 
     def test_empty_period_has_annotated_schema(self) -> None:
         ledger = build_spending_ledger(
@@ -370,6 +402,24 @@ class TestSpendingDetailAnalysis:
         )
 
         assert merchants["Merchant"].tolist() == ["AMAZON"]
+        assert merchants["Spending"].tolist() == pytest.approx([150.0])
+
+    def test_merchant_breakdown_uses_the_shared_normalized_merchant_name(self) -> None:
+        ledger = pd.DataFrame(
+            {
+                "Included": [True, True],
+                "Net_Spend": [100.0, 50.0],
+                "Full Description": [
+                    "POS PURCHASE JUNIPER KITCHEN DINNER #1234",
+                    "JUNIPER KITCHEN DINNER 5678",
+                ],
+                "Date": pd.to_datetime(["2024-01-01", "2024-01-02"], utc=True),
+            }
+        )
+
+        merchants = build_merchant_breakdown(ledger)
+
+        assert merchants["Merchant"].tolist() == ["JUNIPER KITCHEN DINNER"]
         assert merchants["Spending"].tolist() == pytest.approx([150.0])
 
     def test_empty_merchant_breakdown_has_exact_schema(self) -> None:

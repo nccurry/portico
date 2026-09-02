@@ -35,8 +35,18 @@ exclude_groups = ["Travel", "Donations"]
 
 [spending]
 default_view = "discretionary"
+
+[spending.views.all]
+label = "All spending"
+
+[spending.views.discretionary]
+label = "Discretionary"
+# Include rules use a union; exclusion rules always take precedence.
 exclude_categories = ["Automobile Fuel", "Given Gift", "Groceries", "Tax Return Payment"]
-exclude_groups = ["Bills", "Donations", "Health", "Housing", "Income", "Insurance", "Maintenance", "Travel"]
+exclude_groups = ["Bills", "Donations", "Health", "Home Loan", "Housing", "Income", "Insurance", "Maintenance", "Travel"]
+# Match case-insensitive, literal text in Full Description. Household-specific
+# one-off transactions belong in ignored config/local.toml.
+exclude_transactions_like = []
 
 [subscriptions]
 known_category_terms = ["subscription"]
