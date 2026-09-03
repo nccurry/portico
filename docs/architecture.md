@@ -157,7 +157,9 @@ Tiller workbook in Google Sheets     Synthetic CSV files
 ### Entry points
 
 `Home.py` configures Streamlit, builds navigation, and renders the accounts and
-net-worth page. Files in `pages` provide the remaining dashboards.
+net-worth page. Files in `app_pages/` provide the remaining dashboards.
+Keeping them outside the legacy `pages/` directory prevents automatic page
+discovery from overriding the explicit navigation contract.
 
 Local Task commands start Streamlit directly. `src/discord_notifier.py` is also
 the command-line entry point for the headless Discord notifier.
@@ -293,7 +295,7 @@ command and relies on delivery state to prevent duplicates.
 | Path | Responsibility |
 | --- | --- |
 | `Home.py` | Application shell, navigation, and home page |
-| `pages/` | Streamlit page layout, controls, and charts |
+| `app_pages/` | Streamlit page layout, controls, and charts |
 | `src/analysis/` | Financial and data-quality calculations |
 | `src/spreadsheet.py` | Sheet loading, spreadsheet objects, and cached loaders |
 | `src/scrubbing.py` | Required columns and normalized data contracts |
@@ -347,7 +349,7 @@ maintainer's private settings cannot change results.
 
 CI enforces strict typing, linting, unit tests, integration tests, and container
 smoke tests. Coverage must be at least 90% for `src`
-and 80% for `src` and `pages` combined. Local Task commands call the same
+and 80% for `src` and `app_pages` combined. Local Task commands call the same
 underlying tools.
 
 ## Security and privacy rules

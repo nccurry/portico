@@ -10,7 +10,7 @@ from src.analysis import budget as _mod
 from src.custom_types import BudgetFilters
 from src.spreadsheet import CategoriesSpreadsheet, Spreadsheet
 
-budget_page = import_module("pages.7_Budget")
+budget_page = import_module("app_pages.7_Budget")
 
 
 # ---------------------------------------------------------------------------

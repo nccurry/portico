@@ -27,8 +27,8 @@ from tests.custom_types import FullDatasetFactory, SpreadsheetBundle
 # Shared factory
 # ---------------------------------------------------------------------------
 
-_PAGE_DIR = Path(__file__).resolve().parents[2] / "pages"
-_DEMO_PROFILE = _PAGE_DIR.parent / "config" / "demo.toml"
+_APP_PAGE_DIR = Path(__file__).resolve().parents[2] / "app_pages"
+_DEMO_PROFILE = _APP_PAGE_DIR.parent / "config" / "demo.toml"
 _MASKED_VALUE = "XXXXXXXX"
 _SENSITIVE_TEXT = re.compile(
     r"\$\s*\d|\b\d[\d,]*(?:\.\d+)?%|\b\d[\d,]*(?:\.\d+)?\s+"
@@ -136,7 +136,7 @@ def _select_three_month_home_lookback(at: AppTest) -> None:
 
 
 def _switch_home_to_subscriptions(at: AppTest) -> None:
-    at.switch_page("pages/5_Subscriptions.py")
+    at.switch_page("app_pages/5_Subscriptions.py")
 
 
 def _select_food_spending_group(at: AppTest) -> None:
@@ -268,7 +268,7 @@ def _make_app(
         c.start()
 
     try:
-        at = AppTest.from_file(_PAGE_DIR / page_file, default_timeout=30)
+        at = AppTest.from_file(_APP_PAGE_DIR / page_file, default_timeout=30)
         at.run()
         if interact is not None:
             interact(at)
@@ -286,7 +286,7 @@ def _make_home_app_from_balance(balances: object) -> AppTest:
         patch("src.spreadsheet.load_balance_history_data", return_value=balances),
         patch("src.spreadsheet.load_transactions_data", return_value=object()),
     ):
-        return AppTest.from_file(_PAGE_DIR / "../Home.py", default_timeout=30).run()
+        return AppTest.from_file(_APP_PAGE_DIR / "../Home.py", default_timeout=30).run()
 
 
 def _dataset_with_one_off_travel(

@@ -23,7 +23,7 @@ APPLICATION_FILES = (
     Path("demo/pages/__init__.py"),
     Path("demo/pages/streamlit_compat.py"),
 )
-APPLICATION_DIRECTORIES = (Path("pages"), Path("src"))
+APPLICATION_DIRECTORIES = (Path("app_pages"), Path("src"))
 
 
 def _app_files() -> tuple[Path, ...]:

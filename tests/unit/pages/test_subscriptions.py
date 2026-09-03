@@ -53,7 +53,7 @@ class _SubscriptionsPage(Protocol):
 
 subscriptions_page = cast(
     _SubscriptionsPage,
-    import_module("pages.5_Subscriptions"),
+    import_module("app_pages.5_Subscriptions"),
 )
 
 

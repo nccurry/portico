@@ -47,7 +47,7 @@ COPY --chown=portico:portico Home.py LICENSE README.md ./
 COPY --chown=portico:portico .streamlit/config.toml .streamlit/config.toml
 COPY --chown=portico:portico config/defaults.toml config/demo.toml config/
 COPY --chown=portico:portico demo/ demo/
-COPY --chown=portico:portico pages/ pages/
+COPY --chown=portico:portico app_pages/ app_pages/
 COPY --chown=portico:portico src/ src/
 COPY --chown=portico:portico scripts/container_entrypoint.py scripts/doctor.py scripts/
 

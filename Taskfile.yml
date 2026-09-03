@@ -12,7 +12,7 @@ vars:
   UV_CACHE: '{{default ".local/uv-cache" .UV_CACHE_DIR}}'
   PYTEST_TEMP: '{{default ".local/pytest-tmp" .PYTEST_TEMP}}'
   COVERAGE_INPUTS: '{{default "." .COVERAGE_INPUTS}}'
-  LINT_PATHS: src/ pages/ demo/ tests/ scripts/ Home.py
+  LINT_PATHS: src/ app_pages/ demo/ tests/ scripts/ Home.py
   ADDRESS: '{{default "127.0.0.1" .ADDRESS}}'
   PORT: '{{default "8501" .PORT}}'
   TIMEZONE: '{{default "Etc/UTC" .TZ}}'
@@ -176,17 +176,17 @@ tasks:
   test:coverage:
     desc: "Run all tests and record coverage"
     cmds:
-      - '{{.UV}} run --locked --dev pytest --basetemp={{.PYTEST_TEMP | quote}} --cov=src --cov=pages --cov-branch --cov-report='
+      - '{{.UV}} run --locked --dev pytest --basetemp={{.PYTEST_TEMP | quote}} --cov=src --cov=app_pages --cov-branch --cov-report='
 
   test:unit:coverage:
     desc: "Run unit tests and write parallel coverage data"
     cmds:
-      - '{{.UV}} run --locked --dev coverage run --branch --parallel-mode --source=src,pages -m pytest --basetemp={{.PYTEST_TEMP | quote}} tests/unit'
+      - '{{.UV}} run --locked --dev coverage run --branch --parallel-mode --source=src,app_pages -m pytest --basetemp={{.PYTEST_TEMP | quote}} tests/unit'
 
   test:integration:coverage:
     desc: "Run integration tests and write parallel coverage data"
     cmds:
-      - '{{.UV}} run --locked --dev coverage run --branch --parallel-mode --source=src,pages -m pytest --basetemp={{.PYTEST_TEMP | quote}} tests/integration'
+      - '{{.UV}} run --locked --dev coverage run --branch --parallel-mode --source=src,app_pages -m pytest --basetemp={{.PYTEST_TEMP | quote}} tests/integration'
 
   coverage:combine:
     desc: "Combine unit and integration coverage data"
@@ -199,7 +199,7 @@ tasks:
       - '{{.UV}} run --locked --dev coverage report --include="src/*" --show-missing --fail-under=90'
 
   coverage:check-total:
-    desc: "Enforce at least 80% combined src and pages coverage"
+    desc: "Enforce at least 80% combined src and app-page coverage"
     cmds:
       - '{{.UV}} run --locked --dev coverage report --show-missing --fail-under=80'
 

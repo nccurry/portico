@@ -1,4 +1,4 @@
-"""Tests for pages/3_Year_over_Year.py - category/group extraction logic."""
+"""Tests for app_pages/3_Year_over_Year.py - category/group extraction logic."""
 
 import numpy as np
 

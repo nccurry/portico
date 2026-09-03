@@ -42,20 +42,20 @@ from src.value_visibility import (
 )
 
 ANALYZE_PAGE_SPECS = (
-    ("pages/1_Income_and_Savings.py", "Income and savings", ":material/savings:"),
+    ("app_pages/1_Income_and_Savings.py", "Income and savings", ":material/savings:"),
     (
-        "pages/6_Merchant_Analysis.py",
+        "app_pages/6_Merchant_Analysis.py",
         "Spending by merchant",
         ":material/storefront:",
     ),
     (
-        "pages/2_Spending_by_Category.py",
+        "app_pages/2_Spending_by_Category.py",
         "Spending by category",
         ":material/category:",
     ),
-    ("pages/3_Year_over_Year.py", "Year over year", ":material/compare_arrows:"),
-    ("pages/5_Subscriptions.py", "Subscriptions", ":material/subscriptions:"),
-    ("pages/8_Top_Transactions.py", "Transactions", ":material/receipt_long:"),
+    ("app_pages/3_Year_over_Year.py", "Year over year", ":material/compare_arrows:"),
+    ("app_pages/5_Subscriptions.py", "Subscriptions", ":material/subscriptions:"),
+    ("app_pages/8_Top_Transactions.py", "Transactions", ":material/receipt_long:"),
 )
 
 
@@ -187,7 +187,7 @@ def _render_global_status(
                 color="green",
             )
         st.page_link(
-            "pages/10_Data_Health.py",
+            "app_pages/10_Data_Health.py",
             label="Data health",
             icon=":material/arrow_forward:",
         )
@@ -341,7 +341,7 @@ def _render_financial_safety(summary: FinancialSafetySummary) -> None:
             st.progress(_progress_bar(fi_progress))
             st.caption(f"Target {_format_currency(summary['fi_target'])}")
         st.page_link(
-            "pages/9_Financial_Independence.py",
+            "app_pages/9_Financial_Independence.py",
             label="Explore FI scenarios",
             icon=":material/arrow_forward:",
         )
@@ -527,19 +527,19 @@ def main() -> None:
             "Analyze": [st.Page(path, title=title, icon=icon) for path, title, icon in ANALYZE_PAGE_SPECS],
             "Plan": [
                 st.Page(
-                    "pages/7_Budget.py",
+                    "app_pages/7_Budget.py",
                     title="Budget",
                     icon=":material/account_balance_wallet:",
                 ),
                 st.Page(
-                    "pages/9_Financial_Independence.py",
+                    "app_pages/9_Financial_Independence.py",
                     title="Financial independence",
                     icon=":material/monitoring:",
                 ),
             ],
             "Maintain": [
                 st.Page(
-                    "pages/10_Data_Health.py",
+                    "app_pages/10_Data_Health.py",
                     title="Data health",
                     icon=":material/health_and_safety:",
                 ),

@@ -13,3 +13,8 @@ def test_analyze_pages_keep_spending_views_together() -> None:
         "Subscriptions",
         "Transactions",
     ]
+
+
+def test_analyze_pages_are_outside_streamlits_legacy_directory() -> None:
+    """Keep automatic legacy navigation from overriding the explicit shell."""
+    assert all(path.startswith("app_pages/") for path, _, _ in ANALYZE_PAGE_SPECS)
