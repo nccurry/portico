@@ -48,7 +48,7 @@ ACCOUNT_COLUMNS = ("Account", "Class Override", "Group", "Hide")
 
 @dataclass(frozen=True)
 class DemoAccount:
-    """Describe one account in the synthetic household."""
+    """Describe one account in the synthetic dataset."""
 
     name: str
     number: str
@@ -425,12 +425,12 @@ def _month_starts() -> list[date]:
 
 
 def _format_date(value: date) -> str:
-    """Format a date like the Tiller CSV export."""
+    """Format a date like the spreadsheet CSV export."""
     return value.strftime("%m/%d/%Y")
 
 
 def _format_amount(value: float) -> str:
-    """Format a money value like the Tiller CSV export."""
+    """Format a money value like the spreadsheet CSV export."""
     sign = "-" if value < 0 else ""
     return f"{sign}${abs(value):,.2f}"
 
@@ -785,12 +785,12 @@ def _write_transactions() -> None:
 
 
 def _account_key(account: DemoAccount) -> str:
-    """Return the composite account key used by Tiller's Accounts sheet."""
+    """Return the composite account key used by the Accounts table."""
     return f"{account.name} - {account.number} ({account.account_id[-4:].upper()})"
 
 
 def _balance_rows() -> list[dict[str, str]]:
-    """Build monthly balances with different household trends."""
+    """Build monthly balances with varied trends."""
     rows: list[dict[str, str]] = []
     for month_index, month in enumerate(_month_starts()):
         when = month.replace(day=20)

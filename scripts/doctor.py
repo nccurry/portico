@@ -1,4 +1,4 @@
-"""Validate configured local CSV data or link-readable Google Sheets data."""
+"""Validate configured local CSV data or remote spreadsheet data."""
 
 from __future__ import annotations
 
@@ -120,7 +120,7 @@ def run_doctor(
 ) -> list[DoctorResult]:
     """Run safe checks for the selected data source."""
     results = [DoctorResult("configuration", True, f"data source is {settings.data.source}")]
-    if settings.data.source == "local_csv":
+    if settings.data.source == "local":
         directory = settings.data.directory
         assert directory is not None
         sources = {name: directory / f"{name}.csv" for name in SHEET_NAMES}
@@ -137,7 +137,7 @@ def run_doctor(
     try:
         locations = _sheet_locations(secrets_path)
     except ConfigError as error:
-        results.append(DoctorResult("Google Sheets", False, str(error)))
+        results.append(DoctorResult("remote spreadsheet", False, str(error)))
         return results
 
     for name, location in locations.items():
@@ -160,13 +160,13 @@ def _parser() -> argparse.ArgumentParser:
         "--secrets",
         type=Path,
         default=DEFAULT_SECRETS_PATH,
-        help="Path to Streamlit secrets.toml for Google Sheets mode.",
+        help="Path to Streamlit secrets.toml for remote spreadsheet mode.",
     )
     parser.add_argument(
         "--timeout",
         type=float,
         default=10.0,
-        help="Maximum seconds for each Google Sheet request.",
+        help="Maximum seconds for each remote spreadsheet request.",
     )
     return parser
 

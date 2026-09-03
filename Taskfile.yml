@@ -280,7 +280,7 @@ tasks:
   demo:
     desc: "Run the app with synthetic demo data on localhost"
     env:
-      PORTICO_CONFIG_PATH: config/demo.toml
+      PORTICO_CONFIG_PATH: portico-demo.toml
     cmds:
       - '{{.UV}} run --locked --dev streamlit run Home.py --server.address=127.0.0.1 --server.port={{.PORT | quote}}'
 
@@ -317,7 +317,7 @@ tasks:
         docker run --rm --init --name portico
         --read-only --tmpfs /tmp:size=64m,mode=1777
         --cap-drop ALL --security-opt no-new-privileges:true
-        --env PORTICO_CONFIG_PATH=/app/config/demo.toml
+        --env PORTICO_CONFIG_PATH=/app/portico-demo.toml
         --publish {{.ADDRESS}}:{{.PORT}}:8501
         portico:local
 
@@ -332,6 +332,7 @@ tasks:
         --env TZ={{.TIMEZONE | quote}}
         --env PORTICO_DISCORD_ENABLED={{.DISCORD_ENABLED | quote}}
         --env PORTICO_DISCORD_CRON={{.DISCORD_CRON | quote}}
+        --mount "type=bind,source={{.ROOT_DIR}}/config.toml,target=/app/config.toml,readonly"
         --mount "type=bind,source={{.ROOT_DIR}}/.streamlit/secrets.toml,target=/app/.streamlit/secrets.toml,readonly"
         --mount "type=volume,source=portico-state,target=/app/.local"
         --publish {{.ADDRESS}}:{{.PORT}}:8501

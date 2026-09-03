@@ -143,7 +143,7 @@ def create_lifecycle_timeline_chart(
         alt.Tooltip("Next_Expected_Date:T", title="Next expected", format="%Y-%m-%d"),
         alt.Tooltip("Price_Change:Q", title="Latest price change", format="+$,.2f"),
         alt.Tooltip("Price_Change_Date:T", title="Price change date", format="%Y-%m-%d"),
-        alt.Tooltip("Category:N", title="Tiller category"),
+        alt.Tooltip("Category:N", title="Category"),
         alt.Tooltip("Account:N", title="Account"),
     ]
     base = alt.Chart(timeline).encode(
@@ -354,7 +354,7 @@ def _render_inventory_table(
                 "Merchant": st.column_config.TextColumn("Merchant", pinned=True),
                 "Monthly_Run_Rate": st.column_config.NumberColumn("Est. monthly", format="$%.2f"),
                 "Cadence": st.column_config.TextColumn("Cadence"),
-                "Category": st.column_config.TextColumn("Tiller category"),
+                "Category": st.column_config.TextColumn("Category"),
                 "First_Date": st.column_config.DateColumn("Started", format="MMM YYYY"),
                 "Last_Date": st.column_config.DateColumn("Last charge", format="YYYY-MM-DD"),
                 "Next_Expected_Date": st.column_config.DateColumn("Next expected", format="YYYY-MM-DD"),
@@ -396,9 +396,7 @@ def _render_merchant_detail(
             st.badge(str(row["Status"]), color=_status_color(str(row["Status"])))
             st.badge(str(row["Bundle_Type"]), color="blue")
 
-        st.caption(
-            f"Tiller category: {row['Category']} | Account{'s' if len(accounts) != 1 else ''}: {', '.join(accounts)}"
-        )
+        st.caption(f"Category: {row['Category']} | Account{'s' if len(accounts) != 1 else ''}: {', '.join(accounts)}")
 
         metric_row = st.container(horizontal=True)
         metric_row.metric("Charges", mask_value(f"{int(row['Charge_Count']):,}"), border=True)
@@ -551,7 +549,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
     st.title("Subscriptions")
     if transactions.empty:
         st.info(
-            "No transactions are available. Refresh the Tiller data to build a subscription inventory.",
+            "No transactions are available. Refresh the spreadsheet data to build a subscription inventory.",
             icon=":material/info:",
         )
         return
@@ -573,7 +571,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
 
     st.caption(
         f"Transaction history through {latest_data_date:%B} {latest_data_date.day}, {latest_data_date:%Y}. "
-        "Subscription categories come from Tiller. Activity stays Active until the full cadence-based "
+        "Subscription categories come from your spreadsheet. Activity stays Active until the full cadence-based "
         "inactivity window passes; cadence and future charges are inferred from your transaction history."
     )
     latest_utc = pd.to_datetime(latest_data_date, utc=True)
@@ -586,7 +584,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
 
     with st.expander("Subscription settings", icon=":material/tune:"):
         subscription_categories = st.multiselect(
-            "Tiller subscription categories",
+            "Subscription categories",
             options=all_categories,
             default=default_subscription_categories,
             help="These categories define the known subscription inventory.",
@@ -605,7 +603,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
             step=1,
         )
 
-    history_through = reporting_anchor()
+    history_through = reporting_anchor(transactions)
     inventory, lifecycles, candidates, history, summary = _analyze_subscription_data(
         transactions,
         tuple(subscription_categories),
@@ -654,7 +652,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
     active = prepare_active_inventory(inventory, lifecycles)
     if active.empty:
         st.info(
-            "No active subscriptions are present in the selected Tiller categories.",
+            "No active subscriptions are present in the selected categories.",
             icon=":material/info:",
         )
     else:
@@ -673,9 +671,9 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
     if history.empty:
         st.info(
             (
-                "Select at least one Tiller subscription category to see spending history."
+                "Select at least one subscription category to see spending history."
                 if not subscription_categories
-                else "No subscription expenses were found in the selected Tiller categories."
+                else "No subscription expenses were found in the selected categories."
             ),
             icon=":material/info:",
         )

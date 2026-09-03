@@ -75,7 +75,7 @@ def build_subscription_inventory(
     *,
     aliases: Mapping[str, str] | None = None,
 ) -> pd.DataFrame:
-    """Build a merchant-level inventory from Tiller subscription categories."""
+    """Build a merchant-level inventory from configured subscription categories."""
     if transactions.empty or not subscription_categories:
         return pd.DataFrame(columns=INVENTORY_COLUMNS)
 

@@ -125,7 +125,7 @@ jobs:
             type=raw,value=latest
           labels: |
             org.opencontainers.image.title=Portico
-            org.opencontainers.image.description=A self-hosted personal finance dashboard for Google Sheets data
+            org.opencontainers.image.description=A self-hosted personal finance spreadsheet dashboard
             org.opencontainers.image.source=https://github.com/nccurry/portico
             org.opencontainers.image.licenses=Apache-2.0
       - name: Build and push production image

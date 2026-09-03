@@ -1,16 +1,16 @@
 # Synthetic demo data
 
-All committed fixture data is synthetic. It describes a household from May 1992
+All committed fixture data is synthetic. It describes a set of accounts from May 1992
 through April 1995 and drives the browser demo, integration tests, and
 screenshots.
 
 Run `uv run --locked --dev python scripts/generate_demo_data.py` to regenerate
 `accounts.csv`, `balance_history.csv`, `categories.csv`, and
-`transactions.csv`. The demo reference date is in `config/defaults.toml`.
+`transactions.csv`. Reports use the latest date in the loaded synthetic data.
 
 The fixture includes twelve accounts across Savings, Credit Cards, Investments,
 Retirement, and Liabilities. Balances rise and fall independently. Transactions
-include household bills, rent, food, travel, gifts, and varied merchant names.
+include bills, rent, food, travel, gifts, and varied merchant names.
 Budgets vary by category, season, and year.
 
 ## Subscription scenarios

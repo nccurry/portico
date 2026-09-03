@@ -51,7 +51,7 @@ def disable_streamlit() -> Generator[None]:
 @pytest.fixture(autouse=True)
 def frozen_time(
     request: pytest.FixtureRequest,
-    reference_date: pd.Timestamp,
+    demo_latest_date: pd.Timestamp,
 ) -> Generator[None]:
     """Freeze time to the synthetic fixture date for marked tests.
 
@@ -69,14 +69,14 @@ def frozen_time(
 
     from freezegun import freeze_time
 
-    iso = reference_date.isoformat()
-    frozen_utc = reference_date if reference_date.tz is not None else reference_date.tz_localize("UTC")
+    iso = demo_latest_date.isoformat()
+    frozen_utc = demo_latest_date if demo_latest_date.tz is not None else demo_latest_date.tz_localize("UTC")
 
     def _frozen_now(
         cls: type[pd.Timestamp],
         tz: str | tzinfo | None = None,
     ) -> pd.Timestamp:
-        """Return the configured reference date in the requested tz (or naive)."""
+        """Return the latest synthetic-data date in the requested tz (or naive)."""
         if tz is None:
             return frozen_utc.tz_convert("UTC").tz_localize(None)
         return frozen_utc.tz_convert(tz)

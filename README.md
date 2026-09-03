@@ -5,13 +5,13 @@
 <h1 align="center">Portico</h1>
 
 <p align="center">
-  <strong>A private, self-hosted dashboard for your Google Sheets-powered finances.</strong>
+  <strong>A private, self-hosted dashboard for your spreadsheet-powered finances.</strong>
 </p>
 
 <p align="center">
   <a href="https://nccurry.github.io/portico/">Try it out</a>
   |
-  <a href="#connect-google-sheets">Connect Google Sheets</a>
+  <a href="#connect-a-spreadsheet">Connect a spreadsheet</a>
   |
   <a href="#run-portico-on-linux">Run on Linux</a>
   |
@@ -29,17 +29,18 @@
 
 ---
 
-Portico turns a Google Sheets workbook into focused views for income, spending,
+Portico turns spreadsheet data into focused views for income, spending,
 subscriptions, budgets, net worth, financial safety, financial independence, and
-data health. The app reads your sheets but does not change them.
+data health. The app reads your data but does not change it.
 
-Portico works with any Google Sheets workbook that has the required tabs and
-columns. Its data model follows the
+Use either a remote spreadsheet or local CSV files with the required tables and
+columns. The current remote connection reads Google Sheets. The table layout is
+compatible with the
 [Tiller Foundation Template](https://help.tiller.com/en/articles/3250724-what-is-the-tiller-foundation-template),
-which is the recommended starting point.
+but Portico uses the table contract rather than a provider-specific account.
 
-The repository includes synthetic data. You can explore every dashboard without
-a Tiller account or a Google Sheets workbook.
+The repository includes synthetic data, so you can explore every dashboard
+without a remote spreadsheet.
 
 ## Screenshots
 
@@ -79,21 +80,21 @@ docker pull ghcr.io/nccurry/portico:latest
 docker run --rm --init --name portico \
   --read-only --tmpfs /tmp:size=64m,mode=1777 \
   --cap-drop ALL --security-opt no-new-privileges:true \
-  --env PORTICO_CONFIG_PATH=/app/config/demo.toml \
+  --env PORTICO_CONFIG_PATH=/app/portico-demo.toml \
   --publish 127.0.0.1:8501:8501 \
   ghcr.io/nccurry/portico:latest
 ```
 
 Open <http://127.0.0.1:8501>. The local demo accepts connections only from the
-local computer. It does not load Streamlit secrets or contact Google Sheets.
+local computer. It does not load Streamlit secrets or contact a remote spreadsheet.
 
 Press `Ctrl+C` to stop the demo.
 
-## Connect Google Sheets
+## Connect a spreadsheet
 
-Google Sheets is the default live data source. No service account is required.
-Portico also supports an explicit local CSV profile; see
-[Use local CSV data](#use-local-csv-data).
+Portico uses a remote spreadsheet by default. The included remote connection
+uses Google Sheets and does not require a service account. You can instead use
+local CSV files; see [Use local CSV data](#use-local-csv-data).
 
 Clone the repository to get the configuration and secrets templates:
 
@@ -111,8 +112,7 @@ Create these four tabs:
 - Categories
 - Accounts
 
-The Tiller Foundation Template already has these tabs and the expected columns.
-Other workbooks work when their columns match the schema in this README.
+Any workbook works when its columns match the schema in this README.
 
 For each tab, set **General access** to **Anyone with the link** and select the
 **Viewer** role. Anyone who gets a sheet URL can read that sheet. Treat each URL
@@ -137,19 +137,14 @@ numeric `gid` for that tab.
 
 Never commit `.streamlit/secrets.toml`. Git ignores this file by default.
 
-### Configure household policy
+### Configure Portico
 
-Copy the fictional household template, then replace its selectors with exact
-values from your Tiller sheets:
+Edit `config.toml` directly. It is a complete configuration file, not an
+overlay. Replace its selectors with exact values from your spreadsheet:
 
 ```console
-cp config/household.example.toml config/household.toml
-nano config/household.toml
+nano config.toml
 ```
-
-`config/household.toml` is ignored. Set `PORTICO_CONFIG_PATH` to select it;
-the Docker commands below use `/app/config/household.toml` after mounting the
-host file into the container.
 
 ### Check and start Portico
 
@@ -158,8 +153,7 @@ Pull the latest image and check the workbook:
 ```console
 docker pull ghcr.io/nccurry/portico:latest
 docker run --rm \
-  --env PORTICO_CONFIG_PATH=/app/config/household.toml \
-  --mount "type=bind,source=$(pwd)/config/household.toml,target=/app/config/household.toml,readonly" \
+  --mount "type=bind,source=$(pwd)/config.toml,target=/app/config.toml,readonly" \
   --mount "type=bind,source=$(pwd)/.streamlit/secrets.toml,target=/app/.streamlit/secrets.toml,readonly" \
   ghcr.io/nccurry/portico:latest python -m scripts.doctor
 ```
@@ -176,7 +170,7 @@ docker run --detach --init --name portico --restart unless-stopped \
   --read-only --tmpfs /tmp:size=64m,mode=1777 \
   --cap-drop ALL --security-opt no-new-privileges:true \
   --env-file .env \
-  --mount "type=bind,source=$(pwd)/config/household.toml,target=/app/config/household.toml,readonly" \
+  --mount "type=bind,source=$(pwd)/config.toml,target=/app/config.toml,readonly" \
   --mount "type=bind,source=$(pwd)/.streamlit/secrets.toml,target=/app/.streamlit/secrets.toml,readonly" \
   --mount "type=volume,source=portico-state,target=/app/.local" \
   --publish 127.0.0.1:8501:8501 \
@@ -185,7 +179,7 @@ docker run --detach --init --name portico --restart unless-stopped \
 
 Open <http://127.0.0.1:8501>.
 
-## Google Sheets schema
+## Spreadsheet schema
 
 Column names are case-sensitive. Portico ignores unknown columns.
 
@@ -197,8 +191,7 @@ Required columns:
 `Institution`, `Account #`, `Date Added`, and `Categorized Date`.
 
 Dates must use a format that pandas can read. Amounts can contain dollar signs
-and commas. Tiller normally records expenses as negative values and income as
-positive values.
+and commas. Expenses normally use negative values and income uses positive values.
 
 ### Balance History
 
@@ -207,8 +200,7 @@ Required columns:
 `Date`, `Time`, `Balance`, `Account`, `Account #`, `Account ID`, `Institution`,
 `Class`, `Month`, `Week`, and `Date Added`.
 
-Portico also reads account type, status, and group columns from standard Tiller
-sheets when those columns exist.
+Portico also reads account type, status, and group columns when they exist.
 
 ### Categories
 
@@ -260,7 +252,7 @@ docker rm portico
 # Run the same docker run command from the setup section.
 ```
 
-Use `ghcr.io/nccurry/portico:1.1.0` instead of `latest` when you want to pin an
+Use `ghcr.io/nccurry/portico:1.2.0` instead of `latest` when you want to pin an
 exact release.
 
 Portico stores configuration and secrets on the host. The `portico-state`
@@ -293,34 +285,31 @@ schedule between container runs. The host address and port stay in the
 
 ## Configuration
 
-[`config/defaults.toml`](config/defaults.toml) is Portico's tracked, generic
-base configuration. It contains safe product defaults and no household-specific
-sheet selectors. [`config/demo.toml`](config/demo.toml) is the complete profile
-for the committed synthetic data. [`config/household.example.toml`](config/household.example.toml)
-is a fictional template for a real household profile.
+[`config.toml`](config.toml) is the normal application configuration and the
+field reference. It shows every supported setting, including empty selectors.
+Edit it directly and keep it complete. Portico never loads or merges a second
+configuration file during a normal run.
 
-Copy the household example to ignored `config/household.toml`, replace every
-example category, group, account, merchant, and description fragment with an
-exact value from your own sheets, then explicitly select it with
-`PORTICO_CONFIG_PATH=config/household.toml`. Portico does not automatically load
-a profile. It stops with an error for unknown keys, wrong types, duplicate
-values, and values outside the supported ranges. Restart Portico after changing
-a TOML file.
+[`portico-demo.toml`](portico-demo.toml) is a separate complete configuration
+for the committed synthetic data. The demo entry points select it explicitly.
+The app shows the demo banner only when the selected file is named exactly
+`portico-demo.toml`.
 
-If you are upgrading from a checkout where `defaults.toml` contained household
-policy, move that policy to `config/household.toml` before updating. The ignored
-profile merges onto the generic base without replacing it.
+Portico stops with an error for unknown keys, wrong types, duplicate values, and
+values outside the supported ranges. Restart Portico after changing a TOML file.
+Reporting periods use the latest date in the loaded spreadsheet data; there is
+no manual reference-date setting.
 
 ### Dashboard settings
 
-Set sheet-specific values in your household profile. These are the main
+Use exact values from your spreadsheet in `config.toml`. These are the main
 settings you may want to change:
 
 | Section | Setting | What it controls |
 | --- | --- | --- |
-| `reporting` | `lookback_months` | Calendar-month choices shown on income, spending, and merchant pages. Use 2–5 ascending values. |
-| `reporting` | `default_lookback_months` | Initially selected reporting period. It must appear in `lookback_months`. |
-| `data` | `source` | Select `google_sheets` (the default) or `local_csv`. Local CSV profiles also require `directory`; they may set `reference_date` and `show_demo_banner`. |
+| `lookback` | `lookback_months` | Calendar-month choices shown on income, spending, and merchant pages. Use 2–5 ascending values. |
+| `lookback` | `default_lookback_months` | Initially selected reporting period. It must appear in `lookback_months`. |
+| `data` | `source`, `directory` | Select `remote` for the configured remote spreadsheet or `local` for local CSV files. Local requires `directory`; remote leaves it empty. |
 | `transaction_sets.<key>` | `label`, `groups`, `categories`, `accounts`, `merchants`, `transactions_like`, `includes`, `excludes` | Defines one reusable expense policy. Direct selectors and included sets are combined; excluded sets are removed last. A set with neither direct selectors nor includes means every expense row. Groups, categories, and accounts are exact sheet values; merchants use the shared merchant aliases; `transactions_like` is case-insensitive literal text in Full Description. |
 | `filter_sets.<key>` | `options`, `default` | Lists the named transaction sets offered by a page. `spending` is shared by the category and merchant pages; `year_over_year` can expose a different set of choices. |
 | `income_savings` | `default_view` | Start income and savings in `regular` or `actual` view. |
@@ -344,30 +333,28 @@ choices last for the browser session only.
 
 ### Use local CSV data
 
-Local CSV is a first-class data source, not a separate application mode. Create
-an explicit profile next to your CSV directory, using the four exported files
+Local CSV is a first-class source, not a separate application mode. Edit the
+same `config.toml` file and use the four exported files
 `transactions.csv`, `balance_history.csv`, `categories.csv`, and `accounts.csv`:
 
 ```toml
 [data]
-source = "local_csv"
+source = "local"
 directory = "/data"
 ```
 
-`directory` may be absolute or relative to the TOML file that defines it. An
-optional timezone-aware `reference_date` makes reporting deterministic, and
-`show_demo_banner = true` marks synthetic data. [`config/demo.toml`](config/demo.toml)
-is the complete committed profile for `demo/data`.
+`directory` may be absolute or relative to `config.toml`. The reports use the
+latest date in the local files, just as they do for a remote spreadsheet.
+[`portico-demo.toml`](portico-demo.toml) is the complete configuration for
+`demo/data`.
 
-In Docker, bind-mount the profile and CSV directory separately and select the
-mounted profile:
+In Docker, bind-mount `config.toml` and the CSV directory separately:
 
 ```console
 docker run --rm --init --name portico \
   --read-only --tmpfs /tmp:size=64m,mode=1777 \
   --cap-drop ALL --security-opt no-new-privileges:true \
-  --env PORTICO_CONFIG_PATH=/app/config/exports.toml \
-  --mount "type=bind,source=$(pwd)/config/exports.toml,target=/app/config/exports.toml,readonly" \
+  --mount "type=bind,source=$(pwd)/config.toml,target=/app/config.toml,readonly" \
   --mount "type=bind,source=$(pwd)/data,target=/data,readonly" \
   --publish 127.0.0.1:8501:8501 \
   ghcr.io/nccurry/portico:latest
@@ -375,36 +362,10 @@ docker run --rm --init --name portico \
 
 ### Configure a Docker deployment
 
-The image includes `/app/config/defaults.toml`, `/app/config/demo.toml`, and
-`/app/config/household.example.toml`. A real Google Sheets deployment normally
-selects an ignored household profile. Do not bind-mount a replacement
-configuration directory or an older `defaults.toml`: either can hide new
-required settings in a later image release.
-
-Create your private profile on the Docker host:
-
-```console
-cp config/household.example.toml config/household.toml
-nano config/household.toml
-```
-
-Add this line to `.env`:
-
-```console
-PORTICO_CONFIG_PATH=/app/config/household.toml
-```
-
-Then add this read-only mount to the Docker command:
-
-```console
---mount "type=bind,source=$(pwd)/config/household.toml,target=/app/config/household.toml,readonly"
-```
-
-The selected profile merges onto the image's generic defaults. This is an
-explicit deployment mechanism, not an automatically loaded local configuration.
-Mount the selected TOML file itself, not the whole `/app/config` directory.
+The image includes `/app/config.toml`. Mount your complete `config.toml` over
+that file when you deploy. Do not mount a whole configuration directory.
 Environment variables are fixed when Docker creates the container, so remove the
-existing container and run the start command again:
+existing container and run the start command again after changing the config:
 
 ```console
 docker stop portico
@@ -418,13 +379,11 @@ These environment variables change the main application settings:
 
 | Variable | Use |
 | --- | --- |
-| `PORTICO_CONFIG_PATH` | Select an explicit TOML profile that merges onto generic defaults. |
 | `PORTICO_DISCORD_ENABLED` | Set to `true` to enable scheduled Discord summaries. The default is `false`. |
 | `PORTICO_DISCORD_CRON` | Set the five-field cron schedule. The default is `0 9 * * 0` (Sunday at 9:00 AM). |
 | `TZ` | Set the IANA timezone used by the Discord schedule, such as `America/Chicago`. |
 
-Keep household policy in ignored `config/household.toml`. Keep Google Sheets and
-Discord URLs in `.streamlit/secrets.toml`.
+Keep remote spreadsheet URLs and Discord URLs in `.streamlit/secrets.toml`.
 
 ## Optional Discord summary
 
@@ -441,8 +400,8 @@ The report includes:
 - Total expenses and the number of uncategorized transactions
 
 Public defaults use an eight-week average, a four-week comparison, and three
-merchants per category. Change those values under `[weekly_summary]` in your
-household profile when needed.
+merchants per category. Change those values under `[weekly_summary]` in
+`config.toml` when needed.
 
 ### Create the Discord webhook
 
@@ -469,7 +428,7 @@ Treat the webhook URL as a password.
 ### Preview and test the message
 
 The notifier runs inside the same container as the dashboard. Check its
-configuration, Google Sheets access, selected categories, webhook, and timezone:
+configuration, remote spreadsheet access, selected categories, webhook, and timezone:
 
 ```console
 docker exec portico python -m src.discord_notifier check
@@ -587,9 +546,9 @@ uv run --locked mypy
 uv run --locked pytest
 ```
 
-Set `PORTICO_CONFIG_PATH=config/demo.toml` and run
+Set `PORTICO_CONFIG_PATH=portico-demo.toml` and run
 `uv run --locked streamlit run Home.py` to start the synthetic demo without
-Task. PowerShell uses `$env:PORTICO_CONFIG_PATH = "config/demo.toml"`.
+Task. PowerShell uses `$env:PORTICO_CONFIG_PATH = "portico-demo.toml"`.
 
 ### Checks
 
@@ -612,7 +571,7 @@ Portico is a personal application with no login screen. Source commands and
 container ports use `127.0.0.1` by default. Read [SECURITY.md](SECURITY.md) before
 you expose the app beyond the local computer.
 
-This project is independent. Tiller Money does not endorse or maintain it.
+This project is independent. No spreadsheet provider endorses or maintains it.
 
 ## License
 

@@ -1,0 +1,120 @@
+# Complete configuration for the committed synthetic data.
+# The app shows its demo banner only when the selected file is named portico-demo.toml.
+
+[data]
+source = "local"
+directory = "demo/data"
+
+[lookback]
+lookback_months = [3, 6, 12, 24]
+default_lookback_months = 12
+
+[thresholds]
+expense = 3000
+income = 20000
+duplicate_minimum = 10.0
+duplicate_days = 1
+
+[merchants.aliases]
+
+[transaction_sets.all]
+label = "All spending"
+groups = []
+categories = []
+accounts = []
+merchants = []
+transactions_like = []
+includes = []
+excludes = []
+
+[transaction_sets.utilities]
+label = "Utilities"
+groups = []
+categories = ["Electric", "Natural Gas", "Internet", "Mobile Phone", "Water & Sewer", "Trash"]
+accounts = []
+merchants = []
+transactions_like = []
+includes = []
+excludes = []
+
+[transaction_sets.non_discretionary]
+label = "Non-discretionary"
+groups = ["Bills", "Donations", "Health", "Housing", "Insurance", "Maintenance", "Travel"]
+categories = ["Automobile Fuel", "Given Gift", "Groceries"]
+accounts = []
+merchants = []
+transactions_like = []
+includes = []
+excludes = []
+
+[transaction_sets.discretionary]
+label = "Discretionary"
+groups = []
+categories = []
+accounts = []
+merchants = []
+transactions_like = []
+includes = ["all"]
+excludes = ["non_discretionary"]
+
+[filter_sets.spending]
+options = ["all", "discretionary"]
+default = "discretionary"
+
+[filter_sets.year_over_year]
+options = ["all", "utilities", "discretionary"]
+default = "utilities"
+
+[income_savings]
+default_view = "regular"
+target_rate = 20
+exclude_categories = []
+exclude_groups = ["Travel", "Donations"]
+
+[subscriptions]
+known_categories = [
+    "Streaming Subscription",
+    "Cloud Subscription",
+    "Music Subscription",
+    "News Subscription",
+    "Fitness Subscription",
+    "Meal Kit Subscription",
+]
+minimum_confidence = 80
+stale_after_days = 45
+default_exclude_categories = ["Automobile Fuel"]
+detection_excluded_categories = []
+
+[budget]
+history_months = 12
+
+[data_health]
+stale_account_days = 7
+duplicate_require_same_account = true
+duplicate_require_same_category = false
+duplicate_require_same_description = true
+
+[financial_safety]
+emergency_fund_target_months = 6
+emergency_fund_included_groups = ["Savings"]
+emergency_fund_included_account_patterns = []
+emergency_fund_spending_lookback_months = 6
+emergency_fund_exclude_categories = []
+emergency_fund_exclude_groups = ["Travel", "Donations"]
+debt_included_groups = ["Credit Cards", "Liabilities"]
+debt_included_account_patterns = []
+debt_baseline_date = ""
+
+[financial_independence]
+expected_return_rate = 7.0
+withdrawal_rate = 4.0
+target_amount = 1_000_000
+spending_lookback_months = 12
+projection_years = 50
+included_account_patterns = []
+included_groups = ["Savings", "Investments", "Retirement"]
+
+[weekly_summary]
+average_weeks = 8
+rolling_weeks = 4
+top_merchant_count = 3

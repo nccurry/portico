@@ -63,10 +63,11 @@ def _month_sequence(start_month: str, end_month: str) -> list[str]:
 
 def _analysis_periods(
     *,
+    transactions: pd.DataFrame,
     lookback_months: int,
     comparison: str,
 ) -> tuple[list[str], list[str], str, str, str, str]:
-    current_start, current_last = rolling_month_window(lookback_months)
+    current_start, current_last = rolling_month_window(lookback_months, transactions)
     current_end = str(pd.Period(current_last, freq="M") + 1)
     current_months = _month_sequence(current_start, current_end)
     if comparison == "Previous period":
@@ -673,9 +674,9 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
     except ValueError as error:
         st.error(f"Merchant alias configuration is invalid: {error}")
         return
-    lookback_options = month_lookback_options(settings.reporting.lookback_months)
+    lookback_options = month_lookback_options(settings.lookback.lookback_months)
     default_lookback = next(
-        label for label, months in lookback_options.items() if months == settings.reporting.default_lookback_months
+        label for label, months in lookback_options.items() if months == settings.lookback.default_lookback_months
     )
     transactions = transactions_spreadsheet.scrubbed_df.copy()
     expenses = transactions[transactions["Type"] == "Expense"]
@@ -736,6 +737,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
         comparison_start,
         comparison_end,
     ) = _analysis_periods(
+        transactions=transactions,
         lookback_months=lookback_months,
         comparison=str(comparison),
     )

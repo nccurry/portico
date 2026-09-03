@@ -572,8 +572,8 @@ def configure_page(
             view=calculation_view,
         )
 
-    lookback_months = month_lookback_options(get_settings().reporting.lookback_months)[lookback]
-    start_month, current_month = rolling_month_window(lookback_months)
+    lookback_months = month_lookback_options(get_settings().lookback.lookback_months)[lookback]
+    start_month, current_month = rolling_month_window(lookback_months, transactions)
     end_month = str(pd.Period(current_month, freq="M") + 1)
     ledger = build_income_expense_ledger(
         transactions,
@@ -668,9 +668,9 @@ def main() -> None:
     st.title("Income and savings")
 
     settings = get_settings()
-    lookback_options = month_lookback_options(settings.reporting.lookback_months)
+    lookback_options = month_lookback_options(settings.lookback.lookback_months)
     default_lookback = next(
-        label for label, months in lookback_options.items() if months == settings.reporting.default_lookback_months
+        label for label, months in lookback_options.items() if months == settings.lookback.default_lookback_months
     )
     controls = st.container(horizontal=True, wrap=True, vertical_alignment="bottom")
     with controls:

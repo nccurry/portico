@@ -9,14 +9,14 @@ from src.page_helpers import extract_merchant_name, render_demo_banner, render_t
 
 def test_demo_banner_identifies_synthetic_data(monkeypatch: MonkeyPatch) -> None:
     messages: list[str] = []
-    settings = SimpleNamespace(data=SimpleNamespace(show_demo_banner=True))
+    settings = SimpleNamespace(is_demo=True)
     monkeypatch.setattr("src.page_helpers.get_settings", lambda: settings)
     monkeypatch.setattr("src.page_helpers.st.info", lambda message, **kwargs: messages.append(message))
 
     render_demo_banner()
 
     assert messages == [
-        "Demo data is active. The dashboard uses committed synthetic records and does not contact Google Sheets."
+        "Demo data is active. The dashboard uses committed synthetic records and does not contact a remote spreadsheet."
     ]
 
 

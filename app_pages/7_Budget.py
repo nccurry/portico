@@ -1,4 +1,4 @@
-"""Tiller-backed budget pulse, comparison, and drill-down."""
+"""Spreadsheet-backed budget pulse, comparison, and drill-down."""
 
 import calendar
 from collections.abc import Sequence
@@ -47,7 +47,7 @@ def _format_currency(value: float, *, signed: bool = False) -> str:
 
 def _categories_sheet_url() -> str | None:
     """Return the configured Categories sheet URL without exposing credentials."""
-    if get_settings().data.source == "local_csv":
+    if get_settings().data.source == "local":
         return None
     try:
         config = st.secrets["connections"]["categories"]
@@ -89,7 +89,7 @@ def _month_progress(
     dates = pd.to_datetime(transactions["Date"], errors="coerce", utc=True)
     valid = transactions.assign(_Date=dates).dropna(subset=["_Date"])
     latest = None if valid.empty else cast(pd.Timestamp, valid["_Date"].max())
-    anchor = reporting_anchor(transactions, anchor_to_data=True)
+    anchor = reporting_anchor(transactions)
     selected_period = pd.Period(selected_month, freq="M")
     anchor_period = pd.Period(anchor.strftime("%Y-%m"), freq="M")
     if selected_period > anchor_period:
@@ -377,7 +377,7 @@ def _render_daily_budget_pace(
     filters: BudgetFilters,
 ) -> None:
     """Render the selected budget's cumulative daily pace."""
-    anchor = reporting_anchor(transactions_df, anchor_to_data=True)
+    anchor = reporting_anchor(transactions_df)
     selected_period = pd.Period(selected_month, freq="M")
     anchor_period = pd.Period(anchor.strftime("%Y-%m"), freq="M")
     through_date = anchor if selected_period >= anchor_period else selected_period.end_time
@@ -581,7 +581,7 @@ def main() -> None:
     if latest is not None:
         st.caption(f"Spending through {latest.strftime('%B %d, %Y').replace(' 0', ' ')}")
 
-    current_month = rolling_month_window(1)[1]
+    current_month = rolling_month_window(1, transactions_df)[1]
     latest_month = latest.strftime("%Y-%m") if latest is not None else current_month
     months = sorted(
         {*transactions_df["Month"].dropna().astype(str).unique(), current_month, latest_month},
@@ -625,7 +625,7 @@ def main() -> None:
         sheet_url = _categories_sheet_url()
         if sheet_url:
             st.link_button(
-                "Edit in Tiller",
+                "Open spreadsheet",
                 sheet_url,
                 icon=":material/open_in_new:",
                 width="content",

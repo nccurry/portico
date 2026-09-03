@@ -30,7 +30,7 @@ _DISCRETIONARY_SET = TransactionSetSettings(
     includes=("all",),
     excludes=("non_discretionary",),
 )
-_HOUSEHOLD_EXAMPLE = Path(__file__).resolve().parents[3] / "config" / "household.example.toml"
+_CONFIG = Path(__file__).resolve().parents[3] / "config.toml"
 
 # ---------------------------------------------------------------------------
 # calculate_date_range tests
@@ -88,8 +88,7 @@ class TestCalculateDateRange:
         )
         start, end = calculate_date_range("All Time", df=df)
         assert start == pd.Timestamp("2020-03-15", tz="UTC")
-        now = pd.Timestamp.now(tz="UTC")
-        assert abs((end - now).total_seconds()) < 2
+        assert end == pd.Timestamp("2023-07-01", tz="UTC")
 
     def test_all_time_without_df(self) -> None:
         start, end = calculate_date_range("All Time")
@@ -440,8 +439,27 @@ def _mock_filter_widgets(mock_st: MagicMock) -> None:
 
 
 class TestPageFilterDefaults:
-    def test_income_defaults_follow_the_selected_profile(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("PORTICO_CONFIG_PATH", str(_HOUSEHOLD_EXAMPLE))
+    def test_income_defaults_follow_the_selected_config(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        tmp_path: Path,
+    ) -> None:
+        config = tmp_path / "config.toml"
+        config.write_text(_CONFIG.read_text(encoding="utf-8"), encoding="utf-8")
+        text = config.read_text(encoding="utf-8")
+        text = text.replace(
+            "# Exact category names removed from the Regular calculation.\nexclude_categories = []",
+            "# Exact category names removed from the Regular calculation.\n"
+            'exclude_categories = ["Annual bonus", "Tax refund", "Investment transfer"]',
+            1,
+        )
+        text = text.replace(
+            "# Exact group names removed from the Regular calculation.\nexclude_groups = []",
+            '# Exact group names removed from the Regular calculation.\nexclude_groups = ["Travel", "Giving"]',
+            1,
+        )
+        config.write_text(text, encoding="utf-8")
+        monkeypatch.setenv("PORTICO_CONFIG_PATH", str(config))
         clear_settings_cache()
         income_categories = [
             "Paycheck",
@@ -496,6 +514,7 @@ class TestPageFilterDefaults:
         )
         mock_st.markdown.assert_not_called()
         mock_st.write.assert_not_called()
+        clear_settings_cache()
 
     def test_income_actual_view_clears_regular_exclusions(self) -> None:
         with patch("src.filters.st") as mock_st:

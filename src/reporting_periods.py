@@ -4,14 +4,9 @@ from datetime import timedelta
 
 import pandas as pd
 
-from src.config import get_settings
-
 
 def current_timestamp() -> pd.Timestamp:
-    """Return the configured local-data reference time or the current UTC time."""
-    settings = get_settings()
-    if settings.data.reference_date is not None:
-        return pd.Timestamp(settings.data.reference_date)
+    """Return the current UTC time."""
     return pd.Timestamp.now(tz="UTC")
 
 
@@ -48,24 +43,20 @@ def reporting_anchor(
     df: pd.DataFrame | None = None,
     *,
     column: str = "Date",
-    anchor_to_data: bool = False,
 ) -> pd.Timestamp:
-    """Return the timestamp that relative reports should anchor to."""
-    if anchor_to_data:
-        latest = latest_data_timestamp(df, column=column)
-        if latest is not None:
-            return latest
+    """Use the latest source date when available, otherwise use the current time."""
+    latest = latest_data_timestamp(df, column=column)
+    if latest is not None:
+        return latest
     return current_timestamp()
 
 
 def calculate_date_range(
     period: str,
     df: pd.DataFrame | None = None,
-    *,
-    anchor_to_data: bool = False,
 ) -> tuple[pd.Timestamp, pd.Timestamp]:
     """Calculate start/end dates for a named reporting period."""
-    end = reporting_anchor(df, anchor_to_data=anchor_to_data)
+    end = reporting_anchor(df)
 
     if period == "This Month":
         return end.replace(day=1), end
@@ -90,9 +81,9 @@ def calculate_date_range(
     return end - pd.DateOffset(months=3), end
 
 
-def rolling_month_window(lookback_months: int) -> tuple[str, str]:
-    """Return inclusive YYYY-MM bounds ending at the current month."""
-    anchor = reporting_anchor()
+def rolling_month_window(lookback_months: int, df: pd.DataFrame | None = None) -> tuple[str, str]:
+    """Return inclusive YYYY-MM bounds ending at the latest source month."""
+    anchor = reporting_anchor(df)
     end = anchor
     start = anchor - pd.DateOffset(months=lookback_months - 1)
     return start.strftime("%Y-%m"), end.strftime("%Y-%m")

@@ -41,9 +41,9 @@ def get_transaction_column_config() -> ColumnConfig:
 
 def render_demo_banner() -> None:
     """Show a shared banner when the app uses synthetic demo data."""
-    if get_settings().data.show_demo_banner:
+    if get_settings().is_demo:
         st.info(
-            "Demo data is active. The dashboard uses committed synthetic records and does not contact Google Sheets.",
+            "Demo data is active. The dashboard uses committed synthetic records and does not contact a remote spreadsheet.",
             icon=":material/science:",
         )
 

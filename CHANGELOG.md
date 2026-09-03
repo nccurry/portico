@@ -7,6 +7,25 @@ Portico uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-09-03
+
+### Added
+
+- Reusable transaction sets let spending reports share one definition of discretionary, utility, and other views.
+- Local CSV files are a first-class spreadsheet source alongside the configured remote spreadsheet.
+
+### Changed
+
+- `config.toml` is now the one complete normal configuration file; `portico-demo.toml` is the complete synthetic-data configuration.
+- Reporting periods use the latest loaded spreadsheet date, and the demo banner is inferred from the demo configuration filename.
+- Configuration, documentation, and container labels use generic spreadsheet language.
+
+### Fixed
+
+- Spending-by-category, merchant, and year-over-year views now apply the same configured discretionary policy.
+- Cash-flow month labels and data points share one aligned time scale.
+- Merchant aliases are used consistently when merchant rows are grouped.
+
 ## [1.1.0] - 2026-09-01
 
 ### Added
@@ -40,6 +59,7 @@ Portico uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - A configurable weekly Discord expense summary with an optional built-in schedule.
 - A shared development container, native bootstrap scripts, tests, and release checks.
 
-[Unreleased]: https://github.com/nccurry/portico/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/nccurry/portico/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/nccurry/portico/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/nccurry/portico/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/nccurry/portico/releases/tag/v1.0.0

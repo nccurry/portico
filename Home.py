@@ -27,7 +27,7 @@ from src.constants import (
 )
 from src.custom_types import FinancialSafetySummary
 from src.page_helpers import render_data_refresh_controls, render_demo_banner, render_time_frame_control
-from src.reporting_periods import current_timestamp, latest_data_timestamp, reporting_anchor
+from src.reporting_periods import latest_data_timestamp, reporting_anchor
 from src.spreadsheet import (
     BalanceHistorySpreadsheet,
     TransactionsSpreadsheet,
@@ -449,19 +449,20 @@ def configure_page(
     transactions_spreadsheet: TransactionsSpreadsheet,
     lookback: str,
 ) -> None:
-    """Render the accounts and net-worth overview from loaded Tiller sheets."""
+    """Render the accounts and net-worth overview from loaded spreadsheet data."""
     balances = balance_history_spreadsheet.scrubbed_df.copy()
     balance_as_of = latest_data_timestamp(balances)
 
     if balances.empty:
         _render_global_status(balance_as_of, balances)
         st.info(
-            "No balance history is available yet. Refresh after Tiller has populated account balances.",
+            "No balance history is available yet. Refresh after your spreadsheet has account balances.",
             icon=":material/info:",
         )
         return
 
-    end_date = reporting_anchor(balances, anchor_to_data=True)
+    transactions = transactions_spreadsheet.scrubbed_df.copy()
+    end_date = reporting_anchor(balances)
     lookback_days = SPARKLINE_LOOKBACK_OPTIONS[lookback]
     start_date = (
         pd.Timestamp(balances["Date"].min()) if lookback_days is None else end_date - timedelta(days=lookback_days)
@@ -477,10 +478,10 @@ def configure_page(
     _render_financial_safety(
         build_financial_safety_summary(
             balances,
-            transactions_spreadsheet.scrubbed_df.copy(),
+            transactions,
             get_settings().financial_safety,
             get_settings().financial_independence,
-            as_of=current_timestamp(),
+            as_of=reporting_anchor(transactions),
         )
     )
     _render_global_status(balance_as_of, balances)

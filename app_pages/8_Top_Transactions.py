@@ -296,7 +296,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
     selected_lookback = str(lookback) if lookback in LOOKBACK_DAYS else "1Y"
     selected_type = str(type_view) if type_view in TYPE_VIEWS else "All"
     selected_focus = str(focus) if focus in FOCUS_OPTIONS else "All transactions"
-    end_date = reporting_anchor(transactions, anchor_to_data=True)
+    end_date = reporting_anchor(transactions)
     lookback_days = LOOKBACK_DAYS[selected_lookback]
     start_date = (
         pd.Timestamp(transactions["Date"].min())

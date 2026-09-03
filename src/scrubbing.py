@@ -1,4 +1,4 @@
-"""Streamlit-independent cleaning for Tiller spreadsheet data."""
+"""Streamlit-independent cleaning for spreadsheet data."""
 
 from __future__ import annotations
 
@@ -54,7 +54,7 @@ def validate_required_columns(
     required_columns: frozenset[str],
     sheet_name: str,
 ) -> None:
-    """Raise when ``df`` is missing required Tiller columns."""
+    """Raise when ``df`` is missing required spreadsheet columns."""
     missing = sorted(required_columns - set(df.columns))
     if missing:
         joined = ", ".join(missing)

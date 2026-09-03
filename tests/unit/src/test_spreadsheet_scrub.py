@@ -188,7 +188,7 @@ class TestLoadErrorHandling:
         ):
             TransactionsSpreadsheet()
             mock_error.assert_called_once()
-            assert mock_error.call_args[0][0] == "Failed to load data from Google Sheets (transactions)."
+            assert mock_error.call_args[0][0] == "Failed to load remote spreadsheet data (transactions)."
             assert "no creds" not in mock_error.call_args[0][0]
             mock_stop.assert_called_once()
 

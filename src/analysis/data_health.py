@@ -1,4 +1,4 @@
-"""Data-quality checks for imported Tiller sheets."""
+"""Data-quality checks for imported spreadsheet data."""
 
 from typing import TypedDict
 
@@ -26,7 +26,15 @@ def build_data_health_report(
 ) -> DataHealthReport:
     """Run data-quality checks across transactions, balances, and budgets."""
     if as_of is None:
-        as_of = _latest_timestamp(balance_history_df, "Date") or current_timestamp()
+        source_dates = [
+            timestamp
+            for timestamp in (
+                _latest_timestamp(transactions_df, "Date"),
+                _latest_timestamp(balance_history_df, "Date"),
+            )
+            if timestamp is not None
+        ]
+        as_of = max(source_dates, default=current_timestamp())
 
     return DataHealthReport(
         uncategorized_transactions=find_uncategorized_transactions(transactions_df),

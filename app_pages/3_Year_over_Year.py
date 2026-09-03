@@ -329,7 +329,7 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
         st.info("No expense transactions are available.")
         return
 
-    _, current_through = rolling_month_window(1)
+    _, current_through = rolling_month_window(1, transactions)
     cutoff = pd.Period(current_through, freq="M")
     analysis_transactions = transactions[transactions["Month"].astype(str) <= current_through].copy()
     latest = latest_data_timestamp(transactions)

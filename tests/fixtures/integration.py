@@ -6,7 +6,6 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
-from src.config import load_settings
 from src.custom_types import IncomeExpenseFilters
 from tests.custom_types import FullDatasetFactory, SpreadsheetBundle
 
@@ -88,20 +87,10 @@ def real_accounts_csv_df() -> pd.DataFrame:
 
 
 @pytest.fixture(scope="session")
-def reference_date() -> pd.Timestamp:
-    """Return the configured date for the committed synthetic fixtures.
-
-    Use with @pytest.mark.uses_real_dates to keep date-sensitive logic stable
-    against the committed fixture.
-    """
-    settings = load_settings(
-        defaults_path=_PROJECT_ROOT / "config" / "defaults.toml",
-        override_path=_PROJECT_ROOT / "config" / "demo.toml",
-        environ={},
-        project_root=_PROJECT_ROOT,
-    )
-    assert settings.data.reference_date is not None
-    return pd.Timestamp(settings.data.reference_date)
+def demo_latest_date(real_balance_csv_df: pd.DataFrame) -> pd.Timestamp:
+    """Return the latest date in the committed synthetic data."""
+    dates = pd.to_datetime(real_balance_csv_df["Date"], errors="raise", utc=True)
+    return pd.Timestamp(dates.max())
 
 
 @pytest.fixture

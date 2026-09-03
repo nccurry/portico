@@ -28,12 +28,28 @@ from tests.custom_types import FullDatasetFactory, SpreadsheetBundle
 # ---------------------------------------------------------------------------
 
 _APP_PAGE_DIR = Path(__file__).resolve().parents[2] / "app_pages"
+_PROJECT_ROOT = _APP_PAGE_DIR.parent
+_DEMO_CONFIG = _PROJECT_ROOT / "portico-demo.toml"
 _MASKED_VALUE = "XXXXXXXX"
 _SENSITIVE_TEXT = re.compile(
     r"\$\s*\d|\b\d[\d,]*(?:\.\d+)?%|\b\d[\d,]*(?:\.\d+)?\s+"
     r"(?:accounts?|days?|merchants?|rows?|transactions?|years?)\b",
     re.IGNORECASE,
 )
+
+
+def _copy_demo_config(tmp_path: Path, *, name: str = "config.toml") -> Path:
+    """Copy the complete demo configuration for a focused UI test."""
+    config = tmp_path / name
+    config.write_text(_DEMO_CONFIG.read_text(encoding="utf-8"), encoding="utf-8")
+    return config
+
+
+def _replace_config(config: Path, old: str, new: str) -> None:
+    """Make one explicit config change and fail if its target disappeared."""
+    text = config.read_text(encoding="utf-8")
+    assert old in text
+    config.write_text(text.replace(old, new, 1), encoding="utf-8")
 
 
 def _metric_values(at: AppTest) -> list[tuple[str, str, str]]:
@@ -325,29 +341,18 @@ def _dataset_with_non_discretionary_expenses(
 
 def _use_discretionary_category_policy(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
     """Select an explicit policy for the synthetic gift and tax rows."""
-    profile = tmp_path / "discretionary.toml"
-    profile.write_text(
-        """
-[transaction_sets.non_discretionary]
-label = "Non-discretionary"
-categories = ["Given Gift", "Tax payment"]
-
-[transaction_sets.discretionary]
-label = "Discretionary"
-includes = ["all"]
-excludes = ["non_discretionary"]
-
-[filter_sets.spending]
-options = ["all", "discretionary"]
-default = "discretionary"
-
-[filter_sets.year_over_year]
-options = ["all", "discretionary"]
-default = "discretionary"
-""".strip(),
-        encoding="utf-8",
+    config = _copy_demo_config(tmp_path, name="discretionary.toml")
+    _replace_config(
+        config,
+        'categories = ["Automobile Fuel", "Given Gift", "Groceries"]',
+        'categories = ["Given Gift", "Tax payment"]',
     )
-    monkeypatch.setenv("PORTICO_CONFIG_PATH", str(profile))
+    _replace_config(
+        config,
+        'options = ["all", "utilities", "discretionary"]\ndefault = "utilities"',
+        'options = ["all", "discretionary"]\ndefault = "discretionary"',
+    )
+    monkeypatch.setenv("PORTICO_CONFIG_PATH", str(config))
     clear_settings_cache()
 
 
@@ -679,22 +684,14 @@ class TestConfigurationOverrides:
         tmp_path: Path,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        override_config = tmp_path / "override.toml"
-        override_config.write_text(
-            """
-[reporting]
-lookback_months = [1, 3, 18]
-default_lookback_months = 3
-[income_savings]
-default_view = "actual"
-[transaction_sets.discretionary]
-label = "Discretionary"
-includes = ["all"]
-[filter_sets.spending]
-options = ["all", "discretionary"]
-default = "all"
-""".strip(),
-            encoding="utf-8",
+        override_config = _copy_demo_config(tmp_path, name="override.toml")
+        _replace_config(override_config, "lookback_months = [3, 6, 12, 24]", "lookback_months = [1, 3, 18]")
+        _replace_config(override_config, "default_lookback_months = 12", "default_lookback_months = 3")
+        _replace_config(override_config, 'default_view = "regular"', 'default_view = "actual"')
+        _replace_config(
+            override_config,
+            'options = ["all", "discretionary"]\ndefault = "discretionary"',
+            'options = ["all", "discretionary"]\ndefault = "all"',
         )
         monkeypatch.setenv("PORTICO_CONFIG_PATH", str(override_config))
         clear_settings_cache()
@@ -722,18 +719,27 @@ default = "all"
         tmp_path: Path,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        override_config = tmp_path / "override.toml"
+        override_config = _copy_demo_config(tmp_path, name="override.toml")
         override_config.write_text(
-            """
+            override_config.read_text(encoding="utf-8")
+            + """
+
 [transaction_sets.routine]
 label = "Routine purchases"
 groups = ["Food", "Shopping"]
-
-[filter_sets.spending]
-options = ["all", "routine"]
-default = "routine"
-""".strip(),
+categories = []
+accounts = []
+merchants = []
+transactions_like = []
+includes = []
+excludes = []
+""",
             encoding="utf-8",
+        )
+        _replace_config(
+            override_config,
+            'options = ["all", "discretionary"]\ndefault = "discretionary"',
+            'options = ["all", "routine"]\ndefault = "routine"',
         )
         monkeypatch.setenv("PORTICO_CONFIG_PATH", str(override_config))
         clear_settings_cache()
@@ -765,27 +771,16 @@ class TestDiscretionaryPolicySmoke:
         monkeypatch: MonkeyPatch,
         tmp_path: Path,
     ) -> None:
-        override = tmp_path / "override.toml"
-        override.write_text(
-            """
-[transaction_sets.non_discretionary]
-label = "Non-discretionary"
-transactions_like = ["IRS", "CHECK", "HOME LOAN", "AIRBNB"]
-
-[transaction_sets.discretionary]
-label = "Discretionary"
-includes = ["all"]
-excludes = ["non_discretionary"]
-
-[filter_sets.spending]
-options = ["all", "discretionary"]
-default = "discretionary"
-
-[filter_sets.year_over_year]
-options = ["all", "discretionary"]
-default = "discretionary"
-""".strip(),
-            encoding="utf-8",
+        override = _copy_demo_config(tmp_path, name="override.toml")
+        _replace_config(
+            override,
+            '[transaction_sets.non_discretionary]\nlabel = "Non-discretionary"\ngroups = ["Bills", "Donations", "Health", "Housing", "Insurance", "Maintenance", "Travel"]\ncategories = ["Automobile Fuel", "Given Gift", "Groceries"]\naccounts = []\nmerchants = []\ntransactions_like = []',
+            '[transaction_sets.non_discretionary]\nlabel = "Non-discretionary"\ngroups = ["Bills", "Donations", "Health", "Housing", "Insurance", "Maintenance", "Travel"]\ncategories = ["Automobile Fuel", "Given Gift", "Groceries"]\naccounts = []\nmerchants = []\ntransactions_like = ["IRS", "CHECK", "HOME LOAN", "AIRBNB"]',
+        )
+        _replace_config(
+            override,
+            'options = ["all", "utilities", "discretionary"]\ndefault = "utilities"',
+            'options = ["all", "discretionary"]\ndefault = "discretionary"',
         )
         monkeypatch.setenv("PORTICO_CONFIG_PATH", str(override))
         clear_settings_cache()
@@ -1516,10 +1511,10 @@ class TestSubscriptionsSmoke:
             ],
         )
         assert not at.exception
-        assert "Subscription categories come from Tiller." in at.caption[0].value
+        assert "Subscription categories come from your spreadsheet." in at.caption[0].value
         assert "Activity stays Active until the full cadence-based inactivity window passes" in at.caption[0].value
         assert [widget.label for widget in at.multiselect] == [
-            "Tiller subscription categories",
+            "Subscription categories",
             "Additional discovery exclusions",
         ]
         assert {
@@ -1641,8 +1636,8 @@ class TestSubscriptionsSmoke:
             ("12-month change", "Not available", ""),
         ]
         assert [message.value for message in at.info] == [
-            "No active subscriptions are present in the selected Tiller categories.",
-            "Select at least one Tiller subscription category to see spending history.",
+            "No active subscriptions are present in the selected categories.",
+            "Select at least one subscription category to see spending history.",
         ]
         assert not at.selectbox
         assert not at.segmented_control

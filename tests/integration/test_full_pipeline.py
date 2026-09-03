@@ -119,14 +119,14 @@ class TestBalancePipeline:
         for cls in summary["group_classes"].values():
             assert cls in {"Asset", "Liability"}
 
-    def test_latest_balance_matches_demo_reference_date(
+    def test_latest_balance_matches_demo_data_date(
         self,
         full_dataset: SpreadsheetBundle,
-        reference_date: pd.Timestamp,
+        demo_latest_date: pd.Timestamp,
     ) -> None:
         """Keep demo reports inside the committed balance history."""
         _txns, bal, _cats, _accts = full_dataset
-        assert bal.scrubbed_df["Date"].max() == reference_date
+        assert bal.scrubbed_df["Date"].max() == demo_latest_date
 
 
 # ---------------------------------------------------------------------------
@@ -176,7 +176,7 @@ class TestCrossSheetJoins:
 
     def test_date_range_covers_fixture_data(self, full_dataset: SpreadsheetBundle) -> None:
         txns, _bal, _cats, _accts = full_dataset
-        start, end = calculate_date_range("All Time", txns.scrubbed_df, anchor_to_data=True)
+        start, end = calculate_date_range("All Time", txns.scrubbed_df)
         assert start <= txns.scrubbed_df["Date"].min()
         assert end >= txns.scrubbed_df["Date"].max() - pd.Timedelta(days=1)
 

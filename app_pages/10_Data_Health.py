@@ -1,4 +1,4 @@
-"""Data Health page: prioritize cleanup work across imported Tiller data."""
+"""Data Health page: prioritize cleanup work across imported spreadsheet data."""
 
 from typing import TypedDict
 
@@ -109,7 +109,7 @@ def _build_health_checks(
             "uncategorized",
             "Missing classifications",
             "Needs attention",
-            "Assign a Tiller category with a valid group and type.",
+            "Assign a category with a valid group and type.",
             report["uncategorized_transactions"],
             _amount_scope(report["uncategorized_transactions"]),
         ),
@@ -413,7 +413,7 @@ def configure_page(
     transactions_spreadsheet: TransactionsSpreadsheet,
     balance_history_spreadsheet: BalanceHistorySpreadsheet,
 ) -> None:
-    """Render prioritized data-quality findings for imported Tiller sheets."""
+    """Render prioritized data-quality findings for imported spreadsheet data."""
     st.title("Data health")
     transactions = transactions_spreadsheet.scrubbed_df.copy()
     balances = balance_history_spreadsheet.scrubbed_df.copy()

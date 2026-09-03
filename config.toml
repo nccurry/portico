@@ -1,0 +1,210 @@
+# Portico configuration.
+# Edit this file directly. It is one complete configuration file, not an overlay.
+# Use exact values from your spreadsheet for categories, groups, accounts, merchant names,
+# and transaction text. Merchant aliases below are the one intentional way to combine names.
+
+# Data source
+# Portico reads the same four tables from either source: Transactions, Balance History,
+# Categories, and Accounts. URLs and credentials for a remote spreadsheet belong in
+# .streamlit/secrets.toml, not in this file.
+[data]
+# Use remote for the configured remote spreadsheet, or local for CSV copies of the four tables.
+source = "remote"
+# For local, set the folder that contains transactions.csv, balance_history.csv,
+# categories.csv, and accounts.csv. Leave this empty for remote.
+directory = ""
+
+# Shared month choices
+# These values control the lookback menus that several reports share.
+[lookback]
+# List two to five month counts in ascending order.
+lookback_months = [3, 6, 12, 24]
+# Choose the month count selected when a page opens. It must appear above.
+default_lookback_months = 12
+
+# Shared thresholds
+# Pages use these values as their starting controls. They do not remove rows until
+# you enable the related filter.
+[thresholds]
+# Starting dollar amount for the large-expense filter.
+expense = 3000
+# Starting dollar amount for the large-income filter.
+income = 20000
+# Ignore possible duplicate pairs below this dollar amount.
+duplicate_minimum = 10.0
+# Compare possible duplicates this many days apart or less.
+duplicate_days = 1
+
+# Merchant aliases
+# Each alias combines raw description fragments under one displayed merchant name.
+# Add aliases only when the matching fragments really identify the same merchant.
+[merchants.aliases]
+# Example:
+# "Example Store" = ["EXAMPLE STORE #123", "EXAMPLE STORE ONLINE"]
+
+# Reusable transaction sets
+# A transaction set is a named selection of spending rows. Spending, merchant, and
+# year-over-year pages can use the same set, so a label such as Discretionary means
+# the same thing everywhere. A set can match direct selectors, include other sets,
+# and exclude other sets. Direct selectors are combined; exclusions run last.
+[transaction_sets.all]
+# Name shown in page controls.
+label = "All spending"
+# Exact group names from the Categories table.
+groups = []
+# Exact category names from the Categories table.
+categories = []
+# Exact account names from the Transactions table.
+accounts = []
+# Normalized merchant names after aliases above are applied.
+merchants = []
+# Literal text matched anywhere in Full Description, without regard to letter case.
+transactions_like = []
+# Keys of transaction sets to add.
+includes = []
+# Keys of transaction sets to remove after all other matches.
+excludes = []
+
+# Empty selectors make all leave each page's expense rows unchanged.
+#
+# Example: create a set from one exact group.
+# [transaction_sets.wants]
+# label = "Wants"
+# groups = ["Wants"]
+# categories = []
+# accounts = []
+# merchants = []
+# transactions_like = []
+# includes = []
+# excludes = []
+#
+# Example: define discretionary spending as all spending except normal bills and
+# one-off costs. Use the exact values that appear in your own spreadsheet.
+# [transaction_sets.non_discretionary]
+# label = "Non-discretionary"
+# groups = ["Bills", "Housing", "Travel"]
+# categories = ["Home Improvement"]
+# accounts = []
+# merchants = []
+# transactions_like = ["TAX AGENCY", "CHECK", "MORTGAGE", "VACATION RENTAL"]
+# includes = []
+# excludes = []
+#
+# [transaction_sets.discretionary]
+# label = "Discretionary"
+# groups = []
+# categories = []
+# accounts = []
+# merchants = []
+# transactions_like = []
+# includes = ["all"]
+# excludes = ["non_discretionary"]
+
+# Page view choices
+# Each page lists the transaction sets it offers and one opening choice.
+[filter_sets.spending]
+# Transaction-set keys in the order shown on spending and merchant pages.
+options = ["all"]
+# One key from options selected when those pages open.
+default = "all"
+
+[filter_sets.year_over_year]
+# Transaction-set keys in the order shown on the year-over-year page.
+options = ["all"]
+# One key from options selected when the page opens.
+default = "all"
+
+# Income and savings page
+# These values set the first view and the rows that the Regular view excludes.
+[income_savings]
+# Start on regular, which applies the exclusions below, or actual, which uses every row.
+default_view = "regular"
+# Savings-rate target shown as a percentage.
+target_rate = 20
+# Exact category names removed from the Regular calculation.
+exclude_categories = []
+# Exact group names removed from the Regular calculation.
+exclude_groups = []
+
+# Subscriptions page
+# These values control the known-subscription list and automatic discovery.
+[subscriptions]
+# Exact category names treated as known subscriptions when the page opens.
+known_categories = []
+# Only show automatic discoveries at or above this confidence percentage.
+minimum_confidence = 80
+# Warn when the newest transaction is older than this many days.
+stale_after_days = 45
+# Categories preselected in the additional discovery-exclusions control.
+default_exclude_categories = []
+# Categories that automatic discovery never uses.
+detection_excluded_categories = []
+
+# Budget page
+# This controls how much past budget data the page loads.
+[budget]
+# Number of months of budget history to load.
+history_months = 12
+
+# Data health page
+# These values set the opening checks for stale accounts and possible duplicates.
+[data_health]
+# Mark an account balance as stale after this many days without an update.
+stale_account_days = 7
+# Require a possible duplicate pair to use the same account.
+duplicate_require_same_account = true
+# Require a possible duplicate pair to use the same category.
+duplicate_require_same_category = false
+# Require a possible duplicate pair to use the same full description.
+duplicate_require_same_description = true
+
+# Financial safety on the home page
+# These values define the emergency-fund and debt-progress cards.
+[financial_safety]
+# Target months of covered expenses for the emergency fund.
+emergency_fund_target_months = 6
+# Exact account groups included in the emergency-fund balance.
+emergency_fund_included_groups = []
+# Account-name fragments included in the emergency-fund balance.
+emergency_fund_included_account_patterns = []
+# Complete months used to calculate the emergency-fund spending target.
+emergency_fund_spending_lookback_months = 6
+# Exact categories excluded from emergency-fund spending.
+emergency_fund_exclude_categories = []
+# Exact groups excluded from emergency-fund spending.
+emergency_fund_exclude_groups = []
+# Exact account groups included in the debt balance.
+debt_included_groups = []
+# Account-name fragments included in the debt balance.
+debt_included_account_patterns = []
+# ISO 8601 date used as the debt-progress starting point. Leave empty to use the
+# first recorded balance.
+debt_baseline_date = ""
+
+# Financial independence page
+# These values set the scenario assumptions and choose accounts included in the goal.
+[financial_independence]
+# Annual investment return percentage used in the projection.
+expected_return_rate = 7.0
+# Annual withdrawal percentage used to calculate the goal.
+withdrawal_rate = 4.0
+# Dollar amount used as the financial-independence goal.
+target_amount = 1_000_000
+# Months used to average spending. Allowed values are 6, 12, 24, and 36.
+spending_lookback_months = 12
+# Future years shown in the projection.
+projection_years = 50
+# Account-name fragments included in the portfolio.
+included_account_patterns = []
+# Exact account groups included in the portfolio.
+included_groups = []
+
+# Weekly Discord summary
+# These values control the comparison windows and merchant list in the scheduled summary.
+[weekly_summary]
+# Number of earlier weeks used for the average comparison.
+average_weeks = 8
+# Trailing spending window compared with the preceding window of the same length.
+rolling_weeks = 4
+# Number of merchants shown for each watched category.
+top_merchant_count = 3

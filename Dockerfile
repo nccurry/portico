@@ -24,7 +24,7 @@ ARG VERSION=dev
 ARG REVISION=unknown
 
 LABEL org.opencontainers.image.title="Portico" \
-      org.opencontainers.image.description="A self-hosted personal finance dashboard for Tiller data" \
+      org.opencontainers.image.description="A self-hosted personal finance spreadsheet dashboard" \
       org.opencontainers.image.source="https://github.com/nccurry/portico" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.revision="${REVISION}" \
@@ -45,7 +45,7 @@ WORKDIR /app
 COPY --from=builder --chown=portico:portico /app/.venv /app/.venv
 COPY --chown=portico:portico Home.py LICENSE README.md ./
 COPY --chown=portico:portico .streamlit/config.toml .streamlit/config.toml
-COPY --chown=portico:portico config/defaults.toml config/demo.toml config/household.example.toml config/
+COPY --chown=portico:portico config.toml portico-demo.toml ./
 COPY --chown=portico:portico demo/ demo/
 COPY --chown=portico:portico app_pages/ app_pages/
 COPY --chown=portico:portico src/ src/

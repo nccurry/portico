@@ -528,8 +528,6 @@ def render_fi_filters(
 def calculate_date_range(
     period: str,
     df: pd.DataFrame | None = None,
-    *,
-    anchor_to_data: bool = False,
 ) -> tuple[pd.Timestamp, pd.Timestamp]:
     """Calculate start and end dates for a given period string.
 
@@ -540,4 +538,4 @@ def calculate_date_range(
     Returns:
         Tuple of (start_date, end_date) as pandas Timestamps
     """
-    return _calculate_date_range(period, df, anchor_to_data=anchor_to_data)
+    return _calculate_date_range(period, df)

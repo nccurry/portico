@@ -9,16 +9,10 @@ from src.config import ConfigError, load_settings
 from src.sheet_config import SheetLocation
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
-DEFAULTS = PROJECT_ROOT / "config" / "defaults.toml"
 
 
-def test_demo_profile_doctor_validates_committed_data(tmp_path: Path) -> None:
-    settings = load_settings(
-        defaults_path=DEFAULTS,
-        override_path=PROJECT_ROOT / "config" / "demo.toml",
-        environ={},
-        project_root=PROJECT_ROOT,
-    )
+def test_demo_configuration_doctor_validates_committed_data(tmp_path: Path) -> None:
+    settings = load_settings(config_path=PROJECT_ROOT / "portico-demo.toml", environ={}, project_root=PROJECT_ROOT)
 
     results = run_doctor(settings)
 
@@ -47,11 +41,7 @@ spreadsheet = "https://docs.google.com/spreadsheets/d/book/edit?gid=4"
 """.strip(),
         encoding="utf-8",
     )
-    settings = load_settings(
-        defaults_path=DEFAULTS,
-        environ={},
-        project_root=PROJECT_ROOT,
-    )
+    settings = load_settings(config_path=PROJECT_ROOT / "config.toml", environ={}, project_root=PROJECT_ROOT)
 
     results = run_doctor(
         settings,
@@ -85,15 +75,11 @@ def test_duplicate_sheet_tab_is_rejected(tmp_path: Path) -> None:
 
 
 def test_unreadable_secrets_path_is_reported(tmp_path: Path) -> None:
-    settings = load_settings(
-        defaults_path=DEFAULTS,
-        environ={},
-        project_root=PROJECT_ROOT,
-    )
+    settings = load_settings(config_path=PROJECT_ROOT / "config.toml", environ={}, project_root=PROJECT_ROOT)
 
     results = run_doctor(settings, secrets_path=tmp_path)
 
-    assert results[-1].name == "Google Sheets"
+    assert results[-1].name == "remote spreadsheet"
     assert not results[-1].passed
     assert results[-1].detail == f"Could not read secrets file: {tmp_path.name}"
 
@@ -107,11 +93,7 @@ def test_network_failure_does_not_print_exception_details(tmp_path: Path) -> Non
         ),
         encoding="utf-8",
     )
-    settings = load_settings(
-        defaults_path=DEFAULTS,
-        environ={},
-        project_root=PROJECT_ROOT,
-    )
+    settings = load_settings(config_path=PROJECT_ROOT / "config.toml", environ={}, project_root=PROJECT_ROOT)
 
     def fail_read(location: SheetLocation, timeout: float) -> pd.DataFrame:
         raise RuntimeError("private URL and response details")
@@ -125,13 +107,13 @@ def test_network_failure_does_not_print_exception_details(tmp_path: Path) -> Non
 
 @pytest.mark.parametrize("timeout", ["0", "-1", "nan", "inf", "-inf"])
 def test_main_rejects_invalid_timeouts(monkeypatch: MonkeyPatch, timeout: str) -> None:
-    monkeypatch.setenv("PORTICO_CONFIG_PATH", str(PROJECT_ROOT / "config" / "demo.toml"))
+    monkeypatch.setenv("PORTICO_CONFIG_PATH", str(PROJECT_ROOT / "portico-demo.toml"))
 
     assert main([f"--timeout={timeout}"]) == 2
 
 
 def test_main_returns_stable_status_codes(monkeypatch: MonkeyPatch) -> None:
-    monkeypatch.setenv("PORTICO_CONFIG_PATH", str(PROJECT_ROOT / "config" / "demo.toml"))
+    monkeypatch.setenv("PORTICO_CONFIG_PATH", str(PROJECT_ROOT / "portico-demo.toml"))
 
     assert main([]) == EXIT_OK
     assert EXIT_CHECK_FAILED == 1

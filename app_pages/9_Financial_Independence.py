@@ -483,7 +483,7 @@ def configure_page(
         balances_df,
         filters["include_accounts"],
     )
-    start_month, end_month = rolling_month_window(filters["spending_lookback_months"])
+    start_month, end_month = rolling_month_window(filters["spending_lookback_months"], transactions_df)
     available_months = transactions_df["Month"].dropna().astype(str)
     if not available_months.empty:
         start_month = max(start_month, str(available_months.min()))

@@ -1,4 +1,4 @@
-# Transaction sets and local CSV sources — design
+# Transaction sets and spreadsheet sources — design
 
 ## Design decisions
 
@@ -7,7 +7,7 @@
 The application needs one reusable financial-policy boundary. A separate
 registry of Group lists, Category lists, and account lists would add indirection
 without removing the real duplication. A transaction set is the named list:
-it may contain selectors from several real Tiller fields and may compose other
+it may contain selectors from several real spreadsheet fields and may compose other
 sets.
 
 Direct selectors are a union. This preserves the current spending-view rule and
@@ -25,7 +25,7 @@ categories = ["Electric", "Natural Gas", "Internet", "Mobile Phone", "Water & Se
 label = "Non-discretionary"
 groups = ["Bills", "Donations", "Health", "Housing", "Insurance", "Maintenance", "Travel"]
 categories = ["Automobile Fuel", "Given Gift", "Groceries", "Tax Return Payment"]
-transactions_like = ["IRS", "CHECK", "***REMOVED***", "HOME LOAN", "AIRBNB"]
+transactions_like = ["TAX AGENCY", "CHECK", "MORTGAGE", "VACATION RENTAL"]
 
 [transaction_sets.discretionary]
 label = "Discretionary"
@@ -41,8 +41,8 @@ options = ["all", "utilities", "discretionary"]
 default = "utilities"
 ```
 
-The production default will use the maintainer's actual Tiller values. The demo
-profile overrides only values whose names differ in the synthetic workbook.
+Each configuration uses the exact values from its selected spreadsheet. The
+demo configuration uses the committed synthetic workbook values.
 `utilities` is intentionally just a category selector in the example: the
 Categories sheet already owns each category's Group and no fuzzy Group/category
 intersection is required.
@@ -65,8 +65,9 @@ new query language unless a concrete report requires more.
 - `FilterSetSettings`: key, ordered option keys, and default key.
 - `TransactionSetSettings` lookup and `FilterSetSettings` lookup methods on the
   root settings object or a small dedicated settings container.
-- `DataSettings`: `source`, optional local directory, optional reference date,
-  and an explicit synthetic/demo presentation flag.
+- `DataSettings`: `source` and an optional local directory.
+- `Settings.is_demo`: derived only when the selected file is named
+  `portico-demo.toml`.
 
 The parser will accept dynamic `[transaction_sets.<key>]` and
 `[filter_sets.<key>]` tables. It will reject unknown properties, duplicate
@@ -88,7 +89,7 @@ categorization data-backed for the same reason as utility membership.
 ## Runtime flow
 
 ```text
-Tiller rows
+Spreadsheet rows
   -> scrubbed Transactions dataframe
   -> selected TransactionSetSettings + merchant aliases
   -> recursive transaction-set mask
@@ -160,44 +161,42 @@ values. Delete `detection_excluded_pattern`, its regex compilation, and the
 `str.contains(..., regex=True)` branch. The demo profile supplies synthetic
 category names where needed.
 
-## Local CSV source and demo profile
+## Spreadsheet sources and demo configuration
 
-Replace `data.mode = "demo"` with a discriminated source configuration:
-
-```toml
-[data]
-source = "google_sheets"
-```
-
-The tracked demo profile overlays it with:
+Use a discriminated source configuration in the one complete normal file:
 
 ```toml
 [data]
-source = "local_csv"
-directory = "../demo/data"
-reference_date = "1995-04-20T00:00:00+00:00"
-show_demo_banner = true
+source = "remote"
+directory = ""
 ```
 
-The local directory is valid only for `local_csv`. Resolve a relative directory
+The separate complete demo configuration uses local files:
+
+```toml
+[data]
+source = "local"
+directory = "demo/data"
+```
+
+The local directory is valid only for `local`. Resolve a relative directory
 against the TOML file that defines it; accept an absolute path for a deliberate
 container bind mount. A source reads `categories.csv`, `accounts.csv`,
 `transactions.csv`, and `balance_history.csv` using the same spreadsheet
-classes and scrubbers as Google Sheets. An absent `reference_date` means use the
-normal current-time reporting anchor; the demo profile provides one for stable
-fixtures.
+classes and scrubbers as the remote connection. Reports use the latest date in
+the loaded data, which keeps both local and remote sources on the same rule.
 
-The normal configuration is still `config/defaults.toml`. `config/demo.toml` is
-checked in only as a named example/profile. Demo entry points explicitly set
-`PORTICO_CONFIG_PATH` to it. Remove `PORTICO_DATA_SOURCE` from code, Task,
-Docker commands, smoke tests, and documentation. Continue to mount only a
-single selected user override and, when needed, a data directory; never mount a
-host directory over `/app/config`.
+`config.toml` is the normal configuration and users edit or mount it directly.
+`portico-demo.toml` is a complete file for synthetic data. Demo entry points
+explicitly set `PORTICO_CONFIG_PATH` to it. Remove `PORTICO_DATA_SOURCE` from
+code, Task, Docker commands, smoke tests, and documentation. Do not merge
+configuration files. When needed, mount a local data directory separately from
+the single `config.toml` file.
 
-The Docker image and browser-demo archive must include `config/demo.toml`. The
+The Docker image and browser-demo archive must include `portico-demo.toml`. The
 browser entrypoint selects it before loading the normal application. The demo
-banner checks `show_demo_banner`, not the data-source type, so ordinary local
-CSV users do not see a synthetic-data warning.
+banner is inferred from that exact file name, so ordinary local CSV users do not
+see a synthetic-data warning.
 
 ## Cash-flow chart alignment
 
@@ -210,7 +209,7 @@ to visually drift from the lower labels.
 
 ## File-level delivery plan
 
-1. `config/defaults.toml`, new `config/demo.toml`, and `src/config.py`
+1. `config.toml`, `portico-demo.toml`, and `src/config.py`
    - Migrate source and policy schema; add typed parsing and graph validation.
 2. New `src/transaction_sets.py`, `src/custom_types.py`,
    `src/transaction_filters.py`, `src/analysis/spending.py`, and `src/filters.py`
@@ -235,10 +234,10 @@ to visually drift from the lower labels.
 
 | Risk | Mitigation |
 | --- | --- |
-| Personal defaults and synthetic names differ. | Keep demo policy in `config/demo.toml`; test both profiles. |
+| Normal and synthetic names differ. | Keep full normal and demo configurations; test both. |
 | A composed set changes a total silently. | Test row identities and reconciled totals for `all`, `utilities`, and `discretionary`. |
 | Alias logic diverges again. | Require all grouping call sites to accept the same alias map and add cross-report fixtures. |
-| A local CSV snapshot has an old date. | Let a profile set `reference_date`; document the normal current-time default. |
+| A local CSV snapshot has an old date. | Use the latest date in the loaded data for every source. |
 | Configuration becomes a query language. | Limit it to direct union selectors plus named include/exclude composition. |
 
 ## Deferred work

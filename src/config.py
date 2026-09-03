@@ -1,4 +1,4 @@
-"""Load validated application settings from tracked and selected TOML files."""
+"""Load validated application settings from one selected TOML file."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import re
 import tomllib
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
+from datetime import date, datetime
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -15,7 +15,7 @@ from typing import Any
 from src.constants import FI_SPENDING_LOOKBACK_OPTIONS
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DEFAULTS_PATH = PROJECT_ROOT / "config" / "defaults.toml"
+CONFIG_PATH = PROJECT_ROOT / "config.toml"
 
 
 class ConfigError(ValueError):
@@ -24,16 +24,14 @@ class ConfigError(ValueError):
 
 @dataclass(frozen=True)
 class DataSettings:
-    """Selected source and optional local-data settings."""
+    """Selected spreadsheet source and optional local-data directory."""
 
     source: str
     directory: Path | None
-    reference_date: datetime | None
-    show_demo_banner: bool
 
 
 @dataclass(frozen=True)
-class ReportingSettings:
+class LookbackSettings:
     """Shared reporting-period choices."""
 
     lookback_months: tuple[int, ...]
@@ -127,7 +125,7 @@ class FinancialIndependenceSettings:
 
 @dataclass(frozen=True)
 class FinancialSafetySettings:
-    """Household policy for emergency-fund and debt progress."""
+    """Policy for emergency-fund and debt progress."""
 
     emergency_fund_target_months: int
     emergency_fund_included_groups: tuple[str, ...]
@@ -160,8 +158,9 @@ class MerchantSettings:
 class Settings:
     """Validated application settings."""
 
+    is_demo: bool
     data: DataSettings
-    reporting: ReportingSettings
+    lookback: LookbackSettings
     thresholds: ThresholdSettings
     income_savings: IncomeSavingsSettings
     transaction_sets: tuple[TransactionSetSettings, ...]
@@ -190,8 +189,8 @@ class Settings:
 
 
 _SECTION_KEYS = {
-    "data": {"source", "directory", "reference_date", "show_demo_banner"},
-    "reporting": {"lookback_months", "default_lookback_months"},
+    "data": {"source", "directory"},
+    "lookback": {"lookback_months", "default_lookback_months"},
     "thresholds": {"expense", "income", "duplicate_minimum", "duplicate_days"},
     "income_savings": {"default_view", "target_rate", "exclude_categories", "exclude_groups"},
     "subscriptions": {
@@ -255,17 +254,6 @@ def _read_toml(path: Path) -> dict[str, Any]:
         raise ConfigError(f"Invalid TOML in {path.name}: {error}") from error
     except OSError as error:
         raise ConfigError(f"Could not read configuration file: {path.name}") from error
-
-
-def _merge(base: dict[str, Any], override: Mapping[str, Any]) -> dict[str, Any]:
-    merged = dict(base)
-    for key, value in override.items():
-        current = merged.get(key)
-        if isinstance(current, dict) and isinstance(value, Mapping):
-            merged[key] = _merge(current, value)
-        else:
-            merged[key] = value
-    return merged
 
 
 def _validate_dynamic_tables(
@@ -349,10 +337,6 @@ def _boolean(section: Mapping[str, Any], key: str) -> bool:
     return value
 
 
-def _optional_boolean(section: Mapping[str, Any], key: str, default: bool = False) -> bool:
-    return default if key not in section else _boolean(section, key)
-
-
 def _string(section: Mapping[str, Any], key: str) -> str:
     value = section.get(key)
     if not isinstance(value, str) or not value.strip():
@@ -396,17 +380,6 @@ def _integers(section: Mapping[str, Any], key: str, minimum: int, maximum: int) 
     if tuple(sorted(result)) != result:
         raise ConfigError(f"{key} must be in ascending order")
     return result
-
-
-def _utc_datetime(section: Mapping[str, Any], key: str) -> datetime:
-    value = _string(section, key)
-    try:
-        timestamp = datetime.fromisoformat(value)
-    except ValueError as error:
-        raise ConfigError(f"{key} must be an ISO 8601 date and time") from error
-    if timestamp.tzinfo is None:
-        raise ConfigError(f"{key} must include a timezone")
-    return timestamp.astimezone(UTC)
 
 
 def _optional_date(section: Mapping[str, Any], key: str) -> date | None:
@@ -531,32 +504,29 @@ def _local_directory(section: Mapping[str, Any], base: Path) -> Path:
     return configured.resolve() if configured.is_absolute() else (base / configured).resolve()
 
 
+def _optional_text(section: Mapping[str, Any], key: str) -> str:
+    value = section.get(key, "")
+    if not isinstance(value, str):
+        raise ConfigError(f"{key} must be a string")
+    return value.strip()
+
+
 def _data_settings(section: Mapping[str, Any], directory_base: Path) -> DataSettings:
-    source = _choice(section, "source", {"google_sheets", "local_csv"})
-    has_local_options = any(key in section for key in {"directory", "reference_date", "show_demo_banner"})
-    if source == "google_sheets":
-        if has_local_options:
-            raise ConfigError("data directory, reference_date, and show_demo_banner require data.source = 'local_csv'")
-        return DataSettings(
-            source=source,
-            directory=None,
-            reference_date=None,
-            show_demo_banner=False,
-        )
-    if "directory" not in section:
-        raise ConfigError("data.directory is required when data.source = 'local_csv'")
-    return DataSettings(
-        source=source,
-        directory=_local_directory(section, directory_base),
-        reference_date=_utc_datetime(section, "reference_date") if "reference_date" in section else None,
-        show_demo_banner=_optional_boolean(section, "show_demo_banner"),
-    )
+    source = _choice(section, "source", {"local", "remote"})
+    directory = _optional_text(section, "directory")
+    if source == "remote":
+        if directory:
+            raise ConfigError("data.directory is only used when data.source = 'local'")
+        return DataSettings(source=source, directory=None)
+    if not directory:
+        raise ConfigError("data.directory is required when data.source = 'local'")
+    return DataSettings(source=source, directory=_local_directory(section, directory_base))
 
 
-def _build_settings(document: Mapping[str, Any], directory_base: Path) -> Settings:
+def _build_settings(document: Mapping[str, Any], directory_base: Path, *, is_demo: bool) -> Settings:
     _validate_keys(document)
     data = document["data"]
-    reporting = document["reporting"]
+    lookback = document["lookback"]
     thresholds = document["thresholds"]
     income_savings = document["income_savings"]
     subscriptions = document["subscriptions"]
@@ -570,7 +540,7 @@ def _build_settings(document: Mapping[str, Any], directory_base: Path) -> Settin
         isinstance(section, Mapping)
         for section in (
             data,
-            reporting,
+            lookback,
             thresholds,
             income_savings,
             subscriptions,
@@ -593,17 +563,18 @@ def _build_settings(document: Mapping[str, Any], directory_base: Path) -> Settin
         1,
         120,
     )
-    lookback_months = _integers(reporting, "lookback_months", 1, 120)
+    lookback_months = _integers(lookback, "lookback_months", 1, 120)
     if not 2 <= len(lookback_months) <= 5:
         raise ConfigError("lookback_months must contain between 2 and 5 values")
-    default_lookback_months = _integer(reporting, "default_lookback_months", 1, 120)
+    default_lookback_months = _integer(lookback, "default_lookback_months", 1, 120)
     if default_lookback_months not in lookback_months:
         raise ConfigError("default_lookback_months must be included in lookback_months")
     transaction_sets = _transaction_sets(document)
 
     return Settings(
+        is_demo=is_demo,
         data=_data_settings(data, directory_base),
-        reporting=ReportingSettings(
+        lookback=LookbackSettings(
             lookback_months=lookback_months,
             default_lookback_months=default_lookback_months,
         ),
@@ -669,30 +640,30 @@ def _build_settings(document: Mapping[str, Any], directory_base: Path) -> Settin
 
 def load_settings(
     *,
-    defaults_path: Path = DEFAULTS_PATH,
-    override_path: Path | None = None,
+    config_path: Path = CONFIG_PATH,
     environ: Mapping[str, str] | None = None,
     project_root: Path = PROJECT_ROOT,
 ) -> Settings:
-    """Load canonical defaults and one explicit configuration overlay."""
-    environment = os.environ if environ is None else environ
-    document = _read_toml(defaults_path)
-    directory_base = defaults_path.resolve().parent
+    """Load one complete configuration file.
 
-    configured_override = environment.get("PORTICO_CONFIG_PATH")
-    configured_path = Path(configured_override) if configured_override else None
-    if configured_path is not None and not configured_path.is_absolute():
-        configured_path = project_root / configured_path
-    selected_override = configured_path or override_path
-    if selected_override is not None:
-        if not selected_override.exists() and configured_override:
-            raise ConfigError("PORTICO_CONFIG_PATH does not exist")
-        overlay = _read_toml(selected_override)
-        document = _merge(document, overlay)
-        overlay_data = overlay.get("data")
-        if isinstance(overlay_data, Mapping) and "directory" in overlay_data:
-            directory_base = selected_override.resolve().parent
-    return _build_settings(document, directory_base)
+    ``config.toml`` is the normal application configuration. The optional
+    ``PORTICO_CONFIG_PATH`` variable selects a different complete file for
+    tools and the synthetic demo; it never merges files.
+    """
+    environment = os.environ if environ is None else environ
+    configured_path = environment.get("PORTICO_CONFIG_PATH")
+    selected_path = Path(configured_path) if configured_path else config_path
+    if configured_path and not selected_path.is_absolute():
+        selected_path = project_root / selected_path
+    if configured_path and not selected_path.exists():
+        raise ConfigError("PORTICO_CONFIG_PATH does not exist")
+
+    document = _read_toml(selected_path)
+    return _build_settings(
+        document,
+        selected_path.resolve().parent,
+        is_demo=selected_path.name == "portico-demo.toml",
+    )
 
 
 @lru_cache(maxsize=1)

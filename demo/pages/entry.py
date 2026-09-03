@@ -12,7 +12,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 def main() -> None:
     """Run Portico with the committed synthetic data."""
     os.chdir(PROJECT_ROOT)
-    os.environ["PORTICO_CONFIG_PATH"] = "config/demo.toml"
+    os.environ["PORTICO_CONFIG_PATH"] = "portico-demo.toml"
 
     # TODO(stlite-1.62): Remove this call with demo/pages/streamlit_compat.py after
     # @stlite/browser bundles Streamlit 1.62, restores cached datetime data, and the

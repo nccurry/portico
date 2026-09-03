@@ -2,9 +2,9 @@
 
 ## Purpose
 
-Portico gives one person a clear view of personal finances stored in Tiller.
-It turns familiar spreadsheet data into focused reports without changing the
-source workbook.
+Portico gives one person a clear view of personal finances stored in a
+spreadsheet. It turns familiar spreadsheet data into focused reports without
+changing the source.
 
 The application values clear answers over a large feature count. A user must be
 able to trace a displayed number back to its source rows and selected filters.
@@ -12,30 +12,28 @@ The code must remain small enough for one maintainer to understand and operate.
 
 Portico uses useful defaults from the maintainer's workflow. The defaults stay
 anonymous, visible, and configurable. A new user can start with the demo or a
-standard Tiller workbook.
+compatible spreadsheet.
 
 ## Product principles
 
-### Tiller-based
+### Spreadsheet contract
 
-The Tiller Foundation Template is the canonical data model. Portico expects the
-Transactions, Balance History, Categories, and Accounts tabs from that model.
+Portico expects Transactions, Balance History, Categories, and Accounts tables
+with the documented columns, value meanings, and amount signs. It reads those
+tables from a remote spreadsheet or local CSV files and normalizes both sources
+into the same DataFrames.
 
-Compatible Google Sheets workbooks also work. They must provide the same tabs,
-columns, value meanings, and amount signs. Portico is not a general spreadsheet
-analysis platform or a source-plugin framework.
-
-If a column or financial rule is unclear, Tiller remains the reference. A new
-feature must preserve compatibility with normal Tiller data before it supports
-a custom workbook shape.
+The table layout is compatible with the Tiller Foundation Template, but the
+table contract is the application boundary. Portico is not a general
+spreadsheet analysis platform or a source-plugin framework.
 
 ### Read-only
 
-Portico reads financial data and never writes it back to Google Sheets. It does
+Portico reads financial data and never writes it back to a spreadsheet. It does
 not edit transactions, categories, budgets, or account balances.
 
-Read-only behavior keeps ownership clear. Tiller and Google Sheets own the
-records. Portico owns analysis and presentation.
+Read-only behavior keeps ownership clear. The spreadsheet owns the records.
+Portico owns analysis and presentation.
 
 ### Personal and private
 
@@ -122,8 +120,8 @@ container without a host cron job, systemd unit, or second notifier container.
 
 GitHub Pages hosts a static interactive preview with synthetic data. Stlite
 runs the Portico navigation, pages, calculations, settings, and synthetic data
-in the visitor's browser. The demo cannot load secrets, connect to Google
-Sheets, or send Discord messages. It is a public preview, not a hosted Portico
+in the visitor's browser. The demo cannot load secrets, connect to a remote
+spreadsheet, or send Discord messages. It is a public preview, not a hosted Portico
 service.
 
 The browser runtime temporarily uses Streamlit 1.57. The demo bridge ignores
@@ -132,8 +130,8 @@ A control can reset after its page or view changes, and reports recalculate
 after a rerun. Remove the bridge after Stlite supports Streamlit 1.62, restores
 cached datetime data, and the browser test opens every page twice.
 
-The fixture covers May 1992 through April 1995. It uses varied household
-accounts, spending, subscriptions, and budgets so each report shows meaningful
+The fixture covers May 1992 through April 1995. It uses varied accounts,
+spending, subscriptions, and budgets so each report shows meaningful
 changes instead of repeated values.
 
 ## Runtime design
@@ -141,17 +139,17 @@ changes instead of repeated values.
 The main data flow is:
 
 ```text
-Tiller workbook in Google Sheets     Synthetic CSV files
-                 \                    /
-                  load, validate, and scrub
-                              |
-                    normalized DataFrames
-                              |
-                   filters and calculations
-                              |
-                typed summaries and result tables
-                              |
-              Streamlit pages, Altair charts, and tables
+Remote spreadsheet                 Local CSV files
+                  \                 /
+                   load, validate, and scrub
+                               |
+                     normalized DataFrames
+                               |
+                    filters and calculations
+                               |
+                 typed summaries and result tables
+                               |
+               Streamlit pages, Altair charts, and tables
 ```
 
 ### Entry points
@@ -170,23 +168,22 @@ logged and does not stop the dashboard.
 
 ### Data sources
 
-The default Google Sheets profile uses `st-gsheets-connection` and the URLs in
-`.streamlit/secrets.toml`. An explicit `local_csv` profile reads a directory of
-CSV exports. [`config/demo.toml`](../config/demo.toml) is one such profile for
-the committed files in `demo/data`. Both sources create the same spreadsheet
-classes and normalized DataFrames. Pages and calculations must not contain
-source-specific behavior. The optional demo banner is the only intended
-presentation difference.
+The default `remote` source uses `st-gsheets-connection` and URLs in
+`.streamlit/secrets.toml`. The `local` source reads a directory of CSV exports.
+[`portico-demo.toml`](../portico-demo.toml) selects the committed files in
+`demo/data`. Both sources create the same spreadsheet classes and normalized
+DataFrames. Pages and calculations must not contain source-specific behavior.
 
-The browser demo selects the local CSV profile and packages `Home.py`, every
-page, the required source modules, settings, and the same CSV files. It has no
-browser-specific financial calculations. Its `[data].reference_date` keeps
-reports and loaded timestamps inside the synthetic data period.
+The browser demo selects the local source and packages `Home.py`, every page,
+the required source modules, settings, and the same CSV files. It has no
+browser-specific financial calculations. Relative reports anchor to the latest
+date in the loaded data. The demo banner is inferred only when the selected
+configuration file is named `portico-demo.toml`.
 
 ### State and caching
 
-Portico has no application database. Google Sheets remains the source of truth
-for live financial data. Demo CSV files are the source of truth for demo mode.
+Portico has no application database. The configured spreadsheet remains the
+source of truth. Demo CSV files are the source of truth for demo mode.
 
 Streamlit session state stores control selections for one browser session.
 Streamlit caches loaded data and deterministic calculations. This state is
@@ -214,34 +211,33 @@ control clears the Streamlit data and resource caches.
 
 ### Configuration and secrets
 
-`config/defaults.toml` is the tracked, data-agnostic base configuration.
-`config/demo.toml` is the complete profile for the public synthetic data, and
-`config/household.example.toml` is a fictional template. A user's ignored
-`config/household.toml` is selected explicitly with `PORTICO_CONFIG_PATH`; it
-merges onto the base without replacing it. Portico does not automatically load a
-profile. The selected profile owns the data source; environment variables only
-select the optional profile path.
+`config.toml` is the one complete normal application configuration. It is both
+the tracked field reference and the file users edit or mount directly. Portico
+does not merge another configuration file. The
+optional `PORTICO_CONFIG_PATH` selects another complete file only for explicit
+uses such as the synthetic demo.
 
-`src/config.py` merges these sources, rejects unknown keys, validates ranges,
-and returns frozen typed settings. New settings need a safe tracked default and
-runtime validation.
+`portico-demo.toml` is the complete public configuration for synthetic data.
+The demo banner is derived from that exact filename, not from a configuration
+field. `src/config.py` rejects unknown keys, validates ranges, and returns
+frozen typed settings. New settings need a visible default and runtime
+validation.
 
-Configuration profiles own household policy and initial control values. This
-includes report periods, named transaction sets, the page filter sets that
-expose them, discretionary and regular-report exclusions, budget history,
-subscription discovery, data-health thresholds, emergency-fund and debt policy,
-FI funding goals and assumptions, weekly summary windows, and merchant aliases.
-The public base must not contain household-specific sheet selectors. The same
+Configuration owns initial control values and named transaction selections. This
+includes shared lookback choices, named transaction sets, page filter sets,
+discretionary and regular-report exclusions, budget history, subscription
+discovery, data-health thresholds, emergency-fund and debt policy, FI funding
+goals and assumptions, weekly summary windows, and merchant aliases. The same
 named transaction set must mean the same thing on every page. In particular, the
 spending, merchant, and year-over-year Discretionary views resolve the same
 `[transaction_sets.discretionary]` policy.
 
-Configuration does not own Tiller column meanings, financial formulas, Transfer
-handling, chart layout, colors, widget safety limits, or validation rules. Those
-are application behavior and stay in typed Python code.
+Configuration does not own spreadsheet column meanings, financial formulas,
+Transfer handling, chart layout, colors, widget safety limits, or validation
+rules. Those are application behavior and stay in typed Python code.
 
-Google Sheets URLs and Discord webhook URLs are secrets. They belong in the
-ignored `.streamlit/secrets.toml` file. They never belong in tracked
+Remote spreadsheet URLs and Discord webhook URLs are secrets. They belong in
+the ignored `.streamlit/secrets.toml` file. They never belong in tracked
 configuration, logs, fixtures, or error messages.
 
 ### Filters and calculations
@@ -278,8 +274,8 @@ control.
 ### Discord notifier
 
 `src/discord_notifier.py` loads notifier configuration, reads the required
-Google Sheets tabs, formats Discord embeds, sends webhooks, and records delivery
-state.
+remote spreadsheet tables through the current Google Sheets connection, formats
+Discord embeds, sends webhooks, and records delivery state.
 
 `src/weekly_expenses.py` owns the weekly expense calculations. Those
 calculations are independent from Discord transport and message formatting.
@@ -311,7 +307,8 @@ command and relies on delivery state to prevent duplicates.
 | `scripts/container_entrypoint.py` | Container process and optional Discord schedule |
 | `scripts/generate_demo_data.py` | Regenerates all four date-based synthetic workbook CSV files |
 | `scripts/` | Bootstrap, diagnostics, local commands, and build tools |
-| `config/` | Generic base configuration, public demo/example profiles, and ignored household profiles |
+| `config.toml` | Complete normal application configuration and field reference |
+| `portico-demo.toml` | Complete configuration for the committed synthetic demo |
 | `demo/data/` | Canonical synthetic workbook data |
 | `tests/unit/` | Direct behavior tests for functions and pages |
 | `tests/integration/` | Cross-sheet pipelines and Streamlit AppTest coverage |
@@ -345,9 +342,9 @@ Unit tests isolate small calculations and presentation helpers. Integration
 tests run the four synthetic sheets through the real scrub and join pipeline.
 Streamlit AppTest tests load every page and exercise important control states.
 
-The configured demo reference date is fixed. Date-sensitive tests use that
-date instead of the current clock. Tests also isolate local configuration so a
-maintainer's private settings cannot change results.
+The latest date in the committed demo data is fixed. Date-sensitive tests use
+that date instead of the current clock. Tests select the committed demo
+configuration so a maintainer's edits to `config.toml` cannot change results.
 
 CI enforces strict typing, linting, unit tests, integration tests, and container
 smoke tests. Coverage must be at least 90% for `src`
@@ -377,9 +374,9 @@ Portico does not aim to provide:
 
 - Direct bank connections
 - Transaction or budget editing
-- Google Sheets writeback
+- Remote spreadsheet writeback
 - A database that copies the workbook
-- Multiple users or household accounts
+- Multiple users or shared accounts
 - A public hosted service for personal data
 - A source-plugin framework
 - A separate frontend and backend
@@ -392,8 +389,8 @@ needs an explicit architecture decision before implementation.
 
 These rules define a feature that fits Portico:
 
-1. It answers a clear personal-finance question from Tiller data.
-2. It keeps Google Sheets read-only.
+1. It answers a clear personal-finance question from spreadsheet data.
+2. It keeps the configured spreadsheet read-only.
 3. It works with the synthetic demo data.
 4. It puts financial rules in typed, testable Python functions.
 5. It keeps Streamlit code focused on controls and presentation.

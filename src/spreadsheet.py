@@ -65,22 +65,22 @@ class Spreadsheet(metaclass=ABCMeta):
             self.scrub()
         except SpreadsheetSchemaError as e:
             st.error(str(e))
-            st.info("Check that the configured source matches the expected Tiller sheet.")
+            st.info("Check that the configured source has the expected spreadsheet tables and columns.")
             st.stop()
             raise
 
     def load(self) -> None:
         """Load raw data from the configured source."""
         settings = get_settings()
-        if settings.data.source == "local_csv":
+        if settings.data.source == "local":
             directory = settings.data.directory
             assert directory is not None
             path = directory / f"{self.name}.csv"
             try:
                 self.raw_df = pd.read_csv(path)
             except Exception:
-                st.error(f"Failed to load local CSV data ({self.name}).")
-                st.info("Check the selected data.directory and the four required Tiller CSV files.")
+                st.error(f"Failed to load local spreadsheet data ({self.name}).")
+                st.info("Check data.directory and the four required CSV table files.")
                 st.stop()
             return
 
@@ -90,7 +90,7 @@ class Spreadsheet(metaclass=ABCMeta):
             conn = st.connection(name=self.name, type=GSheetsConnection)
             self.raw_df = conn.read()
         except Exception:
-            st.error(f"Failed to load data from Google Sheets ({self.name}).")
+            st.error(f"Failed to load remote spreadsheet data ({self.name}).")
             st.info("Check your .streamlit/secrets.toml configuration and network connection.")
             st.stop()
 
