@@ -214,24 +214,26 @@ control clears the Streamlit data and resource caches.
 
 ### Configuration and secrets
 
-`config/defaults.toml` is the tracked, canonical application configuration. It
-contains the maintainer's household policy. Portico does not automatically load
-an override file. An explicitly selected `PORTICO_CONFIG_PATH` may add a
-deployment-specific override without replacing the image's canonical defaults.
-The selected profile owns the data source; environment variables only select the
-optional override path.
+`config/defaults.toml` is the tracked, data-agnostic base configuration.
+`config/demo.toml` is the complete profile for the public synthetic data, and
+`config/household.example.toml` is a fictional template. A user's ignored
+`config/household.toml` is selected explicitly with `PORTICO_CONFIG_PATH`; it
+merges onto the base without replacing it. Portico does not automatically load a
+profile. The selected profile owns the data source; environment variables only
+select the optional profile path.
 
 `src/config.py` merges these sources, rejects unknown keys, validates ranges,
 and returns frozen typed settings. New settings need a safe tracked default and
 runtime validation.
 
-Configuration owns household policy and initial control values. This includes
-report periods, named transaction sets, the page filter sets that expose them,
-discretionary and regular-report exclusions, budget history, subscription
-discovery, data-health thresholds, emergency-fund and debt policy, FI funding
-goals and assumptions, weekly summary windows, and merchant aliases. The same
-named transaction set must mean the same thing on every page. In particular,
-the spending, merchant, and year-over-year Discretionary views resolve the same
+Configuration profiles own household policy and initial control values. This
+includes report periods, named transaction sets, the page filter sets that
+expose them, discretionary and regular-report exclusions, budget history,
+subscription discovery, data-health thresholds, emergency-fund and debt policy,
+FI funding goals and assumptions, weekly summary windows, and merchant aliases.
+The public base must not contain household-specific sheet selectors. The same
+named transaction set must mean the same thing on every page. In particular, the
+spending, merchant, and year-over-year Discretionary views resolve the same
 `[transaction_sets.discretionary]` policy.
 
 Configuration does not own Tiller column meanings, financial formulas, Transfer
@@ -309,7 +311,7 @@ command and relies on delivery state to prevent duplicates.
 | `scripts/container_entrypoint.py` | Container process and optional Discord schedule |
 | `scripts/generate_demo_data.py` | Regenerates all four date-based synthetic workbook CSV files |
 | `scripts/` | Bootstrap, diagnostics, local commands, and build tools |
-| `config/` | Canonical application configuration and optional ignored explicit overrides |
+| `config/` | Generic base configuration, public demo/example profiles, and ignored household profiles |
 | `demo/data/` | Canonical synthetic workbook data |
 | `tests/unit/` | Direct behavior tests for functions and pages |
 | `tests/integration/` | Cross-sheet pipelines and Streamlit AppTest coverage |

@@ -28,19 +28,12 @@ from tests.custom_types import FullDatasetFactory, SpreadsheetBundle
 # ---------------------------------------------------------------------------
 
 _APP_PAGE_DIR = Path(__file__).resolve().parents[2] / "app_pages"
-_DEMO_PROFILE = _APP_PAGE_DIR.parent / "config" / "demo.toml"
 _MASKED_VALUE = "XXXXXXXX"
 _SENSITIVE_TEXT = re.compile(
     r"\$\s*\d|\b\d[\d,]*(?:\.\d+)?%|\b\d[\d,]*(?:\.\d+)?\s+"
     r"(?:accounts?|days?|merchants?|rows?|transactions?|years?)\b",
     re.IGNORECASE,
 )
-
-
-@pytest.fixture(autouse=True)
-def use_demo_profile(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Run page smoke tests with the committed local-data profile."""
-    monkeypatch.setenv("PORTICO_CONFIG_PATH", str(_DEMO_PROFILE))
 
 
 def _metric_values(at: AppTest) -> list[tuple[str, str, str]]:
@@ -317,7 +310,7 @@ def _dataset_with_non_discretionary_expenses(
     bundle = make_full_dataset()
     transactions = bundle[0]
     rows = transactions.scrubbed_df.loc[transactions.scrubbed_df["Category"].eq("Shopping")].iloc[[0, 1]].copy()
-    rows["Category"] = ["Given Gift", "Tax Return Payment"]
+    rows["Category"] = ["Given Gift", "Tax payment"]
     rows["Amount"] = [-8_000.0, -7_000.0]
     rows["Full Description"] = ["gift test merchant", "tax test merchant"]
     latest = pd.to_datetime(transactions.scrubbed_df["Date"], utc=True).max()
@@ -328,6 +321,34 @@ def _dataset_with_non_discretionary_expenses(
         ignore_index=True,
     )
     return bundle
+
+
+def _use_discretionary_category_policy(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
+    """Select an explicit policy for the synthetic gift and tax rows."""
+    profile = tmp_path / "discretionary.toml"
+    profile.write_text(
+        """
+[transaction_sets.non_discretionary]
+label = "Non-discretionary"
+categories = ["Given Gift", "Tax payment"]
+
+[transaction_sets.discretionary]
+label = "Discretionary"
+includes = ["all"]
+excludes = ["non_discretionary"]
+
+[filter_sets.spending]
+options = ["all", "discretionary"]
+default = "discretionary"
+
+[filter_sets.year_over_year]
+options = ["all", "discretionary"]
+default = "discretionary"
+""".strip(),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("PORTICO_CONFIG_PATH", str(profile))
+    clear_settings_cache()
 
 
 def _dataset_with_configured_one_off_merchants(
@@ -666,6 +687,9 @@ lookback_months = [1, 3, 18]
 default_lookback_months = 3
 [income_savings]
 default_view = "actual"
+[transaction_sets.discretionary]
+label = "Discretionary"
+includes = ["all"]
 [filter_sets.spending]
 options = ["all", "discretionary"]
 default = "all"
@@ -743,7 +767,24 @@ class TestDiscretionaryPolicySmoke:
     ) -> None:
         override = tmp_path / "override.toml"
         override.write_text(
-            '[transaction_sets.non_discretionary]\ntransactions_like = ["IRS", "CHECK", "HOME LOAN", "AIRBNB"]\n',
+            """
+[transaction_sets.non_discretionary]
+label = "Non-discretionary"
+transactions_like = ["IRS", "CHECK", "HOME LOAN", "AIRBNB"]
+
+[transaction_sets.discretionary]
+label = "Discretionary"
+includes = ["all"]
+excludes = ["non_discretionary"]
+
+[filter_sets.spending]
+options = ["all", "discretionary"]
+default = "discretionary"
+
+[filter_sets.year_over_year]
+options = ["all", "discretionary"]
+default = "discretionary"
+""".strip(),
             encoding="utf-8",
         )
         monkeypatch.setenv("PORTICO_CONFIG_PATH", str(override))
@@ -1243,7 +1284,10 @@ class TestSpendingByCategorySmoke:
     def test_discretionary_view_excludes_gifts_and_tax_payments(
         self,
         make_full_dataset: FullDatasetFactory,
+        monkeypatch: MonkeyPatch,
+        tmp_path: Path,
     ) -> None:
+        _use_discretionary_category_policy(monkeypatch, tmp_path)
         bundle = _dataset_with_non_discretionary_expenses(make_full_dataset)
         default_at = _make_app(
             "2_Spending_by_Category.py",
@@ -1256,7 +1300,7 @@ class TestSpendingByCategorySmoke:
         overview = next(
             table.value for table in default_at.dataframe if str(table.key).startswith("spending_overview_")
         )
-        assert not {"Given Gift", "Tax Return Payment"} & set(overview["Entity"])
+        assert not {"Given Gift", "Tax payment"} & set(overview["Entity"])
         excluded = _table_with_columns(
             default_at,
             {"Description", "Exclusion reason"},
@@ -1274,7 +1318,7 @@ class TestSpendingByCategorySmoke:
         all_overview = next(
             table.value for table in all_at.dataframe if str(table.key).startswith("spending_overview_")
         )
-        assert {"Given Gift", "Tax Return Payment"} <= set(all_overview["Entity"])
+        assert {"Given Gift", "Tax payment"} <= set(all_overview["Entity"])
         assert _metric_labels(all_at)[0] == "Total spending"
         assert all_at.metric[0].value != default_at.metric[0].value
 
@@ -1368,7 +1412,10 @@ class TestYearOverYearSmoke:
     def test_discretionary_defaults_omit_gifts_and_tax_payments(
         self,
         make_full_dataset: FullDatasetFactory,
+        monkeypatch: MonkeyPatch,
+        tmp_path: Path,
     ) -> None:
+        _use_discretionary_category_policy(monkeypatch, tmp_path)
         bundle = _dataset_with_non_discretionary_expenses(make_full_dataset)
         at = _make_app(
             "3_Year_over_Year.py",
@@ -1379,8 +1426,8 @@ class TestYearOverYearSmoke:
 
         assert not at.exception
         categories = at.multiselect(key="year_over_year_discretionary_categories")
-        assert not {"Given Gift", "Tax Return Payment"} & set(categories.options)
-        assert not {"Given Gift", "Tax Return Payment"} & set(categories.value)
+        assert not {"Given Gift", "Tax payment"} & set(categories.options)
+        assert not {"Given Gift", "Tax payment"} & set(categories.value)
 
     def test_configured_set_cannot_be_broadened_with_other_categories(
         self,
@@ -1767,7 +1814,10 @@ class TestMerchantAnalysisSmoke:
     def test_discretionary_view_excludes_gift_and_tax_merchants(
         self,
         make_full_dataset: FullDatasetFactory,
+        monkeypatch: MonkeyPatch,
+        tmp_path: Path,
     ) -> None:
+        _use_discretionary_category_policy(monkeypatch, tmp_path)
         bundle = _dataset_with_non_discretionary_expenses(make_full_dataset)
         default_at = _make_app(
             "6_Merchant_Analysis.py",

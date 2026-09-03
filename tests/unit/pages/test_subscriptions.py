@@ -923,11 +923,11 @@ def test_candidate_detail_uses_the_same_category_exclusions_as_discovery() -> No
         group="Shopping",
     )
     transactions = pd.concat([eligible, rent, user_excluded], ignore_index=True)
-    exclusions = [SUBSCRIPTION_CATEGORY, "Education"]
+    exclusions = [SUBSCRIPTION_CATEGORY, "Education", "Rent"]
     candidate = find_subscription_candidates(
         transactions,
         [SUBSCRIPTION_CATEGORY],
-        excluded_categories=["Education"],
+        excluded_categories=["Education", "Rent"],
     ).iloc[0]
 
     matches = get_subscription_transactions(

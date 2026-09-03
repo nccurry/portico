@@ -157,7 +157,7 @@ class TestBuildSpendingLedger:
                 [
                     {"Full Description": "ACH IRS TAX PAYMENT", "Category": "Shopping"},
                     {"Full Description": "CHECK #1234", "Category": "Shopping"},
-                    {"Full Description": "POS ***REMOVED*** 123456789", "Category": "Shopping"},
+                    {"Full Description": "POS LOCAL CREDIT UNION 123456789", "Category": "Shopping"},
                     {"Full Description": "HOME LOAN PAYMENT", "Category": "Shopping"},
                     {"Full Description": "AIRBNB 12345", "Category": "Shopping"},
                     {"Full Description": "COFFEE SHOP", "Category": "Shopping"},
@@ -165,7 +165,7 @@ class TestBuildSpendingLedger:
             ),
             _filters(
                 include_categories=["Shopping"],
-                exclude_transactions_like=["IRS", "CHECK", "***REMOVED***", "HOME LOAN", "AIRBNB"],
+                exclude_transactions_like=["IRS", "CHECK", "LOCAL CREDIT UNION", "HOME LOAN", "AIRBNB"],
             ),
             start_month="2024-01",
             end_month="2024-02",
@@ -175,7 +175,7 @@ class TestBuildSpendingLedger:
         assert ledger["Exclusion_Reason"].tolist() == [
             "Excluded transaction like: IRS",
             "Excluded transaction like: CHECK",
-            "Excluded transaction like: ***REMOVED***",
+            "Excluded transaction like: LOCAL CREDIT UNION",
             "Excluded transaction like: HOME LOAN",
             "Excluded transaction like: AIRBNB",
             "",

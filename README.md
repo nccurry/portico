@@ -137,6 +137,20 @@ numeric `gid` for that tab.
 
 Never commit `.streamlit/secrets.toml`. Git ignores this file by default.
 
+### Configure household policy
+
+Copy the fictional household template, then replace its selectors with exact
+values from your Tiller sheets:
+
+```console
+cp config/household.example.toml config/household.toml
+nano config/household.toml
+```
+
+`config/household.toml` is ignored. Set `PORTICO_CONFIG_PATH` to select it;
+the Docker commands below use `/app/config/household.toml` after mounting the
+host file into the container.
+
 ### Check and start Portico
 
 Pull the latest image and check the workbook:
@@ -144,6 +158,8 @@ Pull the latest image and check the workbook:
 ```console
 docker pull ghcr.io/nccurry/portico:latest
 docker run --rm \
+  --env PORTICO_CONFIG_PATH=/app/config/household.toml \
+  --mount "type=bind,source=$(pwd)/config/household.toml,target=/app/config/household.toml,readonly" \
   --mount "type=bind,source=$(pwd)/.streamlit/secrets.toml,target=/app/.streamlit/secrets.toml,readonly" \
   ghcr.io/nccurry/portico:latest python -m scripts.doctor
 ```
@@ -160,6 +176,7 @@ docker run --detach --init --name portico --restart unless-stopped \
   --read-only --tmpfs /tmp:size=64m,mode=1777 \
   --cap-drop ALL --security-opt no-new-privileges:true \
   --env-file .env \
+  --mount "type=bind,source=$(pwd)/config/household.toml,target=/app/config/household.toml,readonly" \
   --mount "type=bind,source=$(pwd)/.streamlit/secrets.toml,target=/app/.streamlit/secrets.toml,readonly" \
   --mount "type=volume,source=portico-state,target=/app/.local" \
   --publish 127.0.0.1:8501:8501 \
@@ -276,25 +293,28 @@ schedule between container runs. The host address and port stay in the
 
 ## Configuration
 
-[`config/defaults.toml`](config/defaults.toml) is Portico's canonical
-configuration. It reflects the maintainer's household policy and controls report
-periods, calculation policies, thresholds, subscription detection,
-emergency-fund and debt targets, financial-independence assumptions, Discord
-summary windows, named transaction sets, page filter sets, and merchant aliases.
-Edit this file when you run your own checkout.
+[`config/defaults.toml`](config/defaults.toml) is Portico's tracked, generic
+base configuration. It contains safe product defaults and no household-specific
+sheet selectors. [`config/demo.toml`](config/demo.toml) is the complete profile
+for the committed synthetic data. [`config/household.example.toml`](config/household.example.toml)
+is a fictional template for a real household profile.
 
-Portico does not automatically load an override file. It stops with an error for
-unknown keys, wrong types, duplicate values, and values outside the supported
-ranges. Restart Portico after changing a TOML file.
+Copy the household example to ignored `config/household.toml`, replace every
+example category, group, account, merchant, and description fragment with an
+exact value from your own sheets, then explicitly select it with
+`PORTICO_CONFIG_PATH=config/household.toml`. Portico does not automatically load
+a profile. It stops with an error for unknown keys, wrong types, duplicate
+values, and values outside the supported ranges. Restart Portico after changing
+a TOML file.
 
-If you are upgrading from an older setup, move the settings you want to keep
-into `config/defaults.toml`. Alternatively, rename the file to
-`config/override.toml` and set `PORTICO_CONFIG_PATH` when you deliberately need
-a deployment-specific delta.
+If you are upgrading from a checkout where `defaults.toml` contained household
+policy, move that policy to `config/household.toml` before updating. The ignored
+profile merges onto the generic base without replacing it.
 
 ### Dashboard settings
 
-These are the main settings you may want to change:
+Set sheet-specific values in your household profile. These are the main
+settings you may want to change:
 
 | Section | Setting | What it controls |
 | --- | --- | --- |
@@ -302,7 +322,7 @@ These are the main settings you may want to change:
 | `reporting` | `default_lookback_months` | Initially selected reporting period. It must appear in `lookback_months`. |
 | `data` | `source` | Select `google_sheets` (the default) or `local_csv`. Local CSV profiles also require `directory`; they may set `reference_date` and `show_demo_banner`. |
 | `transaction_sets.<key>` | `label`, `groups`, `categories`, `accounts`, `merchants`, `transactions_like`, `includes`, `excludes` | Defines one reusable expense policy. Direct selectors and included sets are combined; excluded sets are removed last. A set with neither direct selectors nor includes means every expense row. Groups, categories, and accounts are exact sheet values; merchants use the shared merchant aliases; `transactions_like` is case-insensitive literal text in Full Description. |
-| `filter_sets.<key>` | `options`, `default` | Lists the named transaction sets offered by a page. `spending` is shared by the category and merchant pages; `year_over_year` adds Utilities alongside All spending and Discretionary. |
+| `filter_sets.<key>` | `options`, `default` | Lists the named transaction sets offered by a page. `spending` is shared by the category and merchant pages; `year_over_year` can expose a different set of choices. |
 | `income_savings` | `default_view` | Start income and savings in `regular` or `actual` view. |
 | `income_savings` | `exclude_categories`, `exclude_groups` | One-off activity removed from the Regular calculation. |
 | `income_savings` | `target_rate` | Savings-rate target shown on the income page. |
@@ -337,7 +357,7 @@ directory = "/data"
 `directory` may be absolute or relative to the TOML file that defines it. An
 optional timezone-aware `reference_date` makes reporting deterministic, and
 `show_demo_banner = true` marks synthetic data. [`config/demo.toml`](config/demo.toml)
-is the committed example profile for `demo/data`.
+is the complete committed profile for `demo/data`.
 
 In Docker, bind-mount the profile and CSV directory separately and select the
 mounted profile:
@@ -355,32 +375,32 @@ docker run --rm --init --name portico \
 
 ### Configure a Docker deployment
 
-The image includes `/app/config/defaults.toml` and `/app/config/demo.toml`.
-Most Google Sheets deployments do not need a configuration mount. Do not
-bind-mount a replacement configuration directory or an older `defaults.toml`:
-either can hide new required settings in a later image release.
+The image includes `/app/config/defaults.toml`, `/app/config/demo.toml`, and
+`/app/config/household.example.toml`. A real Google Sheets deployment normally
+selects an ignored household profile. Do not bind-mount a replacement
+configuration directory or an older `defaults.toml`: either can hide new
+required settings in a later image release.
 
-For a deliberate deployment-specific delta, create an ignored override file and
-select it explicitly:
+Create your private profile on the Docker host:
 
 ```console
-touch config/override.toml
-nano config/override.toml
+cp config/household.example.toml config/household.toml
+nano config/household.toml
 ```
 
 Add this line to `.env`:
 
 ```console
-PORTICO_CONFIG_PATH=/app/config/override.toml
+PORTICO_CONFIG_PATH=/app/config/household.toml
 ```
 
 Then add this read-only mount to the Docker command:
 
 ```console
---mount "type=bind,source=$(pwd)/config/override.toml,target=/app/config/override.toml,readonly"
+--mount "type=bind,source=$(pwd)/config/household.toml,target=/app/config/household.toml,readonly"
 ```
 
-The selected override merges onto the image's canonical defaults. This is an
+The selected profile merges onto the image's generic defaults. This is an
 explicit deployment mechanism, not an automatically loaded local configuration.
 Mount the selected TOML file itself, not the whole `/app/config` directory.
 Environment variables are fixed when Docker creates the container, so remove the
@@ -398,13 +418,13 @@ These environment variables change the main application settings:
 
 | Variable | Use |
 | --- | --- |
-| `PORTICO_CONFIG_PATH` | Apply an explicitly selected TOML override to the canonical defaults. |
+| `PORTICO_CONFIG_PATH` | Select an explicit TOML profile that merges onto generic defaults. |
 | `PORTICO_DISCORD_ENABLED` | Set to `true` to enable scheduled Discord summaries. The default is `false`. |
 | `PORTICO_DISCORD_CRON` | Set the five-field cron schedule. The default is `0 9 * * 0` (Sunday at 9:00 AM). |
 | `TZ` | Set the IANA timezone used by the Discord schedule, such as `America/Chicago`. |
 
-Keep household policy in `config/defaults.toml`. Keep Google Sheets and Discord
-URLs in `.streamlit/secrets.toml`.
+Keep household policy in ignored `config/household.toml`. Keep Google Sheets and
+Discord URLs in `.streamlit/secrets.toml`.
 
 ## Optional Discord summary
 
@@ -420,9 +440,9 @@ The report includes:
 - A comparison between the latest group of weeks and the prior group
 - Total expenses and the number of uncategorized transactions
 
-The canonical configuration uses an eight-week average, a four-week comparison,
-and three merchants per category. Change those values under `[weekly_summary]`
-in `config/defaults.toml`.
+Public defaults use an eight-week average, a four-week comparison, and three
+merchants per category. Change those values under `[weekly_summary]` in your
+household profile when needed.
 
 ### Create the Discord webhook
 

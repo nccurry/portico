@@ -1,11 +1,13 @@
 """Tests for filter controls and the shared transaction filter pipeline."""
 
 from datetime import timedelta
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
+import pytest
 
-from src.config import get_settings
+from src.config import TransactionSetSettings, clear_settings_cache, get_settings
 from src.custom_types import FIFilters, TransactionFilterOptions
 from src.filters import (
     calculate_date_range,
@@ -16,6 +18,19 @@ from src.filters import (
 )
 from src.transaction_filters import apply_transaction_filters
 from tests._helpers import _df_from_rows, _make_row
+
+_DISCRETIONARY_SET = TransactionSetSettings(
+    key="discretionary",
+    label="Discretionary",
+    groups=(),
+    categories=(),
+    accounts=(),
+    merchants=(),
+    transactions_like=(),
+    includes=("all",),
+    excludes=("non_discretionary",),
+)
+_HOUSEHOLD_EXAMPLE = Path(__file__).resolve().parents[3] / "config" / "household.example.toml"
 
 # ---------------------------------------------------------------------------
 # calculate_date_range tests
@@ -425,26 +440,19 @@ def _mock_filter_widgets(mock_st: MagicMock) -> None:
 
 
 class TestPageFilterDefaults:
-    def test_income_defaults_to_dependable_income_and_routine_expenses(self) -> None:
+    def test_income_defaults_follow_the_selected_profile(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("PORTICO_CONFIG_PATH", str(_HOUSEHOLD_EXAMPLE))
+        clear_settings_cache()
         income_categories = [
             "Paycheck",
-            "401k",
-            "HSA",
-            "Tax Return Refund",
-            "Investment",
-            "Credit Card Rewards",
-            "RSU",
-            "ESPP",
-            "Bonus",
-            "Received Gift",
+            "Annual bonus",
+            "Tax refund",
+            "Investment transfer",
         ]
         expense_categories = [
-            "Tax Return Payment",
-            "Christmas",
-            "Home Repairs",
-            "Automobile Repairs",
-            "Home Improvements",
-            "Misc Maintainence",
+            "Annual bonus",
+            "Tax refund",
+            "Investment transfer",
             "Groceries",
         ]
         with patch("src.filters.st") as mock_st:
@@ -452,19 +460,13 @@ class TestPageFilterDefaults:
             result = render_income_expense_filters(
                 income_categories,
                 expense_categories,
-                ["Bills", "Food", "Travel", "Donations"],
+                ["Bills", "Food", "Travel", "Giving"],
                 view="Regular",
             )
 
-        assert result["exclude_groups"] == ["Travel", "Donations"]
-        assert set(result["exclude_income_categories"]) == set(income_categories) - {
-            "Paycheck",
-            "401k",
-            "HSA",
-        }
-        assert set(result["exclude_expense_categories"]) == set(expense_categories) - {
-            "Groceries",
-        }
+        assert result["exclude_groups"] == ["Travel", "Giving"]
+        assert result["exclude_income_categories"] == ["Annual bonus", "Tax refund", "Investment transfer"]
+        assert result["exclude_expense_categories"] == ["Annual bonus", "Tax refund", "Investment transfer"]
         assert "exclude_categories" not in result
         assert result["filter_large_income"] is False
         assert result["filter_large_expenses"] is False
@@ -594,7 +596,7 @@ class TestPageFilterDefaults:
                     "Groceries",
                 ],
                 ["Bills", "Income", "Donations", "Maintenance", "Travel", "Food", "Shopping"],
-                transaction_set=get_settings().transaction_set("discretionary"),
+                transaction_set=_DISCRETIONARY_SET,
             )
 
         assert result["exclude_groups"] == []

@@ -10,9 +10,10 @@ from src.config import ConfigError, load_settings
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DEFAULTS = PROJECT_ROOT / "config" / "defaults.toml"
 DEMO_PROFILE = PROJECT_ROOT / "config" / "demo.toml"
+HOUSEHOLD_EXAMPLE = PROJECT_ROOT / "config" / "household.example.toml"
 
 
-def test_defaults_match_the_canonical_application_profile() -> None:
+def test_defaults_are_generic_and_data_agnostic() -> None:
     settings = load_settings(defaults_path=DEFAULTS, environ={})
 
     assert settings.data.source == "google_sheets"
@@ -22,41 +23,24 @@ def test_defaults_match_the_canonical_application_profile() -> None:
     assert settings.reporting.lookback_months == (3, 6, 12, 24)
     assert settings.thresholds.expense == 3000
     assert settings.income_savings.default_view == "regular"
-    assert [transaction_set.key for transaction_set in settings.transaction_sets] == [
-        "all",
-        "utilities",
-        "non_discretionary",
-        "discretionary",
-    ]
-    assert settings.transaction_set("discretionary").includes == ("all",)
-    assert settings.transaction_set("discretionary").excludes == ("non_discretionary",)
-    assert settings.transaction_set("utilities").categories == (
-        "Electric Bill",
-        "Gas Bill",
-        "Internet Bill",
-        "Phone Bill",
-        "Water Bill",
-    )
-    assert settings.transaction_set("non_discretionary").transactions_like == (
-        "IRS",
-        "CHECK",
-        "***REMOVED***",
-        "HOME LOAN",
-        "AIRBNB",
-    )
-    assert settings.filter_set("spending").options == ("all", "discretionary")
-    assert settings.filter_set("spending").default == "discretionary"
-    assert settings.filter_set("year_over_year").options == ("all", "utilities", "discretionary")
-    assert settings.subscriptions.known_categories == ("Subscription",)
+    assert [transaction_set.key for transaction_set in settings.transaction_sets] == ["all"]
+    assert settings.filter_set("spending").options == ("all",)
+    assert settings.filter_set("spending").default == "all"
+    assert settings.filter_set("year_over_year").options == ("all",)
+    assert settings.filter_set("year_over_year").default == "all"
+    assert settings.subscriptions.known_categories == ()
+    assert settings.subscriptions.default_exclude_categories == ()
+    assert settings.subscriptions.detection_excluded_categories == ()
     assert settings.subscriptions.minimum_confidence == 80
     assert settings.subscriptions.stale_after_days == 45
     assert settings.budget.history_months == 12
     assert settings.data_health.stale_account_days == 7
     assert settings.weekly_summary.top_merchant_count == 3
-    assert settings.merchants.aliases == (
-        ("Amazon", ("AMAZON MKTPL", "AMAZON COM")),
-        ("Walmart", ("***REMOVED***", "***REMOVED***")),
-    )
+    assert settings.financial_independence.target_amount == 1_000_000
+    assert settings.financial_independence.included_groups == ()
+    assert settings.financial_safety.emergency_fund_included_groups == ()
+    assert settings.financial_safety.debt_included_groups == ()
+    assert settings.merchants.aliases == ()
 
 
 def test_demo_profile_is_an_explicit_local_csv_configuration() -> None:
@@ -71,6 +55,13 @@ def test_demo_profile_is_an_explicit_local_csv_configuration() -> None:
     assert settings.data.directory == PROJECT_ROOT / "demo" / "data"
     assert settings.data.reference_date == datetime(1995, 4, 20, tzinfo=UTC)
     assert settings.data.show_demo_banner
+    assert settings.income_savings.exclude_groups == ("Travel", "Donations")
+    assert [transaction_set.key for transaction_set in settings.transaction_sets] == [
+        "all",
+        "utilities",
+        "non_discretionary",
+        "discretionary",
+    ]
     assert settings.transaction_set("utilities").categories == (
         "Electric",
         "Natural Gas",
@@ -87,6 +78,44 @@ def test_demo_profile_is_an_explicit_local_csv_configuration() -> None:
         "Fitness Subscription",
         "Meal Kit Subscription",
     )
+    assert settings.filter_set("spending").options == ("all", "discretionary")
+    assert settings.filter_set("spending").default == "discretionary"
+    assert settings.filter_set("year_over_year").options == ("all", "utilities", "discretionary")
+    assert settings.filter_set("year_over_year").default == "utilities"
+    assert settings.financial_independence.included_groups == ("Savings", "Investments", "Retirement")
+    assert settings.financial_safety.debt_included_groups == ("Credit Cards", "Liabilities")
+
+
+def test_household_example_is_a_valid_explicit_profile() -> None:
+    settings = load_settings(
+        defaults_path=DEFAULTS,
+        override_path=HOUSEHOLD_EXAMPLE,
+        environ={},
+        project_root=PROJECT_ROOT,
+    )
+
+    assert settings.data.source == "google_sheets"
+    assert settings.transaction_set("utilities").categories == (
+        "Electricity",
+        "Natural gas",
+        "Internet",
+        "Mobile phone",
+        "Water",
+    )
+    assert settings.filter_set("spending").default == "discretionary"
+    assert settings.financial_independence.target_amount == 2_000_000
+    assert settings.merchants.aliases == (("Example market", ("EXAMPLE MARKET #123", "EXAMPLE MKT")),)
+
+
+def test_household_profile_stays_out_of_public_build_contexts() -> None:
+    gitignore = (PROJECT_ROOT / ".gitignore").read_text(encoding="utf-8")
+    dockerignore = (PROJECT_ROOT / ".dockerignore").read_text(encoding="utf-8")
+    dockerfile = (PROJECT_ROOT / "Dockerfile").read_text(encoding="utf-8")
+
+    assert "config/household.toml" in gitignore
+    assert "config/household.toml" in dockerignore
+    assert "config/household.example.toml" in dockerfile
+    assert "config/household.toml" not in dockerfile
 
 
 def test_local_file_is_not_loaded_implicitly(tmp_path: Path) -> None:
@@ -189,7 +218,7 @@ def test_unknown_override_key_is_rejected(tmp_path: Path) -> None:
         ('[transaction_sets.Mixed]\nlabel = "Mixed"\n', "Transaction set keys must use lowercase"),
         ('[transaction_sets.new]\nlabel = "All spending"\n', "Transaction set labels must not contain duplicates"),
         ('[transaction_sets.new]\nlabel = "New"\nincludes = ["missing"]\n', "references unknown set"),
-        ('[transaction_sets.all]\nincludes = ["discretionary"]\n', "references contain a cycle"),
+        ('[transaction_sets.all]\nincludes = ["all"]\n', "references contain a cycle"),
         ('[filter_sets.spending]\noptions = ["all"]\ndefault = "discretionary"\n', "default must be one"),
         ('[data]\nsource = "demo"\n', "source must be one of"),
         ('[data]\nsource = "local_csv"\n', "data.directory is required"),

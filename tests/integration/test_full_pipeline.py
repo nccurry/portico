@@ -176,7 +176,7 @@ class TestCrossSheetJoins:
 
     def test_date_range_covers_fixture_data(self, full_dataset: SpreadsheetBundle) -> None:
         txns, _bal, _cats, _accts = full_dataset
-        start, end = calculate_date_range("All Time", txns.scrubbed_df)
+        start, end = calculate_date_range("All Time", txns.scrubbed_df, anchor_to_data=True)
         assert start <= txns.scrubbed_df["Date"].min()
         assert end >= txns.scrubbed_df["Date"].max() - pd.Timedelta(days=1)
 

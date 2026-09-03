@@ -17,6 +17,8 @@ __pycache__
 .streamlit/*
 !.streamlit/config.toml
 config/local.toml
+config/household.toml
+config/override.toml
 docs
 tests
 scripts/*

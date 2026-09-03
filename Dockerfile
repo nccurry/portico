@@ -45,7 +45,7 @@ WORKDIR /app
 COPY --from=builder --chown=portico:portico /app/.venv /app/.venv
 COPY --chown=portico:portico Home.py LICENSE README.md ./
 COPY --chown=portico:portico .streamlit/config.toml .streamlit/config.toml
-COPY --chown=portico:portico config/defaults.toml config/demo.toml config/
+COPY --chown=portico:portico config/defaults.toml config/demo.toml config/household.example.toml config/
 COPY --chown=portico:portico demo/ demo/
 COPY --chown=portico:portico app_pages/ app_pages/
 COPY --chown=portico:portico src/ src/

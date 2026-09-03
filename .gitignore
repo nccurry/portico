@@ -1,6 +1,8 @@
 .streamlit/*
 !.streamlit/config.toml
 !.streamlit/secrets.example.toml
+# Private configuration profiles
+config/household.toml
 config/override.toml
 .venv
 .tools/
