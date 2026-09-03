@@ -17,7 +17,9 @@ def test_legacy_runtime_ignores_new_widget_arguments() -> None:
         return "columns"
 
     class LegacyContainer:
-        pass
+        def container(self, *args: object, **kwargs: object) -> str:
+            assert "wrap" not in kwargs
+            return "container"
 
     legacy_streamlit = SimpleNamespace(toggle=toggle, columns=columns)
     install_streamlit_compatibility(legacy_streamlit, LegacyContainer)
@@ -25,6 +27,7 @@ def test_legacy_runtime_ignores_new_widget_arguments() -> None:
     container = LegacyContainer()
     assert legacy_streamlit.toggle("Visible", persist_state="page") == "selected"
     assert legacy_streamlit.columns([1, 1], wrap=False) == "columns"
+    assert container.container(horizontal=True, wrap=True, vertical_alignment="bottom") == "container"
     skeleton = cast(Callable[..., LegacyContainer], object.__getattribute__(container, "skeleton"))
     assert skeleton(height=300) is container
 
@@ -75,6 +78,10 @@ def test_current_runtime_does_not_replace_supported_widgets() -> None:
         return lambda decorated: decorated
 
     class CurrentContainer:
+        def container(self, *, wrap: bool = True, **kwargs: object) -> bool:
+            del kwargs
+            return wrap
+
         def skeleton(self, **kwargs: object) -> str:
             return "native"
 
@@ -88,4 +95,5 @@ def test_current_runtime_does_not_replace_supported_widgets() -> None:
     assert current_streamlit.toggle("Visible", persist_state="page") == "page"
     assert current_streamlit.columns([1, 1], wrap=False) is False
     assert current_streamlit.cache_data is cache_data
+    assert CurrentContainer().container(wrap=False) is False
     assert CurrentContainer().skeleton(height=300) == "native"

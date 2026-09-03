@@ -7,6 +7,12 @@ Portico uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-09-03
+
+### Fixed
+
+- The browser demo now accepts responsive control rows when its bundled Streamlit runtime does not support the newer `wrap` argument on containers.
+
 ## [1.2.0] - 2026-09-03
 
 ### Added
@@ -59,7 +65,8 @@ Portico uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - A configurable weekly Discord expense summary with an optional built-in schedule.
 - A shared development container, native bootstrap scripts, tests, and release checks.
 
-[Unreleased]: https://github.com/nccurry/portico/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/nccurry/portico/compare/v1.2.1...HEAD
+[1.2.1]: https://github.com/nccurry/portico/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/nccurry/portico/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/nccurry/portico/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/nccurry/portico/releases/tag/v1.0.0

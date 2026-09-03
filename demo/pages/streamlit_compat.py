@@ -89,12 +89,15 @@ def install_streamlit_compatibility(
     """Install only the Streamlit 1.57 fallbacks required by Portico."""
     if not getattr(streamlit_module, COMPATIBILITY_MARKER, False):
         supports_column_wrap = _supports_keyword(streamlit_module, "columns", "wrap")
+        supports_container_wrap = _supports_keyword(delta_generator, "container", "wrap")
         for name in PERSIST_STATE_WIDGETS:
             if not _supports_keyword(streamlit_module, name, "persist_state"):
                 _patch_keyword(streamlit_module, name, "persist_state")
         if not supports_column_wrap:
             _patch_keyword(streamlit_module, "columns", "wrap")
             _set_attribute(streamlit_module, "cache_data", _no_cache_data)
+        if not supports_container_wrap:
+            _patch_keyword(delta_generator, "container", "wrap")
         _set_attribute(streamlit_module, COMPATIBILITY_MARKER, True)
 
     method_name = "skeleton"
