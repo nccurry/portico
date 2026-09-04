@@ -19,6 +19,7 @@ from pytest import MonkeyPatch
 from streamlit.testing.v1 import AppTest
 
 from src.config import clear_settings_cache
+from src.constants import COLOR_ASSET, COLOR_LIABILITY
 from tests.custom_types import FullDatasetFactory, SpreadsheetBundle
 
 # Page modules are not imported directly; AppTest runs them from file.
@@ -562,6 +563,9 @@ class TestHomeSmoke:
         assert len(charts) == 2 + len(group_names)
         assert all(field in charts[0].proto.spec for field in ["Assets", "Liabilities", "Net_Worth"])
         assert '"point"' not in charts[0].proto.spec
+        sparkline_colors = [json.loads(chart.proto.spec)["mark"]["color"] for chart in charts[2:]]
+        assert sparkline_colors.count(COLOR_ASSET) == 3
+        assert sparkline_colors.count(COLOR_LIABILITY) == 2
         metric_labels = [metric.label for metric in at.metric]
         assert "Accounts" not in metric_labels
         assert "Net-worth impact" not in metric_labels
