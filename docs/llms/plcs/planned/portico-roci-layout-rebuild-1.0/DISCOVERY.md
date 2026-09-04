@@ -62,6 +62,116 @@ the rebuild tied to the real app rather than to memory or a loose description.
 | Tooltips, drop-down details, and dialogs | Use existing Roci overlays. | Available. |
 | CSS-like `order` or reverse flex direction | Do not add it unless a named Portico screen truly needs it. | Not needed by the starting design. |
 
+## Phase 0 Source And Roci Record
+
+This record covers the written discovery slice completed on 2026-09-04. It is
+based on the checked-in Streamlit source, the current C# dashboard, and the
+current Roci component worktree. It does not mark Phase 0 complete: the
+test-only capture host and baseline images are separate Phase 0 work.
+
+### Shared Shell Facts
+
+- `Home.py` owns the source navigation. `Home` is a standalone rail item, not
+  a group. Its page heading is `Accounts and net worth`.
+- `render_demo_banner()` runs before source page content. It is a banner above
+  the page heading when demo data is active.
+- Every source page calls `render_data_refresh_controls()` for the sidebar
+  load timestamp and `Refresh data` action. `Home.py` adds the global
+  hide-values control after navigation is built.
+- The Streamlit Deploy/menu frame is not dashboard content and is not part of
+  the desktop target.
+
+### Source Navigation To Dashboard Configuration
+
+The existing C# `DashboardPageId` values already identify all ten source
+pages. The next TOML schema must add a typed navigation group, order, rail
+label, page heading, and icon instead of treating the current `title` value as
+all of them.
+
+| Order | C# page ID / TOML ID | Rail group | Rail label | Page heading | Source file | Source icon |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | `Home` / `home` | Standalone | Home | Accounts and net worth | `Home.py` | `:material/home:` |
+| 2 | `IncomeSavings` / `income_savings` | Analyze | Income and savings | Income and savings | `app_pages/1_Income_and_Savings.py` | `:material/savings:` |
+| 3 | `Merchants` / `merchants` | Analyze | Spending by merchant | Spending by merchant | `app_pages/6_Merchant_Analysis.py` | `:material/storefront:` |
+| 4 | `Spending` / `spending` | Analyze | Spending by category | Spending by category | `app_pages/2_Spending_by_Category.py` | `:material/category:` |
+| 5 | `YearOverYear` / `year_over_year` | Analyze | Year over year | Year over year | `app_pages/3_Year_over_Year.py` | `:material/compare_arrows:` |
+| 6 | `Subscriptions` / `subscriptions` | Analyze | Subscriptions | Subscriptions | `app_pages/5_Subscriptions.py` | `:material/subscriptions:` |
+| 7 | `TopTransactions` / `top_transactions` | Analyze | Transactions | Transactions | `app_pages/8_Top_Transactions.py` | `:material/receipt_long:` |
+| 8 | `Budget` / `budget` | Plan | Budget | Budget | `app_pages/7_Budget.py` | `:material/account_balance_wallet:` |
+| 9 | `FinancialIndependence` / `financial_independence` | Plan | Financial independence | Financial independence | `app_pages/9_Financial_Independence.py` | `:material/monitoring:` |
+| 10 | `DataHealth` / `data_health` | Maintain | Data health | Data health | `app_pages/10_Data_Health.py` | `:material/health_and_safety:` |
+
+The current `dashboard.toml` page `title` field cannot serve as both the rail
+label and the page heading. The source values that differ are:
+
+- `Home` needs rail label `Home` and page heading `Accounts and net worth`.
+- `Income and Savings`, `Spending by Category`, and `Year over Year` need
+  `Income and savings`, `Spending by category`, and `Year over year`.
+- `Merchant Analysis` needs `Spending by merchant`; `Top Transactions` needs
+  `Transactions`.
+- `Financial Independence` and `Data Health` need `Financial independence`
+  and `Data health`.
+
+The current page order also places Spending by category before Spending by
+merchant and Transactions after Budget. The source order in the table is the
+required order.
+
+### Page Inventory
+
+Each control below states whether it changes report data or only visible page
+state. The Phase 3 typed-control work must turn these statements into C# state
+fields, validation, report/display mappings, and focused tests.
+
+| Dashboard ID | Key regions in source order | Controls and affected state | Tabs, expanders, and popovers | Roci or local direction |
+| --- | --- | --- | --- | --- |
+| `home` | Net worth history metrics and chart; What changed chart; account groups; Financial safety cards; global account status. | `Time frame` segmented choice (`3M`, `6M`, `1Y`, `2Y`, `5Y`, `All`) changes the balance-report range. | Each account group has an `Account details (...)` expander. Page links open Data health and FI. | Native `SegmentedControl`, `Collapsible`, charts, and data grid; local metric card and section panel. |
+| `income_savings` | Summary metrics; Monthly cash flow chart; selected-month detail; Monthly totals. | `Time frame` and `Calculation` change report data. `Adjust calculation` changes income/expense filters and the savings-rate target. `Month detail` and chart selection change visible detail data. | `Adjust calculation` popover has `Reset defaults`, category/group multi-selects, editable transaction-name lists, two toggles, conditional limits, and `Savings rate target`. Selected-month tabs are `Included (...)` and `Excluded (...)`. `Monthly totals` is an expander. | Native segmented control, number input, toggle, tab panel, collapsible, chart, and grid. Local multi-select is required; use native text input with the local control for editable transaction-name lists. |
+| `merchants` | Summary metrics; Where the money went search/ranking/table; selected-merchant metrics and history; selected-merchant details. | `Time frame`, `View`, `Compare with`, and `Adjust view` change report data. `Find a merchant` narrows the ranking. Table row and `Detail month` change selected detail. | `Adjust view` popover has reset, multi-selects, editable transaction-name lists, a toggle, and conditional limit. Detail tabs are `Breakdown`, `Descriptions`, and `Transactions`. | Native segmented control, text input, tab panel, chart, and grid; local multi-select, metric card, and detail panel. |
+| `spending` | Summary metrics; Where the money went trend and ranking; overview table; selected-entity metrics, chart, and detail tables. | `Time frame`, `View`, `Compare with`, `Adjust view`, and `Breakdown` change report data. Table row, chart selection, and `Detail month` select detail data. | `Adjust view` popover has the shared spending filters. `Excluded from this view (...)` is an expander. Group detail has `Categories`, `Merchants`, and `Transactions` tabs; category detail has `Merchants` and `Transactions` tabs. | Native segmented control, select/dropdown, tab panel, collapsible, charts, and grid; local multi-select and selected-detail panel. |
+| `year_over_year` | One comparison card for each selected preset category, or one selected group/category comparison; metrics, year chart, and detail table. | `View` changes the comparison mode. `Choose categories` changes report inputs for preset views. The group/category select changes report data for a single view. | `Choose categories` is a popover with a `Categories` multi-select. Each comparison has a `Details` expander. | Native segmented control, select/dropdown, popover, collapsible, chart, and grid; local multi-select. |
+| `subscriptions` | Summary metrics; Active subscriptions with row detail; Subscription history charts; Potential subscriptions with row detail; Inactive subscriptions with row detail. | `Subscription settings` changes the inventory and discovery report. History `Lookback` and `Timeline scope` change history charts only. Each inventory table row changes the shown merchant detail. | `Subscription settings` is an expander with `Subscription categories`, `Additional discovery exclusions`, and `Minimum discovery confidence`. Merchant detail includes `Monthly totals` and `Individual charges` expanders. | Native slider, segmented control, collapsible, charts, and grid; local multi-select and selected-detail panel. |
+| `top_transactions` | Summary metrics; Transactions over time chart; breakdown chart; Matching transactions table. | `Time frame`, `Type`, `Focus`, search, and `More filters` change report data. `Summarize by` changes the breakdown chart. `Download CSV` is an action. | `More filters` popover has group, category, and account multi-selects plus minimum, maximum, and result-count inputs. | Native segmented control, text input, number input, popover, charts, and grid; local multi-select. `Download CSV` is deliberately deferred: later app work needs an export policy and file path. |
+| `budget` | Summary metrics; daily pace chart; This month against the plan chart/table; selected-group detail; Year-to-date position. | `Month`, multi-choice `Budget groups` pills, `Adjust view`, selected group, and `Transactions` category select change report or detail data. `Open spreadsheet` is an external-link action when a sheet URL exists. | `Adjust view` popover has multi-selects, editable transaction-name lists, a toggle, and conditional maximum expense. `Year-to-date position` is an expander. | Native select/dropdown, toggle, number input, popover, collapsible, charts, and grid; local multi-select and selected-detail panel. `Open spreadsheet` is deliberately deferred: later app work needs an external-link/browser policy. |
+| `financial_independence` | Scenario inputs; summary metrics; Portfolio runway chart; Annual funding chart; Runway sensitivity chart; Source details. | Six scenario number inputs change the FI projection. `Reset to source data` resets scenario state. `Adjust source data` changes source portfolio/spending inputs. | `Adjust source data` popover contains included-account and filter multi-selects, spending-history select, toggle, and conditional maximum expense. `Source details` is an expander with `Accounts`, `Spending`, and `Transactions` tabs. | Native number input, popover, tab panel, collapsible, charts, and grid; local multi-select, metric card, and scenario panel. |
+| `data_health` | Summary metrics; Health checks queue; selected-check detail. | `Check settings` changes data-health report inputs. `Inspect check` changes the visible detail only. | `Check settings` popover contains `Stale account threshold` slider, duplicate-detection number inputs, and three toggles. | Native slider, number input, toggle, popover, select/dropdown, and grid; local metric and detail panels only. |
+
+### Current Dashboard And Roci Findings
+
+| Finding | Evidence | Phase direction |
+| --- | --- | --- |
+| The C# presentation model cannot hold the source navigation mapping. | `DashboardPageDefinition` has `Title` and `Description`, but no group, order, rail label, heading, or icon. `dashboard.toml` has the near-match labels listed above. | Add typed configuration fields in Phase 3; build the permanent grouped rail in Phase 2. |
+| The C# control model cannot express the source controls. | `DashboardFilterKind` has only `Select`; `DashboardSession` projects four shared filters. The source uses segmented choices, multi-selects, sliders, number inputs, toggles, tabs, text input, selection, and reset actions. | Add typed per-page state and control/report mappings in Phase 3. |
+| The current desktop shell is not the source shell. | `PorticoDashboardScene` uses a top bar and an overlay drawer. The source uses a permanent sidebar. | Replace it in Phases 1 and 2 with the SADD shell row and local navigation rail. |
+| The current release host cannot make the required captures. | `PorticoDashboardGame` fixes the normal window at 1280 by 820. `DesktopDashboardHost` calls the settings-only host overload. Roci capture samples call the argument-aware host with `GameRunFeatures.Automation | GameRunFeatures.Capture`. | The capture-host slice remains pending. Do not change the release host for capture-only behavior. |
+
+### Verified Roci Component Direction
+
+| Source need | Verified Roci support | Decision for this PLC |
+| --- | --- | --- |
+| Normal rows, columns, wrapping, grow, shrink, alignment, and scroll | `HStack`, `VStack`, flex setters, and scroll support. | Use normal flex composition. |
+| Single choice, segmented choice, numeric input, slider, toggle, search text, menu item, and popover | `Dropdown`, `ChoiceGroup<T>`, `SegmentedControl`, `NumberInput`, `Slider`, `ToggleButton`, `TextInput`, `MenuList`, and `Popover`. | Use native controls. |
+| Collapsed details and tabs | `Collapsible`, `TabPanel`, and `Tab`. | Use native controls for every source expander and tab set. |
+| Tables and charts | `DataGrid`, Cartesian charts, timeline series, heatmap series, hover details, and sparklines. | Use native chart/grid primitives behind local page panels. |
+| More than one selected value | There is no `MultiSelect` type or builder in the checked Roci UI source. `ChoiceGroup<T>` stores one selected value. `Checkbox` and `Popover` are available. | Build the required Portico-local multi-select from a popover and checkboxes in Phase 3. |
+
+The source also has editable transaction-name lists through Streamlit
+`multiselect(..., accept_new_options=True)`. Roci has `TextInput`, but this
+record does not name a second missing Roci component. Phase 3 must prove the
+small app-local composition for that source behavior before proposing any
+additional component.
+
+### Completion Status For This Slice
+
+- Complete: source navigation, headings, source files, source control labels,
+  page regions, and Roci component directions.
+- Pending: deterministic Streamlit/Roci images, the test-only capture host,
+  `roci:visual`, C# control-state fields, configuration parsing, and tests.
+- Deferred: `Download CSV` and `Open spreadsheet`. They are source actions
+  outside this visualization and UI experiment. They need explicit export and
+  external-link policies before an app implements them.
+- No Roci source, C# source, dependencies, or Taskfile entries changed by this
+  discovery slice.
+
 ## Local Component Rule
 
 All first versions live under the Portico app UI folder. Each has a small set
