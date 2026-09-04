@@ -1,0 +1,576 @@
+﻿using System.Globalization;
+using Portico.Dashboard;
+using Portico.Finance;
+using Tomlyn;
+using Tomlyn.Model;
+
+namespace Portico.Adapters;
+
+/// <summary>Loads Portico calculation, dashboard, and optional public-sheet TOML files.</summary>
+public static class TomlConfigurationLoader
+{
+    /// <summary>Loads the existing Portico finance configuration without changing its schema.</summary>
+    public static FinanceSettings LoadFinance(string path)
+    {
+        TomlTable root = Read(path);
+        var errors = new List<ConfigurationError>();
+
+        TomlTable data = Table(root, "data", errors);
+        string source = String(data, "source", "data", errors).ToLowerInvariant();
+        WorkbookSourceKind kind = source switch
+        {
+            "local" => WorkbookSourceKind.LocalCsv,
+            "remote" or "google-sheets" => WorkbookSourceKind.GoogleSheets,
+            _ => AddAndReturn(errors, "data.source", "must be 'local', 'remote', or 'google-sheets'.", WorkbookSourceKind.LocalCsv)
+        };
+        var dataSettings = new DataSourceSettings(kind, OptionalString(data, "directory", "data", errors));
+
+        TomlTable lookback = Table(root, "lookback", errors);
+        IReadOnlyList<int> lookbackMonths = Integers(lookback, "lookback_months", "lookback", errors);
+        int defaultMonths = Integer(lookback, "default_lookback_months", "lookback", errors);
+        if (lookbackMonths.Count == 0)
+            errors.Add(new ConfigurationError("lookback.lookback_months", "must contain at least one positive month count."));
+        if (lookbackMonths.Any(value => value <= 0))
+            errors.Add(new ConfigurationError("lookback.lookback_months", "values must be positive."));
+        if (!lookbackMonths.Contains(defaultMonths))
+            errors.Add(new ConfigurationError("lookback.default_lookback_months", "must appear in lookback_months."));
+
+        TomlTable thresholds = Table(root, "thresholds", errors);
+        var thresholdSettings = new ThresholdSettings(
+            Decimal(thresholds, "expense", "thresholds", errors),
+            Decimal(thresholds, "income", "thresholds", errors),
+            Decimal(thresholds, "duplicate_minimum", "thresholds", errors),
+            Integer(thresholds, "duplicate_days", "thresholds", errors));
+
+        TomlTable incomeSavings = Table(root, "income_savings", errors);
+        string defaultView = String(incomeSavings, "default_view", "income_savings", errors);
+        if (!string.Equals(defaultView, "regular", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(defaultView, "actual", StringComparison.OrdinalIgnoreCase))
+        {
+            errors.Add(new ConfigurationError("income_savings.default_view", "must be 'regular' or 'actual'."));
+        }
+        var incomeSettings = new IncomeSavingsSettings(
+            defaultView,
+            Decimal(incomeSavings, "target_rate", "income_savings", errors),
+            Strings(incomeSavings, "exclude_categories", "income_savings", errors),
+            Strings(incomeSavings, "exclude_groups", "income_savings", errors));
+
+        IReadOnlyDictionary<string, IReadOnlyList<string>> aliases = ParseAliases(root, errors);
+        IReadOnlyList<TransactionSetDefinition> transactionSets = ParseTransactionSets(root, errors);
+        IReadOnlyList<FilterSetDefinition> filterSets = ParseFilterSets(root, transactionSets, errors);
+
+        TomlTable subscriptions = Table(root, "subscriptions", errors);
+        var subscriptionSettings = new SubscriptionSettings(
+            Strings(subscriptions, "known_categories", "subscriptions", errors),
+            Integer(subscriptions, "minimum_confidence", "subscriptions", errors),
+            Integer(subscriptions, "stale_after_days", "subscriptions", errors),
+            Strings(subscriptions, "default_exclude_categories", "subscriptions", errors),
+            Strings(subscriptions, "detection_excluded_categories", "subscriptions", errors));
+
+        TomlTable budget = Table(root, "budget", errors);
+        var budgetSettings = new BudgetSettings(Integer(budget, "history_months", "budget", errors));
+
+        TomlTable dataHealth = Table(root, "data_health", errors);
+        var healthSettings = new DataHealthSettings(
+            Integer(dataHealth, "stale_account_days", "data_health", errors),
+            Boolean(dataHealth, "duplicate_require_same_account", "data_health", errors),
+            Boolean(dataHealth, "duplicate_require_same_category", "data_health", errors),
+            Boolean(dataHealth, "duplicate_require_same_description", "data_health", errors));
+
+        TomlTable safety = Table(root, "financial_safety", errors);
+        var safetySettings = new FinancialSafetySettings(
+            Integer(safety, "emergency_fund_target_months", "financial_safety", errors),
+            Strings(safety, "emergency_fund_included_groups", "financial_safety", errors),
+            Strings(safety, "emergency_fund_included_account_patterns", "financial_safety", errors),
+            Integer(safety, "emergency_fund_spending_lookback_months", "financial_safety", errors),
+            Strings(safety, "emergency_fund_exclude_categories", "financial_safety", errors),
+            Strings(safety, "emergency_fund_exclude_groups", "financial_safety", errors),
+            Strings(safety, "debt_included_groups", "financial_safety", errors),
+            Strings(safety, "debt_included_account_patterns", "financial_safety", errors),
+            OptionalDate(safety, "debt_baseline_date", "financial_safety", errors));
+
+        TomlTable independence = Table(root, "financial_independence", errors);
+        var independenceSettings = new FinancialIndependenceSettings(
+            Decimal(independence, "expected_return_rate", "financial_independence", errors),
+            Decimal(independence, "withdrawal_rate", "financial_independence", errors),
+            Decimal(independence, "target_amount", "financial_independence", errors),
+            Integer(independence, "spending_lookback_months", "financial_independence", errors),
+            Integer(independence, "projection_years", "financial_independence", errors),
+            Strings(independence, "included_account_patterns", "financial_independence", errors),
+            Strings(independence, "included_groups", "financial_independence", errors));
+
+        ValidateFinance(kind, dataSettings, thresholdSettings, subscriptionSettings, budgetSettings, healthSettings, safetySettings, independenceSettings, errors);
+        ThrowIfErrors(errors);
+        return new FinanceSettings(
+            dataSettings,
+            new LookbackSettings(lookbackMonths, defaultMonths),
+            thresholdSettings,
+            incomeSettings,
+            transactionSets,
+            filterSets,
+            subscriptionSettings,
+            budgetSettings,
+            healthSettings,
+            safetySettings,
+            independenceSettings,
+            aliases);
+    }
+
+    /// <summary>Loads the separate TOML file that controls dashboard navigation and widgets.</summary>
+    public static DashboardDefinition LoadDashboard(string path)
+    {
+        TomlTable root = Read(path);
+        var errors = new List<ConfigurationError>();
+        int schemaVersion = Integer(root, "schema_version", "dashboard", errors);
+        string appTitle = String(root, "app_title", "dashboard", errors);
+        IReadOnlyList<TomlTable> pageTables = Tables(root, "pages", "dashboard", errors);
+        var pages = new List<DashboardPageDefinition>(pageTables.Count);
+        for (int index = 0; index < pageTables.Count; index++)
+            pages.Add(ParsePage(pageTables[index], index, errors));
+
+        var definition = new DashboardDefinition(schemaVersion, appTitle, pages);
+        foreach (string problem in definition.Validate())
+            errors.Add(new ConfigurationError("dashboard", problem));
+        ThrowIfErrors(errors);
+        return definition;
+    }
+
+    /// <summary>Loads public-sheet URLs from a small optional TOML file.</summary>
+    public static SheetUrlSettings LoadSheetUrls(string path)
+    {
+        TomlTable root = Read(path);
+        var errors = new List<ConfigurationError>();
+        TomlTable sheets = Table(root, "sheets", errors);
+        var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach ((string key, object? value) in sheets)
+        {
+            if (value is not string url || string.IsNullOrWhiteSpace(url))
+                errors.Add(new ConfigurationError($"sheets.{key}", "must be a non-empty URL."));
+            else
+                values[key] = url;
+        }
+
+        ThrowIfErrors(errors);
+        return new SheetUrlSettings(values);
+    }
+
+    private static DashboardPageDefinition ParsePage(TomlTable table, int index, List<ConfigurationError> errors)
+    {
+        string path = $"dashboard.pages[{index}]";
+        string rawId = String(table, "id", path, errors);
+        DashboardPageId id = ParsePageId(rawId, $"{path}.id", errors);
+        string title = String(table, "title", path, errors);
+        string icon = String(table, "icon", path, errors);
+        string description = String(table, "description", path, errors);
+        bool visible = OptionalBoolean(table, "visible", true, path, errors);
+        IReadOnlyList<TomlTable> filters = OptionalTables(table, "filters", path, errors);
+        IReadOnlyList<TomlTable> widgets = Tables(table, "widgets", path, errors);
+        var parsedFilters = new List<DashboardFilterDefinition>(filters.Count);
+        for (int filterIndex = 0; filterIndex < filters.Count; filterIndex++)
+        {
+            TomlTable filter = filters[filterIndex];
+            string filterPath = $"{path}.filters[{filterIndex}]";
+            string kind = String(filter, "kind", filterPath, errors);
+            parsedFilters.Add(new DashboardFilterDefinition(
+                String(filter, "id", filterPath, errors),
+                String(filter, "label", filterPath, errors),
+                ParseFilterKind(kind, $"{filterPath}.kind", errors),
+                String(filter, "source", filterPath, errors),
+                String(filter, "default", filterPath, errors),
+                Strings(filter, "options", filterPath, errors)));
+        }
+
+        var parsedWidgets = new List<DashboardWidgetDefinition>(widgets.Count);
+        for (int widgetIndex = 0; widgetIndex < widgets.Count; widgetIndex++)
+        {
+            TomlTable widget = widgets[widgetIndex];
+            string widgetPath = $"{path}.widgets[{widgetIndex}]";
+            string kind = String(widget, "kind", widgetPath, errors);
+            parsedWidgets.Add(new DashboardWidgetDefinition(
+                String(widget, "id", widgetPath, errors),
+                String(widget, "title", widgetPath, errors),
+                ParseWidgetKind(kind, $"{widgetPath}.kind", errors),
+                String(widget, "report", widgetPath, errors),
+                OptionalInteger(widget, "span", 1, widgetPath, errors),
+                OptionalString(widget, "description", widgetPath, errors)));
+        }
+
+        return new DashboardPageDefinition(id, title, icon, description, parsedFilters, parsedWidgets, visible);
+    }
+
+    private static IReadOnlyDictionary<string, IReadOnlyList<string>> ParseAliases(TomlTable root, List<ConfigurationError> errors)
+    {
+        TomlTable merchants = Table(root, "merchants", errors);
+        TomlTable aliases = Table(merchants, "aliases", errors);
+        var result = new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal);
+        foreach ((string merchant, object? value) in aliases)
+        {
+            if (value is not TomlArray array)
+            {
+                errors.Add(new ConfigurationError($"merchants.aliases.{merchant}", "must be an array of strings."));
+                continue;
+            }
+
+            result[merchant] = Strings(array, $"merchants.aliases.{merchant}", errors);
+        }
+
+        return result;
+    }
+
+    private static IReadOnlyList<TransactionSetDefinition> ParseTransactionSets(TomlTable root, List<ConfigurationError> errors)
+    {
+        TomlTable sets = Table(root, "transaction_sets", errors);
+        var result = new List<TransactionSetDefinition>(sets.Count);
+        foreach ((string key, object? value) in sets)
+        {
+            if (value is not TomlTable table)
+            {
+                errors.Add(new ConfigurationError($"transaction_sets.{key}", "must be a table."));
+                continue;
+            }
+
+            string path = $"transaction_sets.{key}";
+            result.Add(new TransactionSetDefinition(
+                key,
+                String(table, "label", path, errors),
+                Strings(table, "groups", path, errors),
+                Strings(table, "categories", path, errors),
+                Strings(table, "accounts", path, errors),
+                Strings(table, "merchants", path, errors),
+                Strings(table, "transactions_like", path, errors),
+                Strings(table, "includes", path, errors),
+                Strings(table, "excludes", path, errors)));
+        }
+
+        if (result.Count == 0)
+            errors.Add(new ConfigurationError("transaction_sets", "must contain at least one named set."));
+        return result;
+    }
+
+    private static IReadOnlyList<FilterSetDefinition> ParseFilterSets(
+        TomlTable root,
+        IReadOnlyList<TransactionSetDefinition> transactionSets,
+        List<ConfigurationError> errors)
+    {
+        TomlTable sets = Table(root, "filter_sets", errors);
+        var available = new HashSet<string>(transactionSets.Select(set => set.Key), StringComparer.Ordinal);
+        var result = new List<FilterSetDefinition>(sets.Count);
+        foreach ((string key, object? value) in sets)
+        {
+            if (value is not TomlTable table)
+            {
+                errors.Add(new ConfigurationError($"filter_sets.{key}", "must be a table."));
+                continue;
+            }
+
+            string path = $"filter_sets.{key}";
+            IReadOnlyList<string> options = Strings(table, "options", path, errors);
+            string defaultValue = String(table, "default", path, errors);
+            if (options.Count == 0)
+                errors.Add(new ConfigurationError($"{path}.options", "must contain at least one transaction set."));
+            if (!options.Contains(defaultValue, StringComparer.Ordinal))
+                errors.Add(new ConfigurationError($"{path}.default", "must be listed in options."));
+            foreach (string option in options)
+            {
+                if (!available.Contains(option))
+                    errors.Add(new ConfigurationError($"{path}.options", $"references unknown transaction set '{option}'."));
+            }
+
+            result.Add(new FilterSetDefinition(key, options, defaultValue));
+        }
+
+        EnsureFilterSet(result, "spending", errors);
+        EnsureFilterSet(result, "year_over_year", errors);
+        return result;
+    }
+
+    private static void EnsureFilterSet(IReadOnlyList<FilterSetDefinition> definitions, string key, List<ConfigurationError> errors)
+    {
+        if (!definitions.Any(definition => string.Equals(definition.Key, key, StringComparison.Ordinal)))
+            errors.Add(new ConfigurationError("filter_sets", $"must define '{key}'."));
+    }
+
+    private static void ValidateFinance(
+        WorkbookSourceKind kind,
+        DataSourceSettings data,
+        ThresholdSettings thresholds,
+        SubscriptionSettings subscriptions,
+        BudgetSettings budget,
+        DataHealthSettings health,
+        FinancialSafetySettings safety,
+        FinancialIndependenceSettings independence,
+        List<ConfigurationError> errors)
+    {
+        if (kind == WorkbookSourceKind.LocalCsv && string.IsNullOrWhiteSpace(data.Directory))
+            errors.Add(new ConfigurationError("data.directory", "is required when data.source is local."));
+        if (thresholds.Expense < 0m || thresholds.Income < 0m || thresholds.DuplicateMinimum < 0m || thresholds.DuplicateDays < 0)
+            errors.Add(new ConfigurationError("thresholds", "values cannot be negative."));
+        if (subscriptions.MinimumConfidence is < 0 or > 100 || subscriptions.StaleAfterDays < 0)
+            errors.Add(new ConfigurationError("subscriptions", "minimum_confidence must be 0-100 and stale_after_days cannot be negative."));
+        if (budget.HistoryMonths <= 0 || health.StaleAccountDays < 0)
+            errors.Add(new ConfigurationError("budget/data_health", "month and day counts must be positive or zero as appropriate."));
+        if (safety.EmergencyFundTargetMonths < 0 || safety.EmergencyFundSpendingLookbackMonths <= 0)
+            errors.Add(new ConfigurationError("financial_safety", "target months cannot be negative and spending lookback must be positive."));
+        if (independence.WithdrawalRate <= 0m || independence.SpendingLookbackMonths <= 0 || independence.ProjectionYears is < 0 or > 100)
+            errors.Add(new ConfigurationError("financial_independence", "withdrawal_rate and spending lookback must be positive; projection_years must be 0-100."));
+    }
+
+    private static TomlTable Read(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            throw new ConfigurationException([new ConfigurationError("configuration", "path is required.")]);
+        if (!File.Exists(path))
+            throw new ConfigurationException([new ConfigurationError(path, "file does not exist.")]);
+
+        try
+        {
+            return TomlSerializer.Deserialize<TomlTable>(File.ReadAllText(path))
+                ?? throw new ConfigurationException([new ConfigurationError(path, "file is empty.")]);
+        }
+        catch (ConfigurationException)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            throw new ConfigurationException([new ConfigurationError(path, $"cannot parse TOML: {exception.Message}")]);
+        }
+    }
+
+    private static TomlTable Table(TomlTable parent, string key, List<ConfigurationError> errors)
+    {
+        if (parent.TryGetValue(key, out object? value) && value is TomlTable table)
+            return table;
+        errors.Add(new ConfigurationError(key, "is required and must be a table."));
+        return new TomlTable();
+    }
+
+    private static IReadOnlyList<TomlTable> Tables(TomlTable parent, string key, string prefix, List<ConfigurationError> errors)
+    {
+        if (parent.TryGetValue(key, out object? value) && value is TomlTableArray tables)
+            return tables.Cast<TomlTable>().ToArray();
+        errors.Add(new ConfigurationError($"{prefix}.{key}", "is required and must be an array of tables."));
+        return [];
+    }
+
+    private static IReadOnlyList<TomlTable> OptionalTables(TomlTable parent, string key, string prefix, List<ConfigurationError> errors)
+    {
+        if (!parent.TryGetValue(key, out object? value))
+            return [];
+        if (value is TomlTableArray tables)
+            return tables.Cast<TomlTable>().ToArray();
+        errors.Add(new ConfigurationError($"{prefix}.{key}", "must be an array of tables."));
+        return [];
+    }
+
+    private static string String(TomlTable table, string key, string prefix, List<ConfigurationError> errors)
+    {
+        if (table.TryGetValue(key, out object? value) && value is string text && !string.IsNullOrWhiteSpace(text))
+            return text;
+        errors.Add(new ConfigurationError($"{prefix}.{key}", "is required and must be a non-empty string."));
+        return string.Empty;
+    }
+
+    private static string? OptionalString(TomlTable table, string key, string prefix, List<ConfigurationError> errors)
+    {
+        if (!table.TryGetValue(key, out object? value))
+            return null;
+        if (value is string text)
+            return string.IsNullOrWhiteSpace(text) ? null : text;
+        errors.Add(new ConfigurationError($"{prefix}.{key}", "must be a string."));
+        return null;
+    }
+
+    private static int Integer(TomlTable table, string key, string prefix, List<ConfigurationError> errors)
+    {
+        if (table.TryGetValue(key, out object? value) && TryInteger(value, out int result))
+            return result;
+        errors.Add(new ConfigurationError($"{prefix}.{key}", "is required and must be an integer."));
+        return 0;
+    }
+
+    private static int OptionalInteger(TomlTable table, string key, int defaultValue, string prefix, List<ConfigurationError> errors)
+    {
+        if (!table.TryGetValue(key, out object? value))
+            return defaultValue;
+        if (TryInteger(value, out int result))
+            return result;
+        errors.Add(new ConfigurationError($"{prefix}.{key}", "must be an integer."));
+        return defaultValue;
+    }
+
+    private static decimal Decimal(TomlTable table, string key, string prefix, List<ConfigurationError> errors)
+    {
+        if (table.TryGetValue(key, out object? value) && TryDecimal(value, out decimal result))
+            return result;
+        errors.Add(new ConfigurationError($"{prefix}.{key}", "is required and must be a number."));
+        return 0m;
+    }
+
+    private static bool Boolean(TomlTable table, string key, string prefix, List<ConfigurationError> errors)
+    {
+        if (table.TryGetValue(key, out object? value) && value is bool result)
+            return result;
+        errors.Add(new ConfigurationError($"{prefix}.{key}", "is required and must be true or false."));
+        return false;
+    }
+
+    private static bool OptionalBoolean(TomlTable table, string key, bool defaultValue, string prefix, List<ConfigurationError> errors)
+    {
+        if (!table.TryGetValue(key, out object? value))
+            return defaultValue;
+        if (value is bool result)
+            return result;
+        errors.Add(new ConfigurationError($"{prefix}.{key}", "must be true or false."));
+        return defaultValue;
+    }
+
+    private static DateOnly? OptionalDate(TomlTable table, string key, string prefix, List<ConfigurationError> errors)
+    {
+        string? value = OptionalString(table, key, prefix, errors);
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+        if (DateOnly.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateOnly result))
+            return result;
+        errors.Add(new ConfigurationError($"{prefix}.{key}", "must be empty or an ISO 8601 date."));
+        return null;
+    }
+
+    private static IReadOnlyList<int> Integers(TomlTable table, string key, string prefix, List<ConfigurationError> errors)
+    {
+        if (!table.TryGetValue(key, out object? value) || value is not TomlArray array)
+        {
+            errors.Add(new ConfigurationError($"{prefix}.{key}", "is required and must be an array of integers."));
+            return [];
+        }
+
+        var result = new List<int>(array.Count);
+        foreach (object? item in array)
+        {
+            if (TryInteger(item, out int number))
+                result.Add(number);
+            else
+                errors.Add(new ConfigurationError($"{prefix}.{key}", "must contain only integers."));
+        }
+
+        return result;
+    }
+
+    private static IReadOnlyList<string> Strings(TomlTable table, string key, string prefix, List<ConfigurationError> errors)
+    {
+        if (!table.TryGetValue(key, out object? value) || value is not TomlArray array)
+        {
+            errors.Add(new ConfigurationError($"{prefix}.{key}", "is required and must be an array of strings."));
+            return [];
+        }
+
+        return Strings(array, $"{prefix}.{key}", errors);
+    }
+
+    private static IReadOnlyList<string> Strings(TomlArray array, string path, List<ConfigurationError> errors)
+    {
+        var result = new List<string>(array.Count);
+        foreach (object? item in array)
+        {
+            if (item is string text)
+                result.Add(text);
+            else
+                errors.Add(new ConfigurationError(path, "must contain only strings."));
+        }
+
+        return result;
+    }
+
+    private static bool TryInteger(object? value, out int result)
+    {
+        switch (value)
+        {
+            case long longValue when longValue is >= int.MinValue and <= int.MaxValue:
+                result = (int)longValue;
+                return true;
+            case int intValue:
+                result = intValue;
+                return true;
+            default:
+                result = 0;
+                return false;
+        }
+    }
+
+    private static bool TryDecimal(object? value, out decimal result)
+    {
+        switch (value)
+        {
+            case long longValue:
+                result = longValue;
+                return true;
+            case double doubleValue:
+                result = Convert.ToDecimal(doubleValue, CultureInfo.InvariantCulture);
+                return true;
+            case decimal decimalValue:
+                result = decimalValue;
+                return true;
+            default:
+                result = 0m;
+                return false;
+        }
+    }
+
+    private static DashboardPageId ParsePageId(string value, string path, List<ConfigurationError> errors)
+        => ParseEnum(value, path, errors, new Dictionary<string, DashboardPageId>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["home"] = DashboardPageId.Home,
+            ["income_savings"] = DashboardPageId.IncomeSavings,
+            ["spending"] = DashboardPageId.Spending,
+            ["year_over_year"] = DashboardPageId.YearOverYear,
+            ["subscriptions"] = DashboardPageId.Subscriptions,
+            ["merchants"] = DashboardPageId.Merchants,
+            ["budget"] = DashboardPageId.Budget,
+            ["top_transactions"] = DashboardPageId.TopTransactions,
+            ["financial_independence"] = DashboardPageId.FinancialIndependence,
+            ["data_health"] = DashboardPageId.DataHealth
+        });
+
+    private static DashboardFilterKind ParseFilterKind(string value, string path, List<ConfigurationError> errors)
+        => ParseEnum(value, path, errors, new Dictionary<string, DashboardFilterKind>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["select"] = DashboardFilterKind.Select,
+            ["multi_select"] = DashboardFilterKind.MultiSelect,
+            ["toggle"] = DashboardFilterKind.Toggle
+        });
+
+    private static DashboardWidgetKind ParseWidgetKind(string value, string path, List<ConfigurationError> errors)
+        => ParseEnum(value, path, errors, new Dictionary<string, DashboardWidgetKind>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["metric"] = DashboardWidgetKind.Metric,
+            ["line_chart"] = DashboardWidgetKind.LineChart,
+            ["area_chart"] = DashboardWidgetKind.AreaChart,
+            ["bar_chart"] = DashboardWidgetKind.BarChart,
+            ["scatter_chart"] = DashboardWidgetKind.ScatterChart,
+            ["sparkline"] = DashboardWidgetKind.Sparkline,
+            ["table"] = DashboardWidgetKind.Table,
+            ["timeline"] = DashboardWidgetKind.Timeline,
+            ["heatmap"] = DashboardWidgetKind.Heatmap
+        });
+
+    private static T ParseEnum<T>(string value, string path, List<ConfigurationError> errors, IReadOnlyDictionary<string, T> known)
+        where T : struct
+    {
+        if (known.TryGetValue(value, out T parsed))
+            return parsed;
+        errors.Add(new ConfigurationError(path, $"has unknown value '{value}'."));
+        return default;
+    }
+
+    private static T AddAndReturn<T>(List<ConfigurationError> errors, string path, string message, T fallback)
+    {
+        errors.Add(new ConfigurationError(path, message));
+        return fallback;
+    }
+
+    private static void ThrowIfErrors(List<ConfigurationError> errors)
+    {
+        if (errors.Count > 0)
+            throw new ConfigurationException(errors);
+    }
+}

@@ -371,3 +371,57 @@ tasks:
         msg: "Runtime dependencies are missing. Run 'task discord:check'."
     cmds:
       - '{{.PYTHON}} -m src.discord_notifier send --output={{.OUTPUT | quote}} {{if .PERIOD_END}}--period-end={{.PERIOD_END | quote}}{{end}} {{if eq .FORCE "true"}}--force{{end}}'
+
+  # ========================================
+  # Roci desktop dashboard
+  # ========================================
+
+  roci:restore:
+    desc: "Restore the C# Roci dashboard dependencies"
+    cmds:
+      - dotnet restore Portico.Roci.slnx
+
+  roci:build:
+    desc: "Build the C# Roci dashboard"
+    cmds:
+      - dotnet build Portico.Roci.slnx --no-restore --configuration {{default "Debug" .ROCI_CONFIGURATION}}
+
+  roci:build:strict:
+    desc: "Build the C# Roci dashboard with warnings as errors"
+    cmds:
+      - dotnet build Portico.Roci.slnx --no-restore --no-incremental --configuration {{default "Debug" .ROCI_CONFIGURATION}} /p:TreatWarningsAsErrors=true
+
+  roci:test:
+    desc: "Run C# Roci dashboard tests"
+    cmds:
+      - dotnet test Portico.Roci.slnx --no-restore --configuration {{default "Debug" .ROCI_CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false
+
+  roci:lint:
+    desc: "Check C# formatting and analyzers"
+    cmds:
+      - dotnet format Portico.Roci.slnx --verify-no-changes --no-restore --verbosity minimal
+
+  roci:format:
+    desc: "Format C# Roci dashboard code"
+    cmds:
+      - dotnet format Portico.Roci.slnx --no-restore
+
+  roci:doctor:
+    desc: "Run the C# dashboard setup check"
+    cmds:
+      - dotnet run --project src/Portico.App/Portico.App.csproj -- doctor {{.CLI_ARGS}}
+
+  roci:run:
+    desc: "Run the C# Roci desktop dashboard"
+    cmds:
+      - dotnet run --project src/Portico.App/Portico.App.csproj -- run {{.CLI_ARGS}}
+
+  roci:publish:win-x64:
+    desc: "Publish the C# dashboard for Windows"
+    cmds:
+      - dotnet publish src/Portico.App/Portico.App.csproj --configuration Release --runtime win-x64 --self-contained true --output artifacts/publish/win-x64
+
+  roci:publish:linux-x64:
+    desc: "Publish the C# dashboard for Linux"
+    cmds:
+      - dotnet publish src/Portico.App/Portico.App.csproj --configuration Release --runtime linux-x64 --self-contained true --output artifacts/publish/linux-x64

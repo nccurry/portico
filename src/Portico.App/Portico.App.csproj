@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>portico</AssemblyName>
+    <RootNamespace>Portico.App</RootNamespace>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Portico.Adapters/Portico.Adapters.csproj" />
+    <ProjectReference Include="../Portico.Dashboard/Portico.Dashboard.csproj" />
+    <ProjectReference Include="../Portico.Finance/Portico.Finance.csproj" />
+  </ItemGroup>
+</Project>

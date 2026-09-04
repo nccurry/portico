@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Portico.Finance/Portico.Finance.csproj" />
+    <Project Path="src/Portico.Dashboard/Portico.Dashboard.csproj" />
+    <Project Path="src/Portico.Adapters/Portico.Adapters.csproj" />
+    <Project Path="src/Portico.App/Portico.App.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Portico.Finance.Tests/Portico.Finance.Tests.csproj" />
+    <Project Path="tests/Portico.Dashboard.Tests/Portico.Dashboard.Tests.csproj" />
+    <Project Path="tests/Portico.Adapters.Tests/Portico.Adapters.Tests.csproj" />
+    <Project Path="tests/Portico.App.Tests/Portico.App.Tests.csproj" />
+  </Folder>
+</Solution>

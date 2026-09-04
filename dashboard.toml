@@ -1,0 +1,297 @@
+# Portico Roci desktop dashboard layout.
+# This file controls presentation only. Keep calculation settings in portico-demo.toml
+# or your existing Portico TOML file.
+
+schema_version = 1
+app_title = "Portico"
+
+[[pages]]
+id = "home"
+title = "Home"
+icon = "home"
+description = "Net worth, cash flow, and financial safety at a glance."
+visible = true
+
+[[pages.filters]]
+id = "lookback"
+label = "Lookback"
+kind = "select"
+source = "lookback"
+default = "12"
+options = ["3", "6", "12", "24"]
+
+[[pages.widgets]]
+id = "net-worth"
+title = "Net worth"
+kind = "area_chart"
+report = "home.net_worth"
+span = 2
+
+[[pages.widgets]]
+id = "overview"
+title = "Overview"
+kind = "metric"
+report = "home.overview"
+
+[[pages.widgets]]
+id = "accounts"
+title = "Accounts"
+kind = "bar_chart"
+report = "home.accounts"
+
+[[pages]]
+id = "income_savings"
+title = "Income and Savings"
+icon = "income"
+description = "Monthly income, spending, surplus, and savings rate."
+visible = true
+
+[[pages.filters]]
+id = "income_view"
+label = "View"
+kind = "select"
+source = "income_view"
+default = "regular"
+options = ["regular", "actual"]
+
+[[pages.widgets]]
+id = "cash-flow"
+title = "Monthly cash flow"
+kind = "bar_chart"
+report = "income.cash_flow"
+span = 2
+
+[[pages.widgets]]
+id = "savings-rate"
+title = "Savings rate"
+kind = "line_chart"
+report = "income.savings_rate"
+span = 2
+
+[[pages]]
+id = "spending"
+title = "Spending by Category"
+icon = "spending"
+description = "Where expense money went over the selected period."
+visible = true
+
+[[pages.filters]]
+id = "lookback"
+label = "Lookback"
+kind = "select"
+source = "lookback"
+default = "12"
+options = ["3", "6", "12", "24"]
+
+[[pages.filters]]
+id = "transaction_set"
+label = "Spending view"
+kind = "select"
+source = "spending"
+default = "discretionary"
+options = ["all", "discretionary"]
+
+[[pages.widgets]]
+id = "monthly"
+title = "Monthly spending"
+kind = "line_chart"
+report = "spending.monthly"
+span = 2
+
+[[pages.widgets]]
+id = "categories"
+title = "Top categories"
+kind = "bar_chart"
+report = "spending.categories"
+span = 2
+
+[[pages]]
+id = "year_over_year"
+title = "Year over Year"
+icon = "compare"
+description = "Compare a spending view across calendar years."
+visible = true
+
+[[pages.filters]]
+id = "transaction_set"
+label = "Spending view"
+kind = "select"
+source = "year_over_year"
+default = "utilities"
+options = ["all", "utilities", "discretionary"]
+
+[[pages.widgets]]
+id = "comparison"
+title = "Monthly comparison"
+kind = "line_chart"
+report = "yoy.comparison"
+span = 2
+
+[[pages.widgets]]
+id = "year-totals"
+title = "Year totals"
+kind = "bar_chart"
+report = "yoy.totals"
+span = 2
+
+[[pages]]
+id = "subscriptions"
+title = "Subscriptions"
+icon = "subscriptions"
+description = "Known recurring expenses and active subscription history."
+visible = true
+
+[[pages.widgets]]
+id = "active"
+title = "Active subscriptions"
+kind = "timeline"
+report = "subscriptions.active"
+span = 2
+
+[[pages.widgets]]
+id = "monthly"
+title = "Monthly subscription spending"
+kind = "line_chart"
+report = "subscriptions.monthly"
+span = 2
+
+[[pages]]
+id = "merchants"
+title = "Merchant Analysis"
+icon = "merchant"
+description = "Merchants ranked by spend, with monthly history."
+visible = true
+
+[[pages.filters]]
+id = "lookback"
+label = "Lookback"
+kind = "select"
+source = "lookback"
+default = "12"
+options = ["3", "6", "12", "24"]
+
+[[pages.filters]]
+id = "transaction_set"
+label = "Spending view"
+kind = "select"
+source = "spending"
+default = "discretionary"
+options = ["all", "discretionary"]
+
+[[pages.widgets]]
+id = "ranking"
+title = "Top merchants"
+kind = "bar_chart"
+report = "merchants.ranking"
+span = 2
+
+[[pages.widgets]]
+id = "history"
+title = "Merchant history"
+kind = "line_chart"
+report = "merchants.history"
+span = 2
+
+[[pages]]
+id = "budget"
+title = "Budget"
+icon = "budget"
+description = "Budget allocations and actual category spending."
+visible = true
+
+[[pages.filters]]
+id = "lookback"
+label = "Lookback"
+kind = "select"
+source = "lookback"
+default = "12"
+options = ["3", "6", "12", "24"]
+
+[[pages.widgets]]
+id = "budget-vs-actual"
+title = "Budget versus actual"
+kind = "bar_chart"
+report = "budget.comparison"
+span = 2
+
+[[pages.widgets]]
+id = "budget-table"
+title = "Budget details"
+kind = "table"
+report = "budget.table"
+span = 2
+
+[[pages]]
+id = "top_transactions"
+title = "Top Transactions"
+icon = "transactions"
+description = "Large income and expense transactions in the selected period."
+visible = true
+
+[[pages.filters]]
+id = "lookback"
+label = "Lookback"
+kind = "select"
+source = "lookback"
+default = "12"
+options = ["3", "6", "12", "24"]
+
+[[pages.widgets]]
+id = "expense-scatter"
+title = "Large expenses"
+kind = "scatter_chart"
+report = "top.expenses"
+span = 2
+
+[[pages.widgets]]
+id = "transactions"
+title = "Largest transactions"
+kind = "table"
+report = "top.table"
+span = 2
+
+[[pages]]
+id = "financial_independence"
+title = "Financial Independence"
+icon = "fi"
+description = "Portfolio funding, projection, and runway sensitivity."
+visible = true
+
+[[pages.widgets]]
+id = "summary"
+title = "Financial independence"
+kind = "metric"
+report = "fi.summary"
+
+[[pages.widgets]]
+id = "projection"
+title = "Portfolio projection"
+kind = "line_chart"
+report = "fi.projection"
+
+[[pages.widgets]]
+id = "sensitivity"
+title = "Runway sensitivity"
+kind = "heatmap"
+report = "fi.sensitivity"
+span = 2
+
+[[pages]]
+id = "data_health"
+title = "Data Health"
+icon = "health"
+description = "Missing classifications, stale accounts, and duplicate-looking rows."
+visible = true
+
+[[pages.widgets]]
+id = "summary"
+title = "Data health"
+kind = "metric"
+report = "health.summary"
+
+[[pages.widgets]]
+id = "findings"
+title = "Findings"
+kind = "table"
+report = "health.findings"
+span = 2

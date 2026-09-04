@@ -2,12 +2,12 @@
 
 ## Lifecycle
 
-- Status: Planned
+- Status: In progress
 - Folder: `docs/llms/plcs/planned/portico-roci-dashboard-1.0/`
 - Owner: Portico and Roci maintainers
 - Created: 2026-09-03
 - Last updated: 2026-09-04
-- Current phase: Planning reviewed; Phase 0 is ready to start
+- Current phase: Phases 0 and 1 are implemented in the Portico worktree; Phase 2 Roci component work is in progress
 - Portico worktree: `nccurry/roci-portico-plc` in `../portico-roci-rebuild`
 - Companion Roci work: `nccurry/portico-roci-components` in
   `../roci-portico-components`, created cleanly from
@@ -135,8 +135,7 @@ deferred choices below have safe defaults.
 
 ## Implementation Checklist
 
-- [ ] Move this packet to `in-progress/` before code begins.
-- [ ] Record the active Portico and Roci branch names in the packet.
+- [x] Record the active Portico and Roci branch names in the packet.
 - [ ] Keep the SRD and SADD current when an implementation decision changes.
 - [ ] Record validation evidence as phases complete.
 - [ ] Remove replaced experimental code as the typed implementation lands.

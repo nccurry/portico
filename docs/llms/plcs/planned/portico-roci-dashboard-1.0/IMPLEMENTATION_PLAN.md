@@ -2,7 +2,7 @@
 
 ## Document Control
 
-- Lifecycle status: Planned
+- Lifecycle status: In progress
 - PLC packet: [README.md](README.md)
 - Owner: Portico and Roci maintainers
 - Last updated: 2026-09-04
@@ -31,9 +31,9 @@ custom-drawing workaround while the equivalent Roci component is missing.
 
 | Phase | Goal | Requirements | Code areas | Validation | Exit criteria | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| 0 | Create a runnable C# foundation and redacted setup checker | REQ-001, 004, 013-015, 018, 020 | Solution, Task/mise, config parser, doctor, demo skeleton | Task lint/build/test and doctor | Local demo config validates in text and JSON modes | Planned |
-| 1 | Load data and prove financial calculations before UI work | REQ-005-007, 011-012, 016 | Finance, adapters, synthetic data, report records | Finance/adapter/CLI tests | Exact results pass from local and mocked remote sources | Planned |
-| 2 | Add the Roci baseline the dashboard needs | REQ-003, 009-010, 017 | Existing drawer proof or generic Drawer, date/category charts, samples/tests | Roci focused and broad gates | The selected drawer approach and date/category overlay components are usable from Portico | Planned |
+| 0 | Create a runnable C# foundation and redacted setup checker | REQ-001, 004, 013-015, 018, 020 | Solution, Task/mise, config parser, doctor, demo skeleton | Task lint/build/test and doctor | Local demo config validates in text and JSON modes | Complete |
+| 1 | Load data and prove financial calculations before UI work | REQ-005-007, 011-012, 016 | Finance, adapters, synthetic data, report records | Finance/adapter/CLI tests | Exact results pass from local and mocked remote sources | Complete |
+| 2 | Add the Roci baseline the dashboard needs | REQ-003, 009-010, 017 | Existing drawer proof or generic Drawer, date/category charts, samples/tests | Roci focused and broad gates | The selected drawer approach and date/category overlay components are usable from Portico | In progress |
 | 3 | Deliver a usable desktop shell and Home dashboard | REQ-002-004, 008-009, 014, 017 | App host/session/renderer, Home config/report | Desktop behaviour and Home captures | Drawer navigation and Home work from local demo data | Planned |
 | 4 | Deliver every standard dashboard page | REQ-002, 004, 008-009, 017 | Income, Spending, YoY, Merchant, Budget, Top, Data Health | Report/UI/visual tests | Seven configured page views work with filters and data grids | Planned |
 | 5 | Deliver advanced Roci visuals and the remaining pages | REQ-002, 008-010, 017, 020 | Roci range bars/heatmap; Subscriptions and FI | Roci and app visual/interaction tests | All ten views use native Roci components, with no custom app drawing workaround | Planned |

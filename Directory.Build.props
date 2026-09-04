@@ -1,0 +1,10 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <LangVersion>preview</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <RociSourceRoot Condition="'$(RociSourceRoot)' == ''">$(MSBuildThisFileDirectory)..\roci-portico-components</RociSourceRoot>
+  </PropertyGroup>
+</Project>
