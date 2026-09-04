@@ -2,13 +2,32 @@
 
 ## Lifecycle
 
-- Status: Planned
+- Status: In progress
 - Created: 2026-09-04
-- Current phase: Not started
+- Current phase: Phase 1 — build the skin and flex foundation
 - Owner: Portico maintainers
 - Target worktree: `../portico-roci-rebuild`
 - Target branch: `nccurry/roci-portico-plc`
 - Roci branch: no changes in this PLC
+
+## Implementation Progress
+
+Phase 0 completed on 2026-09-04.
+
+- The source navigation, page regions, controls, and Roci component decisions
+  are recorded in [DISCOVERY.md](DISCOVERY.md).
+- A test-only capture host now creates deterministic demo sessions and captures
+  all ten current pages at 1500 by 1000 and 1024 by 720.
+- `task roci:visual` writes and verifies 20 PNG files in
+  `artifacts/visual/portico-current`.
+- The merged phase passed `task roci:restore`, `task roci:test:desktop`,
+  `task roci:visual`, `task roci:format`, `task roci:lint`,
+  `task roci:build:strict`, and `git diff --check`. The two Phase 0 child
+  reviews also passed `$audit-codebase`; the capture review passed
+  `$frontend-design-review` for its narrow Phase 0 scope.
+
+The next phase changes only the app shell and presentation styles. Typed page
+controls, configuration extensions, and report mappings remain Phase 3 work.
 
 ## Purpose
 

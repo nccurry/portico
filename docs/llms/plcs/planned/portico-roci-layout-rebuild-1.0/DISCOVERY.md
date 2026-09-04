@@ -64,10 +64,11 @@ the rebuild tied to the real app rather than to memory or a loose description.
 
 ## Phase 0 Source And Roci Record
 
-This record covers the written discovery slice completed on 2026-09-04. It is
-based on the checked-in Streamlit source, the current C# dashboard, and the
-current Roci component worktree. It does not mark Phase 0 complete: the
-test-only capture host and baseline images are separate Phase 0 work.
+This record covers the discovery and capture baseline completed on 2026-09-04.
+It is based on the checked-in Streamlit source, the current C# dashboard, and
+the current Roci component worktree. The test-only capture host and current
+Roci baseline images are now part of this completed phase. Typed controls and
+configuration mappings remain later Phase 3 work.
 
 ### Shared Shell Facts
 
@@ -142,7 +143,7 @@ fields, validation, report/display mappings, and focused tests.
 | The C# presentation model cannot hold the source navigation mapping. | `DashboardPageDefinition` has `Title` and `Description`, but no group, order, rail label, heading, or icon. `dashboard.toml` has the near-match labels listed above. | Add typed configuration fields in Phase 3; build the permanent grouped rail in Phase 2. |
 | The C# control model cannot express the source controls. | `DashboardFilterKind` has only `Select`; `DashboardSession` projects four shared filters. The source uses segmented choices, multi-selects, sliders, number inputs, toggles, tabs, text input, selection, and reset actions. | Add typed per-page state and control/report mappings in Phase 3. |
 | The current desktop shell is not the source shell. | `PorticoDashboardScene` uses a top bar and an overlay drawer. The source uses a permanent sidebar. | Replace it in Phases 1 and 2 with the SADD shell row and local navigation rail. |
-| The current release host cannot make the required captures. | `PorticoDashboardGame` fixes the normal window at 1280 by 820. `DesktopDashboardHost` calls the settings-only host overload. Roci capture samples call the argument-aware host with `GameRunFeatures.Automation | GameRunFeatures.Capture`. | The capture-host slice remains pending. Do not change the release host for capture-only behavior. |
+| The current release host cannot make the required captures. | `PorticoDashboardGame` fixes a normal window at 1280 by 820. The test-only `Portico.CaptureHost` now calls the argument-aware host with `GameRunFeatures.Automation | GameRunFeatures.Capture`. | Phase 0 added the capture host without changing normal release-host behaviour. |
 
 ### Verified Roci Component Direction
 
@@ -160,17 +161,18 @@ record does not name a second missing Roci component. Phase 3 must prove the
 small app-local composition for that source behavior before proposing any
 additional component.
 
-### Completion Status For This Slice
+### Completion Status
 
 - Complete: source navigation, headings, source files, source control labels,
-  page regions, and Roci component directions.
-- Pending: deterministic Streamlit/Roci images, the test-only capture host,
-  `roci:visual`, C# control-state fields, configuration parsing, and tests.
+  page regions, Roci component directions, deterministic current Roci images,
+  the test-only capture host, and `roci:visual`.
+- Pending: C# control-state fields, configuration parsing, control/report
+  mappings, and their page-specific tests. Those are Phase 3 work.
 - Deferred: `Download CSV` and `Open spreadsheet`. They are source actions
   outside this visualization and UI experiment. They need explicit export and
   external-link policies before an app implements them.
-- No Roci source, C# source, dependencies, or Taskfile entries changed by this
-  discovery slice.
+- No Roci source changed. The capture part of Phase 0 added a test-only C# host
+  and Taskfile command; the release CLI keeps its normal startup path.
 
 ## Local Component Rule
 
@@ -190,8 +192,8 @@ Roci.
 
 | Item | Evidence needed | Decision |
 | --- | --- | --- |
-| Visual test method | A sample capture and one stable comparison run. | Pending. |
-| Capture host | A test-only host that accepts capture arguments and enables Roci automation/capture. | Pending. |
+| Visual test method | A sample capture and one stable comparison run. | Completed: use `GameRunCaptureCatalog` and Roci's capture verifier. Cross-renderer pixel comparisons remain out of scope. |
+| Capture host | A test-only host that accepts capture arguments and enables Roci automation/capture. | Completed: `Portico.CaptureHost` accepts normal Roci capture arguments and runs fixed demo sessions. |
 | Navigation rail | A local proof with selected page, keyboard focus, and narrow-window behavior. | Pending. |
 | Multi-select | A local proof used by at least two real page filters. | Pending. |
 | Typed page controls | A table that maps each source control to state, report/display behavior, and a test. | Pending. |
@@ -214,3 +216,15 @@ Roci.
 - `task roci:visual` runs named test-only capture cases at 1500 by 1000 and
   1024 by 720, even before the UI changes.
 - No Roci code has changed.
+
+### Phase 0 Evidence
+
+`task roci:visual` passed with twenty current-dashboard captures: ten named
+page/control states at each required desktop size. The command uses fixed demo
+data and a fixed report date. The captured Roci images live under
+`artifacts/visual/portico-current` when the command retains output.
+
+The Streamlit screenshots remain manual visual references. They are not image
+comparison goldens because a browser and Roci render text and charts
+differently. The source inventory supplies the page-by-page comparison list
+for later visual phases.
