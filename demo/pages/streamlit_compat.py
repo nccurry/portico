@@ -7,9 +7,10 @@ from inspect import signature
 import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
 
-# The current Stlite runtime cannot restore cached Pandas UTC datetime data.
-# TODO(stlite-1.62): Delete this file and its call in entry.py after @stlite/browser
-# bundles Streamlit 1.62, restores this data, and the browser test opens every page twice.
+# TODO(stlite-parity): Delete this module and its call in entry.py once
+# @stlite/browser bundles the Streamlit version pinned in pyproject.toml (currently
+# 1.62.0), cached Pandas UTC datetime data works, and the browser demo opens every
+# page twice without this bridge.
 
 PERSIST_STATE_WIDGETS = (
     "multiselect",
@@ -89,15 +90,16 @@ def install_streamlit_compatibility(
     """Install only the Streamlit 1.57 fallbacks required by Portico."""
     if not getattr(streamlit_module, COMPATIBILITY_MARKER, False):
         supports_column_wrap = _supports_keyword(streamlit_module, "columns", "wrap")
-        supports_container_wrap = _supports_keyword(delta_generator, "container", "wrap")
         for name in PERSIST_STATE_WIDGETS:
             if not _supports_keyword(streamlit_module, name, "persist_state"):
                 _patch_keyword(streamlit_module, name, "persist_state")
         if not supports_column_wrap:
             _patch_keyword(streamlit_module, "columns", "wrap")
             _set_attribute(streamlit_module, "cache_data", _no_cache_data)
-        if not supports_container_wrap:
-            _patch_keyword(delta_generator, "container", "wrap")
+        # st.container is a bound export, so patch it as well as its class method.
+        # The browser bridge always ignores container wrapping until its TODO is met.
+        _patch_keyword(streamlit_module, "container", "wrap")
+        _patch_keyword(delta_generator, "container", "wrap")
         _set_attribute(streamlit_module, COMPATIBILITY_MARKER, True)
 
     method_name = "skeleton"

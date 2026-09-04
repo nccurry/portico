@@ -21,12 +21,13 @@ def test_legacy_runtime_ignores_new_widget_arguments() -> None:
             assert "wrap" not in kwargs
             return "container"
 
-    legacy_streamlit = SimpleNamespace(toggle=toggle, columns=columns)
+    container = LegacyContainer()
+    legacy_streamlit = SimpleNamespace(toggle=toggle, columns=columns, container=container.container)
     install_streamlit_compatibility(legacy_streamlit, LegacyContainer)
 
-    container = LegacyContainer()
     assert legacy_streamlit.toggle("Visible", persist_state="page") == "selected"
     assert legacy_streamlit.columns([1, 1], wrap=False) == "columns"
+    assert legacy_streamlit.container(horizontal=True, wrap=True, vertical_alignment="bottom") == "container"
     assert container.container(horizontal=True, wrap=True, vertical_alignment="bottom") == "container"
     skeleton = cast(Callable[..., LegacyContainer], object.__getattribute__(container, "skeleton"))
     assert skeleton(height=300) is container
@@ -59,8 +60,8 @@ def test_legacy_runtime_recomputes_cached_functions() -> None:
     legacy_streamlit.cache_data.clear()
 
 
-def test_current_runtime_does_not_replace_supported_widgets() -> None:
-    """The bridge leaves a runtime with native support unchanged."""
+def test_current_runtime_keeps_supported_widgets_but_ignores_container_wrap() -> None:
+    """The browser bridge keeps native widgets while always ignoring container wrap."""
 
     def toggle(*args: object, persist_state: str | None = None, **kwargs: object) -> str:
         return persist_state or "default"
@@ -85,15 +86,18 @@ def test_current_runtime_does_not_replace_supported_widgets() -> None:
         def skeleton(self, **kwargs: object) -> str:
             return "native"
 
+    current_container = CurrentContainer()
     current_streamlit = SimpleNamespace(
         toggle=toggle,
         columns=columns,
+        container=current_container.container,
         cache_data=cache_data,
     )
     install_streamlit_compatibility(current_streamlit, CurrentContainer)
 
     assert current_streamlit.toggle("Visible", persist_state="page") == "page"
     assert current_streamlit.columns([1, 1], wrap=False) is False
+    assert current_streamlit.container(wrap=False) is True
     assert current_streamlit.cache_data is cache_data
-    assert CurrentContainer().container(wrap=False) is False
+    assert CurrentContainer().container(wrap=False) is True
     assert CurrentContainer().skeleton(height=300) == "native"

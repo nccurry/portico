@@ -59,7 +59,8 @@
           {
             archives: [
               {
-                url: "./portico-demo.zip",
+                // The build replaces this cache key after every archive change.
+                url: "./portico-demo.zip?v=__PORTICO_DEMO_ARCHIVE_HASH__",
                 format: "zip",
                 options: {},
               },

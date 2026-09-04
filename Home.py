@@ -19,6 +19,7 @@ from src.analysis.home import (
 )
 from src.config import ConfigError, get_settings
 from src.constants import (
+    CHART_HEIGHT_SPARKLINE,
     COLOR_ASSET,
     COLOR_LIABILITY,
     COLOR_NET_WORTH,
@@ -101,6 +102,24 @@ def create_financial_position_chart(history: pd.DataFrame) -> alt.LayerChart:
     )
     zero = alt.Chart(pd.DataFrame({"Value": [0]})).mark_rule(color="#64748B", opacity=0.55).encode(y="Value:Q")
     return cast(alt.LayerChart, alt.layer(areas, zero, net_worth).properties(height=330))
+
+
+def create_account_group_sparkline(trend: list[float], *, color: str) -> alt.Chart:
+    """Show an account-group trend with its semantic balance color."""
+    history = pd.DataFrame({"Position": range(len(trend)), "Balance": trend})
+    return cast(
+        alt.Chart,
+        (
+            alt.Chart(history)
+            .mark_line(color=color, strokeWidth=2)
+            .encode(
+                x=alt.X("Position:Q", axis=None),
+                y=alt.Y("Balance:Q", axis=None),
+            )
+            .properties(height=CHART_HEIGHT_SPARKLINE)
+            .configure_view(stroke=None)
+        ),
+    )
 
 
 def create_net_worth_attribution_chart(groups: pd.DataFrame) -> alt.Chart:
@@ -376,8 +395,12 @@ def _render_account_group(group_row: pd.Series, accounts: pd.DataFrame) -> None:
             delta=_format_currency(display_change, show_plus=True),
             delta_color="inverse" if is_liability else "normal",
             delta_description=change_description,
-            chart_data=group_row["Trend"],
-            chart_type="line",
+            width="stretch",
+        )
+        trend = cast(list[float], group_row["Trend"])
+        sparkline_color = COLOR_LIABILITY if is_liability else COLOR_ASSET
+        st.altair_chart(
+            mask_chart_values(create_account_group_sparkline(trend, color=sparkline_color)),
             width="stretch",
         )
 

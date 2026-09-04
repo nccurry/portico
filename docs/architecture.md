@@ -127,8 +127,13 @@ service.
 The browser runtime temporarily uses Streamlit 1.57. The demo bridge ignores
 `persist_state`, `wrap`, loading skeleton calls, and serialized data caching.
 A control can reset after its page or view changes, and reports recalculate
-after a rerun. Remove the bridge after Stlite supports Streamlit 1.62, restores
-cached datetime data, and the browser test opens every page twice.
+after a rerun. Remove the bridge after Stlite supports the Streamlit version
+pinned in `pyproject.toml` (currently 1.62.0), restores cached datetime data,
+and the browser test opens every page twice.
+
+The Pages build gives the demo archive a content-derived cache key. A browser
+therefore loads the new archive after a deployment instead of reusing an older
+copy at the same URL.
 
 The fixture covers May 1992 through April 1995. It uses varied accounts,
 spending, subscriptions, and budgets so each report shows meaningful

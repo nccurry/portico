@@ -37,7 +37,6 @@ def mask_value(value: str) -> str:
 def render_value_visibility_control() -> None:
     """Render the app-wide value visibility setting in the sidebar."""
     with st.sidebar:
-        st.divider()
         hidden = st.toggle(
             "Hide values",
             key=VALUES_HIDDEN_KEY,

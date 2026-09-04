@@ -8,10 +8,18 @@ file a thin orchestrator and gives the tests a stable, importable target.
 import pandas as pd
 import pytest
 
+from Home import create_account_group_sparkline
+from src.constants import COLOR_LIABILITY
 from src.spreadsheet import calculate_net_worth_summary
 from tests._helpers import _ts
 from tests.custom_types import BalanceSpreadsheetFactory
 from tests.fixtures.dataframes import BALANCE_HISTORY_SCRUBBED_COLUMNS
+
+
+def test_liability_sparkline_uses_liability_color() -> None:
+    chart = create_account_group_sparkline([1000.0, 900.0], color=COLOR_LIABILITY)
+
+    assert chart.to_dict()["mark"]["color"] == COLOR_LIABILITY
 
 
 class TestNetWorthCalculation:
