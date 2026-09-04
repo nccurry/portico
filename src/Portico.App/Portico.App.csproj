@@ -11,6 +11,8 @@
     <ProjectReference Include="$(RociSourceRoot)/src/Roci.Hosting.MonoGame/Roci.Hosting.MonoGame.csproj" />
     <ProjectReference Include="$(RociSourceRoot)/src/Roci.Core/Roci.Core.csproj" />
     <ProjectReference Include="$(RociSourceRoot)/src/Roci.Input/Roci.Input.csproj" />
+    <ProjectReference Include="$(RociSourceRoot)/src/Roci.Input.Automation/Roci.Input.Automation.csproj" />
+    <ProjectReference Include="$(RociSourceRoot)/src/Roci.Input.Automation.Launch/Roci.Input.Automation.Launch.csproj" />
     <ProjectReference Include="$(RociSourceRoot)/src/Roci.Input.MonoGame/Roci.Input.MonoGame.csproj" />
     <ProjectReference Include="$(RociSourceRoot)/src/Roci.Launch/Roci.Launch.csproj" />
     <ProjectReference Include="$(RociSourceRoot)/src/Roci.Rendering/Roci.Rendering.csproj" />

@@ -1,0 +1,128 @@
+﻿using Portico.Dashboard;
+using Roci.Launch;
+using Roci.Testing;
+
+namespace Portico.CaptureHost;
+
+/// <summary>Defines the fixed Portico page states and capture sizes used by visual checks.</summary>
+public static class PorticoCaptureCatalog
+{
+    /// <summary>Launch state that always uses the checked-in synthetic demo session.</summary>
+    public const string DemoLaunchState = "demo";
+
+    /// <summary>Frame number saved for each baseline capture.</summary>
+    public const int CaptureFrame = 8;
+
+    private static readonly CaptureScenario[] Scenarios =
+    [
+        new("home", static session =>
+        {
+            session.SelectPage(DashboardPageId.Home);
+            session.SetFilter("lookback", "12");
+        }),
+        new("income-savings", static session =>
+        {
+            session.SelectPage(DashboardPageId.IncomeSavings);
+            session.SetFilter("income_view", "actual");
+        }),
+        new("spending", static session =>
+        {
+            session.SelectPage(DashboardPageId.Spending);
+            session.SetFilter("lookback", "3");
+            session.SetFilter("spending", "all");
+        }),
+        new("year-over-year", static session =>
+        {
+            session.SelectPage(DashboardPageId.YearOverYear);
+            session.SetFilter("year_over_year", "all");
+        }),
+        new("subscriptions", static session => session.SelectPage(DashboardPageId.Subscriptions)),
+        new("merchants", static session =>
+        {
+            session.SelectPage(DashboardPageId.Merchants);
+            session.SetFilter("lookback", "3");
+            session.SetFilter("spending", "all");
+        }),
+        new("budget", static session =>
+        {
+            session.SelectPage(DashboardPageId.Budget);
+            session.SetFilter("lookback", "3");
+        }),
+        new("top-transactions", static session =>
+        {
+            session.SelectPage(DashboardPageId.TopTransactions);
+            session.SetFilter("lookback", "3");
+        }),
+        new("financial-independence", static session => session.SelectPage(DashboardPageId.FinancialIndependence)),
+        new("data-health", static session => session.SelectPage(DashboardPageId.DataHealth))
+    ];
+
+    private static readonly CaptureSize[] CaptureSizes =
+    [
+        new CaptureSize(1500, 1000),
+        new CaptureSize(1024, 720)
+    ];
+
+    /// <summary>Launch states and page scenarios accepted by the test-only capture host.</summary>
+    public static readonly GameRunCatalog<DashboardSession, string> RunCatalog = CreateRunCatalog();
+
+    /// <summary>Named current-dashboard captures at both required desktop sizes.</summary>
+    public static readonly GameRunCaptureCatalog CaptureCatalog =
+        new GameRunCaptureCatalogBuilder<DashboardSession, string>(RunCatalog)
+            .Captures(CreateCaptureCases())
+            .Build();
+
+    /// <summary>Creates and configures one fixed demo session for a resolved page scenario.</summary>
+    public static DashboardSession CreateSession(GameRunContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+
+        DashboardSession session = PorticoDemoSessionFactory.Create();
+        RunCatalog.ApplyScenario(session, context);
+        return session;
+    }
+
+    private static GameRunCatalog<DashboardSession, string> CreateRunCatalog()
+    {
+        var builder = new GameRunCatalogBuilder<DashboardSession, string>(DemoLaunchState)
+            .LaunchState(DemoLaunchState, static (_, context) => context.LaunchStateId);
+
+        foreach (CaptureScenario scenario in Scenarios)
+        {
+            builder.Scenario(
+                DemoLaunchState,
+                scenario.Id,
+                (session, _) => scenario.Configure(session));
+        }
+
+        return builder.Build();
+    }
+
+    private static CaptureCase[] CreateCaptureCases()
+    {
+        var cases = new List<CaptureCase>(Scenarios.Length * CaptureSizes.Length);
+        foreach (CaptureScenario scenario in Scenarios)
+        {
+            foreach (CaptureSize captureSize in CaptureSizes)
+            {
+                cases.Add(new CaptureCase(
+                    $"portico-current-{scenario.Id}-{captureSize.Width}x{captureSize.Height}",
+                    DemoLaunchState)
+                {
+                    ScenarioId = scenario.Id,
+                    CaptureFrame = CaptureFrame,
+                    CaptureSize = captureSize,
+                    Verification = new CaptureVerificationOptions
+                    {
+                        ExpectedSize = captureSize,
+                        MinimumUniqueColors = 4
+                    }
+                });
+            }
+        }
+
+        return cases.ToArray();
+    }
+
+    private sealed record CaptureScenario(string Id, Action<DashboardSession> Configure);
+}

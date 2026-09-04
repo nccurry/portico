@@ -394,7 +394,7 @@ tasks:
   roci:test:
     desc: "Run C# Roci dashboard tests"
     cmds:
-      - dotnet test Portico.Roci.slnx --no-restore --configuration {{default "Debug" .ROCI_CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false
+      - dotnet test Portico.Roci.slnx --no-restore --configuration {{default "Debug" .ROCI_CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false --filter "Category!=VisualCapture"
 
   roci:test:finance:
     desc: "Run C# financial calculation tests"
@@ -405,13 +405,22 @@ tasks:
     desc: "Run C# source, configuration, and CLI tests"
     cmds:
       - dotnet test tests/Portico.Adapters.Tests/Portico.Adapters.Tests.csproj --no-restore --configuration {{default "Debug" .ROCI_CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false
-      - dotnet test tests/Portico.App.Tests/Portico.App.Tests.csproj --no-restore --configuration {{default "Debug" .ROCI_CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false
+      - dotnet test tests/Portico.App.Tests/Portico.App.Tests.csproj --no-restore --configuration {{default "Debug" .ROCI_CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false --filter "Category!=VisualCapture"
 
   roci:test:desktop:
     desc: "Run C# dashboard session and retained-tree tests"
     cmds:
       - dotnet test tests/Portico.Dashboard.Tests/Portico.Dashboard.Tests.csproj --no-restore --configuration {{default "Debug" .ROCI_CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false
-      - dotnet test tests/Portico.App.Tests/Portico.App.Tests.csproj --no-restore --configuration {{default "Debug" .ROCI_CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false
+      - dotnet test tests/Portico.App.Tests/Portico.App.Tests.csproj --no-restore --configuration {{default "Debug" .ROCI_CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false --filter "Category!=VisualCapture"
+
+  roci:visual:
+    desc: "Capture every current Roci dashboard page at both reference desktop sizes"
+    env:
+      PORTICO_CAPTURE_OUTPUT_DIR: artifacts/visual/portico-current
+      PORTICO_CAPTURE_RETAIN_OUTPUT: "true"
+    cmds:
+      - task: roci:build
+      - dotnet test tests/Portico.App.Tests/Portico.App.Tests.csproj --no-build --no-restore --configuration {{default "Debug" .ROCI_CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false --filter "Category=VisualCapture" -m:1 -- xUnit.ParallelizeTestCollections=false
 
   roci:lint:
     desc: "Check C# formatting and analyzers"

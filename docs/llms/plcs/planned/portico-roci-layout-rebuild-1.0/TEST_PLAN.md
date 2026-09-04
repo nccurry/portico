@@ -166,9 +166,13 @@ task roci:publish:win-x64
 task roci:publish:linux-x64
 ```
 
-The exact `roci:visual` arguments and output location are decided in Phase 0
-from the existing Roci test approach and then documented in the Taskfile and
-this packet.
+`roci:visual` first builds the matching configuration, then runs the
+test-only `Portico.CaptureHost` cases serially with Roci automation and
+capture. The command writes the twenty current-dashboard PNG files to
+`artifacts/visual/portico-current`: every configured page at 1500 by 1000 and
+1024 by 720. A direct host run accepts normal Roci arguments such as
+`--start-state`, `--scenario`, `--capture-size`, `--capture-frame`, and
+`--capture`.
 
 ## 8. Phase Proof Matrix
 

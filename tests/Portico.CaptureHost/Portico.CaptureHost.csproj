@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Portico.CaptureHost</AssemblyName>
+    <RootNamespace>Portico.CaptureHost</RootNamespace>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Portico.App/Portico.App.csproj" />
+    <ProjectReference Include="../../src/Portico.Adapters/Portico.Adapters.csproj" />
+    <ProjectReference Include="../../src/Portico.Dashboard/Portico.Dashboard.csproj" />
+    <ProjectReference Include="../../src/Portico.Finance/Portico.Finance.csproj" />
+    <ProjectReference Include="$(RociSourceRoot)/src/Roci.Hosting.MonoGame/Roci.Hosting.MonoGame.csproj" />
+    <ProjectReference Include="$(RociSourceRoot)/src/Roci.Launch/Roci.Launch.csproj" />
+    <ProjectReference Include="$(RociSourceRoot)/src/Roci.Testing/Roci.Testing.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="MonoGame.Framework.DesktopGL" />
+  </ItemGroup>
+</Project>

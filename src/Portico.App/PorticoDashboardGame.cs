@@ -3,6 +3,8 @@ using Portico.Dashboard;
 using Roci.Display;
 using Roci.Hosting.MonoGame;
 using Roci.Input;
+using Roci.Input.Automation;
+using Roci.Input.Automation.Launch;
 using Roci.Launch;
 using Roci.Rendering;
 using Roci.Rendering.FontStashSharp;
@@ -23,8 +25,12 @@ public sealed class PorticoDashboardGame : HostedMonoGameGame
     /// <summary>Logical height of the normal desktop dashboard window.</summary>
     public const int DefaultHeight = 820;
 
+    private static readonly InputScriptCatalog<GameRunOptions> InputScripts =
+        new InputScriptCatalogBuilder<GameRunOptions>().Build();
+
     private readonly IInputProvider _inputProvider;
     private readonly InputManager _inputHandler;
+    private readonly ScriptedInputProvider? _scriptedInputProvider;
     private readonly UiInputMap _uiInputMap;
 
     private MonoGameRenderScope _rendering = null!;
@@ -37,14 +43,27 @@ public sealed class PorticoDashboardGame : HostedMonoGameGame
 
     /// <summary>Creates a live desktop dashboard for an already loaded session.</summary>
     public PorticoDashboardGame(DashboardSession session)
-        : base(GameRunContext.Empty, CreateHostSettings())
+        : this(session, GameRunContext.Empty)
+    {
+    }
+
+    /// <summary>Creates a dashboard that honors a resolved Roci launch context.</summary>
+    public PorticoDashboardGame(DashboardSession session, GameRunContext context)
+        : base(context, CreateHostSettings(context))
     {
         ArgumentNullException.ThrowIfNull(session);
 
         Content.RootDirectory = "Content";
         Session = session;
         _inputHandler = new InputManager(CreateInputConfig(), new InputContextId("ui"));
-        _inputProvider = Presentation.WrapInput(new LiveInputProvider());
+        GameRunInputProviderResult inputProviderResult = GameRunInputProviders.Create(
+            InputScripts,
+            RunOptions,
+            static () => new LiveInputProvider());
+        IInputProvider inputProvider = inputProviderResult.GetProviderOrThrow(out _scriptedInputProvider);
+        _inputProvider = _scriptedInputProvider is null
+            ? Presentation.WrapInput(inputProvider)
+            : inputProvider;
         _uiInputMap = UiInputMap.Default();
     }
 
@@ -53,13 +72,25 @@ public sealed class PorticoDashboardGame : HostedMonoGameGame
 
     /// <summary>Creates the standard desktop host settings used by the CLI.</summary>
     public static MonoGameHostSettings CreateHostSettings()
-        => new()
+        => CreateHostSettings(GameRunContext.Empty);
+
+    /// <summary>Creates host settings sized for a normal run or a requested capture.</summary>
+    public static MonoGameHostSettings CreateHostSettings(GameRunContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+
+        DisplaySize logicalSize = context.OriginalOptions.CaptureSize is { } captureSize
+            ? new DisplaySize(captureSize.Width, captureSize.Height)
+            : new DisplaySize(DefaultWidth, DefaultHeight);
+
+        return new MonoGameHostSettings
         {
-            LogicalSize = new DisplaySize(DefaultWidth, DefaultHeight),
+            LogicalSize = logicalSize,
             Title = "Portico",
             ViewportScaleMode = ViewportScaleMode.Fit,
             SamplerMode = SamplerMode.Linear
         };
+    }
 
     /// <inheritdoc />
     protected override void LoadContent()
@@ -88,6 +119,7 @@ public sealed class PorticoDashboardGame : HostedMonoGameGame
 
         InputState state = _inputProvider.CaptureState();
         _inputHandler.Update(state);
+        _scriptedInputProvider?.AdvanceFrame();
         UiInput input = _inputHandler.ReadUiInput(_uiInputMap, 0, deltaSeconds);
         _scene.Update(ref input, _textMeasurer, _uiScaleOptions, _uiViewport.EffectiveUIScale);
     }
