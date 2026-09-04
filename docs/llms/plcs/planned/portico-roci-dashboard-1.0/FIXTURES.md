@@ -111,9 +111,9 @@ literal expected-output cases.
 
 | ID | Fixture | Coverage |
 | --- | --- | --- |
-| CFG-001 | current-portico-config | Every supported existing finance section parses into typed records |
-| CFG-002 | current-demo-config | Local source configuration loads with no secret file |
-| CFG-003 | dashboard-all-pages | Ten ordered pages, configured titles/icons/layouts/widgets/filters |
+| CFG-001 | current-portico-config | Every supported existing finance section parses into typed records without a dashboard table |
+| CFG-002 | current-demo-config | Local source configuration loads with no secret file and without a dashboard table |
+| CFG-003 | dashboard-all-pages | Separate `dashboard.toml` supplies ten ordered pages, configured titles/icons/layouts/widgets/filters |
 | CFG-004 | dashboard-reordered-pages | Drawer uses TOML order rather than a hard-coded order |
 | CFG-005 | dashboard-hidden-page | Hidden page has no drawer item or route |
 | CFG-006 | duplicate-page-id | Fails before app start and names the duplicate ID |
@@ -129,6 +129,8 @@ literal expected-output cases.
 | CFG-016 | empty-dashboard | Fails if no visible page remains |
 | CFG-017 | invalid-layout-for-widget | Fails before renderer construction |
 | CFG-018 | missing-required-sheet-name | Fails safely with logical source name |
+| CFG-019 | python-config-compatibility | Existing `config.toml` and `portico-demo.toml` continue to parse through the current Python loader unchanged |
+| CFG-020 | finance-field-reference | Dashboard defaults resolve `lookback.default_lookback_months`, `filter_sets.spending`, and `income_savings.target_rate` from the current finance configuration |
 
 ### Source adapters
 
@@ -163,6 +165,7 @@ literal expected-output cases.
 | CLI-008 | sheet-override | Named override wins only for named logical tab |
 | CLI-009 | secret-redaction | URL does not occur in stdout/stderr/exception capture |
 | CLI-010 | desktop-startup-failure | Exit 4 with safe next step |
+| CLI-011 | dashboard-override | `--dashboard` selects another valid dashboard file without changing finance settings |
 
 ## Session, Filter, and Interaction Fixtures
 
@@ -232,13 +235,14 @@ not own their core test coverage.
 
 | ID | Coverage |
 | --- | --- |
-| ROC-DRAWER-001 | A name-only drawer opens with zero or more items and ends through EndNavigationDrawer |
-| ROC-DRAWER-002 | Per-item selected/visible/label state maps to retained drawer state |
-| ROC-DRAWER-003 | Open, dismiss, item selection, escape/close route, and click routing are correct |
-| ROC-DRAWER-004 | Narrow overlay and wide layout retain correct bounds and content input isolation |
-| ROC-DRAWER-005 | Invalid drawer item state fails before mutation |
-| ROC-DRAWER-006 | Fluent compiled consumer composes drawer with ordinary layout/style calls |
-| ROC-DRAWER-007 | Focused sample capture covers closed, open, selected, and narrow states |
+| ROC-DRAWER-001 | An `AnchorOverlay` plus `MenuList` proof records whether existing primitives meet slide, scrim, focus, and input-isolation requirements |
+| ROC-DRAWER-002 | If a generic Drawer is needed, a name-only drawer opens with ordinary child widgets and closes through its matching End method |
+| ROC-DRAWER-003 | Portico page selection is composed through existing MenuItems; the Roci drawer has no page-item API |
+| ROC-DRAWER-004 | Open, dismiss, item selection, escape/close route, and click routing are correct |
+| ROC-DRAWER-005 | Narrow overlay and wide layout retain correct bounds and content input isolation |
+| ROC-DRAWER-006 | Invalid drawer state fails before mutation |
+| ROC-DRAWER-007 | Fluent compiled consumer composes the selected drawer approach with ordinary layout/style calls |
+| ROC-DRAWER-008 | Focused sample capture covers closed, open, selected, and narrow states when a generic Drawer exists |
 
 ### Category and date chart data
 
@@ -318,4 +322,3 @@ No test only verifies that an exception did not occur. A financial test states
 what amount, date, category, status, interval, grid cell, or report row must
 result. A UI test states what state and rendered data change. A Roci test states
 what component state, geometry, hit, or retained behaviour must result.
-

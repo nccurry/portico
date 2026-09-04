@@ -6,7 +6,7 @@
 - PLC packet: [README.md](README.md)
 - Owner: Portico and Roci maintainers
 - Reviewers: Portico maintainer; Roci maintainer
-- Last updated: 2026-09-03
+- Last updated: 2026-09-04
 - Related SADD: [SADD.md](SADD.md)
 - Related implementation plan: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)
 
@@ -97,19 +97,19 @@ There are two codebases with separate ownership:
 
 | ID | Priority | Type | Requirement | Rationale | Acceptance criteria |
 | --- | --- | --- | --- | --- | --- |
-| REQ-001 | Must | Delivery | Keep Portico application work in the requested linked worktree and put Roci framework changes on a separate companion branch. | Prevents mixed ownership and makes framework review possible. | Each repository has a clean, reviewable diff and neither copies source from the other. |
+| REQ-001 | Must | Delivery | Keep Portico application work in the requested linked worktree and put Roci framework changes in a separate clean companion worktree and branch. | Prevents mixed ownership and makes framework review possible. | Each repository has a clean, reviewable diff and neither copies source from the other. |
 | REQ-002 | Must | Functional | Deliver a desktop C# executable using Roci that can show Home plus Income and Savings, Spending by Category, Year over Year, Subscriptions, Merchant Analysis, Budget, Top Transactions, Financial Independence, and Data Health. | These are the current dashboard surface. | Every view has a page definition, route, report, and test fixture. |
 | REQ-003 | Must | Functional | Provide a left slide-out navigation drawer with a menu trigger, page items, current-page indication, dismissal, and keyboard/input-safe behaviour. | The requested navigation should work without using tabs for the entire app. | Tests cover open, select, dismiss, and narrow-width behaviour; visual capture shows drawer and closed states. |
-| REQ-004 | Must | Configuration | Read the current Portico calculation configuration and add a versioned TOML dashboard section for page order, text, layout, widgets, colors, filter controls, and defaults. | The dashboard should be configuration-driven without turning TOML into code. | Valid source configuration maps to typed records; invalid IDs, duplicate IDs, unknown widget kinds, bad options, and bad defaults fail before the window opens. |
+| REQ-004 | Must | Configuration | Read the current Portico calculation configuration unchanged and add a separate versioned `dashboard.toml` for page order, text, layout, widgets, colors, filter controls, and defaults. | The dashboard should be configuration-driven without turning TOML into code or breaking the current Python loader. | Valid finance and dashboard files map to typed records; invalid IDs, duplicate IDs, unknown widget kinds, bad options, and bad defaults fail before the window opens. |
 | REQ-005 | Must | Data | Load the four public Google Sheets tabs from explicit HTTPS Google Sheets URLs, export each as CSV, and require no OAuth. | This matches the current app and the agreed access model. | URL/parser tests cover valid share URLs, missing/invalid IDs or gids, HTTP failure, CSV failure, and no live-network unit test. |
 | REQ-006 | Must | Data | Support a local CSV/demo source with the same normalized schema as the sheet source. | It makes development and deterministic tests possible without real finances. | The same report fixtures pass against normalized local and mocked-sheet inputs. |
 | REQ-007 | Must | Functional | Preserve the existing named transaction sets, filter sets, merchant aliases, lookbacks, thresholds, budget, subscriptions, financial-safety, and financial-independence settings. | Users can begin from the existing configuration instead of translating finance rules. | Parser and report tests cover every supported configuration section; dashboard-only ignored legacy fields are called out in diagnostics. |
 | REQ-008 | Must | Functional | Render configured filter controls and apply them only to the reports/widgets that declare their binding. | Controls must have clear and limited effects. | UI and report tests prove filter changes, reset/default behaviour, and linked selections. |
 | REQ-009 | Must | Visualization | Recreate every current Portico visualization and table with the same data meaning, including layered charts, guides, sparklines, rank bars, scatter points, timelines, heatmap, data grids, and metric cards. | The experiment is about real visualization coverage, not a token dashboard. | The page inventory in FIXTURES has one report and visual/interaction proof per item. |
-| REQ-010 | Must | Framework | Add missing reusable Roci support for a navigation drawer, date-aware chart data/axes, category-aligned line/bar overlays, interval/range bars, and heatmap cells when existing components cannot express the Portico view cleanly. | Portico should expose and fix framework sharp edges. | Each Roci addition has fluent API compilation tests, behaviour tests, a sample, and a Portico use before it is considered complete. |
+| REQ-010 | Must | Framework | Reuse Roci's existing overlay and menu primitives first. Add only the missing reusable support for a generic drawer, date-aware chart data/axes, category-aligned line/bar overlays, interval/range bars, and heatmap cells when current components cannot express the Portico view cleanly. | Portico should expose and fix framework sharp edges without adding Portico concepts to Roci. | Each Roci addition has fluent API compilation tests, behaviour tests, a sample, and a Portico use before it is considered complete. |
 | REQ-011 | Must | Correctness | Keep financial values as `decimal` and dates as `DateOnly` in finance/report code; convert only at the Roci chart adapter. | Avoids binary rounding and timezone shifts in financial results. | Tests cover exact money totals, rounding at presentation, leap day/month boundaries, negative/refund values, and zero denominators. |
 | REQ-012 | Must | Correctness | Put financial calculations in pure, named C# functions with table-driven expected-result tests. | A view should not be the only place a calculation can be verified. | Each calculation family has named normal, boundary, and invalid-data cases in the fixture matrix. |
-| REQ-013 | Must | Diagnostics | Provide `run` and `doctor` CLI commands with `--config`, `--secrets`, source and URL overrides, clear exit codes, and machine-readable `doctor --output json`. | The static desktop app needs a practical setup and diagnosis path. | Help, exit-code, precedence, redaction, and JSON tests pass; data is on stdout and diagnostics are on stderr for JSON mode. |
+| REQ-013 | Must | Diagnostics | Provide `run` and `doctor` CLI commands with `--config`, `--dashboard`, `--secrets`, source and URL overrides, clear exit codes, and machine-readable `doctor --output json`. | The desktop app needs a practical setup and diagnosis path. | Help, exit-code, precedence, redaction, and JSON tests pass; data is on stdout and diagnostics are on stderr for JSON mode. |
 | REQ-014 | Must | Architecture | Keep UI rendering, dashboard/report calculation, external adapters, and finance domain code in one-directional project boundaries. | Loose coupling makes calculations and configuration testable without graphics or network access. | Project-reference tests and source review show no Roci/HTTP/TOML dependency in finance code. |
 | REQ-015 | Must | Tooling | Use the sibling Roci Task and mise conventions for restore, format/lint, build, test, visual test, and publish checks. | One documented command surface reduces setup drift. | `task lint`, `task build:strict`, `task test`, and documented focused tasks work from a clean checkout. |
 | REQ-016 | Must | Testing | Use synthetic, non-sensitive fixtures and test more than happy paths for each financial calculation and source adapter. | Passing visual screens alone cannot prove finance results. | Fixture matrix includes income, spending, transfers, refunds, aliases, exclusions, uncategorized entries, missing balances, period edges, ties, and empty data. |
@@ -130,7 +130,9 @@ There are two codebases with separate ownership:
 
 ### Inputs
 
-- `portico.toml`: checked-in, non-secret calculation and dashboard settings.
+- `config.toml` or `portico-demo.toml`: existing checked-in, non-secret
+  financial calculation settings.
+- `dashboard.toml`: checked-in, non-secret desktop page and widget settings.
 - `portico.secrets.toml`: ignored local sheet URLs.
 - CLI overrides: explicit local source directory or individual named sheet URL.
 - Four CSV tabs: Transactions, Balance History, Categories, and Accounts.
@@ -172,7 +174,7 @@ The detailed option contract is in [SADD.md](SADD.md#configuration-and-cli).
 | --- | --- | --- | --- |
 | 0 | Runnable project and setup checker | 001, 004, 013-015, 018, 020 | `doctor` validates a demo configuration and produces redacted text/JSON output. |
 | 1 | Deterministic data and finance core | 005-007, 011, 012, 016 | Local/demo and mocked-sheet data produce verified typed reports without a UI. |
-| 2 | Roci baseline additions | 003, 009-010, 017 | Companion branch has drawer and typed date/category chart additions with normal Roci samples and tests. |
+| 2 | Roci baseline additions | 003, 009-010, 017 | The existing overlay/menu composition is proven or a generic drawer is added; typed date/category chart additions pass normal Roci samples and tests. |
 | 3 | Desktop shell and Home view | 002-004, 008, 009, 014, 017 | Roci app opens Home with a configured drawer, controls, and native date charts. |
 | 4 | Standard dashboard views | 002, 004, 008-009, 017 | Income, Spending, YoY, Merchant, Budget, Top Transactions, and Data Health work with tests/captures. |
 | 5 | Advanced Roci work and view parity | 002, 008-010, 017, 020 | Range bars and heatmap land in the companion branch; Subscriptions and Financial Independence use them; all ten views meet their inventory. |

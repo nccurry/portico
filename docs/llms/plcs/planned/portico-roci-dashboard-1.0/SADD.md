@@ -6,7 +6,7 @@
 - PLC packet: [README.md](README.md)
 - Owner: Portico and Roci maintainers
 - Reviewers: Portico maintainer; Roci maintainer
-- Last updated: 2026-09-03
+- Last updated: 2026-09-04
 - Related SRD: [SRD.md](SRD.md)
 - Related implementation plan: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)
 
@@ -56,8 +56,9 @@ better match for this finite dashboard.
 - The current Portico TOML defines financial groups and defaults well, while
   the Python page files define much of the presentation.
 - The current Roci chart model has numeric points and categorical bars, but no
-  date data, category-aligned connected data, range bars, heatmap series, or
-  navigation drawer.
+  date data, category-aligned connected data, range bars, or heatmap series.
+  It has `AnchorOverlay`, `Modal`, and `MenuList`, but no drawer primitive with
+  a left slide, scrim dismissal, and input isolation.
 - Personal-finance data is sensitive. Tests use synthetic data, and diagnostics
   never repeat URLs or cell values.
 - The application needs to be easy to build on Windows first, with Linux
@@ -73,7 +74,19 @@ review surfaces.
 | Repository/worktree | Owns | Does not own |
 | --- | --- | --- |
 | ../portico-roci-rebuild on nccurry/roci-portico-plc | Solution, finance/report code, TOML/CSV adapters, CLI, Roci composition, app tests, app docs, demo data | Copies of Roci source or Portico-only UI primitives in the framework |
-| A later ../roci companion worktree/branch | Reusable drawer and chart primitives, Roci samples, Roci tests, Roci documentation | Portico finance types, TOML schema, sheet adapters, dashboard business rules |
+| ../roci-portico-components on nccurry/portico-roci-components | Reusable generic drawer and chart primitives, Roci samples, Roci tests, Roci documentation | Portico finance types, TOML schema, sheet adapters, dashboard business rules |
+
+Create the companion from the reviewed Roci `main` commit
+`2404411b80c65bcb2e0f07f59492a875456d6074` in a new clean worktree. The
+default Roci checkout has unrelated untracked PLC work and is not an
+implementation target:
+
+    git -C ../roci worktree add -b nccurry/portico-roci-components \
+        ../roci-portico-components 2404411b80c65bcb2e0f07f59492a875456d6074
+
+If the intended Roci base changes before the command is run, record the new
+commit in this packet first. Do not take untracked files from the default Roci
+checkout into the companion worktree.
 
 During development, the Portico solution uses an explicit, non-committed
 RociSourceRoot MSBuild property to reference the companion Roci worktree. The
@@ -104,7 +117,8 @@ The detailed report and visualization mapping is in
 - Explicit public Google Sheets document tab URLs.
 - Google CSV export endpoints derived from those URLs.
 - Local CSV directory for demo data and deterministic development.
-- portico.toml, portico.secrets.toml, and command-line overrides.
+- Existing `config.toml` or `portico-demo.toml`, new `dashboard.toml`,
+  `portico.secrets.toml`, and command-line overrides.
 - Roci and MonoGame DesktopGL host.
 
 ## Alternatives Considered
@@ -162,7 +176,7 @@ and public-sheet sources both implement it.
 | Report builders | Convert snapshot + settings + page filters to one page result | Short-lived result per filter/data revision | Named Build...Report methods | Finance/Dashboard | Report/filter tests |
 | GoogleSheetsSnapshotSource | Validate URLs and fetch four CSV exports | HttpClient and cancellation only | LoadAsync | Adapters | Fake-handler URL/status/CSV tests |
 | LocalCsvSnapshotSource | Read a known four-file local source | File reads during load only | LoadAsync | Adapters | Temp fixture tests |
-| TomlConfigurationLoader | Parse, merge, validate, and redact config | One config snapshot | Load(...) | TOML package at adapter edge | Parse/precedence/error tests |
+| TomlConfigurationLoader | Load, validate, and redact separate finance, dashboard, and secret inputs | One validated settings snapshot | Load(...) | TOML package at adapter edge | Parse/precedence/error tests |
 | DashboardSession | Holds selected page, filter values, drawer state, data revision, and load status | Desktop-process state | Intent methods, immutable state snapshots | Dashboard | State transition tests |
 | RociDashboardRenderer | Render one typed page result and controls | No finance/source ownership; only widget references | Render(UiBuilder, DashboardSession) | App/Roci | UI interaction/capture tests |
 
@@ -170,10 +184,10 @@ and public-sheet sources both implement it.
 
 ### Startup and load path
 
-    CLI arguments + TOML + secret URLs
+    CLI arguments + finance TOML + dashboard TOML + secret URLs
                   |
                   v
-          merged, validated settings
+          validated settings
                   |
                   v
          selected snapshot source ----> CSV fetch/read ----> normalize all four tabs
@@ -215,16 +229,20 @@ scan occurs per frame.
 
 ### File layout and precedence
 
-    portico.toml          checked in; finance and dashboard settings
+    config.toml           existing checked-in financial settings
+    portico-demo.toml     existing checked-in local-demo financial settings
+    dashboard.toml        checked-in desktop page and widget settings
     portico.secrets.toml  ignored; public Google Sheets URLs only
-    portico-demo.toml     checked in; local demo source/settings
-    data/demo/            checked in synthetic CSV fixture data
+    demo/data/            checked-in synthetic CSV fixture data
 
-Precedence is, from highest to lowest: CLI override, secrets file for a secret
-value, selected TOML file, then built-in safe defaults. A source override does
-not silently merge records from a different source. URLs supplied through
---sheet are allowed for quick setup but help text recommends the ignored
-secrets file so shell history does not retain them.
+The selected finance file and `dashboard.toml` are separate complete inputs.
+The C# app does not append a dashboard table to the existing finance file:
+`src/config.py` rejects unknown top-level tables and the Python app must remain
+able to read its current files. For each setting, precedence is CLI override,
+secrets file for a URL, its own selected TOML file, then a documented safe
+default. A source override does not silently merge rows from a different
+source. URLs supplied through --sheet are allowed for quick setup but help text
+recommends the ignored secrets file so shell history does not retain them.
 
 The existing calculation sections keep their names and shape where practical:
 data, lookback, thresholds, merchants.aliases, transaction_sets.*,
@@ -233,8 +251,9 @@ financial_safety, and financial_independence. weekly_summary is parsed only to
 recognize an existing Portico config; it has no dashboard effect and produces
 one concise notice because Discord work is out of scope.
 
-The new versioned dashboard section owns presentation. It uses a small set of
-known widget and filter kinds, not arbitrary nested property names or formulas.
+The separate versioned `dashboard.toml` owns presentation. It uses a small set
+of known widget and filter kinds, not arbitrary nested property names or
+formulas.
 
     schema_version = 1
 
@@ -243,12 +262,10 @@ known widget and filter kinds, not arbitrary nested property names or formulas.
     initial_page = "home"
 
     [dashboard.navigation]
-    title = "Portico"
     drawer_width = 288
 
     [[dashboard.pages]]
     id = "income-savings"
-    template = "income-savings"
     title = "Income and Savings"
     icon = "chart"
     visible = true
@@ -257,13 +274,13 @@ known widget and filter kinds, not arbitrary nested property names or formulas.
     id = "period"
     kind = "period-range"
     label = "Period"
-    default = "lookback.income_savings"
+    default = "lookback.default_lookback_months"
 
     [[dashboard.pages.filters]]
     id = "transaction-set"
-    kind = "named-transaction-set"
+    kind = "transaction-set"
     label = "Transactions"
-    default = "spending"
+    source = "filter_sets.spending"
 
     [[dashboard.pages.widgets]]
     id = "monthly-cash-flow"
@@ -279,33 +296,30 @@ known widget and filter kinds, not arbitrary nested property names or formulas.
     title = "Savings rate"
     layout = "wide"
     binds = ["period"]
-    target = "income_savings.savings_rate_target"
+    target = "income_savings.target_rate"
 
-    [sheets]
-    transactions_url = "https://docs.google.com/spreadsheets/d/.../edit#gid=0"
-    balance_history_url = "https://docs.google.com/spreadsheets/d/.../edit#gid=1"
-    categories_url = "https://docs.google.com/spreadsheets/d/.../edit#gid=2"
-    accounts_url = "https://docs.google.com/spreadsheets/d/.../edit#gid=3"
-
-The example URL section belongs in portico.secrets.toml, not a checked-in file.
-template, kind, layout, binds, and field names are validated against typed C#
-records. For example, monthly-cash-flow selects the named report and chart
-renderer; it cannot contain an expression that transforms money. A page
-definition can order or hide existing widgets, but a new widget kind requires a
-deliberate report/renderer/test change.
+The `[sheets]` URL section belongs only in `portico.secrets.toml`, not a
+checked-in file. Page ID, kind, layout, binds, and field names are validated
+against typed C# records. For example, monthly-cash-flow selects the named
+report and chart renderer; it cannot contain an expression that transforms
+money. A page definition can order or hide existing widgets, but a new widget
+kind requires a deliberate report/renderer/test change. The `transaction-set`
+control above gets its default and valid options from the existing named
+`filter_sets.spending` definition; it does not repeat them in dashboard TOML.
 
 ### CLI contract
 
-    portico run [--config PATH] [--secrets PATH]
+    portico run [--config PATH] [--dashboard PATH] [--secrets PATH]
                 [--source google-sheets|local-csv] [--data-dir PATH]
                 [--sheet NAME=URL]
 
-    portico doctor [--config PATH] [--secrets PATH]
+    portico doctor [--config PATH] [--dashboard PATH] [--secrets PATH]
                    [--source google-sheets|local-csv] [--data-dir PATH]
                    [--sheet NAME=URL] [--output text|json]
 
 - run is the default command when no command is supplied. It opens the desktop
-  app after configuration validation.
+  app after both TOML files validate. `--dashboard` defaults to `dashboard.toml`
+  beside the selected finance file; `--config` keeps its existing default.
 - doctor checks configuration, source selection, URL shape, and input headers
   without creating a graphics window. It may make a network request only when
   explicitly given a Google source; tests use a fake handler instead.
@@ -450,23 +464,34 @@ names are reviewed against Roci's API language guide before merge. The fluent
 shape is not optional: collection widgets open a container, add items/series
 through per-item verbs, and close with the matching End method.
 
-### 1. Navigation drawer
+### 1. Drawer proof before a new component
 
-Proposed fluent shape:
+First build the Portico shell from `AnchorOverlay`, `MenuList`, and `MenuItem`.
+That reuses Roci's current menu selection and command-routing behaviour. If it
+cleanly provides a left slide, scrim dismissal, input isolation, focus return,
+and narrow/wide presentation, no drawer API is added to Roci.
 
-    ui.NavigationDrawer("pages")
+If that proof needs app-side overlay or input code, add a generic `Drawer` to
+Roci. It owns only side placement, visibility, slide/overlay behaviour, and
+dismissal. Portico continues to compose its page list through the existing
+`MenuList`; it does not add a `NavigationItem` or a Portico page concept to
+Roci. The likely fluent shape is:
+
+    ui.Drawer("pages")
         .Open(session.IsDrawerOpen)
         .Left()
         .Width(288)
-        .NavigationItem(page.Id, page.Title, page.Icon, page.Id == session.ActivePageId, () => SelectPage(page.Id))
         .OnDismiss(DismissDrawer)
-    .EndNavigationDrawer();
+        .MenuList()
+            .MenuItem(page.Title, () => SelectPage(page.Id))
+        .EndMenuList()
+    .EndDrawer();
 
-The actual callback argument placement follows existing Roci control practice.
-What must remain true is one ordinary UiBuilder, a name-only drawer opener, one
-NavigationItem verb per item, normal retained layout/style composition, and an
-explicit end. It supports open/close state, focus/input routing, overlay
-dismissal, left-side placement, and the same event path on narrow/wide layouts.
+The exact callback and style verbs follow the Roci API guide. What must remain
+true is one ordinary UiBuilder, a generic name-only drawer opener, regular
+child composition, and an explicit end. It supports open/close state,
+focus/input routing, overlay dismissal, left-side placement, and the same
+event path on narrow/wide layouts.
 
 ### 2. Typed category and date chart coordinates
 
@@ -529,15 +554,16 @@ tooltip/hit behaviour.
     .EndChart();
 
 It is a normal chart series, not an application-side texture or custom drawing
-fallback. Its cells are owned snapshots in the common fluent path, exactly
-like other static chart inputs.
+fallback. Its fluent `Cells` input follows Roci's normal copied-snapshot
+authoring path, like `Points` and `Bars`.
 
 ### Framework correctness and performance rules
 
 - New chart inputs use immutable public state and validated candidate
   replacement before mutation, consistent with Roci chart authoring.
-- Inputs passed through ordinary fluent calls become owned snapshots. They are
-  not enumerated or allocated per frame.
+- Ordinary fluent inputs are copied once, then retained as owned snapshots.
+  Lower-level borrowed inputs, if added, use an explicit `BorrowedData`-style
+  contract. Neither path enumerates or allocates input data per frame.
 - Axis inference, series compatibility, category matching, guides, layout,
   hit testing, tooltips, and input handling are tested without depending only
   on visuals.
@@ -565,7 +591,7 @@ filter.
 
 DoctorResult is a stable typed result that includes:
 
-- config path and schema version, without secret values;
+- finance/dashboard paths and schema version, without secret values;
 - selected logical source type;
 - logical sheet names and validation status;
 - recognized pages/widgets/filter IDs;
@@ -617,9 +643,10 @@ consumer and composition root.
 
 New Roci APIs belong in Roci.Ui, use Roci terminology, and follow the current
 API language guide. In particular, there is no PorticoChartBuilder, no one-shot
-DashboardOptions item list, and no mutable public chart state. A drawer adds
-items one at a time and closes with EndNavigationDrawer; a chart opens, adds
-named series/cells/guides one at a time, and closes with EndChart.
+DashboardOptions item list, and no mutable public chart state. If the drawer
+proof produces a Roci component, `Drawer` owns the container and callers
+compose ordinary child widgets inside it; a chart opens, adds named
+series/cells/guides one at a time, and closes with EndChart.
 
 ## Readability And Documentation
 
@@ -655,10 +682,10 @@ named series/cells/guides one at a time, and closes with EndChart.
 | --- | --- | --- | --- |
 | 0. Foundation | Solution files, Task/mise, config schema/parser, CLI doctor, demo fixture skeleton | 001, 004, 013-015, 018, 020 | A clean checkout validates the synthetic local configuration and returns redacted text/JSON diagnostics. |
 | 1. Data and calculation core | Finance, adapters, local/mocked Google sources, report records, calculation fixtures | 005-007, 011-012, 016 | Exact report fixtures pass without Roci or a network connection. |
-| 2. Roci baseline additions | Companion Roci drawer, typed date/category chart coordinates, tests/samples | 003, 009-010, 017 | Drawer and date/category overlay samples compile, interact, and capture correctly. |
-| 3. Dashboard shell and core pages | App/session/renderer, Home, Income/Savings, Spending, YoY, Merchant, Budget, Top Transactions, Data Health | 002-004, 008-009, 014, 017 | Desktop app has configured drawer/pages, correct basic reports, and wide/narrow capture evidence. |
-| 4. Advanced Roci additions | Companion Roci range bars, date guides, heatmap, tests/samples/docs | 009-010, 017, 020 | Range/heatmap samples and framework test suites pass; no Portico custom drawing is needed. |
-| 5. Advanced dashboard pages | Subscriptions and FI, linked interactions, complete page inventory | 002, 008-010, 017 | All ten views render from the same config/source and use native Roci components. |
+| 2. Roci baseline additions | Existing overlay/menu drawer proof or companion generic Drawer, typed date/category chart coordinates, tests/samples | 003, 009-010, 017 | The selected drawer approach and date/category overlay samples compile, interact, and capture correctly. |
+| 3. Dashboard shell and Home | App/session/renderer, configured shell, Home | 002-004, 008-009, 014, 017 | Desktop app opens Home with configured drawer, correct report values, and wide/narrow capture evidence. |
+| 4. Standard dashboard pages | Income/Savings, Spending, YoY, Merchant, Budget, Top Transactions, Data Health | 002, 004, 008-009, 017 | Seven configured standard pages have correct reports, filters, and captures. |
+| 5. Advanced Roci and dashboard pages | Companion range bars, date guides, heatmap, Subscriptions, FI, tests/samples/docs | 002, 008-010, 017, 020 | All ten views render from the same config/source and use native Roci components. |
 | 6. Hardening and publish proof | Full docs, Task gates, visual suite, publish profiles, final audit | 015-020 | Broad validation passes and packaging results/deferred limits are recorded. |
 
 ## Test Architecture
@@ -703,9 +730,10 @@ The intended task surface is:
     task publish:linux-x64  later self-contained publish proof
 
 task test does not open a normal desktop window or use a live network source.
-Focused tasks run before broad gates. Roci component work uses the Roci
-repository's existing task lint, task build:strict, task test, and visual-sample
-commands in addition to narrow component tests.
+Focused tasks run before broad gates. Roci component work uses the actual Roci
+commands `task lint`, `task build:strict`, `task test`, `task test:visual`, and
+`task samples:visual-test`, plus narrow component tests. The default Roci
+checkout is not used for those commands; the clean companion worktree is.
 
 The first publish target is the ordinary .NET desktop output. The later publish
 tasks try self-contained win-x64 and linux-x64, record executable and native
@@ -737,6 +765,7 @@ graphics libraries may rule it out.
 | Keep finance math in C# instead of TOML formulas | Decision | Tests name every financial rule and output | Accepted; configuration selects reports and values only. |
 | Require explicit tab URLs | Decision | Slightly more initial setup | Accepted; avoids fragile page scraping and matches current Portico. |
 | Parse legacy weekly_summary but do not act on it | Decision | Existing config is familiar; no notification feature appears | Accepted; emit a one-time dashboard-only notice. |
+| Keep dashboard TOML separate from finance TOML | Decision | The existing Python loader rejects unknown tables | Accepted; `dashboard.toml` owns desktop presentation and `--dashboard` selects it. |
 | Companion branch uses live Roci source reference while features are under review | Decision | App build has a local development dependency | Accepted; no absolute path is committed, and final dependency follows Roci policy. |
 | Roci component API could reveal another chart rule | Risk | Framework phase may need adjustment | Use focused API/core/rendering tests before app migration; update this packet before changing the public shape. |
 | A chart visual can look plausible while totals are wrong | Risk | Financial trust | Treat report/finance expected-output tests as the primary oracle; captures are secondary. |
@@ -751,7 +780,7 @@ graphics libraries may rule it out.
 | Report | A typed calculation result for a page/widget, before it is rendered by Roci. |
 | Widget kind | A finite, validated TOML name for a known report/renderer pair. It is not executable code. |
 | Transaction set | Existing Portico named inclusion/exclusion configuration for a subset of transactions. |
-| Drawer | The left slide-out navigation panel containing page items. |
+| Drawer | A generic left or right slide-out presentation container. Portico places its page items inside it with a MenuList. |
 | Category-aligned series | A bar/line/area series whose X coordinate is the same stable category identity as peer series. |
 | Date range bar | A horizontal interval with a category, start date, and end date. |
 | Companion branch | The separate Roci branch/worktree that owns reusable framework changes. |
