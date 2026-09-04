@@ -252,7 +252,7 @@ docker rm portico
 # Run the same docker run command from the setup section.
 ```
 
-Use `ghcr.io/nccurry/portico:1.2.0` instead of `latest` when you want to pin an
+Use `ghcr.io/nccurry/portico:1.2.3` instead of `latest` when you want to pin an
 exact release.
 
 Portico stores configuration and secrets on the host. The `portico-state`
