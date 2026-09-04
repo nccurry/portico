@@ -14,9 +14,8 @@ def main() -> None:
     os.chdir(PROJECT_ROOT)
     os.environ["PORTICO_CONFIG_PATH"] = "portico-demo.toml"
 
-    # TODO(stlite-1.62): Remove this call with demo/pages/streamlit_compat.py after
-    # @stlite/browser bundles Streamlit 1.62, restores cached datetime data, and the
-    # browser test opens every page twice.
+    # TODO(stlite-parity): Remove this call with demo/pages/streamlit_compat.py once
+    # the removal conditions documented in that module are met.
     install_streamlit_compatibility()
     runpy.run_path(str(PROJECT_ROOT / "portico_home.py"), run_name="__main__")
 

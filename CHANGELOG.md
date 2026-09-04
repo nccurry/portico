@@ -7,6 +7,14 @@ Portico uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.2.2] - 2026-09-03
+
+### Fixed
+
+- The browser demo now patches the bound `st.container` export used by every page and gives each built archive a fresh cache key.
+- Account-group sparklines use the asset and liability colors instead of the fixed Streamlit metric color.
+- The sidebar uses one divider between navigation and its global controls.
+
 ## [1.2.1] - 2026-09-03
 
 ### Fixed
@@ -65,7 +73,8 @@ Portico uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - A configurable weekly Discord expense summary with an optional built-in schedule.
 - A shared development container, native bootstrap scripts, tests, and release checks.
 
-[Unreleased]: https://github.com/nccurry/portico/compare/v1.2.1...HEAD
+[Unreleased]: https://github.com/nccurry/portico/compare/v1.2.2...HEAD
+[1.2.2]: https://github.com/nccurry/portico/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/nccurry/portico/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/nccurry/portico/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/nccurry/portico/compare/v1.0.0...v1.1.0

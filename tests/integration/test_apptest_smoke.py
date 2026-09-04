@@ -19,6 +19,7 @@ from pytest import MonkeyPatch
 from streamlit.testing.v1 import AppTest
 
 from src.config import clear_settings_cache
+from src.constants import COLOR_ASSET, COLOR_LIABILITY
 from tests.custom_types import FullDatasetFactory, SpreadsheetBundle
 
 # Page modules are not imported directly; AppTest runs them from file.
@@ -551,13 +552,6 @@ class TestHomeSmoke:
             "Emergency-fund and debt settings come from `[financial_safety]`. "
             "The FI funding target and account scope come from `[financial_independence]`."
         )
-        charts = at.get("vega_lite_chart")
-        assert len(charts) == 2
-        assert all(field in charts[0].proto.spec for field in ["Assets", "Liabilities", "Net_Worth"])
-        assert '"point"' not in charts[0].proto.spec
-        metric_labels = [metric.label for metric in at.metric]
-        assert "Accounts" not in metric_labels
-        assert "Net-worth impact" not in metric_labels
         group_names = {
             "Retirement",
             "Liabilities",
@@ -565,13 +559,22 @@ class TestHomeSmoke:
             "Savings",
             "Credit Cards",
         }
+        charts = at.get("vega_lite_chart")
+        assert len(charts) == 2 + len(group_names)
+        assert all(field in charts[0].proto.spec for field in ["Assets", "Liabilities", "Net_Worth"])
+        assert '"point"' not in charts[0].proto.spec
+        sparkline_colors = [json.loads(chart.proto.spec)["mark"]["color"] for chart in charts[2:]]
+        assert sparkline_colors.count(COLOR_ASSET) == 3
+        assert sparkline_colors.count(COLOR_LIABILITY) == 2
+        metric_labels = [metric.label for metric in at.metric]
+        assert "Accounts" not in metric_labels
+        assert "Net-worth impact" not in metric_labels
         group_metrics = [metric for metric in at.metric[3:] if metric.label in group_names]
         assert {metric.label for metric in group_metrics} == group_names
-        assert all(metric.proto.chart_data for metric in group_metrics)
+        assert all(not metric.proto.chart_data for metric in group_metrics)
         liabilities = next(metric for metric in group_metrics if metric.label == "Liabilities")
         assert liabilities.value == "$151,560"
         assert liabilities.delta == "-$10,320"
-        assert liabilities.proto.chart_data[0] > liabilities.proto.chart_data[-1]
         assert len(at.metric) == 11
         assert len(at.columns) == 9
         assert all(column.weight == pytest.approx(0.5) for column in at.columns[:6])
@@ -633,7 +636,7 @@ class TestHomeSmoke:
         assert not at.exception
         assert at.segmented_control[0].value == "3M"
         assert at.metric[0].delta.endswith("over 3M")
-        assert len(at.get("vega_lite_chart")) == 2
+        assert len(at.get("vega_lite_chart")) == 7
         assert "Investments" in _metric_labels(at)
 
     def test_navigation_switches_to_registered_page(
