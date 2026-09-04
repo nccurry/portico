@@ -396,6 +396,23 @@ tasks:
     cmds:
       - dotnet test Portico.Roci.slnx --no-restore --configuration {{default "Debug" .ROCI_CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false
 
+  roci:test:finance:
+    desc: "Run C# financial calculation tests"
+    cmds:
+      - dotnet test tests/Portico.Finance.Tests/Portico.Finance.Tests.csproj --no-restore --configuration {{default "Debug" .ROCI_CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false
+
+  roci:test:adapters:
+    desc: "Run C# source, configuration, and CLI tests"
+    cmds:
+      - dotnet test tests/Portico.Adapters.Tests/Portico.Adapters.Tests.csproj --no-restore --configuration {{default "Debug" .ROCI_CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false
+      - dotnet test tests/Portico.App.Tests/Portico.App.Tests.csproj --no-restore --configuration {{default "Debug" .ROCI_CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false
+
+  roci:test:desktop:
+    desc: "Run C# dashboard session and retained-tree tests"
+    cmds:
+      - dotnet test tests/Portico.Dashboard.Tests/Portico.Dashboard.Tests.csproj --no-restore --configuration {{default "Debug" .ROCI_CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false
+      - dotnet test tests/Portico.App.Tests/Portico.App.Tests.csproj --no-restore --configuration {{default "Debug" .ROCI_CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false
+
   roci:lint:
     desc: "Check C# formatting and analyzers"
     cmds:
@@ -419,9 +436,9 @@ tasks:
   roci:publish:win-x64:
     desc: "Publish the C# dashboard for Windows"
     cmds:
-      - dotnet publish src/Portico.App/Portico.App.csproj --configuration Release --runtime win-x64 --self-contained true --output artifacts/publish/win-x64
+      - dotnet publish src/Portico.App/Portico.App.csproj --configuration Release --runtime win-x64 --self-contained true --property:PublishSingleFile=true --property:IncludeNativeLibrariesForSelfExtract=true --property:DebugType=None --property:DebugSymbols=false --property:GenerateDocumentationFile=false --output artifacts/publish/win-x64
 
   roci:publish:linux-x64:
     desc: "Publish the C# dashboard for Linux"
     cmds:
-      - dotnet publish src/Portico.App/Portico.App.csproj --configuration Release --runtime linux-x64 --self-contained true --output artifacts/publish/linux-x64
+      - dotnet publish src/Portico.App/Portico.App.csproj --configuration Release --runtime linux-x64 --self-contained true --property:PublishSingleFile=true --property:IncludeNativeLibrariesForSelfExtract=true --property:DebugType=None --property:DebugSymbols=false --property:GenerateDocumentationFile=false --output artifacts/publish/linux-x64

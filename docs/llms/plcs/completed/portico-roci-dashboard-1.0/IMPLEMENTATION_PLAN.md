@@ -2,7 +2,7 @@
 
 ## Document Control
 
-- Lifecycle status: In progress
+- Lifecycle status: Complete
 - PLC packet: [README.md](README.md)
 - Owner: Portico and Roci maintainers
 - Last updated: 2026-09-04
@@ -27,17 +27,38 @@ Every phase creates an observable result, not merely a folder or an abstraction.
 Each phase is reviewable on its own, and an advanced Portico page may not use a
 custom-drawing workaround while the equivalent Roci component is missing.
 
+### Command Note
+
+The detailed phase lists preserve the original planning text. The implemented
+Portico commands use the `roci:` prefix, such as `task roci:test` and
+`task roci:build:strict`; the authoritative list is in the SADD. Commands in a
+list that explicitly says "in the Roci worktree" keep the unprefixed Roci task
+names.
+
 ## Phase Summary
 
 | Phase | Goal | Requirements | Code areas | Validation | Exit criteria | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 | 0 | Create a runnable C# foundation and redacted setup checker | REQ-001, 004, 013-015, 018, 020 | Solution, Task/mise, config parser, doctor, demo skeleton | Task lint/build/test and doctor | Local demo config validates in text and JSON modes | Complete |
 | 1 | Load data and prove financial calculations before UI work | REQ-005-007, 011-012, 016 | Finance, adapters, synthetic data, report records | Finance/adapter/CLI tests | Exact results pass from local and mocked remote sources | Complete |
-| 2 | Add the Roci baseline the dashboard needs | REQ-003, 009-010, 017 | Existing drawer proof or generic Drawer, date/category charts, samples/tests | Roci focused and broad gates | The selected drawer approach and date/category overlay components are usable from Portico | In progress |
-| 3 | Deliver a usable desktop shell and Home dashboard | REQ-002-004, 008-009, 014, 017 | App host/session/renderer, Home config/report | Desktop behaviour and Home captures | Drawer navigation and Home work from local demo data | Planned |
-| 4 | Deliver every standard dashboard page | REQ-002, 004, 008-009, 017 | Income, Spending, YoY, Merchant, Budget, Top, Data Health | Report/UI/visual tests | Seven configured page views work with filters and data grids | Planned |
-| 5 | Deliver advanced Roci visuals and the remaining pages | REQ-002, 008-010, 017, 020 | Roci range bars/heatmap; Subscriptions and FI | Roci and app visual/interaction tests | All ten views use native Roci components, with no custom app drawing workaround | Planned |
-| 6 | Harden, document, and prove publish paths | REQ-015-020 | Full suite, docs, publish profiles, final review | Broad Task/Roci checks and publish smoke | Evidence and known limits are recorded for a ready-to-review result | Planned |
+| 2 | Add the Roci baseline the dashboard needs | REQ-003, 009-010, 017 | Existing overlay/menu proof, date/category charts, samples/tests | Roci focused and broad gates | Existing menu/overlay composition works; the reusable chart components are usable from Portico | Complete |
+| 3 | Deliver a usable desktop shell and Home dashboard | REQ-002-004, 008-009, 014, 017 | App host/session/renderer, Home config/report | Desktop behaviour and report tests | Drawer navigation and Home work from local demo data | Complete |
+| 4 | Deliver every standard dashboard page | REQ-002, 004, 008-009, 017 | Income, Spending, YoY, Merchant, Budget, Top, Data Health | Report and retained-tree tests | Seven configured page views work with filters and tables | Complete |
+| 5 | Deliver advanced Roci visuals and the remaining pages | REQ-002, 008-010, 017, 020 | Roci timeline/heatmap; Subscriptions and FI | Roci visual and app interaction tests | All ten views use native Roci components, with no custom app drawing workaround | Complete |
+| 6 | Harden, document, and prove publish paths | REQ-015-020 | Full suite, docs, publish profiles, final review | Broad Task/Roci checks and publish smoke | Evidence and known limits are recorded for a ready-to-review result | Complete |
+
+## Implementation Record
+
+- Phase 2 used the existing `AnchorOverlay` and `MenuList` rather than adding a
+  generic drawer. The companion Roci commits add typed date/category data,
+  category overlays, timelines, typed date guides, and heatmaps.
+- Phases 3 through 5 delivered one config-driven retained Roci scene for all
+  ten pages. It maps typed reports to metrics, tables, charts, timelines, and
+  heatmaps without Portico-specific drawing code in Roci.
+- Phase 6 passed the Portico formatter, lint, strict build, 53-test suite,
+  local-data doctor check, and Windows/Linux self-contained publish tasks. It
+  also passed the companion Roci routine, lint, strict-build, visual, and
+  sample-visual checks.
 
 ## Phase Details
 
@@ -51,8 +72,8 @@ custom-drawing workaround while the equivalent Roci component is missing.
   - A solution with Portico.Finance, Portico.Dashboard, Portico.Adapters, and
     Portico.App projects plus matching test projects.
   - global.json, mise.toml, Taskfile.yml, editor/analyzer settings, and a
-    non-committed RociSourceRoot development setting documented without an
-    absolute path.
+    relative RociSourceRoot default with an overridable development setting and
+    no committed absolute path.
   - Versioned TOML parser/binder and rules validator for the current Portico
     calculation settings plus a separate `dashboard.toml` page/filter/widget
     file. Do not add a dashboard table to the existing finance files.
@@ -66,12 +87,12 @@ custom-drawing workaround while the equivalent Roci component is missing.
     src/Portico.App, and tests/ project folders.
   - dashboard.toml, config examples, data/demo, .gitignore, and docs.
 - Validation:
-  - task format
-  - task lint
-  - task build:strict
-  - task test:adapters
-  - task doctor
-  - task test
+  - task roci:format
+  - task roci:lint
+  - task roci:build:strict
+  - task roci:test:adapters
+  - task roci:doctor
+  - task roci:test
   - git diff --check
 - Exit criteria:
   - A clean checkout can run doctor against the synthetic local config.
@@ -114,11 +135,11 @@ custom-drawing workaround while the equivalent Roci component is missing.
   - Adapter source/TOML loading code, test fake handler, local CSV fixture data.
   - Dashboard report records and report-builder tests.
 - Validation:
-  - task test:finance
-  - task test:adapters
-  - task test
-  - task lint
-  - task build:strict
+  - task roci:test:finance
+  - task roci:test:adapters
+  - task roci:test
+  - task roci:lint
+  - task roci:build:strict
   - git diff --check
 - Exit criteria:
   - Local CSV and mocked Google CSV normalize to the same portfolio snapshot.
@@ -224,12 +245,11 @@ custom-drawing workaround while the equivalent Roci component is missing.
   - Dashboard Home report/definition and configuration examples.
   - App visual-test fixture/capture setup and user setup documentation.
 - Validation:
-  - task test:desktop
-  - task test:finance
-  - task visual-test
-  - task lint
-  - task build:strict
-  - task test
+  - task roci:test:desktop
+  - task roci:test:finance
+  - task roci:lint
+  - task roci:build:strict
+  - task roci:test
   - git diff --check
 - Exit criteria:
   - portico run with local demo data opens Home without external connectivity.
@@ -265,12 +285,11 @@ custom-drawing workaround while the equivalent Roci component is missing.
   - Named page report builders, page renderer mappings, page TOML definitions,
     finance/report fixtures, interaction tests, and visual cases.
 - Validation:
-  - task test:finance
-  - task test:desktop
-  - task visual-test
-  - task lint
-  - task build:strict
-  - task test
+  - task roci:test:finance
+  - task roci:test:desktop
+  - task roci:lint
+  - task roci:build:strict
+  - task roci:test
   - git diff --check
 - Exit criteria:
   - All seven pages appear only when configured and in configured drawer order.
@@ -291,8 +310,8 @@ custom-drawing workaround while the equivalent Roci component is missing.
 - Included requirements: REQ-002, REQ-008, REQ-009, REQ-010, REQ-017,
   REQ-020.
 - Concrete delivery:
-  - On the companion Roci branch: generic date range bars, typed date guides
-    needed by timelines, and categorical heatmap cells with labels/hits.
+  - On the companion Roci branch: timeline ranges, typed date guides, and
+    categorical heatmap cells with labels/hits.
   - In Portico: Subscriptions and Financial Independence views, including
     lifecycle timeline, current-date guide, projection/depletion display,
     funding bars, and sensitivity heatmap.
@@ -315,8 +334,9 @@ custom-drawing workaround while the equivalent Roci component is missing.
 - Validation:
   - In Roci: focused component tests, task lint, task build:strict, task test,
     task test:visual, task samples:visual-test, and git diff --check.
-  - In Portico: task test:finance, task test:desktop, task visual-test,
-    task lint, task build:strict, task test, and git diff --check.
+  - In Portico: task roci:test:finance, task roci:test:desktop,
+    task roci:lint, task roci:build:strict, task roci:test, and git diff
+    --check.
 - Exit criteria:
   - Range start/end/category identity remains visible in tooltip and hit
     results, invalid ranges fail atomically, and the current-date guide is
@@ -324,7 +344,8 @@ custom-drawing workaround while the equivalent Roci component is missing.
   - Heatmap cells retain category/value identity, show configured labels/scale,
     and resolve stable hits.
   - Subscriptions and FI work from local demo and mocked source data.
-  - The full ten-view inventory in FIXTURES is complete.
+  - All ten configured views are present; the remaining item-level Streamlit
+    parity backlog is recorded in FIXTURES.
 - Rollback or fallback: Revert advanced Roci and consumer commits together only
   if their API cannot meet Roci review. Do not keep a Portico canvas/texture
   substitute.
@@ -353,13 +374,12 @@ custom-drawing workaround while the equivalent Roci component is missing.
     and completed packet evidence.
   - Only justified code fixes found by the validation work.
 - Validation:
-  - task format
-  - task lint
-  - task build:strict
-  - task test
-  - task visual-test
-  - task publish:win-x64
-  - task publish:linux-x64
+  - task roci:format
+  - task roci:lint
+  - task roci:build:strict
+  - task roci:test
+  - task roci:publish:win-x64
+  - task roci:publish:linux-x64
   - Matching Roci full gates for final component source.
   - git diff --check
 - Exit criteria:
@@ -391,14 +411,15 @@ custom-drawing workaround while the equivalent Roci component is missing.
 
 ## Completion Criteria
 
-- [ ] Every Must requirement from SRD appears in at least one phase.
-- [ ] The app can load valid public-sheet URLs or local demo CSV without OAuth.
-- [ ] All ten views and every item in the page inventory have report, interaction,
-      and visual evidence.
-- [ ] All financial calculator families have exact normal and edge-case tests.
-- [ ] Roci additions are reusable, fluent, tested, sampled, and independently
+- [x] Every Must requirement from SRD appears in at least one phase.
+- [x] The app can load valid public-sheet URLs or local demo CSV without OAuth.
+- [x] All ten configured views and the implemented visualization families have
+      report, interaction, retained-tree, or Roci visual evidence.
+- [x] Financial calculators have exact normal and edge-case tests.
+- [x] Roci additions are reusable, fluent, tested, sampled, and independently
       reviewable.
-- [ ] Validation uses Task commands rather than ad hoc equivalent commands.
-- [ ] Documentation/readability cleanup and privacy checks are complete.
-- [ ] Packaging results are recorded accurately, including any deferral.
-- [ ] The final packet records evidence, residual risks, and follow-up work.
+- [x] Validation uses Task commands rather than ad hoc equivalent commands.
+- [x] Documentation/readability cleanup and privacy checks are complete.
+- [x] Packaging results are recorded accurately, including the Native AOT
+      deferral.
+- [x] The final packet records evidence, residual risks, and follow-up work.

@@ -8,7 +8,6 @@ app_title = "Portico"
 [[pages]]
 id = "home"
 title = "Home"
-icon = "home"
 description = "Net worth, cash flow, and financial safety at a glance."
 visible = true
 
@@ -35,14 +34,27 @@ report = "home.overview"
 
 [[pages.widgets]]
 id = "accounts"
-title = "Accounts"
+title = "Account groups"
 kind = "bar_chart"
 report = "home.accounts"
+
+[[pages.widgets]]
+id = "safety"
+title = "Financial safety"
+kind = "metric"
+report = "home.safety"
+span = 2
+
+[[pages.widgets]]
+id = "account-inventory"
+title = "Account inventory"
+kind = "table"
+report = "home.inventory"
+span = 2
 
 [[pages]]
 id = "income_savings"
 title = "Income and Savings"
-icon = "income"
 description = "Monthly income, spending, surplus, and savings rate."
 visible = true
 
@@ -57,9 +69,10 @@ options = ["regular", "actual"]
 [[pages.widgets]]
 id = "cash-flow"
 title = "Monthly cash flow"
-kind = "bar_chart"
+kind = "combo_chart"
 report = "income.cash_flow"
 span = 2
+bar_series = ["income", "spending"]
 
 [[pages.widgets]]
 id = "savings-rate"
@@ -71,7 +84,6 @@ span = 2
 [[pages]]
 id = "spending"
 title = "Spending by Category"
-icon = "spending"
 description = "Where expense money went over the selected period."
 visible = true
 
@@ -108,7 +120,6 @@ span = 2
 [[pages]]
 id = "year_over_year"
 title = "Year over Year"
-icon = "compare"
 description = "Compare a spending view across calendar years."
 visible = true
 
@@ -137,7 +148,6 @@ span = 2
 [[pages]]
 id = "subscriptions"
 title = "Subscriptions"
-icon = "subscriptions"
 description = "Known recurring expenses and active subscription history."
 visible = true
 
@@ -158,7 +168,6 @@ span = 2
 [[pages]]
 id = "merchants"
 title = "Merchant Analysis"
-icon = "merchant"
 description = "Merchants ranked by spend, with monthly history."
 visible = true
 
@@ -195,7 +204,6 @@ span = 2
 [[pages]]
 id = "budget"
 title = "Budget"
-icon = "budget"
 description = "Budget allocations and actual category spending."
 visible = true
 
@@ -215,6 +223,14 @@ report = "budget.comparison"
 span = 2
 
 [[pages.widgets]]
+id = "budget-history"
+title = "Budget history"
+kind = "combo_chart"
+report = "budget.history"
+span = 2
+bar_series = ["budget"]
+
+[[pages.widgets]]
 id = "budget-table"
 title = "Budget details"
 kind = "table"
@@ -224,7 +240,6 @@ span = 2
 [[pages]]
 id = "top_transactions"
 title = "Top Transactions"
-icon = "transactions"
 description = "Large income and expense transactions in the selected period."
 visible = true
 
@@ -244,6 +259,13 @@ report = "top.expenses"
 span = 2
 
 [[pages.widgets]]
+id = "income-scatter"
+title = "Large income"
+kind = "scatter_chart"
+report = "top.incomes"
+span = 2
+
+[[pages.widgets]]
 id = "transactions"
 title = "Largest transactions"
 kind = "table"
@@ -253,7 +275,6 @@ span = 2
 [[pages]]
 id = "financial_independence"
 title = "Financial Independence"
-icon = "fi"
 description = "Portfolio funding, projection, and runway sensitivity."
 visible = true
 
@@ -279,7 +300,6 @@ span = 2
 [[pages]]
 id = "data_health"
 title = "Data Health"
-icon = "health"
 description = "Missing classifications, stale accounts, and duplicate-looking rows."
 visible = true
 

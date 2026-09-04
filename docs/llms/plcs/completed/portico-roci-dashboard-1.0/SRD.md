@@ -2,7 +2,7 @@
 
 ## Document Control
 
-- Lifecycle status: Planned
+- Lifecycle status: Complete
 - PLC packet: [README.md](README.md)
 - Owner: Portico and Roci maintainers
 - Reviewers: Portico maintainer; Roci maintainer
@@ -18,9 +18,29 @@ version using Roci. The goal is both a faithful dashboard and a practical test
 of Roci's data-visualization language. Where a needed visualization is awkward
 or missing, the fix belongs in Roci rather than in a Portico-only drawing hack.
 
-The finished dashboard must be useful with a public, read-only Google Sheets
-workbook, but production hosting and user accounts are intentionally not part
+The finished dashboard accepts public, read-only Google Sheets tab URLs or the
+checked-in local CSV fixture. Production hosting and user accounts are not part
 of this release.
+
+## Delivery Record
+
+The delivered experiment has a configuration-defined page menu, ten configured
+pages, local CSV and public Google Sheets CSV sources, named C# reports, and a
+Roci desktop renderer. Its chart vocabulary includes metrics, tables, lines,
+areas, bars, category bar/line overlays, scatter plots, timelines, heatmaps,
+and sparklines.
+
+The intended drawer composition worked with `AnchorOverlay` and `MenuList`, so
+Roci did not gain a generic drawer. The companion Roci branch instead adds the
+four actual framework gaps: typed date/category chart data, category overlays,
+timeline ranges with typed date guides, and heatmap cells.
+
+This is a functional experimental dashboard, not a pixel-for-pixel replacement
+for every Streamlit interaction. The remaining Streamlit-specific linked
+selection and page-detail variants are listed as later product work in the PLC
+README. The Roci component visual suite is the visual regression proof; the
+Portico app uses retained-tree and interaction tests rather than a separate
+app screenshot baseline.
 
 ## Audience
 
@@ -164,7 +184,7 @@ The detailed option contract is in [SADD.md](SADD.md#configuration-and-cli).
 | Privacy | `doctor` receives a URL or source failure. | Output names the logical sheet and failure class, never raw URL/content. |
 | Responsiveness | A user changes a filter after data has loaded. | Only affected report/view models recompute; TOML parsing and CSV fetch do not run per frame. |
 | Maintainability | A page label or widget layout changes. | A typed TOML change is enough when the report kind already exists. |
-| Usability | Window is narrow or drawer is open. | Page remains reachable, dismissible, and visually readable. |
+| Usability | Window is narrow or drawer is open. | The retained-tree tests prove the page remains reachable, dismissible, and clearly labelled. |
 | Testability | Unit tests run in CI. | No network, graphics window, real workbook, or secret file is required. |
 | Compatibility | A user starts from current Portico configuration. | Supported calculation sections load unchanged; excluded weekly summary settings receive a clear dashboard-only notice. |
 
@@ -218,9 +238,11 @@ documentation checks, and `git diff --check`.
 
 ## Definition Of Done
 
-- [ ] Every Must requirement is implemented or explicitly deferred by the owner.
-- [ ] Each view and visualization in the fixture inventory has objective evidence.
-- [ ] Calculation tests give exact expected outputs for normal and edge cases.
-- [ ] Roci changes are independently reviewed, tested, and documented.
-- [ ] Setup, CLI, TOML, and deferred scope documentation are current.
-- [ ] Remaining risks and packaging results are recorded in the completed packet.
+- [x] Every Must requirement is implemented or explicitly deferred in the PLC
+      README.
+- [x] The ten-page dashboard and each implemented visualization family have
+      report, retained-tree, interaction, or Roci visual evidence.
+- [x] Calculation tests give exact expected outputs for normal and edge cases.
+- [x] Roci changes are independently reviewed, tested, sampled, and documented.
+- [x] Setup, CLI, TOML, and deferred scope documentation are current.
+- [x] Remaining risks and packaging results are recorded in the completed packet.

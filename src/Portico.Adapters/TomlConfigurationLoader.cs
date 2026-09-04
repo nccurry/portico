@@ -99,7 +99,18 @@ public static class TomlConfigurationLoader
             Strings(independence, "included_account_patterns", "financial_independence", errors),
             Strings(independence, "included_groups", "financial_independence", errors));
 
-        ValidateFinance(kind, dataSettings, thresholdSettings, subscriptionSettings, budgetSettings, healthSettings, safetySettings, independenceSettings, errors);
+        ValidateFinance(
+            kind,
+            dataSettings,
+            new LookbackSettings(lookbackMonths, defaultMonths),
+            thresholdSettings,
+            incomeSettings,
+            subscriptionSettings,
+            budgetSettings,
+            healthSettings,
+            safetySettings,
+            independenceSettings,
+            errors);
         ThrowIfErrors(errors);
         return new FinanceSettings(
             dataSettings,
@@ -160,7 +171,6 @@ public static class TomlConfigurationLoader
         string rawId = String(table, "id", path, errors);
         DashboardPageId id = ParsePageId(rawId, $"{path}.id", errors);
         string title = String(table, "title", path, errors);
-        string icon = String(table, "icon", path, errors);
         string description = String(table, "description", path, errors);
         bool visible = OptionalBoolean(table, "visible", true, path, errors);
         IReadOnlyList<TomlTable> filters = OptionalTables(table, "filters", path, errors);
@@ -192,10 +202,11 @@ public static class TomlConfigurationLoader
                 ParseWidgetKind(kind, $"{widgetPath}.kind", errors),
                 String(widget, "report", widgetPath, errors),
                 OptionalInteger(widget, "span", 1, widgetPath, errors),
-                OptionalString(widget, "description", widgetPath, errors)));
+                OptionalString(widget, "description", widgetPath, errors),
+                OptionalStrings(widget, "bar_series", widgetPath, errors)));
         }
 
-        return new DashboardPageDefinition(id, title, icon, description, parsedFilters, parsedWidgets, visible);
+        return new DashboardPageDefinition(id, title, description, parsedFilters, parsedWidgets, visible);
     }
 
     private static IReadOnlyDictionary<string, IReadOnlyList<string>> ParseAliases(TomlTable root, List<ConfigurationError> errors)
@@ -293,7 +304,9 @@ public static class TomlConfigurationLoader
     private static void ValidateFinance(
         WorkbookSourceKind kind,
         DataSourceSettings data,
+        LookbackSettings lookback,
         ThresholdSettings thresholds,
+        IncomeSavingsSettings income,
         SubscriptionSettings subscriptions,
         BudgetSettings budget,
         DataHealthSettings health,
@@ -303,16 +316,38 @@ public static class TomlConfigurationLoader
     {
         if (kind == WorkbookSourceKind.LocalCsv && string.IsNullOrWhiteSpace(data.Directory))
             errors.Add(new ConfigurationError("data.directory", "is required when data.source is local."));
-        if (thresholds.Expense < 0m || thresholds.Income < 0m || thresholds.DuplicateMinimum < 0m || thresholds.DuplicateDays < 0)
-            errors.Add(new ConfigurationError("thresholds", "values cannot be negative."));
-        if (subscriptions.MinimumConfidence is < 0 or > 100 || subscriptions.StaleAfterDays < 0)
-            errors.Add(new ConfigurationError("subscriptions", "minimum_confidence must be 0-100 and stale_after_days cannot be negative."));
-        if (budget.HistoryMonths <= 0 || health.StaleAccountDays < 0)
-            errors.Add(new ConfigurationError("budget/data_health", "month and day counts must be positive or zero as appropriate."));
-        if (safety.EmergencyFundTargetMonths < 0 || safety.EmergencyFundSpendingLookbackMonths <= 0)
-            errors.Add(new ConfigurationError("financial_safety", "target months cannot be negative and spending lookback must be positive."));
-        if (independence.WithdrawalRate <= 0m || independence.SpendingLookbackMonths <= 0 || independence.ProjectionYears is < 0 or > 100)
-            errors.Add(new ConfigurationError("financial_independence", "withdrawal_rate and spending lookback must be positive; projection_years must be 0-100."));
+        if (kind == WorkbookSourceKind.GoogleSheets && !string.IsNullOrWhiteSpace(data.Directory))
+            errors.Add(new ConfigurationError("data.directory", "must be empty when data.source is remote."));
+        if (lookback.Months.Count is < 2 or > 5 || lookback.Months.Any(month => month is < 1 or > 120))
+            errors.Add(new ConfigurationError("lookback.lookback_months", "must contain 2-5 values from 1 through 120."));
+        if (thresholds.Expense is < 1_000m or > 100_000m
+            || thresholds.Income is < 5_000m or > 100_000m
+            || thresholds.DuplicateMinimum is < 0m or > 1_000m
+            || thresholds.DuplicateDays is < 0 or > 7)
+        {
+            errors.Add(new ConfigurationError("thresholds", "values are outside the supported ranges."));
+        }
+        if (income.TargetRate is < 0m or > 100m)
+            errors.Add(new ConfigurationError("income_savings.target_rate", "must be from 0 through 100."));
+        if (subscriptions.MinimumConfidence is < 70 or > 100 || subscriptions.StaleAfterDays is < 1 or > 365)
+            errors.Add(new ConfigurationError("subscriptions", "minimum_confidence must be 70-100 and stale_after_days must be 1-365."));
+        if (budget.HistoryMonths is < 1 or > 120)
+            errors.Add(new ConfigurationError("budget.history_months", "must be from 1 through 120."));
+        if (health.StaleAccountDays is < 1 or > 365)
+            errors.Add(new ConfigurationError("data_health.stale_account_days", "must be from 1 through 365."));
+        if (safety.EmergencyFundTargetMonths is < 1 or > 24
+            || safety.EmergencyFundSpendingLookbackMonths is < 1 or > 120)
+        {
+            errors.Add(new ConfigurationError("financial_safety", "target months must be 1-24 and spending lookback must be 1-120."));
+        }
+        if (independence.ExpectedReturnRate is < 0m or > 20m
+            || independence.WithdrawalRate is < 0.5m or > 10m
+            || independence.TargetAmount is < 1m or > 100_000_000m
+            || independence.SpendingLookbackMonths is not (6 or 12 or 24 or 36)
+            || independence.ProjectionYears is < 1 or > 100)
+        {
+            errors.Add(new ConfigurationError("financial_independence", "values are outside the supported ranges."));
+        }
     }
 
     private static TomlTable Read(string path)
@@ -467,6 +502,17 @@ public static class TomlConfigurationLoader
         return Strings(array, $"{prefix}.{key}", errors);
     }
 
+    private static IReadOnlyList<string>? OptionalStrings(TomlTable table, string key, string prefix, List<ConfigurationError> errors)
+    {
+        if (!table.TryGetValue(key, out object? value))
+            return null;
+        if (value is TomlArray array)
+            return Strings(array, $"{prefix}.{key}", errors);
+
+        errors.Add(new ConfigurationError($"{prefix}.{key}", "must be an array of strings."));
+        return null;
+    }
+
     private static IReadOnlyList<string> Strings(TomlArray array, string path, List<ConfigurationError> errors)
     {
         var result = new List<string>(array.Count);
@@ -534,9 +580,7 @@ public static class TomlConfigurationLoader
     private static DashboardFilterKind ParseFilterKind(string value, string path, List<ConfigurationError> errors)
         => ParseEnum(value, path, errors, new Dictionary<string, DashboardFilterKind>(StringComparer.OrdinalIgnoreCase)
         {
-            ["select"] = DashboardFilterKind.Select,
-            ["multi_select"] = DashboardFilterKind.MultiSelect,
-            ["toggle"] = DashboardFilterKind.Toggle
+            ["select"] = DashboardFilterKind.Select
         });
 
     private static DashboardWidgetKind ParseWidgetKind(string value, string path, List<ConfigurationError> errors)
@@ -546,6 +590,7 @@ public static class TomlConfigurationLoader
             ["line_chart"] = DashboardWidgetKind.LineChart,
             ["area_chart"] = DashboardWidgetKind.AreaChart,
             ["bar_chart"] = DashboardWidgetKind.BarChart,
+            ["combo_chart"] = DashboardWidgetKind.ComboChart,
             ["scatter_chart"] = DashboardWidgetKind.ScatterChart,
             ["sparkline"] = DashboardWidgetKind.Sparkline,
             ["table"] = DashboardWidgetKind.Table,

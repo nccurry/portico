@@ -73,6 +73,78 @@ financial records.
 
 ![Demo data health dashboard with quality checks and duplicate review](assets/screenshots/demo-data-health.png)
 
+## Roci desktop dashboard
+
+This worktree contains an experimental C# desktop dashboard built with Roci.
+It keeps finance rules, data loading, configuration, and rendering separate.
+
+The project expects the companion Roci worktree at `../roci-portico-components`.
+Set `RociSourceRoot` if your Roci checkout is in another location.
+
+### Start the dashboard
+
+From PowerShell in this working tree, run:
+
+```powershell
+task roci:restore
+task roci:run
+```
+
+The default command reads the synthetic CSV files in `demo/data`.
+It opens the ten pages in `dashboard.toml`.
+Use Menu to open the left page drawer.
+Page controls rebuild the report without changing the workbook.
+
+Run this check without opening a window:
+
+```powershell
+task roci:doctor -- --output json
+```
+
+To load public Google Sheets, copy `portico.secrets.example.toml` to
+`portico.secrets.toml`. Replace the four URLs. Then run:
+
+```powershell
+task roci:run -- --config .\config.toml --dashboard .\dashboard.toml --source google-sheets --secrets .\portico.secrets.toml
+```
+
+The CLI provides `run` and `doctor` commands.
+It accepts `--config`, `--dashboard`, `--source`, `--data-dir`, and `--secrets`.
+It also accepts repeatable `--sheet NAME=URL` values.
+The app reads sheet URLs only. It does not print them in diagnostics.
+
+`dashboard.toml` controls the desktop presentation. It defines page order,
+titles, filters, widgets, spans, and chart kinds. The finance TOML keeps the
+calculation rules. `combo_chart` combines category bars with connected lines;
+its `bar_series` list names the report series that render as bars. Other series
+render as lines. The app rejects an invalid widget or filter before it opens a
+window.
+
+### Build and test the desktop project
+
+```powershell
+task roci:build:strict
+task roci:test
+task roci:publish:win-x64
+task roci:publish:linux-x64
+```
+
+The publish tasks create one self-contained executable in each
+`artifacts/publish` folder. They do not use Native AOT. After the Windows task
+finishes, launch the published app from this directory with:
+
+```powershell
+.\artifacts\publish\win-x64\portico.exe doctor --output json
+.\artifacts\publish\win-x64\portico.exe run
+```
+
+On Linux, use:
+
+```console
+./artifacts/publish/linux-x64/portico doctor --output json
+./artifacts/publish/linux-x64/portico run
+```
+
 ## Try the demo
 
 [Try it out in your browser](https://nccurry.github.io/portico/).

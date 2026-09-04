@@ -10,6 +10,19 @@ the already-tested result is presented and filtered correctly.
 All fixture workbooks are invented data. No real sheet URL, account number,
 merchant description, balance, or transaction row is checked in.
 
+## Delivery Status
+
+The implemented C# suite has exact calculation, adapter, configuration,
+dashboard-report, CLI, and retained-tree interaction coverage. It covers the
+ten configured pages and the chart families used by the app. The companion Roci
+suite supplies visual regression coverage for the new date/category, timeline,
+and heatmap components.
+
+This inventory also preserves the original, more detailed Streamlit-parity
+backlog. A future product pass can add its item-level linked selections,
+page-specific detail views, and app screenshot baselines. It must not be read
+as a claim that every proposed screen state is already implemented.
+
 ## Fixture Rules
 
 - Amounts in source fixture files are decimal strings, not binary floating-point
@@ -113,7 +126,7 @@ literal expected-output cases.
 | --- | --- | --- |
 | CFG-001 | current-portico-config | Every supported existing finance section parses into typed records without a dashboard table |
 | CFG-002 | current-demo-config | Local source configuration loads with no secret file and without a dashboard table |
-| CFG-003 | dashboard-all-pages | Separate `dashboard.toml` supplies ten ordered pages, configured titles/icons/layouts/widgets/filters |
+| CFG-003 | dashboard-all-pages | Separate `dashboard.toml` supplies ten ordered pages, configured titles, spans, widgets, and filters |
 | CFG-004 | dashboard-reordered-pages | Drawer uses TOML order rather than a hard-coded order |
 | CFG-005 | dashboard-hidden-page | Hidden page has no drawer item or route |
 | CFG-006 | duplicate-page-id | Fails before app start and names the duplicate ID |

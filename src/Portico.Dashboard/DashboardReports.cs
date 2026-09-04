@@ -14,13 +14,37 @@ public sealed record ReportMetric(string Label, decimal? Value, string Display, 
 /// <summary>Represents one visible row in a dashboard table.</summary>
 public sealed record ReportTableRow(IReadOnlyList<string> Values, string? Tone = null);
 
+/// <summary>Represents one category-owned calendar interval for a timeline widget.</summary>
+public sealed record ReportTimelineRange(
+    string Category,
+    DateOnly Start,
+    DateOnly End,
+    string? Label = null);
+
+/// <summary>Represents one labelled x/y comparison cell for a heatmap widget.</summary>
+public sealed record ReportHeatmapCell(
+    string XCategory,
+    string YCategory,
+    decimal Value,
+    string? Display = null);
+
 /// <summary>Represents the data consumed by one configured dashboard widget.</summary>
 public sealed record DashboardWidgetReport(
     IReadOnlyList<ReportMetric> Metrics,
     IReadOnlyList<ReportSeries> Series,
     IReadOnlyList<string> Columns,
     IReadOnlyList<ReportTableRow> Rows,
-    string? EmptyMessage = null);
+    string? EmptyMessage = null)
+{
+    /// <summary>Gets explicit date intervals when this report renders a timeline.</summary>
+    public IReadOnlyList<ReportTimelineRange> TimelineRanges { get; init; } = [];
+
+    /// <summary>Gets explicit x/y cells when this report renders a heatmap.</summary>
+    public IReadOnlyList<ReportHeatmapCell> HeatmapCells { get; init; } = [];
+
+    /// <summary>Gets the optional calendar date guide for a date-aware chart.</summary>
+    public DateOnly? DateGuide { get; init; }
+}
 
 /// <summary>Represents every configured widget report for one page selection.</summary>
 public sealed record DashboardPageReport(

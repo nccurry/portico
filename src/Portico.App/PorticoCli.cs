@@ -80,8 +80,7 @@ public static class PorticoCli
     private static async Task<int> RunDesktopAsync(PorticoCommand command, TextWriter output, TextWriter error)
     {
         LoadedPortico loaded = await LoadAsync(command, loadData: true);
-        DashboardReport report = DashboardReportBuilder.Build(loaded.Snapshot!, loaded.Settings, DashboardFilters.From(loaded.Settings));
-        return await DesktopDashboardHost.RunAsync(loaded.Definition, report, output, error);
+        return await DesktopDashboardHost.RunAsync(new DashboardSession(loaded.Snapshot!, loaded.Settings, loaded.Definition), output, error);
     }
 
     private static async Task<DoctorResult> InspectAsync(PorticoCommand command, bool loadData)
@@ -104,6 +103,7 @@ public static class PorticoCli
         settings = ApplyOverrides(settings, command);
         DashboardDefinition definition = TomlConfigurationLoader.LoadDashboard(command.DashboardPath);
         ValidateReportReferences(definition);
+        ValidateDashboardBindings(definition, settings);
         if (!loadData)
             return new LoadedPortico(settings, definition, null);
 
@@ -171,6 +171,39 @@ public static class PorticoCli
             throw new ConfigurationException(errors);
     }
 
+    private static void ValidateDashboardBindings(DashboardDefinition definition, FinanceSettings settings)
+    {
+        var errors = new List<ConfigurationError>();
+        foreach (DashboardPageDefinition page in definition.Pages)
+        {
+            foreach (DashboardFilterDefinition filter in page.Filters)
+            {
+                foreach (string option in filter.Options)
+                {
+                    if (IsConfiguredFilterOption(filter.Source, option, settings))
+                        continue;
+
+                    errors.Add(new ConfigurationError(
+                        $"dashboard.pages.{page.Id}.filters.{filter.Id}.options",
+                        $"value '{option}' is not configured for filter source '{filter.Source}'."));
+                }
+            }
+        }
+
+        if (errors.Count > 0)
+            throw new ConfigurationException(errors);
+    }
+
+    private static bool IsConfiguredFilterOption(string source, string value, FinanceSettings settings)
+        => source switch
+        {
+            "lookback" => int.TryParse(value, out int months) && settings.Lookback.Months.Contains(months),
+            "spending" => settings.FilterSet("spending").Options.Contains(value, StringComparer.Ordinal),
+            "year_over_year" => settings.FilterSet("year_over_year").Options.Contains(value, StringComparer.Ordinal),
+            "income_view" => value is "regular" or "actual",
+            _ => false
+        };
+
     private static int WriteHelp(TextWriter output)
     {
         output.WriteLine("Portico Roci desktop dashboard");
@@ -188,6 +221,11 @@ public static class PorticoCli
         output.WriteLine("  --secrets PATH      TOML file with [sheets] public URLs");
         output.WriteLine("  --sheet NAME=URL    Override one public sheet URL; repeatable");
         output.WriteLine("  --output FORMAT     doctor output: text or json");
+        output.WriteLine();
+        output.WriteLine("AI_CONTEXT:");
+        output.WriteLine("  Use doctor --output json to read one JSON result.");
+        output.WriteLine("  Exit codes: 0 ready, 2 argument or configuration error, 3 data error, 4 cancelled or unexpected error.");
+        output.WriteLine("  run opens an interactive desktop window.");
         return 0;
     }
 

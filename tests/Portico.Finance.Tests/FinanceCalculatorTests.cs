@@ -205,6 +205,78 @@ public sealed class FinanceCalculatorTests
     }
 
     [Fact]
+    public void FinancialSafety_UsesCompletedMonthsAndConfiguredAccountScopes()
+    {
+        FinancialTransaction[] transactions =
+        [
+            Transaction("jan", 2024, 1, 2, "Food", "Living", -100m, TransactionKind.Expense),
+            Transaction("feb", 2024, 2, 2, "Food", "Living", -200m, TransactionKind.Expense),
+            Transaction("travel", 2024, 2, 3, "Flight", "Travel", -1000m, TransactionKind.Expense),
+            Transaction("mar", 2024, 3, 2, "Food", "Living", -300m, TransactionKind.Expense),
+            Transaction("apr", 2024, 4, 2, "Food", "Living", -999m, TransactionKind.Expense)
+        ];
+        BalanceObservation[] balances =
+        [
+            Balance("cash", "Checking", "Cash", 2024, 3, 31, 8, 900m, AccountClass.Asset),
+            Balance("debt", "Card", "Debt", 2024, 1, 31, 8, 1000m, AccountClass.Liability),
+            Balance("debt", "Card", "Debt", 2024, 3, 31, 8, 600m, AccountClass.Liability),
+            Balance("invest", "Brokerage", "Investments", 2024, 3, 31, 8, 5000m, AccountClass.Asset)
+        ];
+        var safety = new FinancialSafetySettings(
+            3,
+            ["Cash"],
+            [],
+            3,
+            [],
+            ["Travel"],
+            ["Debt"],
+            [],
+            null);
+        var financialIndependence = new FinancialIndependenceSettings(7m, 4m, 10000m, 12, 10, [], ["Investments"]);
+
+        FinancialSafetySummary result = FinancialSafetyCalculator.Summarize(
+            transactions,
+            balances,
+            safety,
+            financialIndependence,
+            new DateOnly(2024, 4, 15));
+
+        Assert.Equal(900m, result.EmergencyFundBalance);
+        Assert.Equal(200m, result.EmergencyFundAverageMonthlySpending);
+        Assert.Equal(600m, result.EmergencyFundTarget);
+        Assert.Equal(4.5m, result.EmergencyFundMonthsCovered);
+        Assert.Equal(600m, result.DebtBalance);
+        Assert.Equal(1000m, result.DebtBaselineBalance);
+        Assert.Equal(400m, result.DebtPaidDown);
+        Assert.Equal(40m, result.DebtProgressPercent);
+        Assert.Equal(new DateOnly(2024, 1, 31), result.DebtBaselineDate);
+        Assert.Equal(5000m, result.FinancialIndependencePortfolio);
+        Assert.Equal(50m, result.FinancialIndependenceProgressPercent);
+    }
+
+    [Fact]
+    public void FinancialSafety_HandlesMissingScopesAndZeroBaselines()
+    {
+        var safety = new FinancialSafetySettings(6, [], [], 6, [], [], [], [], null);
+        var financialIndependence = new FinancialIndependenceSettings(7m, 4m, 0m, 12, 10, [], []);
+
+        FinancialSafetySummary result = FinancialSafetyCalculator.Summarize(
+            [],
+            [],
+            safety,
+            financialIndependence,
+            new DateOnly(2024, 4, 15));
+
+        Assert.Equal(0m, result.EmergencyFundBalance);
+        Assert.Null(result.EmergencyFundMonthsCovered);
+        Assert.Equal(0m, result.DebtBalance);
+        Assert.Null(result.DebtProgressPercent);
+        Assert.Null(result.DebtBaselineDate);
+        Assert.Equal(0m, result.FinancialIndependencePortfolio);
+        Assert.Null(result.FinancialIndependenceProgressPercent);
+    }
+
+    [Fact]
     public void YearMonth_HandlesLeapBoundaryRangeAndInvalidInput()
     {
         Assert.Equal(new YearMonth(2024, 2), YearMonth.From(new DateOnly(2024, 2, 29)));

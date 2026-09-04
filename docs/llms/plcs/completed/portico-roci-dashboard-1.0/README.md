@@ -2,12 +2,12 @@
 
 ## Lifecycle
 
-- Status: In progress
-- Folder: `docs/llms/plcs/planned/portico-roci-dashboard-1.0/`
+- Status: Complete
+- Folder: `docs/llms/plcs/completed/portico-roci-dashboard-1.0/`
 - Owner: Portico and Roci maintainers
 - Created: 2026-09-03
 - Last updated: 2026-09-04
-- Current phase: Phases 0 and 1 are implemented in the Portico worktree; Phase 2 Roci component work is in progress
+- Current phase: All six phases are complete.
 - Portico worktree: `nccurry/roci-portico-plc` in `../portico-roci-rebuild`
 - Companion Roci work: `nccurry/portico-roci-components` in
   `../roci-portico-components`, created cleanly from
@@ -15,17 +15,16 @@
 
 ## Summary
 
-Build a C# desktop dashboard that recreates Portico's ten current dashboard
-views with Roci. It reads the same four-sheet financial workbook shape as the
-Streamlit app, keeps the existing TOML calculation settings unchanged, and
-reads page layout, filters, and chart choices from a separate `dashboard.toml`.
+This packet delivered a C# desktop dashboard with ten Portico pages in Roci. It
+reads the same four-sheet financial workbook shape as the Streamlit app, keeps
+the calculation TOML separate, and reads page layout, filters, and chart
+choices from `dashboard.toml`.
 
 This is intentionally a dashboard-only project. It does not include the
 Discord summary, containers, browser demo, OAuth, write-back, or multi-user
-work. The useful first result is a desktop app that can validate a public Google
-Sheets setup, load it, and show the Home dashboard through a left slide-out
-page menu. Later phases fill in the rest of the views and turn the Roci gaps
-found during that work into ordinary reusable Roci components.
+work. The desktop app validates either public Google Sheets tab URLs or local
+CSV data, then shows each configured page through a left overlay page menu.
+The work also added the reusable Roci chart support that the dashboard needed.
 
 The app will not invent a formula language. Each TOML widget names a known,
 typed dashboard report such as `monthly-cash-flow` or `fi-sensitivity`. C# owns
@@ -69,7 +68,7 @@ and its filters.
 | Use a left slide-out page drawer | Accepted | First compose it from Roci's existing overlay and menu primitives. Add a reusable generic drawer only when that proof shows a real gap. | [SADD: Desktop shell](SADD.md#desktop-shell-and-navigation) |
 | Add only the chart features Portico proves necessary | Accepted | Date series, category-aligned overlays, range bars, and heatmaps are each exercised by a named Portico view. | [SADD: Roci work](SADD.md#roci-work-owned-by-the-companion-branch) |
 | Exclude notifications, containers, browser demo, OAuth, and write-back | Accepted | They are outside the dashboard experiment and would hide the visualization work behind unrelated systems. | [SRD: Scope](SRD.md#scope-and-non-scope) |
-| Start with normal .NET desktop publishing | Accepted | It is the shortest route to a working app. Self-contained Windows/Linux publishing is planned as a later proof, not a Phase 1 constraint. | [SADD: Packaging](SADD.md#tooling-packaging-and-diagnostics) |
+| Publish self-contained Windows and Linux files after the app works | Accepted and proved | The build produced one file for each target. Native AOT remains out of scope. | [SADD: Packaging](SADD.md#tooling-packaging-and-diagnostics) |
 
 ## Package And API Impact
 
@@ -77,10 +76,11 @@ and its filters.
   adapters for TOML and sheet CSV, and a Roci desktop host with a small CLI.
 - The Portico application consumes Roci through normal project references while
   the companion branch is active. It must not copy Roci source into this repo.
-- The companion Roci branch may add public `Roci.Ui` components for a generic
-  drawer, temporal/category chart data, range bars, and heatmaps. Existing
-  `MenuList` composes the page items. Each addition follows Roci's fluent
-  `UiBuilder` language and includes its own sample and tests.
+- The companion Roci branch adds public `Roci.Ui` support for temporal and
+  category chart data, timelines, typed date guides, and heatmaps. Existing
+  `AnchorOverlay` and `MenuList` compose the page menu, so a generic drawer was
+  not needed. Each addition follows Roci's fluent `UiBuilder` language and has
+  sample and test coverage.
 - No public network endpoint, server, OAuth client, database, container, or
   browser build is added.
 
@@ -105,20 +105,17 @@ Adapters owns external formats, and App is the only desktop/Roci host.
 
 ## Review Verdict
 
-Ready to implement. The packet has a concrete configuration boundary, an exact
-clean Roci base, commands that exist, and phase exit checks that test finance
-results before UI rendering. The remaining design work is intentionally limited
-to the public Roci API shape exposed by the drawer proof and component tests.
+The independent review corrected the configuration boundary, field names,
+component assumptions, and Task commands before implementation. The finished
+work uses those decisions and records the resulting Roci API below.
 
-## Current Open Questions
+## Deferred Work
 
-No open question blocks the first implementation phase. The two deliberately
-deferred choices below have safe defaults.
-
-| Question | Impact | Owner | Resolution plan |
-| --- | --- | --- | --- |
-| Which publish profiles become supported releases? | Packaging only | Portico maintainer | Start with framework-dependent desktop publish, then prove self-contained `win-x64` and `linux-x64` in the final phase. Native AOT is optional after its graphics compatibility is measured. |
-| Should a future version discover sheet tabs from a workbook URL? | Convenience only | Portico maintainer | Keep explicit tab URLs now. Do not depend on Google viewer HTML parsing; add discovery only with a stable API or a separate approved design. |
+| Item | Reason |
+| --- | --- |
+| Native AOT | The single-file self-contained targets meet this experiment's packaging goal. MonoGame and native graphics compatibility need a separate measured decision. |
+| Sheet-tab discovery and OAuth | Explicit public tab URLs are simpler and keep the current no-OAuth boundary. |
+| Streamlit-specific linked selections and pixel parity | The app covers the ten pages and the visualization families needed for this Roci experiment. A future product pass can add the remaining page-specific interaction details. |
 
 ## Planning Readiness Checklist
 
@@ -136,10 +133,10 @@ deferred choices below have safe defaults.
 ## Implementation Checklist
 
 - [x] Record the active Portico and Roci branch names in the packet.
-- [ ] Keep the SRD and SADD current when an implementation decision changes.
-- [ ] Record validation evidence as phases complete.
-- [ ] Remove replaced experimental code as the typed implementation lands.
-- [ ] Move the packet to `completed/` only after all required validation passes.
+- [x] Keep the SRD and SADD current when an implementation decision changes.
+- [x] Record validation evidence as phases complete.
+- [x] Remove replaced experimental code as the typed implementation lands.
+- [x] Move the packet to `completed/` after the required validation passes.
 
 ## Validation Evidence
 
@@ -150,8 +147,24 @@ deferred choices below have safe defaults.
 | 2026-09-03 | Inspect current Roci chart data and bar geometry | Pass | Confirmed numeric-only connected data, bar-only categories, zero-baseline bars, and no interval or heatmap series. |
 | 2026-09-03 | CQ sheet-loader check | Pass | Explicit per-tab URLs are safer than parsing undocumented Google viewer metadata. |
 | 2026-09-04 | PLC accuracy review | Pass | Verified strict current-config parsing and actual field names, current Roci menu/overlay/chart APIs, the actual Roci Task commands, and the need for a clean companion worktree. |
+| 2026-09-04 | Independent PLC review | Pass | A sub-agent reviewed and updated the packet before implementation. The review decisions are recorded above. |
+| 2026-09-04 | Portico strict build, formatter, and lint | Pass | `task roci:format`, `task roci:lint`, and `task roci:build:strict` completed with zero build warnings or errors. |
+| 2026-09-04 | Portico unit and interaction tests | Pass | `task roci:test` passed 53 tests: 16 finance, 12 dashboard, 13 adapter, and 12 app tests. |
+| 2026-09-04 | Portico setup check | Pass | `task roci:doctor -- --output json` loaded synthetic local CSV data and reported 10 pages, 986 transactions, 432 balances, and 1,344 budgets. |
+| 2026-09-04 | Portico publish proof | Pass | Windows produced one 85,324,006-byte `portico.exe`; its published `doctor` command passed. Linux produced one 84,309,165-byte ELF `portico` file. |
+| 2026-09-04 | Companion Roci checks | Pass | Clean branch `nccurry/portico-roci-components` passed `task lint`, `task build:strict`, `task test`, `task test:visual`, `task samples:visual-test`, and `git diff --check`. |
 
 ## Completion Notes
 
-Not started. This packet is the agreement for the implementation work; it is
-not a claim that the desktop app or Roci additions exist yet.
+The app is implemented in `../portico-roci-rebuild` on
+`nccurry/roci-portico-plc`. It uses configuration-defined pages, widgets,
+filters, local CSV data, public Google Sheets CSV exports, and a small `run` /
+`doctor` CLI. The local menu is an `AnchorOverlay` plus `MenuList`; it opens,
+selects a page, dismisses by scrim, close button, or menu cancel action, and
+marks the current page.
+
+The companion Roci worktree is clean on
+`nccurry/portico-roci-components`. Commit `e9cb0b78` adds typed date/category
+chart data and category overlays. Commit `a5832a83` adds timeline ranges,
+typed date guides, and heatmap cells. No Portico-specific type or rendering
+code was added to Roci.

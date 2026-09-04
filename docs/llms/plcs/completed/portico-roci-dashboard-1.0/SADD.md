@@ -2,7 +2,7 @@
 
 ## Document Control
 
-- Lifecycle status: Planned
+- Lifecycle status: Complete
 - PLC packet: [README.md](README.md)
 - Owner: Portico and Roci maintainers
 - Reviewers: Portico maintainer; Roci maintainer
@@ -27,6 +27,25 @@ The main rejected option is a generic dashboard/formula engine. It would make
 the first version look flexible, but it would make financial logic harder to
 read, validate, and evolve. A small catalog of named reports and widgets is a
 better match for this finite dashboard.
+
+## Implementation Outcome
+
+The implementation keeps the planned four project boundaries. Finance owns
+pure money and date calculations; Dashboard owns report and presentation
+records; Adapters owns TOML, CSV, local-file, and Google Sheets concerns; App
+is the sole Roci and MonoGame host.
+
+The app uses `dashboard.toml` to select pages, filters, widgets, widget spans,
+and combo-chart bar series. It creates all ten configured page reports before
+rendering a retained Roci tree. The UI uses a compact top bar, filter buttons,
+scrolling widget rows, and a left overlay menu built from existing
+`AnchorOverlay` and `MenuList` primitives.
+
+The companion Roci branch delivered two focused commits. `e9cb0b78` adds typed
+date and category chart data, including category-aligned bar/line composition.
+`a5832a83` adds timeline ranges, typed date guides, and heatmap cells. A
+generic drawer was not added because the existing overlay/menu composition met
+the app's needs.
 
 ## Goals, Non-Goals, And Design Drivers
 
@@ -74,7 +93,7 @@ review surfaces.
 | Repository/worktree | Owns | Does not own |
 | --- | --- | --- |
 | ../portico-roci-rebuild on nccurry/roci-portico-plc | Solution, finance/report code, TOML/CSV adapters, CLI, Roci composition, app tests, app docs, demo data | Copies of Roci source or Portico-only UI primitives in the framework |
-| ../roci-portico-components on nccurry/portico-roci-components | Reusable generic drawer and chart primitives, Roci samples, Roci tests, Roci documentation | Portico finance types, TOML schema, sheet adapters, dashboard business rules |
+| ../roci-portico-components on nccurry/portico-roci-components | Reusable date/category chart data, timelines, date guides, heatmaps, Roci samples, Roci tests, and Roci documentation | Portico finance types, TOML schema, sheet adapters, dashboard business rules |
 
 Create the companion from the reviewed Roci `main` commit
 `2404411b80c65bcb2e0f07f59492a875456d6074` in a new clean worktree. The
@@ -88,11 +107,12 @@ If the intended Roci base changes before the command is run, record the new
 commit in this packet first. Do not take untracked files from the default Roci
 checkout into the companion worktree.
 
-During development, the Portico solution uses an explicit, non-committed
-RociSourceRoot MSBuild property to reference the companion Roci worktree. The
-repository never commits an absolute local path. Once the Roci work is accepted,
-the normal Roci package/reference policy replaces that development override.
-The Portico app therefore stays a consumer, not a fork.
+During development, the Portico solution defaults `RociSourceRoot` to the
+relative sibling `../roci-portico-components`. A developer may override that
+property for another checkout; the repository never commits an absolute local
+path. Once the Roci work is accepted, the normal Roci package/reference policy
+can replace that development reference. The Portico app stays a consumer, not a
+fork.
 
 ### Current dashboard inventory
 
@@ -256,56 +276,44 @@ of known widget and filter kinds, not arbitrary nested property names or
 formulas.
 
     schema_version = 1
+    app_title = "Portico"
 
-    [dashboard]
-    title = "Portico"
-    initial_page = "home"
-
-    [dashboard.navigation]
-    drawer_width = 288
-
-    [[dashboard.pages]]
-    id = "income-savings"
+    [[pages]]
+    id = "income_savings"
     title = "Income and Savings"
-    icon = "chart"
+    description = "Monthly income, spending, surplus, and savings rate."
     visible = true
 
-    [[dashboard.pages.filters]]
-    id = "period"
-    kind = "period-range"
-    label = "Period"
-    default = "lookback.default_lookback_months"
+    [[pages.filters]]
+    id = "income_view"
+    label = "View"
+    kind = "select"
+    source = "income_view"
+    default = "regular"
+    options = ["regular", "actual"]
 
-    [[dashboard.pages.filters]]
-    id = "transaction-set"
-    kind = "transaction-set"
-    label = "Transactions"
-    source = "filter_sets.spending"
-
-    [[dashboard.pages.widgets]]
-    id = "monthly-cash-flow"
-    kind = "monthly-cash-flow"
+    [[pages.widgets]]
+    id = "cash-flow"
     title = "Monthly cash flow"
-    layout = "wide"
-    binds = ["period", "transaction-set"]
-    show_zero_rule = true
+    kind = "combo_chart"
+    report = "income.cash_flow"
+    span = 2
+    bar_series = ["income", "spending"]
 
-    [[dashboard.pages.widgets]]
+    [[pages.widgets]]
     id = "savings-rate"
-    kind = "savings-rate-history"
     title = "Savings rate"
-    layout = "wide"
-    binds = ["period"]
-    target = "income_savings.target_rate"
+    kind = "line_chart"
+    report = "income.savings_rate"
+    span = 2
 
 The `[sheets]` URL section belongs only in `portico.secrets.toml`, not a
-checked-in file. Page ID, kind, layout, binds, and field names are validated
-against typed C# records. For example, monthly-cash-flow selects the named
-report and chart renderer; it cannot contain an expression that transforms
-money. A page definition can order or hide existing widgets, but a new widget
-kind requires a deliberate report/renderer/test change. The `transaction-set`
-control above gets its default and valid options from the existing named
-`filter_sets.spending` definition; it does not repeat them in dashboard TOML.
+checked-in file. Page IDs, report IDs, widget kinds, spans, filter sources,
+options, and defaults are validated against typed C# records. Supported widget
+kinds are metric, line, area, bar, combo, scatter, sparkline, table, timeline,
+and heatmap. A combo chart names its bar series; its remaining series render as
+lines. TOML can select an existing report and arrange it, but it cannot contain
+an expression that transforms money.
 
 ### CLI contract
 
@@ -417,20 +425,19 @@ linked interactions easy to unit test.
 
 Portico.App starts Roci's normal MonoGame DesktopGL host. Its root layout has a
 compact top bar with a menu button and page title, a content region, and a left
-navigation drawer. On small widths the drawer overlays content and blocks only
-the area it covers; on larger widths it may remain open while still using the
-same left-slide animation and selection semantics.
+navigation overlay. The overlay contains the page menu and a clickable scrim.
+It blocks lower content while open, closes by scrim, close button, or menu
+cancel action, and marks the current page in text as well as colour.
 
-The page list is defined by the ordered dashboard.pages TOML entries. The
-renderer gives each page a stable ID, title, optional icon, selected state, and
-callback. It does not hard-code an enum-sized navigation switch merely to draw
-the menu.
+The page list is defined by ordered `pages` TOML entries. The renderer gives
+each page a stable ID, title, selected state, and callback. It does not
+hard-code a separate navigation list merely to draw the menu.
 
-Cards, charts, tables, and controls use a normal responsive flex/grid layout.
-The configuration supports a small layout vocabulary: full, wide, half, third,
-and card-row. Values are checked against each widget kind. It does not expose
-raw pixel coordinates or an arbitrary box tree. Each widget has a stable TOML
-ID which becomes its Roci widget name and visual-test identity.
+Cards, charts, tables, and controls use a normal responsive flex layout.
+`span = 2` makes a widget use a full row; other widgets share a row. The
+configuration does not expose raw pixel coordinates or an arbitrary box tree.
+Each widget has a stable TOML ID which becomes its Roci widget name and test
+identity.
 
 ## Page Reports And Rendering
 
@@ -464,34 +471,13 @@ names are reviewed against Roci's API language guide before merge. The fluent
 shape is not optional: collection widgets open a container, add items/series
 through per-item verbs, and close with the matching End method.
 
-### 1. Drawer proof before a new component
+### 1. Drawer result
 
-First build the Portico shell from `AnchorOverlay`, `MenuList`, and `MenuItem`.
-That reuses Roci's current menu selection and command-routing behaviour. If it
-cleanly provides a left slide, scrim dismissal, input isolation, focus return,
-and narrow/wide presentation, no drawer API is added to Roci.
-
-If that proof needs app-side overlay or input code, add a generic `Drawer` to
-Roci. It owns only side placement, visibility, slide/overlay behaviour, and
-dismissal. Portico continues to compose its page list through the existing
-`MenuList`; it does not add a `NavigationItem` or a Portico page concept to
-Roci. The likely fluent shape is:
-
-    ui.Drawer("pages")
-        .Open(session.IsDrawerOpen)
-        .Left()
-        .Width(288)
-        .OnDismiss(DismissDrawer)
-        .MenuList()
-            .MenuItem(page.Title, () => SelectPage(page.Id))
-        .EndMenuList()
-    .EndDrawer();
-
-The exact callback and style verbs follow the Roci API guide. What must remain
-true is one ordinary UiBuilder, a generic name-only drawer opener, regular
-child composition, and an explicit end. It supports open/close state,
-focus/input routing, overlay dismissal, left-side placement, and the same
-event path on narrow/wide layouts.
+The Portico shell composes `AnchorOverlay`, `MenuList`, and `MenuItem`. That
+provides the needed left-side panel, scrim dismissal, input blocking, current
+item marker, and cancel action without a new Roci drawer primitive. The app
+owns its small overlay composition, while Roci keeps its existing generic menu
+and overlay APIs.
 
 ### 2. Typed category and date chart coordinates
 
@@ -524,16 +510,18 @@ back into a date. A date guide has an equally typed date input.
 ### 3. Range bars for timelines
 
 Subscription lifecycles need horizontal intervals with distinct observed and
-inferred series, endpoint points, and a current-date rule. The framework adds
-a range-bar series with a generic date/category record such as
-ChartDateRange(category, start, end). It validates non-empty categories and
+inferred series, endpoint points, and a current-date rule. The delivered
+framework API uses `ChartTimelineRange`, `TimelineSeries`, `TimelineRanges`,
+and a typed `ReferenceLine(DateOnly)`. It validates non-empty categories and
 ordered inclusive ranges, retains stable identities for hits, and composes on a
 date/category Cartesian chart.
 
     ui.CartesianChart("subscription-lifecycle")
-        .RangeBarSeries("observed").DateRanges(observed)
-        .RangeBarSeries("inferred").DateRanges(inferred)
-        .ReferenceDateLine(ChartAxis.X, today)
+        .XAxis(ChartAxisConfig.Date("Date"))
+        .YAxis(ChartAxisConfig.Category("Subscription"))
+        .TimelineSeries("observed")
+            .TimelineRanges(observed)
+        .ReferenceLine(today)
     .EndChart();
 
 This is not a Portico SubscriptionTimeline widget. A generic range-bar component
@@ -542,15 +530,15 @@ is useful wherever data has category-labelled time intervals.
 ### 4. Heatmap cells
 
 FI sensitivity is a categorical two-axis grid of calculated values. The
-framework adds a heatmap series/cell model with stable X/Y category labels,
-numeric value, configurable color scale, optional label formatting, and normal
-tooltip/hit behaviour.
+delivered framework API uses `ChartHeatmapCell`, `HeatmapSeries`, and
+`HeatmapCells`, with a `ChartHeatmapColorScale` configured through series
+style. Cells retain stable X/Y labels, numeric value, and normal tooltip/hit
+behaviour.
 
     ui.CartesianChart("fi-sensitivity")
         .HeatmapSeries("projection")
-            .Cells(cells)
-            .ColorScale(scale)
-            .CellLabels()
+            .HeatmapCells(cells)
+            .SeriesStyle(new ChartHeatmapStyleOverrides { ColorScale = scale })
     .EndChart();
 
 It is a normal chart series, not an application-side texture or custom drawing
@@ -714,26 +702,26 @@ selection, mise.toml for Task, and a root Taskfile.yml. The exact SDK is kept
 aligned with the Roci worktree at implementation time rather than guessed in
 this PLC.
 
-The intended task surface is:
+The implemented Portico task surface is:
 
-    task format             format source
-    task lint               verify formatting/analyzers
-    task build              normal build
-    task build:strict       warnings treated as errors
-    task test               all non-visual tests
-    task test:finance       finance and report tests
-    task test:adapters      config/source/CLI tests
-    task test:desktop       session and renderer tests
-    task visual-test        approved Portico visual comparisons
-    task doctor             run local-demo doctor command
-    task publish:win-x64    later self-contained publish proof
-    task publish:linux-x64  later self-contained publish proof
+    task roci:restore             restore C# dependencies
+    task roci:format              format C# source
+    task roci:lint                verify formatting and analyzers
+    task roci:build:strict        build with warnings as errors
+    task roci:test                run all C# tests
+    task roci:test:finance        run finance tests
+    task roci:test:adapters       run source, configuration, and CLI tests
+    task roci:test:desktop        run session and retained-tree tests
+    task roci:doctor -- --output json
+    task roci:publish:win-x64
+    task roci:publish:linux-x64
 
-task test does not open a normal desktop window or use a live network source.
-Focused tasks run before broad gates. Roci component work uses the actual Roci
-commands `task lint`, `task build:strict`, `task test`, `task test:visual`, and
-`task samples:visual-test`, plus narrow component tests. The default Roci
-checkout is not used for those commands; the clean companion worktree is.
+`task roci:test` does not open a normal desktop window or use a live network
+source. Focused tasks run before broad gates. Roci component work uses the
+actual Roci commands `task lint`, `task build:strict`, `task test`,
+`task test:visual`, and `task samples:visual-test`, plus narrow component
+tests. The default Roci checkout is not used for those commands; the clean
+companion worktree is.
 
 The first publish target is the ordinary .NET desktop output. The later publish
 tasks try self-contained win-x64 and linux-x64, record executable and native

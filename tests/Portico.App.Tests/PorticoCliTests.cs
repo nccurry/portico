@@ -57,6 +57,21 @@ public sealed class PorticoCliTests
     }
 
     [Fact]
+    public async Task Help_ExplainsTheMachineReadableDoctorContract()
+    {
+        var output = new StringWriter();
+        var error = new StringWriter();
+
+        int exitCode = await PorticoCli.RunAsync(["--help"], output, error);
+
+        Assert.Equal(0, exitCode);
+        Assert.True(string.IsNullOrWhiteSpace(error.ToString()));
+        Assert.Contains("AI_CONTEXT:", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("doctor --output json", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("Exit codes: 0 ready", output.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Doctor_ReturnsConfigExitCodeForASecretLikeBadOption()
     {
         string root = FindRepositoryRoot();
@@ -74,6 +89,75 @@ public sealed class PorticoCliTests
 
         Assert.Equal(3, exitCode);
         Assert.DoesNotContain("private-value", error.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Doctor_RejectsDashboardFilterValuesMissingFromFinanceConfiguration()
+    {
+        string root = FindRepositoryRoot();
+        string dashboard = Path.Combine(Path.GetTempPath(), $"portico-dashboard-{Guid.NewGuid():N}.toml");
+        await File.WriteAllTextAsync(dashboard, """
+            schema_version = 1
+            app_title = "Portico"
+            [[pages]]
+            id = "home"
+            title = "Home"
+            icon = "home"
+            description = "Overview"
+            [[pages.filters]]
+            id = "lookback"
+            label = "Lookback"
+            kind = "select"
+            source = "lookback"
+            default = "99"
+            options = ["99"]
+            [[pages.widgets]]
+            id = "net-worth"
+            title = "Net worth"
+            kind = "area_chart"
+            report = "home.net_worth"
+            """, TestContext.Current.CancellationToken);
+        var output = new StringWriter();
+        var error = new StringWriter();
+
+        int exitCode = await PorticoCli.RunAsync(
+            ["doctor", "--config", Path.Combine(root, "portico-demo.toml"), "--dashboard", dashboard],
+            output,
+            error);
+
+        Assert.Equal(2, exitCode);
+        Assert.Contains("not configured", error.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Doctor_RejectsUnsupportedDashboardReports()
+    {
+        string root = FindRepositoryRoot();
+        string dashboard = Path.Combine(Path.GetTempPath(), $"portico-dashboard-{Guid.NewGuid():N}.toml");
+        await File.WriteAllTextAsync(dashboard, """
+            schema_version = 1
+            app_title = "Portico"
+            [[pages]]
+            id = "home"
+            title = "Home"
+            icon = "home"
+            description = "Overview"
+            [[pages.widgets]]
+            id = "unknown"
+            title = "Unknown"
+            kind = "metric"
+            report = "missing.report"
+            """, TestContext.Current.CancellationToken);
+        var output = new StringWriter();
+        var error = new StringWriter();
+
+        int exitCode = await PorticoCli.RunAsync(
+            ["doctor", "--config", Path.Combine(root, "portico-demo.toml"), "--dashboard", dashboard],
+            output,
+            error);
+
+        Assert.Equal(2, exitCode);
+        Assert.Contains("supported report", error.ToString(), StringComparison.Ordinal);
     }
 
     private static string FindRepositoryRoot()

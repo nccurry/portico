@@ -49,6 +49,9 @@ public enum DashboardWidgetKind
     /// <summary>A category bar chart.</summary>
     BarChart,
 
+    /// <summary>A categorical bar chart with one or more connected line overlays.</summary>
+    ComboChart,
+
     /// <summary>An x/y point chart.</summary>
     ScatterChart,
 
@@ -69,13 +72,7 @@ public enum DashboardWidgetKind
 public enum DashboardFilterKind
 {
     /// <summary>Select one value from a configured list.</summary>
-    Select,
-
-    /// <summary>Select several values from a configured list.</summary>
-    MultiSelect,
-
-    /// <summary>Toggle a true or false option.</summary>
-    Toggle
+    Select
 }
 
 /// <summary>Defines one filter displayed on a dashboard page.</summary>
@@ -94,13 +91,13 @@ public sealed record DashboardWidgetDefinition(
     DashboardWidgetKind Kind,
     string Report,
     int Span = 1,
-    string? Description = null);
+    string? Description = null,
+    IReadOnlyList<string>? BarSeries = null);
 
 /// <summary>Defines one drawer destination and its configuration-driven content.</summary>
 public sealed record DashboardPageDefinition(
     DashboardPageId Id,
     string Title,
-    string Icon,
     string Description,
     IReadOnlyList<DashboardFilterDefinition> Filters,
     IReadOnlyList<DashboardWidgetDefinition> Widgets,
@@ -115,6 +112,14 @@ public sealed record DashboardDefinition(
     /// <summary>The configuration schema supported by this build.</summary>
     public const int SupportedSchemaVersion = 1;
 
+    private static readonly IReadOnlySet<string> SupportedFilterSources = new HashSet<string>(StringComparer.Ordinal)
+    {
+        "lookback",
+        "spending",
+        "year_over_year",
+        "income_view"
+    };
+
     /// <summary>Checks the finite dashboard grammar and reports every independent issue.</summary>
     public IReadOnlyList<string> Validate()
     {
@@ -127,6 +132,7 @@ public sealed record DashboardDefinition(
             problems.Add("dashboard.pages must contain at least one page.");
 
         var pageIds = new HashSet<DashboardPageId>();
+        var filterDefaults = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (DashboardPageDefinition page in Pages)
         {
             if (!pageIds.Add(page.Id))
@@ -137,6 +143,18 @@ public sealed record DashboardDefinition(
                 problems.Add($"dashboard page '{page.Id}' needs at least one widget.");
 
             ValidatePage(page, problems);
+            foreach (DashboardFilterDefinition filter in page.Filters)
+            {
+                if (filterDefaults.TryGetValue(filter.Source, out string? current)
+                    && !string.Equals(current, filter.DefaultValue, StringComparison.Ordinal))
+                {
+                    problems.Add($"dashboard filter source '{filter.Source}' has conflicting defaults.");
+                }
+                else
+                {
+                    filterDefaults[filter.Source] = filter.DefaultValue;
+                }
+            }
         }
 
         if (!Pages.Any(page => page.Visible))
@@ -169,7 +187,11 @@ public sealed record DashboardDefinition(
                 problems.Add($"dashboard page '{page.Id}' has duplicate filter '{filter.Id}'.");
             if (string.IsNullOrWhiteSpace(filter.Id) || string.IsNullOrWhiteSpace(filter.Label))
                 problems.Add($"dashboard page '{page.Id}' has a filter without an id or label.");
-            if (filter.Kind == DashboardFilterKind.Select && filter.Options.Count > 0 && !filter.Options.Contains(filter.DefaultValue, StringComparer.Ordinal))
+            if (!SupportedFilterSources.Contains(filter.Source))
+                problems.Add($"dashboard filter '{page.Id}.{filter.Id}' has unsupported source '{filter.Source}'.");
+            if (filter.Options.Count == 0)
+                problems.Add($"dashboard filter '{page.Id}.{filter.Id}' needs at least one option.");
+            if (!filter.Options.Contains(filter.DefaultValue, StringComparer.Ordinal))
                 problems.Add($"dashboard filter '{page.Id}.{filter.Id}' default must be one of its options.");
         }
 
@@ -182,6 +204,19 @@ public sealed record DashboardDefinition(
                 problems.Add($"dashboard page '{page.Id}' has a widget without an id, title, or report.");
             if (widget.Span is < 1 or > 2)
                 problems.Add($"dashboard widget '{page.Id}.{widget.Id}' span must be 1 or 2.");
+            if (widget.Kind != DashboardWidgetKind.ComboChart && widget.BarSeries is { Count: > 0 })
+                problems.Add($"dashboard widget '{page.Id}.{widget.Id}' can use bar_series only with kind 'combo_chart'.");
+            if (widget.Kind == DashboardWidgetKind.ComboChart && widget.BarSeries is not { Count: > 0 })
+                problems.Add($"dashboard combo chart '{page.Id}.{widget.Id}' needs at least one bar_series id.");
+            if (widget.BarSeries is not null)
+            {
+                var seriesIds = new HashSet<string>(StringComparer.Ordinal);
+                foreach (string seriesId in widget.BarSeries)
+                {
+                    if (string.IsNullOrWhiteSpace(seriesId) || !seriesIds.Add(seriesId))
+                        problems.Add($"dashboard widget '{page.Id}.{widget.Id}' has blank or duplicate bar_series ids.");
+                }
+            }
         }
     }
 }

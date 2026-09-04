@@ -86,6 +86,23 @@ public sealed class AdapterTests
     }
 
     [Fact]
+    public async Task GoogleSource_ReportsHttpFailuresWithoutEchoingTheSheetUrl()
+    {
+        using var client = new HttpClient(new StatusResponseHandler(HttpStatusCode.Forbidden));
+        var settings = new SheetUrlSettings(new Dictionary<string, string>
+        {
+            ["transactions"] = "https://docs.google.com/spreadsheets/d/private-document/edit#gid=1"
+        });
+
+        DataLoadException error = await Assert.ThrowsAsync<DataLoadException>(() =>
+            new GoogleSheetsSnapshotSource(client, settings).LoadAsync(TestContext.Current.CancellationToken));
+
+        Assert.Contains("transactions", error.Message, StringComparison.Ordinal);
+        Assert.Contains("HTTP 403", error.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("private-document", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ConfigurationLoader_ParsesExistingFinanceShapeAndDashboardGrammar()
     {
         string directory = Path.Combine(Path.GetTempPath(), $"portico-config-{Guid.NewGuid():N}");
@@ -109,11 +126,33 @@ public sealed class AdapterTests
     public void ConfigurationLoader_ReportsBadDashboardKind()
     {
         string path = Path.Combine(Path.GetTempPath(), $"portico-dashboard-{Guid.NewGuid():N}.toml");
-        File.WriteAllText(path, "schema_version = 1\napp_title = 'Portico'\n[[pages]]\nid = 'home'\ntitle = 'Home'\nicon = 'home'\ndescription = 'x'\n[[pages.widgets]]\nid = 'x'\ntitle = 'x'\nkind = 'impossible'\nreport = 'home.net_worth'\n");
+        File.WriteAllText(path, "schema_version = 1\napp_title = 'Portico'\n[[pages]]\nid = 'home'\ntitle = 'Home'\ndescription = 'x'\n[[pages.widgets]]\nid = 'x'\ntitle = 'x'\nkind = 'impossible'\nreport = 'home.net_worth'\n");
 
         ConfigurationException error = Assert.Throws<ConfigurationException>(() => TomlConfigurationLoader.LoadDashboard(path));
 
         Assert.Contains(error.Errors, item => item.Path.Contains("kind", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ConfigurationLoader_RequiresBarSeriesForAComboChart()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"portico-dashboard-{Guid.NewGuid():N}.toml");
+        File.WriteAllText(path, "schema_version = 1\napp_title = 'Portico'\n[[pages]]\nid = 'home'\ntitle = 'Home'\ndescription = 'x'\n[[pages.widgets]]\nid = 'x'\ntitle = 'x'\nkind = 'combo_chart'\nreport = 'home.net_worth'\n");
+
+        ConfigurationException error = Assert.Throws<ConfigurationException>(() => TomlConfigurationLoader.LoadDashboard(path));
+
+        Assert.Contains(error.Errors, item => item.Message.Contains("bar_series", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ConfigurationLoader_RejectsFinanceValuesOutsideTheExistingConfigRange()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"portico-finance-{Guid.NewGuid():N}.toml");
+        File.WriteAllText(path, FinanceToml().Replace("expected_return_rate = 7", "expected_return_rate = 21", StringComparison.Ordinal));
+
+        ConfigurationException error = Assert.Throws<ConfigurationException>(() => TomlConfigurationLoader.LoadFinance(path));
+
+        Assert.Contains(error.Errors, item => item.Path == "financial_independence");
     }
 
     private static IReadOnlyDictionary<string, CsvTable> Tables()
@@ -136,8 +175,8 @@ public sealed class AdapterTests
         lookback_months = [3, 6, 12]
         default_lookback_months = 12
         [thresholds]
-        expense = 50
-        income = 1000
+        expense = 1000
+        income = 5000
         duplicate_minimum = 10
         duplicate_days = 1
         [merchants.aliases]
@@ -209,7 +248,6 @@ public sealed class AdapterTests
         [[pages]]
         id = "home"
         title = "Home"
-        icon = "home"
         description = "Overview"
         [[pages.widgets]]
         id = "net-worth"
@@ -240,5 +278,11 @@ public sealed class AdapterTests
                 Content = new StringContent(_documents[name])
             });
         }
+    }
+
+    private sealed class StatusResponseHandler(HttpStatusCode statusCode) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            => Task.FromResult(new HttpResponseMessage(statusCode));
     }
 }

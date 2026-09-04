@@ -7,17 +7,26 @@ public static class DesktopDashboardHost
 {
     /// <summary>Starts the desktop dashboard from a fully built report.</summary>
     public static Task<int> RunAsync(
-        DashboardDefinition definition,
-        DashboardReport report,
+        DashboardSession session,
         TextWriter output,
         TextWriter error)
     {
-        ArgumentNullException.ThrowIfNull(definition);
-        ArgumentNullException.ThrowIfNull(report);
+        ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(output);
         ArgumentNullException.ThrowIfNull(error);
 
-        error.WriteLine("The desktop renderer is being connected to the Roci chart worktree.");
-        return Task.FromResult(4);
+        try
+        {
+            output.WriteLine("Opening the Portico desktop dashboard.");
+            Roci.Hosting.MonoGame.MonoGameHost.Run(
+                PorticoDashboardGame.CreateHostSettings(),
+                _ => new PorticoDashboardGame(session));
+            return Task.FromResult(0);
+        }
+        catch (Exception exception)
+        {
+            error.WriteLine($"Desktop error: {exception.Message}");
+            return Task.FromResult(4);
+        }
     }
 }
