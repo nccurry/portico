@@ -8,7 +8,7 @@ file a thin orchestrator and gives the tests a stable, importable target.
 import pandas as pd
 import pytest
 
-from Home import create_account_group_sparkline
+from Home import _order_account_groups, create_account_group_sparkline
 from src.constants import COLOR_LIABILITY
 from src.spreadsheet import calculate_net_worth_summary
 from tests._helpers import _ts
@@ -20,6 +20,19 @@ def test_liability_sparkline_uses_liability_color() -> None:
     chart = create_account_group_sparkline([1000.0, 900.0], color=COLOR_LIABILITY)
 
     assert chart.to_dict()["mark"]["color"] == COLOR_LIABILITY
+
+
+def test_account_groups_sort_negative_contributions_last() -> None:
+    groups = pd.DataFrame(
+        {
+            "Group": ["Debt", "Cash", "Investments", "Unmapped"],
+            "Net_Contribution": [-100_000.0, 20_000.0, 350_000.0, 0.0],
+        }
+    )
+
+    ordered = _order_account_groups(groups)
+
+    assert ordered["Group"].tolist() == ["Investments", "Cash", "Unmapped", "Debt"]
 
 
 class TestNetWorthCalculation:

@@ -447,6 +447,11 @@ def _render_account_group(group_row: pd.Series, accounts: pd.DataFrame) -> None:
             )
 
 
+def _order_account_groups(groups: pd.DataFrame) -> pd.DataFrame:
+    """Order groups from highest to lowest signed net-worth contribution."""
+    return groups.sort_values("Net_Contribution", ascending=False, kind="stable").reset_index(drop=True)
+
+
 def _render_account_groups(groups: pd.DataFrame, accounts: pd.DataFrame) -> None:
     """Render balance groups with responsive account summaries."""
     st.subheader("Account groups")
@@ -454,11 +459,7 @@ def _render_account_groups(groups: pd.DataFrame, accounts: pd.DataFrame) -> None
         st.info("No mapped balance groups are available.", icon=":material/account_balance:")
         return
 
-    display = groups.sort_values(
-        "Net_Contribution",
-        key=lambda values: values.abs(),
-        ascending=False,
-    ).reset_index(drop=True)
+    display = _order_account_groups(groups)
     for row_start in range(0, len(display), 2):
         columns = st.columns(2, gap="medium")
         rows = display.iloc[row_start : row_start + 2]
