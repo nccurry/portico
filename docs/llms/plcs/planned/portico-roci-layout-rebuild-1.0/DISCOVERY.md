@@ -140,7 +140,7 @@ fields, validation, report/display mappings, and focused tests.
 
 | Finding | Evidence | Phase direction |
 | --- | --- | --- |
-| The C# presentation model cannot hold the source navigation mapping. | `DashboardPageDefinition` has `Title` and `Description`, but no group, order, rail label, heading, or icon. `dashboard.toml` has the near-match labels listed above. | Add typed configuration fields in Phase 3; build the permanent grouped rail in Phase 2. |
+| The C# presentation model cannot hold the source navigation mapping. | Completed in Phase 2: `DashboardPageDefinition` and `dashboard.toml` now carry a validated group, order, rail label, heading, and typed icon ID for each page. | Keep page-specific controls out of this small navigation model; add them in Phase 3. |
 | The C# control model cannot express the source controls. | `DashboardFilterKind` has only `Select`; `DashboardSession` projects four shared filters. The source uses segmented choices, multi-selects, sliders, number inputs, toggles, tabs, text input, selection, and reset actions. | Add typed per-page state and control/report mappings in Phase 3. |
 | The current desktop shell is not the source shell. | `PorticoDashboardScene` uses a top bar and an overlay drawer. The source uses a permanent sidebar. | Replace it in Phases 1 and 2 with the SADD shell row and local navigation rail. |
 | The current release host cannot make the required captures. | `PorticoDashboardGame` fixes a normal window at 1280 by 820. The test-only `Portico.CaptureHost` now calls the argument-aware host with `GameRunFeatures.Automation | GameRunFeatures.Capture`. | Phase 0 added the capture host without changing normal release-host behaviour. |
@@ -166,6 +166,10 @@ additional component.
 - Complete: source navigation, headings, source files, source control labels,
   page regions, Roci component directions, deterministic current Roci images,
   the test-only capture host, and `roci:visual`.
+- Complete: typed source navigation configuration, a selectable grouped rail,
+  privacy masking, demo state, and truthful source-check states. The rail uses
+  an app-local ASCII glyph mapping because this Roci font path has no Material
+  icon primitive.
 - Pending: C# control-state fields, configuration parsing, control/report
   mappings, and their page-specific tests. Those are Phase 3 work.
 - Deferred: `Download CSV` and `Open spreadsheet`. They are source actions
@@ -194,7 +198,7 @@ Roci.
 | --- | --- | --- |
 | Visual test method | A sample capture and one stable comparison run. | Completed: use `GameRunCaptureCatalog` and Roci's capture verifier. Cross-renderer pixel comparisons remain out of scope. |
 | Capture host | A test-only host that accepts capture arguments and enables Roci automation/capture. | Completed: `Portico.CaptureHost` accepts normal Roci capture arguments and runs fixed demo sessions. |
-| Navigation rail | A local proof with selected page, keyboard focus, and narrow-window behavior. | Pending. |
+| Navigation rail | A local proof with selected page, keyboard focus, and narrow-window behavior. | Completed in Phase 2: exact TOML-backed rail, selected state, pointer/keyboard navigation, focus retention, fixed rail, and 28 visual captures. |
 | Multi-select | A local proof used by at least two real page filters. | Pending. |
 | Typed page controls | A table that maps each source control to state, report/display behavior, and a test. | Pending. |
 | Any chart gap | A named Streamlit chart and the smallest attempted Roci composition. | Pending. |

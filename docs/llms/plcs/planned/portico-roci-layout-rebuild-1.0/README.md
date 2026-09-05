@@ -4,7 +4,7 @@
 
 - Status: In progress
 - Created: 2026-09-04
-- Current phase: Phase 2 — add navigation rail and global state
+- Current phase: Phase 3 — add shared components and typed page controls
 - Owner: Portico maintainers
 - Target worktree: `../portico-roci-rebuild`
 - Target branch: `nccurry/roci-portico-plc`
@@ -40,10 +40,24 @@ Phase 1 completed on 2026-09-04.
   `task roci:build:strict`, `task roci:test:desktop`, `task roci:visual`, and
   `git diff --check`. Its code and design audits found no P1 or P2 issue.
 
-The rail intentionally contains only a Phase 1 placeholder. Phase 2 replaces
-it with exact source navigation, selection, privacy, load status, and refresh
-state. Typed page controls, configuration extensions, and report mappings
-remain Phase 3 work.
+Phase 2 completed on 2026-09-04.
+
+- The fixed rail now uses validated TOML metadata for the exact Streamlit page
+  order, groups, labels, headings, and typed icon IDs. It has pointer and
+  keyboard selection, selection/focus retention, a fixed rail, and a scrolling
+  main body.
+- The shared display state now has a demo-data banner, value masking, and clear
+  loaded, checking, failed, and unavailable source states. A source check never
+  claims to replace the held report; the normal desktop host correctly reports
+  that refresh is unavailable.
+- `task roci:visual` now verifies 28 named wide and narrow captures: every
+  page plus hidden-value, checking, failed, and unavailable states.
+- The merged phase passed `task roci:format`, `task roci:lint`,
+  `task roci:build:strict`, `task roci:test`, `task roci:visual`, and
+  `git diff --check`. Code and design audits found no P1 or P2 issue.
+
+Typed page controls, their remaining configuration extensions, and report
+mappings remain Phase 3 work.
 
 ## Purpose
 
