@@ -2,6 +2,7 @@
 using Portico.App;
 using Portico.CaptureHost;
 using Portico.Dashboard;
+using Portico.Finance;
 using Roci.Launch;
 using Roci.TestUtilities;
 using Roci.Testing;
@@ -16,7 +17,7 @@ public sealed class PorticoCaptureCatalogTests
     {
         IReadOnlyList<CaptureCase> cases = PorticoCaptureCatalog.CaptureCatalog.CaptureCases;
 
-        Assert.Equal(32, cases.Count);
+        Assert.Equal(34, cases.Count);
         Assert.Equal(
         [
             "budget",
@@ -31,6 +32,7 @@ public sealed class PorticoCaptureCatalogTests
             "income-savings",
             "merchants",
             "spending",
+            "spending-adjusted",
             "spending-loading",
             "subscriptions",
             "top-transactions",
@@ -48,10 +50,10 @@ public sealed class PorticoCaptureCatalogTests
         }
 
         Assert.Equal(
-            16,
+            17,
             cases.Count(capture => capture.CaptureSize == new CaptureSize(1500, 1000)));
         Assert.Equal(
-            16,
+            17,
             cases.Count(capture => capture.CaptureSize == new CaptureSize(1024, 720)));
 
         DashboardPageId[] configuredPages = PorticoDemoSessionFactory.Create()
@@ -100,6 +102,7 @@ public sealed class PorticoCaptureCatalogTests
     [Theory]
     [InlineData("home", DashboardPageId.Home, 12, "discretionary", "utilities", true)]
     [InlineData("spending", DashboardPageId.Spending, 3, "all", "utilities", true)]
+    [InlineData("spending-adjusted", DashboardPageId.Spending, 3, "all", "utilities", true)]
     [InlineData("income-savings", DashboardPageId.IncomeSavings, 12, "discretionary", "utilities", false)]
     [InlineData("income-categories-wrapped", DashboardPageId.IncomeSavings, 12, "discretionary", "utilities", false)]
     [InlineData("year-over-year", DashboardPageId.YearOverYear, 12, "discretionary", "all", true)]
@@ -130,6 +133,24 @@ public sealed class PorticoCaptureCatalogTests
         Assert.Equal(spendingSet, session.Filters.SpendingSet);
         Assert.Equal(yearOverYearSet, session.Filters.YearOverYearSet);
         Assert.Equal(regularIncome, session.Filters.RegularIncome);
+    }
+
+    [Fact]
+    public void CreateSession_AdjustedSpendingScenarioUsesComparisonBreakdownAndSelection()
+    {
+        GameRunContext context = PorticoCaptureCatalog.RunCatalog.CreateContext(new GameRunOptions
+        {
+            StartStateId = PorticoCaptureCatalog.DemoLaunchState,
+            ScenarioId = "spending-adjusted"
+        });
+
+        DashboardSession session = PorticoCaptureCatalog.CreateSession(context);
+
+        Assert.Equal(SpendingComparison.LastYear, session.Filters.SpendingComparison);
+        Assert.Equal(SpendingBreakdown.Group, session.Filters.SpendingBreakdown);
+        Assert.True(session.Filters.SpendingAdjustments!.IsModified);
+        Assert.NotEmpty(session.Filters.SpendingAdjustments.ExcludedGroups);
+        Assert.NotNull(session.Presentation.Spending.SelectedGroup);
     }
 
     [Fact]

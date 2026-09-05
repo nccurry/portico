@@ -26,6 +26,7 @@ public sealed class PorticoDashboardScene
     private readonly IPorticoRefreshBoundary _refreshBoundary;
     private readonly PorticoPageRenderer _pageRenderer;
     private readonly PorticoHomePageRenderer _homePageRenderer;
+    private readonly PorticoSpendingPageRenderer _spendingPageRenderer;
     private bool _rebuildRequired;
     private Task<PorticoRefreshResult>? _refreshTask;
 
@@ -43,6 +44,7 @@ public sealed class PorticoDashboardScene
         _refreshBoundary = refreshBoundary ?? new UnavailablePorticoRefreshBoundary();
         _pageRenderer = new PorticoPageRenderer(_session, () => _rebuildRequired = true);
         _homePageRenderer = new PorticoHomePageRenderer(_session);
+        _spendingPageRenderer = new PorticoSpendingPageRenderer(_session, () => _rebuildRequired = true);
         Stage = new UiStage(viewportSize, PorticoSkin.Create());
         Stage.ViewportChanged += _ => _rebuildRequired = true;
         Build();
@@ -56,7 +58,9 @@ public sealed class PorticoDashboardScene
 
     /// <summary>Gets a local multi-select state for focused interaction tests.</summary>
     public PorticoMultiSelectState<string>? MultiSelectState(DashboardPageId pageId, string controlId)
-        => _pageRenderer.MultiSelectState(pageId, controlId);
+        => pageId == DashboardPageId.Spending
+            ? _spendingPageRenderer.MultiSelectState(controlId)
+            : _pageRenderer.MultiSelectState(pageId, controlId);
 
     /// <summary>Selects a configured page for the main content area.</summary>
     public void SelectPage(DashboardPageId pageId)
@@ -148,7 +152,11 @@ public sealed class PorticoDashboardScene
         DashboardPageDefinition page = CurrentPage();
         if (_displayState.IsDemoData)
             BuildDemoDataBanner();
-        _pageRenderer.BuildHeader(Ui, page);
+        DashboardPageReport headerReport = _session.Report.Page(page.Id);
+        if (_spendingPageRenderer.CanRender(page))
+            _spendingPageRenderer.BuildHeader(Ui, page, headerReport);
+        else
+            _pageRenderer.BuildHeader(Ui, page);
         BuildContent(page);
 
         Ui.End();
@@ -357,6 +365,15 @@ public sealed class PorticoDashboardScene
                 (widget, item, height) => BuildWidget(widget, item, false, height, useFlatMetricBand: true),
                 value => DisplayPrivateText(value));
         }
+        else if (_spendingPageRenderer.CanRender(page))
+        {
+            _spendingPageRenderer.Build(
+                Ui,
+                page,
+                report,
+                (widget, item, grow) => BuildWidget(widget, item, true, null, false, grow),
+                value => DisplayPrivateText(value));
+        }
         else
         {
             _pageRenderer.BuildContent(Ui, page, report, BuildWidget);
@@ -414,11 +431,12 @@ public sealed class PorticoDashboardScene
         DashboardWidgetReport report,
         bool expand,
         float? heightOverride,
-        bool useFlatMetricBand = false)
+        bool useFlatMetricBand = false,
+        float flexGrow = 1f)
     {
         Ui.VStack(PorticoSkin.CompactGap, $"Widget:{widget.Id}")
             .SetHeight(heightOverride ?? WidgetHeight(widget.Kind))
-            .SetFlexGrow(expand ? 1f : 0f)
+            .SetFlexGrow(expand ? flexGrow : 0f)
             .SetFlexShrink(expand ? 1f : 0f)
             .SetPadding(PorticoSkin.WidgetPadding)
             .SetCornerRadius(PorticoSkin.CardCornerRadius)
@@ -559,15 +577,15 @@ public sealed class PorticoDashboardScene
             return;
         }
 
-        if (widget.Kind == DashboardWidgetKind.BarChart)
+        if (widget.Kind is DashboardWidgetKind.BarChart or DashboardWidgetKind.HorizontalBarChart)
         {
             BuildDateBarChart(widget, series);
             return;
         }
 
         Ui.CartesianChart($"Chart:{widget.Id}")
-            .XAxis(ChartAxisConfig.Date("Date", formatter: FormatDateAxis))
-            .YAxis(ChartAxisConfig.Linear("Value", formatter: FormatAxisValue))
+            .XAxis(ChartAxisConfig.Date(AxisTitle(widget.XAxisTitle, "Date"), formatter: FormatDateAxis))
+            .YAxis(ChartAxisConfig.Linear(AxisTitle(widget.YAxisTitle, "Value"), formatter: FormatAxisValue))
             .Legend(series.Count > 1 ? ChartLegendPlacement.Bottom : ChartLegendPlacement.Hidden);
 
         for (int index = 0; index < series.Count; index++)
@@ -622,8 +640,8 @@ public sealed class PorticoDashboardScene
         IReadOnlySet<string> barSeries = ValidateComboSeries(widget, values.Select(item => (item.Item.Id, (IReadOnlyList<ChartCategoryValue>)item.Values)));
 
         Ui.CartesianChart($"Chart:{widget.Id}")
-            .XAxis(ChartAxisConfig.Category(formatter: FormatCategoryAxis))
-            .YAxis(ChartAxisConfig.Linear("Value", formatter: FormatAxisValue))
+            .XAxis(ChartAxisConfig.Category(AxisTitle(widget.XAxisTitle, null), formatter: FormatCategoryAxis))
+            .YAxis(ChartAxisConfig.Linear(AxisTitle(widget.YAxisTitle, "Value"), formatter: FormatAxisValue))
             .Legend(ChartLegendPlacement.Bottom);
 
         for (int index = 0; index < values.Length; index++)
@@ -654,10 +672,19 @@ public sealed class PorticoDashboardScene
 
     private void BuildDateBarChart(DashboardWidgetDefinition widget, IReadOnlyList<ReportSeries> series)
     {
-        Ui.CartesianChart($"Chart:{widget.Id}")
-            .XAxis(ChartAxisConfig.Category(formatter: FormatCategoryAxis))
-            .YAxis(ChartAxisConfig.Linear("Value", formatter: FormatAxisValue))
-            .Legend(series.Count > 1 ? ChartLegendPlacement.Bottom : ChartLegendPlacement.Hidden);
+        Ui.CartesianChart($"Chart:{widget.Id}");
+        if (widget.Kind == DashboardWidgetKind.HorizontalBarChart)
+        {
+            Ui.HorizontalBars()
+                .XAxis(ChartAxisConfig.Linear(AxisTitle(widget.XAxisTitle, "Value"), formatter: FormatAxisValue))
+                .YAxis(ChartAxisConfig.Category(AxisTitle(widget.YAxisTitle, null), formatter: FormatCategoryAxis));
+        }
+        else
+        {
+            Ui.XAxis(ChartAxisConfig.Category(AxisTitle(widget.XAxisTitle, null), formatter: FormatCategoryAxis))
+                .YAxis(ChartAxisConfig.Linear(AxisTitle(widget.YAxisTitle, "Value"), formatter: FormatAxisValue));
+        }
+        Ui.Legend(series.Count > 1 ? ChartLegendPlacement.Bottom : ChartLegendPlacement.Hidden);
 
         for (int index = 0; index < series.Count; index++)
         {
@@ -686,10 +713,19 @@ public sealed class PorticoDashboardScene
             return;
         }
 
-        Ui.CartesianChart($"Chart:{widget.Id}")
-            .XAxis(ChartAxisConfig.Category(formatter: FormatCategoryAxis))
-            .YAxis(ChartAxisConfig.Linear("Value", formatter: FormatAxisValue))
-            .Legend(series.Count > 1 ? ChartLegendPlacement.Bottom : ChartLegendPlacement.Hidden);
+        Ui.CartesianChart($"Chart:{widget.Id}");
+        if (widget.Kind == DashboardWidgetKind.HorizontalBarChart)
+        {
+            Ui.HorizontalBars()
+                .XAxis(ChartAxisConfig.Linear(AxisTitle(widget.XAxisTitle, "Value"), formatter: FormatAxisValue))
+                .YAxis(ChartAxisConfig.Category(AxisTitle(widget.YAxisTitle, null), formatter: FormatCategoryAxis));
+        }
+        else
+        {
+            Ui.XAxis(ChartAxisConfig.Category(AxisTitle(widget.XAxisTitle, null), formatter: FormatCategoryAxis))
+                .YAxis(ChartAxisConfig.Linear(AxisTitle(widget.YAxisTitle, "Value"), formatter: FormatAxisValue));
+        }
+        Ui.Legend(series.Count > 1 ? ChartLegendPlacement.Bottom : ChartLegendPlacement.Hidden);
 
         for (int index = 0; index < series.Count; index++)
         {
@@ -699,7 +735,7 @@ public sealed class PorticoDashboardScene
                 .ToArray();
             Color color = PorticoSkin.SeriesColor(index);
 
-            if (widget.Kind == DashboardWidgetKind.BarChart)
+            if (widget.Kind is DashboardWidgetKind.BarChart or DashboardWidgetKind.HorizontalBarChart)
             {
                 Ui.BarSeries(item.Id)
                     .SeriesLabel(item.Label)
@@ -731,8 +767,8 @@ public sealed class PorticoDashboardScene
         IReadOnlySet<string> barSeries = ValidateComboSeries(widget, values.Select(item => (item.Item.Id, (IReadOnlyList<ChartCategoryValue>)item.Values)));
 
         Ui.CartesianChart($"Chart:{widget.Id}")
-            .XAxis(ChartAxisConfig.Category(formatter: FormatCategoryAxis))
-            .YAxis(ChartAxisConfig.Linear("Value", formatter: FormatAxisValue))
+            .XAxis(ChartAxisConfig.Category(AxisTitle(widget.XAxisTitle, null), formatter: FormatCategoryAxis))
+            .YAxis(ChartAxisConfig.Linear(AxisTitle(widget.YAxisTitle, "Value"), formatter: FormatAxisValue))
             .Legend(ChartLegendPlacement.Bottom);
 
         for (int index = 0; index < values.Length; index++)
@@ -767,8 +803,8 @@ public sealed class PorticoDashboardScene
             throw new InvalidOperationException($"Dashboard combo chart '{widget.Id}' needs date or category report data.");
 
         Ui.CartesianChart($"Chart:{widget.Id}")
-            .XAxis(ChartAxisConfig.Linear("Position", formatter: FormatAxisValue))
-            .YAxis(ChartAxisConfig.Linear("Value", formatter: FormatAxisValue))
+            .XAxis(ChartAxisConfig.Linear(AxisTitle(widget.XAxisTitle, "Position"), formatter: FormatAxisValue))
+            .YAxis(ChartAxisConfig.Linear(AxisTitle(widget.YAxisTitle, "Value"), formatter: FormatAxisValue))
             .Legend(series.Count > 1 ? ChartLegendPlacement.Bottom : ChartLegendPlacement.Hidden);
 
         for (int index = 0; index < series.Count; index++)
@@ -1064,6 +1100,11 @@ public sealed class PorticoDashboardScene
 
         return barSeries;
     }
+
+    private static string? AxisTitle(string? configured, string? fallback)
+        => configured is null
+            ? fallback
+            : string.IsNullOrWhiteSpace(configured) ? null : configured;
 
     private string FormatDateAxis(DateOnly value)
         => _displayState.HideValues ? "Hidden" : value.ToString("MMM yy", CultureInfo.InvariantCulture);

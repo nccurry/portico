@@ -200,7 +200,8 @@ public static class PorticoCli
             foreach (DashboardControlDefinition control in page.Controls)
             {
                 DashboardControlMapping mapping = DashboardControlMappings.Resolve(page.Id, control.Id);
-                if (mapping.Behavior != DashboardControlBehavior.ReportInput)
+                if (mapping.Behavior != DashboardControlBehavior.ReportInput
+                    || control.OptionSource != DashboardControlOptionSource.Static)
                     continue;
 
                 foreach (string option in control.ChoiceOptions)
@@ -227,6 +228,8 @@ public static class PorticoCli
             "year_over_year" => settings.FilterSet("year_over_year").Options.Contains(value, StringComparer.Ordinal),
             "income_view" => value is "regular" or "actual",
             "home_time_frame" => HomeReportRange.TryParse(value, out _),
+            "spending_comparison" => DashboardControlMappings.TryParseSpendingComparison(value, out _),
+            "spending_breakdown" => DashboardControlMappings.TryParseSpendingBreakdown(value, out _),
             _ => false
         };
 

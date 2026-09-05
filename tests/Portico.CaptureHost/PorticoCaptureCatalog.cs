@@ -47,6 +47,22 @@ public static class PorticoCaptureCatalog
             session.SetFilter("lookback", "3");
             session.SetFilter("spending", "all");
         }),
+        new("spending-adjusted", static session =>
+        {
+            session.SelectPage(DashboardPageId.Spending);
+            session.SetControlValue(DashboardPageId.Spending, "lookback", "3");
+            session.SetControlValue(DashboardPageId.Spending, "spending_view", "all");
+            session.SetControlValue(DashboardPageId.Spending, "comparison", "last_year");
+            session.SetControlValue(DashboardPageId.Spending, "breakdown", "group");
+            string group = session.ControlOptions(DashboardPageId.Spending, "exclude_groups")[0];
+            session.SetControlValues(DashboardPageId.Spending, "exclude_groups", [group]);
+            ReportTableRow? first = session.Report.Page(DashboardPageId.Spending)
+                .Widgets["spending.overview"]
+                .Rows
+                .FirstOrDefault();
+            if (first is not null)
+                session.SetSpendingSelectedEntity(session.Filters.SpendingBreakdown, first.Values[0]);
+        }),
         new("year-over-year", static session =>
         {
             session.SelectPage(DashboardPageId.YearOverYear);

@@ -89,6 +89,15 @@ public sealed class PorticoDashboardSceneTests
             scene.Refresh();
 
             Assert.Equal(page.Id, session.CurrentPage);
+            if (page.Id == DashboardPageId.Spending)
+            {
+                Assert.True(HasNode(scene, "SpendingMetricDeck"));
+                Assert.True(HasNode(scene, "Section:where_money_went"));
+                Assert.True(HasNode(scene, "SpendingOverview"));
+                Assert.True(HasNode(scene, "Section:selected_detail"));
+                continue;
+            }
+
             Assert.All(page.Widgets, widget => Assert.True(HasNode(scene, $"Widget:{widget.Id}")));
         }
 

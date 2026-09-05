@@ -301,15 +301,92 @@ public sealed class DashboardPresentationTests
                     ]),
                 Page(
                     DashboardPageId.Spending,
-                    "spending.categories",
+                    "spending.summary",
                     [
+                        new DashboardControlDefinition(
+                            "lookback",
+                            "Time frame",
+                            DashboardControlKind.SegmentedChoice,
+                            DashboardControlSource.Lookback,
+                            Options: ["3", "6", "12", "24"],
+                            DefaultValue: "12"),
                         new DashboardControlDefinition(
                             "spending_view",
                             "View",
                             DashboardControlKind.Select,
                             DashboardControlSource.Spending,
                             Options: ["all", "discretionary"],
-                            DefaultValue: "discretionary")
+                            DefaultValue: "discretionary"),
+                        new DashboardControlDefinition(
+                            "comparison",
+                            "Compare with",
+                            DashboardControlKind.SegmentedChoice,
+                            DashboardControlSource.SpendingComparison,
+                            Options: ["previous_period", "last_year"],
+                            DefaultValue: "previous_period"),
+                        new DashboardControlDefinition(
+                            "breakdown",
+                            "Breakdown",
+                            DashboardControlKind.SegmentedChoice,
+                            DashboardControlSource.SpendingBreakdown,
+                            Options: ["group", "category"],
+                            DefaultValue: "category"),
+                        new DashboardControlDefinition(
+                            "exclude_groups",
+                            "Exclude groups",
+                            DashboardControlKind.MultiSelect,
+                            DashboardControlSource.SpendingExcludedGroups,
+                            DashboardControlOptionSource.SpendingGroups,
+                            DefaultValues: []),
+                        new DashboardControlDefinition(
+                            "exclude_categories",
+                            "Exclude categories",
+                            DashboardControlKind.MultiSelect,
+                            DashboardControlSource.SpendingExcludedCategories,
+                            DashboardControlOptionSource.SpendingCategories,
+                            DefaultValues: []),
+                        new DashboardControlDefinition(
+                            "include_transaction_names",
+                            "Include transaction names containing",
+                            DashboardControlKind.TextMultiSelect,
+                            DashboardControlSource.SpendingIncludedDescriptions),
+                        new DashboardControlDefinition(
+                            "exclude_transaction_names",
+                            "Exclude transaction names containing",
+                            DashboardControlKind.TextMultiSelect,
+                            DashboardControlSource.SpendingExcludedDescriptions),
+                        new DashboardControlDefinition(
+                            "exclude_large_expenses",
+                            "Exclude individual expenses over a limit",
+                            DashboardControlKind.Toggle,
+                            DashboardControlSource.SpendingExcludeLargeExpenses,
+                            DefaultValue: "false"),
+                        new DashboardControlDefinition(
+                            "expense_limit",
+                            "Expense limit",
+                            DashboardControlKind.NumberInput,
+                            DashboardControlSource.SpendingExpenseLimit,
+                            DefaultValue: "1000",
+                            Minimum: 1000m,
+                            Maximum: 100000m,
+                            Step: 500m),
+                        new DashboardControlDefinition(
+                            "detail_month",
+                            "Detail month",
+                            DashboardControlKind.Select,
+                            DashboardControlSource.SpendingDetailMonth,
+                            DashboardControlOptionSource.SpendingMonths,
+                            DefaultValue: "all"),
+                        new DashboardControlDefinition(
+                            "adjust_view",
+                            "Adjust view",
+                            DashboardControlKind.Popover,
+                            DashboardControlSource.SpendingAdjustView),
+                        new DashboardControlDefinition(
+                            "reset_adjustments",
+                            "Reset defaults",
+                            DashboardControlKind.ActionReset,
+                            DashboardControlSource.SpendingReset)
                     ]),
                 Page(
                     DashboardPageId.YearOverYear,

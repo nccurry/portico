@@ -105,6 +105,9 @@ public enum DashboardWidgetKind
     /// <summary>A category bar chart.</summary>
     BarChart,
 
+    /// <summary>A category bar chart whose categories run down the vertical axis.</summary>
+    HorizontalBarChart,
+
     /// <summary>A categorical bar chart with one or more connected line overlays.</summary>
     ComboChart,
 
@@ -156,12 +159,21 @@ public enum DashboardControlKind
     TabChoice,
 
     /// <summary>Runs one named reset action.</summary>
-    ActionReset
+    ActionReset,
+
+    /// <summary>Edits zero or more free-text values.</summary>
+    TextMultiSelect,
+
+    /// <summary>Opens one configured popover without changing a report by itself.</summary>
+    Popover
 }
 
 /// <summary>Identifies the fixed C# state or report input used by a configured control.</summary>
 public enum DashboardControlSource
 {
+    /// <summary>Uses the shared lookback-month setting.</summary>
+    Lookback,
+
     /// <summary>Uses the shared spending transaction-set setting.</summary>
     Spending,
 
@@ -190,14 +202,56 @@ public enum DashboardControlSource
     IncomeDetailTab,
 
     /// <summary>Runs the Financial independence scenario reset.</summary>
-    FinancialIndependenceReset
+    FinancialIndependenceReset,
+
+    /// <summary>Uses the source Spending by category comparison period.</summary>
+    SpendingComparison,
+
+    /// <summary>Uses the source Spending by category group or category breakdown.</summary>
+    SpendingBreakdown,
+
+    /// <summary>Uses dynamic expense groups for Spending by category adjustments.</summary>
+    SpendingExcludedGroups,
+
+    /// <summary>Uses dynamic expense categories for Spending by category adjustments.</summary>
+    SpendingExcludedCategories,
+
+    /// <summary>Uses source-style text terms that restrict Spending by category rows.</summary>
+    SpendingIncludedDescriptions,
+
+    /// <summary>Uses source-style text terms that exclude Spending by category rows.</summary>
+    SpendingExcludedDescriptions,
+
+    /// <summary>Uses the Spending by category large-expense switch.</summary>
+    SpendingExcludeLargeExpenses,
+
+    /// <summary>Uses the Spending by category large-expense limit.</summary>
+    SpendingExpenseLimit,
+
+    /// <summary>Uses the selected Spending by category detail month.</summary>
+    SpendingDetailMonth,
+
+    /// <summary>Uses whether the Spending by category Adjust view popover is open.</summary>
+    SpendingAdjustView,
+
+    /// <summary>Runs the Spending by category adjustment reset.</summary>
+    SpendingReset
 }
 
 /// <summary>Identifies how a control gets its finite set of visible choices.</summary>
 public enum DashboardControlOptionSource
 {
     /// <summary>Reads fixed strings from the dashboard TOML file.</summary>
-    Static
+    Static,
+
+    /// <summary>Reads expense groups from the loaded spending data.</summary>
+    SpendingGroups,
+
+    /// <summary>Reads expense categories from the loaded spending data.</summary>
+    SpendingCategories,
+
+    /// <summary>Reads the current source-style spending months from the loaded data.</summary>
+    SpendingMonths
 }
 
 /// <summary>Describes the requested horizontal footprint of a control in a wrapping control bar.</summary>
@@ -266,7 +320,9 @@ public sealed record DashboardWidgetDefinition(
     int Span = 1,
     string? Description = null,
     IReadOnlyList<string>? BarSeries = null,
-    string? Section = null);
+    string? Section = null,
+    string? XAxisTitle = null,
+    string? YAxisTitle = null);
 
 /// <summary>Defines one drawer destination and its configuration-driven content.</summary>
 public sealed record DashboardPageDefinition(
@@ -456,6 +512,8 @@ public sealed record DashboardDefinition(
                 problems.Add($"dashboard control '{page.Id}.{control.Id}' has unsupported kind '{control.Kind}'.");
             if (!Enum.IsDefined(control.Source))
                 problems.Add($"dashboard control '{page.Id}.{control.Id}' has unsupported source '{control.Source}'.");
+            if (!Enum.IsDefined(control.OptionSource))
+                problems.Add($"dashboard control '{page.Id}.{control.Id}' has unsupported option source '{control.OptionSource}'.");
             if (!Enum.IsDefined(control.Width))
                 problems.Add($"dashboard control '{page.Id}.{control.Id}' has unsupported width '{control.Width}'.");
             if (!controlIds.Add(control.Id) || filterIds.Contains(control.Id))
@@ -498,6 +556,13 @@ public sealed record DashboardDefinition(
             {
                 problems.Add($"dashboard reset action '{page.Id}.{reset.Id}' needs the configured target_amount number input.");
             }
+            if (reset.Source == DashboardControlSource.SpendingReset
+                && !page.Controls.Any(control => control.Id == "expense_limit"
+                    && control.Kind == DashboardControlKind.NumberInput
+                    && control.Source == DashboardControlSource.SpendingExpenseLimit))
+            {
+                problems.Add($"dashboard reset action '{page.Id}.{reset.Id}' needs the configured expense_limit number input.");
+            }
         }
     }
 
@@ -511,16 +576,16 @@ public sealed record DashboardDefinition(
             or DashboardControlKind.MultiSelect
             or DashboardControlKind.TabChoice;
         bool isNumeric = control.Kind is DashboardControlKind.NumberInput or DashboardControlKind.Slider;
-
-        if (control.OptionSource != DashboardControlOptionSource.Static)
-            problems.Add($"dashboard control '{page.Id}.{control.Id}' has unsupported option source '{control.OptionSource}'.");
+        bool hasStaticOptions = control.OptionSource == DashboardControlOptionSource.Static
+            || !Enum.IsDefined(control.OptionSource);
 
         if (needsOptions)
         {
-            if (control.ChoiceOptions.Count == 0)
+            if (hasStaticOptions && control.ChoiceOptions.Count == 0)
                 problems.Add($"dashboard control '{page.Id}.{control.Id}' needs at least one option.");
-            if (control.ChoiceOptions.Any(string.IsNullOrWhiteSpace)
+            if (hasStaticOptions && (control.ChoiceOptions.Any(string.IsNullOrWhiteSpace)
                 || control.ChoiceOptions.Distinct(StringComparer.Ordinal).Count() != control.ChoiceOptions.Count)
+            )
             {
                 problems.Add($"dashboard control '{page.Id}.{control.Id}' has blank or duplicate options.");
             }
@@ -534,7 +599,7 @@ public sealed record DashboardDefinition(
         {
             if (control.DefaultValue is not null)
                 problems.Add($"dashboard multi-select '{page.Id}.{control.Id}' must use defaults instead of default.");
-            if (control.MultiSelectDefaults.Any(value => !control.ChoiceOptions.Contains(value, StringComparer.Ordinal)))
+            if (hasStaticOptions && control.MultiSelectDefaults.Any(value => !control.ChoiceOptions.Contains(value, StringComparer.Ordinal)))
                 problems.Add($"dashboard multi-select '{page.Id}.{control.Id}' defaults must be configured options.");
             if (control.MultiSelectDefaults.Distinct(StringComparer.Ordinal).Count() != control.MultiSelectDefaults.Count)
                 problems.Add($"dashboard multi-select '{page.Id}.{control.Id}' has duplicate defaults.");
@@ -542,7 +607,7 @@ public sealed record DashboardDefinition(
         else if (control.Kind is DashboardControlKind.Select or DashboardControlKind.SegmentedChoice or DashboardControlKind.TabChoice)
         {
             if (string.IsNullOrWhiteSpace(control.DefaultValue)
-                || !control.ChoiceOptions.Contains(control.DefaultValue, StringComparer.Ordinal))
+                || (hasStaticOptions && !control.ChoiceOptions.Contains(control.DefaultValue, StringComparer.Ordinal)))
             {
                 problems.Add($"dashboard control '{page.Id}.{control.Id}' default must be one of its options.");
             }
@@ -580,6 +645,14 @@ public sealed record DashboardDefinition(
                 || control.Minimum is not null || control.Maximum is not null || control.Step is not null)
             {
                 problems.Add($"dashboard reset action '{page.Id}.{control.Id}' cannot define a value or range.");
+            }
+        }
+        else if (control.Kind is DashboardControlKind.TextMultiSelect or DashboardControlKind.Popover)
+        {
+            if (control.ChoiceOptions.Count > 0 || control.DefaultValue is not null || control.MultiSelectDefaults.Count > 0
+                || control.Minimum is not null || control.Maximum is not null || control.Step is not null)
+            {
+                problems.Add($"dashboard control '{page.Id}.{control.Id}' cannot define options, defaults, or a range.");
             }
         }
     }

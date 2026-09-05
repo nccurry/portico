@@ -73,7 +73,10 @@ public sealed record DashboardFilters(
     string SpendingSet,
     string YearOverYearSet,
     bool RegularIncome,
-    HomeTimeFrame HomeTimeFrame = HomeTimeFrame.OneYear)
+    HomeTimeFrame HomeTimeFrame = HomeTimeFrame.OneYear,
+    SpendingComparison SpendingComparison = SpendingComparison.PreviousPeriod,
+    SpendingBreakdown SpendingBreakdown = SpendingBreakdown.Category,
+    SpendingAdjustments? SpendingAdjustments = null)
 {
     /// <summary>Creates the default filter state from finance settings.</summary>
     public static DashboardFilters From(FinanceSettings settings)
@@ -84,6 +87,9 @@ public sealed record DashboardFilters(
             settings.FilterSet("spending").Default,
             settings.FilterSet("year_over_year").Default,
             string.Equals(settings.IncomeSavings.DefaultView, "regular", StringComparison.OrdinalIgnoreCase),
-            HomeTimeFrame.OneYear);
+            HomeTimeFrame.OneYear,
+            SpendingComparison.PreviousPeriod,
+            SpendingBreakdown.Category,
+            SpendingAdjustments.Default(settings.Thresholds.Expense));
     }
 }

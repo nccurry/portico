@@ -590,6 +590,71 @@ public sealed class DashboardReportBuilderTests
         Assert.Equal(new DateOnly(2030, 1, 1), projectionStart.Date);
     }
 
+    [Fact]
+    public void Build_SpendingKeepsComparisonOnlyOverviewRowsButMarksTheCurrentViewEmpty()
+    {
+        var snapshot = new PortfolioSnapshot(
+            [
+                Row("comparison", 2024, 5, 1, "Food", "Living", "Market", -40m, TransactionKind.Expense),
+                Row("current", 2024, 6, 1, "Flight", "Travel", "Flight", -100m, TransactionKind.Expense)
+            ],
+            [],
+            []);
+        var adjustments = SpendingAdjustments.Default(100m) with { ExcludedGroups = ["Travel"] };
+        var filters = new DashboardFilters(
+            1,
+            "all",
+            "all",
+            true,
+            SpendingComparison: SpendingComparison.PreviousPeriod,
+            SpendingBreakdown: SpendingBreakdown.Category,
+            SpendingAdjustments: adjustments);
+
+        DashboardPageReport spending = DashboardReportBuilder.Build(snapshot, Settings(), filters)
+            .Page(DashboardPageId.Spending);
+
+        Assert.Equal(0m, spending.Widgets["spending.summary"].Metrics.Single(metric => metric.Label == "Total spending").Value);
+        Assert.Equal(0m, spending.Widgets["spending.summary"].Metrics.Single(metric => metric.Label == "Included rows").Value);
+        ReportTableRow food = Assert.Single(spending.Widgets["spending.overview"].Rows);
+        Assert.Equal("Food", food.Values[0]);
+        Assert.Equal("$0", food.Values[2]);
+        Assert.Equal("$40", food.Values[5]);
+        Assert.Single(spending.Widgets["spending.excluded"].Rows);
+    }
+
+    [Fact]
+    public void Build_SpendingSelectedGroupKeepsTheFullCategoryBreakdownAndAlignedDetailMonth()
+    {
+        var presentation = new DashboardPresentationState();
+        presentation.SetSpendingSelectedEntity(SpendingBreakdown.Group, "Living");
+        presentation.SetSpendingDetailMonth("2024-02");
+        var filters = new DashboardFilters(
+            1,
+            "all",
+            "all",
+            true,
+            SpendingComparison: SpendingComparison.PreviousPeriod,
+            SpendingBreakdown: SpendingBreakdown.Group,
+            SpendingAdjustments: SpendingAdjustments.Default(100m));
+
+        DashboardPageReport spending = DashboardReportBuilder.Build(Snapshot(), Settings(), filters, presentation)
+            .Page(DashboardPageId.Spending);
+
+        DashboardWidgetReport categories = spending.Widgets["spending.detail_categories"];
+        Assert.Equal(
+            ["Category", "Spending", "Share", "Average", "previous 1 months", "Change", "Change %", "Transactions"],
+            categories.Columns);
+        ReportTableRow food = Assert.Single(categories.Rows);
+        Assert.Equal(["Food", "$200", "100.0%", "$200", "$100", "+$100", "100.0%", "1"], food.Values);
+
+        DashboardWidgetReport detail = spending.Widgets["spending.detail_summary"];
+        Assert.Equal(200m, detail.Metrics.Single(metric => metric.Label == "Spending").Value);
+        Assert.Equal(200m, detail.Metrics.Single(metric => metric.Label == "Average monthly").Value);
+        DashboardWidgetReport history = spending.Widgets["spending.detail_history"];
+        Assert.Equal(200m, history.Series.Single(series => series.Id == "current").Points[0].Y);
+        Assert.Equal(100m, history.Series.Single(series => series.Id == "comparison").Points[0].Y);
+    }
+
     private static FinanceSettings Settings()
     {
         TransactionSetDefinition[] sets =

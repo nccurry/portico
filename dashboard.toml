@@ -143,7 +143,7 @@ span = 2
 [[pages]]
 id = "spending"
 title = "Spending by Category"
-description = "Where expense money went over the selected period."
+description = "See where expense money went, compare periods, and inspect a category or group."
 visible = true
 group = "analyze"
 order = 4
@@ -151,35 +151,209 @@ rail_label = "Spending by category"
 page_heading = "Spending by category"
 icon = "category"
 
-[[pages.filters]]
+[[pages.sections]]
+id = "where_money_went"
+title = "Where the money went"
+description = "Compare the trend and the ranked spending categories."
+layout = "flow"
+order = 1
+
+[[pages.sections]]
+id = "selected_detail"
+title = "Selected detail"
+description = "Inspect the selected group or category by month, merchant, and transaction."
+layout = "flow"
+order = 2
+
+[[pages.sections]]
+id = "excluded_rows"
+title = "Excluded rows"
+description = "Review the expense rows removed by the selected view and adjustments."
+layout = "flow"
+order = 3
+
+[[pages.controls]]
 id = "lookback"
-label = "Lookback"
-kind = "select"
+label = "Time frame"
+kind = "segmented_choice"
 source = "lookback"
 default = "12"
 options = ["3", "6", "12", "24"]
 
-[[pages.filters]]
-id = "transaction_set"
-label = "Spending view"
+[[pages.controls]]
+id = "spending_view"
+label = "View"
 kind = "select"
 source = "spending"
 default = "discretionary"
 options = ["all", "discretionary"]
 
+[[pages.controls]]
+id = "comparison"
+label = "Compare with"
+kind = "segmented_choice"
+source = "spending_comparison"
+default = "previous_period"
+options = ["previous_period", "last_year"]
+
+[[pages.controls]]
+id = "adjust_view"
+label = "Adjust view"
+kind = "popover"
+source = "spending_adjust_view"
+
+[[pages.controls]]
+id = "reset_adjustments"
+label = "Reset defaults"
+kind = "action_reset"
+source = "spending_reset"
+
+[[pages.controls]]
+id = "exclude_groups"
+label = "Exclude groups"
+kind = "multi_select"
+source = "spending_excluded_groups"
+option_source = "spending_groups"
+defaults = []
+width = "full"
+
+[[pages.controls]]
+id = "exclude_categories"
+label = "Exclude categories"
+kind = "multi_select"
+source = "spending_excluded_categories"
+option_source = "spending_categories"
+defaults = []
+width = "full"
+
+[[pages.controls]]
+id = "include_transaction_names"
+label = "Include transaction names containing"
+kind = "text_multi_select"
+source = "spending_included_descriptions"
+
+[[pages.controls]]
+id = "exclude_transaction_names"
+label = "Exclude transaction names containing"
+kind = "text_multi_select"
+source = "spending_excluded_descriptions"
+
+[[pages.controls]]
+id = "exclude_large_expenses"
+label = "Exclude individual expenses over a limit"
+kind = "toggle"
+source = "spending_exclude_large_expenses"
+default = "false"
+
+[[pages.controls]]
+id = "expense_limit"
+label = "Expense limit"
+kind = "number_input"
+source = "spending_expense_limit"
+default = "3000"
+minimum = 1000
+maximum = 100000
+step = 500
+
+[[pages.controls]]
+id = "breakdown"
+label = "Breakdown"
+kind = "segmented_choice"
+source = "spending_breakdown"
+default = "category"
+options = ["group", "category"]
+
+[[pages.controls]]
+id = "detail_month"
+label = "Detail month"
+kind = "select"
+source = "spending_detail_month"
+option_source = "spending_months"
+default = "all"
+
 [[pages.widgets]]
-id = "monthly"
-title = "Monthly spending"
-kind = "line_chart"
-report = "spending.monthly"
+id = "summary"
+title = "Spending summary"
+kind = "metric"
+report = "spending.summary"
 span = 2
 
 [[pages.widgets]]
-id = "categories"
-title = "Top categories"
-kind = "bar_chart"
-report = "spending.categories"
+id = "trend"
+title = "Monthly trend"
+kind = "line_chart"
+report = "spending.trend"
+section = "where_money_went"
+x_axis_title = ""
+y_axis_title = "Spending ($)"
+
+[[pages.widgets]]
+id = "ranking"
+title = "Top spending"
+kind = "horizontal_bar_chart"
+report = "spending.ranking"
+section = "where_money_went"
+x_axis_title = "Spending ($)"
+y_axis_title = ""
+
+[[pages.widgets]]
+id = "overview"
+title = "Category and group ranking"
+kind = "table"
+report = "spending.overview"
 span = 2
+section = "where_money_went"
+
+[[pages.widgets]]
+id = "detail-history"
+title = "Selected history"
+kind = "combo_chart"
+report = "spending.detail_history"
+bar_series = ["current"]
+span = 2
+section = "selected_detail"
+x_axis_title = ""
+y_axis_title = "Spending ($)"
+
+[[pages.widgets]]
+id = "detail-summary"
+title = "Selected summary"
+kind = "metric"
+report = "spending.detail_summary"
+span = 2
+section = "selected_detail"
+
+[[pages.widgets]]
+id = "detail-categories"
+title = "Categories"
+kind = "table"
+report = "spending.detail_categories"
+span = 2
+section = "selected_detail"
+
+[[pages.widgets]]
+id = "detail-merchants"
+title = "Merchants"
+kind = "table"
+report = "spending.detail_merchants"
+span = 2
+section = "selected_detail"
+
+[[pages.widgets]]
+id = "detail-transactions"
+title = "Transactions"
+kind = "table"
+report = "spending.detail_transactions"
+span = 2
+section = "selected_detail"
+
+[[pages.widgets]]
+id = "excluded"
+title = "Excluded rows"
+kind = "table"
+report = "spending.excluded"
+span = 2
+section = "excluded_rows"
 
 [[pages]]
 id = "year_over_year"

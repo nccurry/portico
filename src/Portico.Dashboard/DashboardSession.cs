@@ -28,6 +28,7 @@ public sealed class DashboardSession
         Definition = definition;
         CurrentPage = definition.FirstVisiblePage().Id;
         Filters = DashboardFilters.From(settings);
+        Presentation = new DashboardPresentationState();
         foreach (DashboardFilterDefinition filter in definition.Pages
                      .SelectMany(page => page.Filters)
                      .GroupBy(filter => filter.Source, StringComparer.Ordinal)
@@ -35,13 +36,12 @@ public sealed class DashboardSession
         {
             Filters = ApplyFilter(Filters, filter.Source, filter.DefaultValue);
         }
-        Presentation = new DashboardPresentationState();
         foreach (DashboardPageDefinition page in definition.Pages)
         {
             foreach (DashboardControlDefinition control in page.Controls)
                 ApplyConfiguredControlDefault(page.Id, control);
         }
-        Report = DashboardReportBuilder.Build(_snapshot, _settings, Filters, _asOfDate);
+        RebuildReport();
     }
 
     /// <summary>Gets the configuration used to render pages and controls.</summary>
@@ -57,7 +57,7 @@ public sealed class DashboardSession
     public DashboardPresentationState Presentation { get; }
 
     /// <summary>Gets the report rebuilt after the most recent filter change.</summary>
-    public DashboardReport Report { get; private set; }
+    public DashboardReport Report { get; private set; } = null!;
 
     /// <summary>Selects a visible configured page.</summary>
     public void SelectPage(DashboardPageId pageId)
@@ -79,7 +79,7 @@ public sealed class DashboardSession
             return;
 
         Filters = updated;
-        Report = DashboardReportBuilder.Build(_snapshot, _settings, Filters, _asOfDate);
+        RebuildReport();
     }
 
     /// <summary>Changes a configured single-choice control.</summary>
@@ -89,7 +89,7 @@ public sealed class DashboardSession
         DashboardControlDefinition control = Control(pageId, controlId);
         if (control.Kind is not (DashboardControlKind.Select or DashboardControlKind.SegmentedChoice or DashboardControlKind.TabChoice))
             throw new ArgumentException($"Dashboard control '{pageId}.{controlId}' does not accept one choice value.", nameof(controlId));
-        if (!control.ChoiceOptions.Contains(value, StringComparer.Ordinal))
+        if (!ControlOptions(pageId, controlId).Contains(value, StringComparer.Ordinal))
             throw new ArgumentException($"Value '{value}' is not configured for dashboard control '{pageId}.{controlId}'.", nameof(value));
 
         DashboardControlMapping mapping = DashboardControlMappings.Resolve(pageId, controlId);
@@ -101,17 +101,39 @@ public sealed class DashboardSession
     {
         ArgumentNullException.ThrowIfNull(values);
         DashboardControlDefinition control = Control(pageId, controlId);
-        if (control.Kind != DashboardControlKind.MultiSelect)
+        if (control.Kind is not (DashboardControlKind.MultiSelect or DashboardControlKind.TextMultiSelect))
             throw new ArgumentException($"Dashboard control '{pageId}.{controlId}' is not a multi-select.", nameof(controlId));
 
-        string[] selected = values.Distinct(StringComparer.Ordinal).ToArray();
-        if (selected.Any(value => !control.ChoiceOptions.Contains(value, StringComparer.Ordinal)))
+        string[] selected = values
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        if (control.Kind == DashboardControlKind.MultiSelect
+            && selected.Any(value => !ControlOptions(pageId, controlId).Contains(value, StringComparer.Ordinal)))
             throw new ArgumentException($"A selected value is not configured for dashboard control '{pageId}.{controlId}'.", nameof(values));
 
         DashboardControlMapping mapping = DashboardControlMappings.Resolve(pageId, controlId);
-        if (mapping.Source != DashboardControlSource.IncomeExcludedCategories)
-            throw new ArgumentException($"Dashboard control '{pageId}.{controlId}' does not accept multiple values.", nameof(controlId));
-        Presentation.SetIncomeExcludedCategories(selected);
+        switch (mapping.Source)
+        {
+            case DashboardControlSource.IncomeExcludedCategories:
+                Presentation.SetIncomeExcludedCategories(selected);
+                return;
+            case DashboardControlSource.SpendingExcludedGroups:
+                SetSpendingAdjustments(CurrentSpendingAdjustments with { ExcludedGroups = selected });
+                return;
+            case DashboardControlSource.SpendingExcludedCategories:
+                SetSpendingAdjustments(CurrentSpendingAdjustments with { ExcludedCategories = selected });
+                return;
+            case DashboardControlSource.SpendingIncludedDescriptions:
+                SetSpendingAdjustments(CurrentSpendingAdjustments with { IncludedDescriptions = selected });
+                return;
+            case DashboardControlSource.SpendingExcludedDescriptions:
+                SetSpendingAdjustments(CurrentSpendingAdjustments with { ExcludedDescriptions = selected });
+                return;
+            default:
+                throw new ArgumentException($"Dashboard control '{pageId}.{controlId}' does not accept multiple values.", nameof(controlId));
+        }
     }
 
     /// <summary>Changes a configured number input or slider.</summary>
@@ -139,6 +161,9 @@ public sealed class DashboardSession
             case DashboardControlSource.DataHealthStaleThreshold:
                 Presentation.SetDataHealthStaleThreshold(value);
                 return;
+            case DashboardControlSource.SpendingExpenseLimit:
+                SetSpendingAdjustments(CurrentSpendingAdjustments with { ExpenseLimit = value });
+                return;
             default:
                 throw new ArgumentException($"Dashboard control '{pageId}.{controlId}' does not accept a number.", nameof(controlId));
         }
@@ -152,9 +177,17 @@ public sealed class DashboardSession
             throw new ArgumentException($"Dashboard control '{pageId}.{controlId}' is not a toggle.", nameof(controlId));
 
         DashboardControlMapping mapping = DashboardControlMappings.Resolve(pageId, controlId);
-        if (mapping.Source != DashboardControlSource.DataHealthIncludeInactive)
-            throw new ArgumentException($"Dashboard control '{pageId}.{controlId}' does not accept a toggle value.", nameof(controlId));
-        Presentation.SetDataHealthIncludeInactive(value);
+        switch (mapping.Source)
+        {
+            case DashboardControlSource.DataHealthIncludeInactive:
+                Presentation.SetDataHealthIncludeInactive(value);
+                return;
+            case DashboardControlSource.SpendingExcludeLargeExpenses:
+                SetSpendingAdjustments(CurrentSpendingAdjustments with { ExcludeLargeExpenses = value });
+                return;
+            default:
+                throw new ArgumentException($"Dashboard control '{pageId}.{controlId}' does not accept a toggle value.", nameof(controlId));
+        }
     }
 
     /// <summary>Runs one configured reset action.</summary>
@@ -165,11 +198,25 @@ public sealed class DashboardSession
             throw new ArgumentException($"Dashboard control '{pageId}.{controlId}' is not an action.", nameof(controlId));
 
         DashboardControlMapping mapping = DashboardControlMappings.Resolve(pageId, controlId);
-        if (mapping.Source != DashboardControlSource.FinancialIndependenceReset)
-            throw new ArgumentException($"Dashboard control '{pageId}.{controlId}' does not have a reset action.", nameof(controlId));
-        Presentation.ResetFinancialIndependence(ConfiguredNumberDefault(
-            DashboardPageId.FinancialIndependence,
-            "target_amount"));
+        switch (mapping.Source)
+        {
+            case DashboardControlSource.FinancialIndependenceReset:
+                Presentation.ResetFinancialIndependence(ConfiguredNumberDefault(
+                    DashboardPageId.FinancialIndependence,
+                    "target_amount"));
+                return;
+            case DashboardControlSource.SpendingReset:
+                Filters = Filters with
+                {
+                    SpendingAdjustments = Portico.Finance.SpendingAdjustments.Default(ConfiguredNumberDefault(
+                        DashboardPageId.Spending,
+                        "expense_limit"))
+                };
+                RebuildReport();
+                return;
+            default:
+                throw new ArgumentException($"Dashboard control '{pageId}.{controlId}' does not have a reset action.", nameof(controlId));
+        }
     }
 
     /// <summary>Gets the visible value for a configured single-value control.</summary>
@@ -182,13 +229,53 @@ public sealed class DashboardSession
             : Presentation.ValueFor(mapping.Source);
     }
 
+    /// <summary>Gets the current finite options for one configured control.</summary>
+    public IReadOnlyList<string> ControlOptions(DashboardPageId pageId, string controlId)
+    {
+        DashboardControlDefinition control = Control(pageId, controlId);
+        return control.OptionSource switch
+        {
+            DashboardControlOptionSource.Static => control.ChoiceOptions,
+            DashboardControlOptionSource.SpendingGroups => SpendingAdjustmentOptions(transaction => transaction.Group),
+            DashboardControlOptionSource.SpendingCategories => SpendingAdjustmentOptions(transaction => transaction.Category),
+            DashboardControlOptionSource.SpendingMonths => SpendingMonthOptions(),
+            _ => throw new ArgumentOutOfRangeException(nameof(control.OptionSource))
+        };
+    }
+
     /// <summary>Gets the visible selected values for a configured multi-select.</summary>
     public IReadOnlySet<string> ControlValues(DashboardPageId pageId, string controlId)
     {
         Control(pageId, controlId);
         DashboardControlMapping mapping = DashboardControlMappings.Resolve(pageId, controlId);
-        return Presentation.ValuesFor(mapping.Source);
+        return mapping.Source switch
+        {
+            DashboardControlSource.SpendingExcludedGroups => CurrentSpendingAdjustments.ExcludedGroups.ToHashSet(StringComparer.Ordinal),
+            DashboardControlSource.SpendingExcludedCategories => CurrentSpendingAdjustments.ExcludedCategories.ToHashSet(StringComparer.Ordinal),
+            DashboardControlSource.SpendingIncludedDescriptions => CurrentSpendingAdjustments.IncludedDescriptions.ToHashSet(StringComparer.Ordinal),
+            DashboardControlSource.SpendingExcludedDescriptions => CurrentSpendingAdjustments.ExcludedDescriptions.ToHashSet(StringComparer.Ordinal),
+            _ => Presentation.ValuesFor(mapping.Source)
+        };
     }
+
+    /// <summary>Gets a source-shaped label for the active named spending view.</summary>
+    public string SpendingSetLabel(string key) => _settings.TransactionSet(key).Label;
+
+    /// <summary>Sets the selected Spending entity and rebuilds selected detail reports.</summary>
+    public void SetSpendingSelectedEntity(SpendingBreakdown breakdown, string? entity)
+    {
+        Presentation.SetSpendingSelectedEntity(breakdown, entity);
+        RebuildReport();
+    }
+
+    /// <summary>Sets the active Spending detail tab.</summary>
+    public void SetSpendingDetailTab(string tab) => Presentation.SetSpendingDetailTab(tab);
+
+    /// <summary>Sets whether the Spending adjustment popover is open.</summary>
+    public void SetSpendingAdjustViewOpen(bool open) => Presentation.SetSpendingAdjustViewOpen(open);
+
+    /// <summary>Sets whether excluded Spending rows are expanded.</summary>
+    public void SetSpendingExcludedRowsExpanded(bool expanded) => Presentation.SetSpendingExcludedRowsExpanded(expanded);
 
     private int ParseLookback(string value)
     {
@@ -219,6 +306,12 @@ public sealed class DashboardSession
             "lookback" => filters with { LookbackMonths = ParseLookback(value) },
             "home_time_frame" => filters with { HomeTimeFrame = HomeReportRange.Parse(value) },
             "spending" => filters with { SpendingSet = ValidateFilterSet("spending", value) },
+            "spending_comparison" => DashboardControlMappings.TryParseSpendingComparison(value, out SpendingComparison comparison)
+                ? filters with { SpendingComparison = comparison }
+                : throw new ArgumentException("Spending comparison must be 'previous_period' or 'last_year'.", nameof(value)),
+            "spending_breakdown" => DashboardControlMappings.TryParseSpendingBreakdown(value, out SpendingBreakdown breakdown)
+                ? filters with { SpendingBreakdown = breakdown }
+                : throw new ArgumentException("Spending breakdown must be 'group' or 'category'.", nameof(value)),
             "year_over_year" => filters with { YearOverYearSet = ValidateFilterSet("year_over_year", value) },
             "income_view" => filters with { RegularIncome = ParseIncomeView(value) },
             _ => throw new ArgumentException($"Unsupported dashboard filter source '{source}'.", nameof(source))
@@ -234,6 +327,7 @@ public sealed class DashboardSession
                 SetControlValue(pageId, control.Id, control.DefaultValue!);
                 break;
             case DashboardControlKind.MultiSelect:
+            case DashboardControlKind.TextMultiSelect:
                 SetControlValues(pageId, control.Id, control.MultiSelectDefaults);
                 break;
             case DashboardControlKind.NumberInput:
@@ -247,6 +341,7 @@ public sealed class DashboardSession
                 SetControlToggle(pageId, control.Id, bool.Parse(control.DefaultValue!));
                 break;
             case DashboardControlKind.ActionReset:
+            case DashboardControlKind.Popover:
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(control));
@@ -266,9 +361,83 @@ public sealed class DashboardSession
             case DashboardControlSource.IncomeDetailTab:
                 Presentation.SetIncomeDetailTab(value);
                 return;
+            case DashboardControlSource.SpendingDetailMonth:
+                Presentation.SetSpendingDetailMonth(value);
+                RebuildReport();
+                return;
             default:
                 throw new ArgumentException($"Dashboard control source '{mapping.Source}' does not accept one choice value.", nameof(mapping));
         }
+    }
+
+    private SpendingAdjustments CurrentSpendingAdjustments
+        => Filters.SpendingAdjustments ?? SpendingAdjustments.Default(ConfiguredSpendingExpenseLimit());
+
+    private void SetSpendingAdjustments(SpendingAdjustments adjustments)
+    {
+        Filters = Filters with { SpendingAdjustments = adjustments };
+        RebuildReport();
+    }
+
+    private IReadOnlyList<string> SpendingAdjustmentOptions(Func<FinancialTransaction, string> selector)
+        => _snapshot.Transactions
+            .Where(transaction => !transaction.IsHidden && transaction.Kind == TransactionKind.Expense)
+            .Select(selector)
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+
+    private IReadOnlyList<string> SpendingMonthOptions()
+    {
+        IReadOnlyList<YearMonth> months = SpendingAnalysisCalculator.CurrentMonths(
+            _snapshot.Transactions.Where(transaction => !transaction.IsHidden && transaction.Kind == TransactionKind.Expense),
+            Filters.LookbackMonths);
+        return ["all", .. months.Reverse().Select(month => month.ToString())];
+    }
+
+    private decimal ConfiguredSpendingExpenseLimit()
+    {
+        DashboardPageDefinition? spending = Definition.Pages.FirstOrDefault(page => page.Id == DashboardPageId.Spending);
+        DashboardControlDefinition? control = spending?.Controls.FirstOrDefault(candidate => candidate.Id == "expense_limit");
+        return control?.DefaultValue is { } value
+            ? decimal.Parse(value, CultureInfo.InvariantCulture)
+            : _settings.Thresholds.Expense;
+    }
+
+    private void RebuildReport()
+    {
+        Report = DashboardReportBuilder.Build(_snapshot, _settings, Filters, Presentation, _asOfDate);
+        NormalizeSpendingPresentation();
+    }
+
+    private void NormalizeSpendingPresentation()
+    {
+        DashboardWidgetReport overview = Report.Page(DashboardPageId.Spending).Widgets["spending.overview"];
+        string? selected = Presentation.Spending.SelectedEntity(Filters.SpendingBreakdown);
+        bool selectionExists = selected is not null
+            && overview.Rows.Any(row => string.Equals(row.Values[0], selected, StringComparison.Ordinal));
+        bool reportNeedsRebuild = false;
+
+        if (selected is not null && !selectionExists)
+            Presentation.SetSpendingSelectedEntity(Filters.SpendingBreakdown, null);
+
+        IReadOnlyList<string> months = SpendingMonthOptions();
+        if (!months.Contains(Presentation.Spending.DetailMonth, StringComparer.Ordinal))
+        {
+            Presentation.SetSpendingDetailMonth("all");
+            reportNeedsRebuild = true;
+        }
+
+        IReadOnlyList<string> tabs = Filters.SpendingBreakdown == SpendingBreakdown.Group
+            ? ["Categories", "Merchants", "Transactions"]
+            : ["Merchants", "Transactions"];
+        if (!tabs.Contains(Presentation.Spending.DetailTab, StringComparer.Ordinal))
+            Presentation.SetSpendingDetailTab(tabs[0]);
+
+        if (reportNeedsRebuild)
+            Report = DashboardReportBuilder.Build(_snapshot, _settings, Filters, Presentation, _asOfDate);
     }
 
     private DashboardControlDefinition Control(DashboardPageId pageId, string controlId)
@@ -285,6 +454,10 @@ public sealed class DashboardSession
             "lookback" => Filters.LookbackMonths.ToString(CultureInfo.InvariantCulture),
             "home_time_frame" => HomeReportRange.Format(Filters.HomeTimeFrame),
             "spending" => Filters.SpendingSet,
+            "spending_comparison" => Filters.SpendingComparison == SpendingComparison.PreviousPeriod ? "previous_period" : "last_year",
+            "spending_breakdown" => Filters.SpendingBreakdown == SpendingBreakdown.Group ? "group" : "category",
+            "spending_exclude_large_expenses" => CurrentSpendingAdjustments.ExcludeLargeExpenses.ToString(CultureInfo.InvariantCulture).ToLowerInvariant(),
+            "spending_expense_limit" => CurrentSpendingAdjustments.ExpenseLimit.ToString(CultureInfo.InvariantCulture),
             "year_over_year" => Filters.YearOverYearSet,
             "income_view" => Filters.RegularIncome ? "regular" : "actual",
             _ => throw new ArgumentException($"Unsupported report filter source '{source}'.", nameof(source))

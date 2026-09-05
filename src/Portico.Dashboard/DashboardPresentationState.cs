@@ -1,5 +1,7 @@
 ﻿using System.Globalization;
 
+using Portico.Finance;
+
 namespace Portico.Dashboard;
 
 /// <summary>Describes whether a typed control changes a report, visible state, or an action.</summary>
@@ -51,6 +53,63 @@ public static class DashboardControlMappings
                 DashboardControlSource.Spending,
                 DashboardControlBehavior.ReportInput,
                 "spending"),
+            [(DashboardPageId.Spending, "lookback")] = new(
+                DashboardControlKind.SegmentedChoice,
+                DashboardControlSource.Lookback,
+                DashboardControlBehavior.ReportInput,
+                "lookback"),
+            [(DashboardPageId.Spending, "comparison")] = new(
+                DashboardControlKind.SegmentedChoice,
+                DashboardControlSource.SpendingComparison,
+                DashboardControlBehavior.ReportInput,
+                "spending_comparison"),
+            [(DashboardPageId.Spending, "breakdown")] = new(
+                DashboardControlKind.SegmentedChoice,
+                DashboardControlSource.SpendingBreakdown,
+                DashboardControlBehavior.ReportInput,
+                "spending_breakdown"),
+            [(DashboardPageId.Spending, "exclude_groups")] = new(
+                DashboardControlKind.MultiSelect,
+                DashboardControlSource.SpendingExcludedGroups,
+                DashboardControlBehavior.ReportInput,
+                "spending_excluded_groups"),
+            [(DashboardPageId.Spending, "exclude_categories")] = new(
+                DashboardControlKind.MultiSelect,
+                DashboardControlSource.SpendingExcludedCategories,
+                DashboardControlBehavior.ReportInput,
+                "spending_excluded_categories"),
+            [(DashboardPageId.Spending, "include_transaction_names")] = new(
+                DashboardControlKind.TextMultiSelect,
+                DashboardControlSource.SpendingIncludedDescriptions,
+                DashboardControlBehavior.ReportInput,
+                "spending_included_descriptions"),
+            [(DashboardPageId.Spending, "exclude_transaction_names")] = new(
+                DashboardControlKind.TextMultiSelect,
+                DashboardControlSource.SpendingExcludedDescriptions,
+                DashboardControlBehavior.ReportInput,
+                "spending_excluded_descriptions"),
+            [(DashboardPageId.Spending, "exclude_large_expenses")] = new(
+                DashboardControlKind.Toggle,
+                DashboardControlSource.SpendingExcludeLargeExpenses,
+                DashboardControlBehavior.ReportInput,
+                "spending_exclude_large_expenses"),
+            [(DashboardPageId.Spending, "expense_limit")] = new(
+                DashboardControlKind.NumberInput,
+                DashboardControlSource.SpendingExpenseLimit,
+                DashboardControlBehavior.ReportInput,
+                "spending_expense_limit"),
+            [(DashboardPageId.Spending, "detail_month")] = new(
+                DashboardControlKind.Select,
+                DashboardControlSource.SpendingDetailMonth,
+                DashboardControlBehavior.DisplayState),
+            [(DashboardPageId.Spending, "adjust_view")] = new(
+                DashboardControlKind.Popover,
+                DashboardControlSource.SpendingAdjustView,
+                DashboardControlBehavior.DisplayState),
+            [(DashboardPageId.Spending, "reset_adjustments")] = new(
+                DashboardControlKind.ActionReset,
+                DashboardControlSource.SpendingReset,
+                DashboardControlBehavior.Action),
             [(DashboardPageId.YearOverYear, "spending_view")] = new(
                 DashboardControlKind.Select,
                 DashboardControlSource.YearOverYear,
@@ -116,7 +175,7 @@ public static class DashboardControlMappings
                 return true;
             case DashboardControlBehavior.Action:
                 if (mapping.Kind != DashboardControlKind.ActionReset
-                    || mapping.Source != DashboardControlSource.FinancialIndependenceReset)
+                    || mapping.Source is not (DashboardControlSource.FinancialIndependenceReset or DashboardControlSource.SpendingReset))
                 {
                     problem = "needs a named action handler";
                     return false;
@@ -149,6 +208,26 @@ public static class DashboardControlMappings
             }
         }
 
+        if (mapping.Source == DashboardControlSource.SpendingComparison)
+        {
+            string? unsupported = options.FirstOrDefault(option => !TryParseSpendingComparison(option, out _));
+            if (unsupported is not null)
+            {
+                problem = $"has unsupported Spending comparison option '{unsupported}'";
+                return false;
+            }
+        }
+
+        if (mapping.Source == DashboardControlSource.SpendingBreakdown)
+        {
+            string? unsupported = options.FirstOrDefault(option => !TryParseSpendingBreakdown(option, out _));
+            if (unsupported is not null)
+            {
+                problem = $"has unsupported Spending breakdown option '{unsupported}'";
+                return false;
+            }
+        }
+
         problem = null;
         return true;
     }
@@ -158,6 +237,8 @@ public static class DashboardControlMappings
         {
             (DashboardControlSource.IncomeExcludedCategories, DashboardControlKind.MultiSelect) => true,
             (DashboardControlSource.IncomeDetailTab, DashboardControlKind.TabChoice) => true,
+            (DashboardControlSource.SpendingDetailMonth, DashboardControlKind.Select) => true,
+            (DashboardControlSource.SpendingAdjustView, DashboardControlKind.Popover) => true,
             (DashboardControlSource.FinancialIndependenceTargetAmount, DashboardControlKind.NumberInput) => true,
             (DashboardControlSource.DataHealthStaleThreshold, DashboardControlKind.Slider) => true,
             (DashboardControlSource.DataHealthIncludeInactive, DashboardControlKind.Toggle) => true,
@@ -167,12 +248,55 @@ public static class DashboardControlMappings
     private static string? ReportFilterRouteFor(DashboardControlSource source)
         => source switch
         {
+            DashboardControlSource.Lookback => "lookback",
             DashboardControlSource.Spending => "spending",
+            DashboardControlSource.SpendingComparison => "spending_comparison",
+            DashboardControlSource.SpendingBreakdown => "spending_breakdown",
+            DashboardControlSource.SpendingExcludedGroups => "spending_excluded_groups",
+            DashboardControlSource.SpendingExcludedCategories => "spending_excluded_categories",
+            DashboardControlSource.SpendingIncludedDescriptions => "spending_included_descriptions",
+            DashboardControlSource.SpendingExcludedDescriptions => "spending_excluded_descriptions",
+            DashboardControlSource.SpendingExcludeLargeExpenses => "spending_exclude_large_expenses",
+            DashboardControlSource.SpendingExpenseLimit => "spending_expense_limit",
             DashboardControlSource.YearOverYear => "year_over_year",
             DashboardControlSource.IncomeView => "income_view",
             DashboardControlSource.HomeTimeFrame => "home_time_frame",
             _ => null
         };
+
+    /// <summary>Parses one configured source-shaped Spending comparison value.</summary>
+    public static bool TryParseSpendingComparison(string? value, out SpendingComparison comparison)
+    {
+        switch (value)
+        {
+            case "previous_period":
+                comparison = SpendingComparison.PreviousPeriod;
+                return true;
+            case "last_year":
+                comparison = SpendingComparison.LastYear;
+                return true;
+            default:
+                comparison = default;
+                return false;
+        }
+    }
+
+    /// <summary>Parses one configured source-shaped Spending breakdown value.</summary>
+    public static bool TryParseSpendingBreakdown(string? value, out SpendingBreakdown breakdown)
+    {
+        switch (value)
+        {
+            case "group":
+                breakdown = SpendingBreakdown.Group;
+                return true;
+            case "category":
+                breakdown = SpendingBreakdown.Category;
+                return true;
+            default:
+                breakdown = default;
+                return false;
+        }
+    }
 }
 
 /// <summary>Holds Home-only detail state without leaking it into finance calculations.</summary>
@@ -191,6 +315,23 @@ public sealed record IncomeSavingsPresentationState(
     public static IncomeSavingsPresentationState Default { get; } = new(
         new HashSet<string>(StringComparer.Ordinal),
         "Included");
+}
+
+/// <summary>Holds the selected Spending by category detail without mixing it into report inputs.</summary>
+public sealed record SpendingPresentationState(
+    string? SelectedGroup,
+    string? SelectedCategory,
+    string DetailMonth,
+    string DetailTab,
+    bool AdjustViewOpen,
+    bool ExcludedRowsExpanded)
+{
+    /// <summary>Creates the source page's initial detail state.</summary>
+    public static SpendingPresentationState Default { get; } = new(null, null, "all", "", false, false);
+
+    /// <summary>Gets the selected entity for the current breakdown.</summary>
+    public string? SelectedEntity(SpendingBreakdown breakdown)
+        => breakdown == SpendingBreakdown.Group ? SelectedGroup : SelectedCategory;
 }
 
 /// <summary>Holds Financial independence scenario presentation inputs until Phase 6 connects the report request.</summary>
@@ -215,6 +356,9 @@ public sealed class DashboardPresentationState
 
     /// <summary>Gets the Income and savings page's retained state.</summary>
     public IncomeSavingsPresentationState IncomeSavings { get; private set; } = IncomeSavingsPresentationState.Default;
+
+    /// <summary>Gets the retained Spending by category detail state.</summary>
+    public SpendingPresentationState Spending { get; private set; } = SpendingPresentationState.Default;
 
     /// <summary>Gets the Financial independence page's retained state.</summary>
     public FinancialIndependencePresentationState FinancialIndependence { get; private set; } = FinancialIndependencePresentationState.Default;
@@ -258,6 +402,38 @@ public sealed class DashboardPresentationState
         IncomeSavings = IncomeSavings with { DetailTab = value };
     }
 
+    /// <summary>Sets the entity selected in the current Spending breakdown.</summary>
+    public void SetSpendingSelectedEntity(SpendingBreakdown breakdown, string? entity)
+    {
+        if (entity is not null)
+            ArgumentException.ThrowIfNullOrWhiteSpace(entity);
+        Spending = breakdown == SpendingBreakdown.Group
+            ? Spending with { SelectedGroup = entity }
+            : Spending with { SelectedCategory = entity };
+    }
+
+    /// <summary>Sets the Spending detail month or the all-months value.</summary>
+    public void SetSpendingDetailMonth(string value)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(value);
+        Spending = Spending with { DetailMonth = value };
+    }
+
+    /// <summary>Sets the active selected-detail tab.</summary>
+    public void SetSpendingDetailTab(string value)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(value);
+        Spending = Spending with { DetailTab = value };
+    }
+
+    /// <summary>Sets whether the source-style Adjust view popover is open.</summary>
+    public void SetSpendingAdjustViewOpen(bool open)
+        => Spending = Spending with { AdjustViewOpen = open };
+
+    /// <summary>Sets whether excluded rows are visible below the report.</summary>
+    public void SetSpendingExcludedRowsExpanded(bool expanded)
+        => Spending = Spending with { ExcludedRowsExpanded = expanded };
+
     /// <summary>Sets the Financial independence target shown by the scenario control.</summary>
     public void SetFinancialIndependenceTargetAmount(decimal value)
         => FinancialIndependence = FinancialIndependence with { TargetAmount = value };
@@ -279,6 +455,8 @@ public sealed class DashboardPresentationState
         => source switch
         {
             DashboardControlSource.IncomeDetailTab => IncomeSavings.DetailTab,
+            DashboardControlSource.SpendingDetailMonth => Spending.DetailMonth,
+            DashboardControlSource.SpendingAdjustView => Spending.AdjustViewOpen.ToString(CultureInfo.InvariantCulture).ToLowerInvariant(),
             DashboardControlSource.FinancialIndependenceTargetAmount => FinancialIndependence.TargetAmount.ToString(CultureInfo.InvariantCulture),
             DashboardControlSource.DataHealthStaleThreshold => DataHealth.StaleThreshold.ToString(CultureInfo.InvariantCulture),
             DashboardControlSource.DataHealthIncludeInactive => DataHealth.IncludeInactive.ToString(CultureInfo.InvariantCulture).ToLowerInvariant(),

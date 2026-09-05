@@ -246,7 +246,9 @@ public static class TomlConfigurationLoader
                 OptionalInteger(widget, "span", 1, widgetPath, errors),
                 OptionalString(widget, "description", widgetPath, errors),
                 OptionalStrings(widget, "bar_series", widgetPath, errors),
-                OptionalString(widget, "section", widgetPath, errors)));
+                OptionalString(widget, "section", widgetPath, errors),
+                OptionalAxisTitle(widget, "x_axis_title", widgetPath, errors),
+                OptionalAxisTitle(widget, "y_axis_title", widgetPath, errors)));
         }
 
         return new DashboardPageDefinition(
@@ -474,6 +476,16 @@ public static class TomlConfigurationLoader
         return null;
     }
 
+    private static string? OptionalAxisTitle(TomlTable table, string key, string prefix, List<ConfigurationError> errors)
+    {
+        if (!table.TryGetValue(key, out object? value))
+            return null;
+        if (value is string text)
+            return text;
+        errors.Add(new ConfigurationError($"{prefix}.{key}", "must be a string."));
+        return null;
+    }
+
     private static string? OptionalScalarString(TomlTable table, string key, string prefix, List<ConfigurationError> errors)
     {
         if (!table.TryGetValue(key, out object? value))
@@ -675,12 +687,15 @@ public static class TomlConfigurationLoader
             ["slider"] = DashboardControlKind.Slider,
             ["toggle"] = DashboardControlKind.Toggle,
             ["tab_choice"] = DashboardControlKind.TabChoice,
-            ["action_reset"] = DashboardControlKind.ActionReset
+            ["action_reset"] = DashboardControlKind.ActionReset,
+            ["text_multi_select"] = DashboardControlKind.TextMultiSelect,
+            ["popover"] = DashboardControlKind.Popover
         });
 
     private static DashboardControlSource ParseControlSource(string value, string path, List<ConfigurationError> errors)
         => ParseEnum(value, path, errors, new Dictionary<string, DashboardControlSource>(StringComparer.OrdinalIgnoreCase)
         {
+            ["lookback"] = DashboardControlSource.Lookback,
             ["spending"] = DashboardControlSource.Spending,
             ["year_over_year"] = DashboardControlSource.YearOverYear,
             ["income_view"] = DashboardControlSource.IncomeView,
@@ -690,13 +705,27 @@ public static class TomlConfigurationLoader
             ["data_health_stale_threshold"] = DashboardControlSource.DataHealthStaleThreshold,
             ["data_health_include_inactive"] = DashboardControlSource.DataHealthIncludeInactive,
             ["income_detail_tab"] = DashboardControlSource.IncomeDetailTab,
-            ["financial_independence_reset"] = DashboardControlSource.FinancialIndependenceReset
+            ["financial_independence_reset"] = DashboardControlSource.FinancialIndependenceReset,
+            ["spending_comparison"] = DashboardControlSource.SpendingComparison,
+            ["spending_breakdown"] = DashboardControlSource.SpendingBreakdown,
+            ["spending_excluded_groups"] = DashboardControlSource.SpendingExcludedGroups,
+            ["spending_excluded_categories"] = DashboardControlSource.SpendingExcludedCategories,
+            ["spending_included_descriptions"] = DashboardControlSource.SpendingIncludedDescriptions,
+            ["spending_excluded_descriptions"] = DashboardControlSource.SpendingExcludedDescriptions,
+            ["spending_exclude_large_expenses"] = DashboardControlSource.SpendingExcludeLargeExpenses,
+            ["spending_expense_limit"] = DashboardControlSource.SpendingExpenseLimit,
+            ["spending_detail_month"] = DashboardControlSource.SpendingDetailMonth,
+            ["spending_adjust_view"] = DashboardControlSource.SpendingAdjustView,
+            ["spending_reset"] = DashboardControlSource.SpendingReset
         });
 
     private static DashboardControlOptionSource ParseControlOptionSource(string value, string path, List<ConfigurationError> errors)
         => ParseEnum(value, path, errors, new Dictionary<string, DashboardControlOptionSource>(StringComparer.OrdinalIgnoreCase)
         {
-            ["static"] = DashboardControlOptionSource.Static
+            ["static"] = DashboardControlOptionSource.Static,
+            ["spending_groups"] = DashboardControlOptionSource.SpendingGroups,
+            ["spending_categories"] = DashboardControlOptionSource.SpendingCategories,
+            ["spending_months"] = DashboardControlOptionSource.SpendingMonths
         });
 
     private static DashboardControlWidth ParseControlWidth(string value, string path, List<ConfigurationError> errors)
@@ -743,6 +772,7 @@ public static class TomlConfigurationLoader
             ["line_chart"] = DashboardWidgetKind.LineChart,
             ["area_chart"] = DashboardWidgetKind.AreaChart,
             ["bar_chart"] = DashboardWidgetKind.BarChart,
+            ["horizontal_bar_chart"] = DashboardWidgetKind.HorizontalBarChart,
             ["combo_chart"] = DashboardWidgetKind.ComboChart,
             ["scatter_chart"] = DashboardWidgetKind.ScatterChart,
             ["sparkline"] = DashboardWidgetKind.Sparkline,
