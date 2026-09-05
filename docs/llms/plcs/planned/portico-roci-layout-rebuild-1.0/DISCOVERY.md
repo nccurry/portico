@@ -140,9 +140,9 @@ fields, validation, report/display mappings, and focused tests.
 
 | Finding | Evidence | Phase direction |
 | --- | --- | --- |
-| The C# presentation model cannot hold the source navigation mapping. | Completed in Phase 2: `DashboardPageDefinition` and `dashboard.toml` now carry a validated group, order, rail label, heading, and typed icon ID for each page. | Keep page-specific controls out of this small navigation model; add them in Phase 3. |
-| The C# control model cannot express the source controls. | `DashboardFilterKind` has only `Select`; `DashboardSession` projects four shared filters. The source uses segmented choices, multi-selects, sliders, number inputs, toggles, tabs, text input, selection, and reset actions. | Add typed per-page state and control/report mappings in Phase 3. |
-| The current desktop shell is not the source shell. | `PorticoDashboardScene` uses a top bar and an overlay drawer. The source uses a permanent sidebar. | Replace it in Phases 1 and 2 with the SADD shell row and local navigation rail. |
+| The C# presentation model cannot hold the source navigation mapping. | Completed in Phase 2: `DashboardPageDefinition` and `dashboard.toml` now carry a validated group, order, rail label, heading, and typed icon ID for each page. | Keep page-specific controls separate from this small navigation model. |
+| The C# control model cannot express the source controls. | Completed first slice in Phase 3: a finite typed grammar and C# mapping registry now cover select, segmented choice, multi-select, number input, slider, toggle, tab choice, and reset. Home and Income and savings use it in the default TOML. | Add each later source page's real report mapping when that page is rebuilt; do not make display-only placeholders calculate data. |
+| The current desktop shell is not the source shell. | Completed in Phases 1 and 2: `PorticoDashboardScene` now uses a dark shell row with a fixed permanent rail and scrolling main body. | Keep new page layout inside the shell; do not reintroduce a top bar or overlay drawer. |
 | The current release host cannot make the required captures. | `PorticoDashboardGame` fixes a normal window at 1280 by 820. The test-only `Portico.CaptureHost` now calls the argument-aware host with `GameRunFeatures.Automation | GameRunFeatures.Capture`. | Phase 0 added the capture host without changing normal release-host behaviour. |
 
 ### Verified Roci Component Direction
@@ -170,8 +170,14 @@ additional component.
   privacy masking, demo state, and truthful source-check states. The rail uses
   an app-local ASCII glyph mapping because this Roci font path has no Material
   icon primitive.
-- Pending: C# control-state fields, configuration parsing, control/report
-  mappings, and their page-specific tests. Those are Phase 3 work.
+- Complete: app-local headers, control bars, metric cards, section and state
+  panels; typed sections and controls; and the first native tab and composed
+  multi-select proof. The multi-select retains state but cannot restore focus
+  directly to a checkbox because the current Roci Checkbox API has no focus
+  configuration.
+- Pending: later source pages need their own real control/report mappings and
+  page-specific tests as their rebuild phases begin. Display-only Phase 3
+  controls must not be mistaken for completed report behavior.
 - Deferred: `Download CSV` and `Open spreadsheet`. They are source actions
   outside this visualization and UI experiment. They need explicit export and
   external-link policies before an app implements them.
@@ -199,10 +205,10 @@ Roci.
 | Visual test method | A sample capture and one stable comparison run. | Completed: use `GameRunCaptureCatalog` and Roci's capture verifier. Cross-renderer pixel comparisons remain out of scope. |
 | Capture host | A test-only host that accepts capture arguments and enables Roci automation/capture. | Completed: `Portico.CaptureHost` accepts normal Roci capture arguments and runs fixed demo sessions. |
 | Navigation rail | A local proof with selected page, keyboard focus, and narrow-window behavior. | Completed in Phase 2: exact TOML-backed rail, selected state, pointer/keyboard navigation, focus retention, fixed rail, and 28 visual captures. |
-| Multi-select | A local proof used by at least two real page filters. | Pending. |
-| Typed page controls | A table that maps each source control to state, report/display behavior, and a test. | Pending. |
+| Multi-select | A local proof used by at least two real page filters. | First proof complete in Phase 3 on Income and savings. Phase 5 must use it in at least one more real source filter. |
+| Typed page controls | A table that maps each source control to state, report/display behavior, and a test. | First grammar and mappings complete in Phase 3. Each later source page must add its own real report/display mapping with its rebuild. |
 | Any chart gap | A named Streamlit chart and the smallest attempted Roci composition. | Pending. |
-| Page configuration fields | Current TOML types plus one representative page loaded through them. | Pending. |
+| Page configuration fields | Current TOML types plus one representative page loaded through them. | Completed in Phase 3: validated sections, typed controls, C# mapping routes, and Home/Income configurations. |
 
 ## Phase 0 Exit Check
 

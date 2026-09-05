@@ -4,7 +4,7 @@
 
 - Status: In progress
 - Created: 2026-09-04
-- Current phase: Phase 3 — add shared components and typed page controls
+- Current phase: Phase 4 — rebuild Home
 - Owner: Portico maintainers
 - Target worktree: `../portico-roci-rebuild`
 - Target branch: `nccurry/roci-portico-plc`
@@ -56,8 +56,30 @@ Phase 2 completed on 2026-09-04.
   `task roci:build:strict`, `task roci:test`, `task roci:visual`, and
   `git diff --check`. Code and design audits found no P1 or P2 issue.
 
-Typed page controls, their remaining configuration extensions, and report
-mappings remain Phase 3 work.
+Phase 3 completed on 2026-09-04.
+
+- App-local fluent pieces now provide page headers, wrapping control bars,
+  metric cards, section panels, and empty/error panels. `PorticoSkin` remains
+  the only place that owns their visual tokens.
+- The typed TOML grammar now supports sections and the fixed control set:
+  select, segmented choice, multi-select, number input, slider, toggle, tab
+  choice, and reset action. A configured control must have a validated C#
+  mapping to a report input, display-state setter, or action handler.
+- Home proves the full six-choice Time frame control; Income and savings proves
+  a report-backed select, the Portico-local multi-select, and native Roci tabs.
+  The 5Y and All Home choices are deliberately display-only until Phase 4 adds
+  tested report ranges.
+- The local multi-select retains selection, search text, and popover state
+  across a rebuild. Native Roci checkboxes have no focus-setting API, so a
+  rebuilt popover falls back to the rail rather than claiming checkbox-focus
+  restoration.
+- The merged phase passed `task roci:format`, `task roci:lint`,
+  `task roci:build:strict`, `task roci:test` (106 tests), `task roci:visual`
+  (30 captures), `roci:doctor`, and `git diff --check`. Code and design audits
+  found no remaining P1 or P2 issue.
+
+Phase 4 now connects Home's time frame to correct dashboard report ranges and
+rebuilds the rest of the page from the shared pieces.
 
 ## Purpose
 
