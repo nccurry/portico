@@ -235,6 +235,22 @@ Roci.
   exclusions. It remains a candidate for final promotion review after more
   pages use it.
 
+### Phase 5.2 Income And Year Over Year Findings
+
+- Income and savings uses a normal Roci Cartesian chart with two bar series and
+  one surplus line. Its savings-rate chart uses two line series and a zero
+  reference line. The page did not need a new chart component.
+- Year over year needs each source year to occupy the same January-to-December
+  positions. Mapping each report point to the equivalent month in the year
+  2000 lets a normal Roci date axis align the lines and format its labels as
+  month names. This is page composition, not a missing Roci API.
+- Source Regular defaults only select configured categories and groups that are
+  available in the loaded data. The desktop session now applies that rule to
+  each Income adjustment control before the page is drawn. This prevents an
+  invisible configured value from appearing as a selected filter.
+- Per-category bar fills remain the only chart API candidate from Phase 5.1.
+  Income uses one color per series, which is already supported.
+
 ### Phase 4 Home Findings
 
 - The six Home choices are report inputs, not display state. Their source day

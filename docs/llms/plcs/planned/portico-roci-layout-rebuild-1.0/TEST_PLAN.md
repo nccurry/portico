@@ -112,6 +112,26 @@ also state the value, row count, warning, or action that it proves.
   regions/order, a compact Adjust button, a readable exclusion badge gap, and
   both required desktop sizes.
 
+### Phase 5.2 Income And Year Over Year Evidence
+
+- Income finance tests cover matched current and previous periods, zero-filled
+  months, refunds, category and group exclusions, include and exclude terms,
+  large-row boundaries, transfers, empty input, and incomplete prior history.
+- Dashboard tests prove that the Income time frame does not change the shared
+  lookback, Regular and Actual adjustments remain separate, excluded ledger
+  rows remain visible when every current row is excluded, and unavailable
+  configured defaults do not appear in a control.
+- Year over year finance and dashboard tests cover source coverage months,
+  zero fills, signed refunds, transfer removal from comparisons, stable preset
+  ranking, raw single-entity choices, missing prior totals, and preset and
+  single category or group views.
+- App tests cover both desktop sizes, controls, popovers, multi-selects,
+  number inputs, reset actions, details, empty states, retained page bounds,
+  current-year visual emphasis, and the calendar-month chart axis.
+- `task roci:visual` runs 36 named captures. It includes default and adjusted
+  Income states and preset and single-category Year over year states at 1500 by
+  1000 and 1024 by 720.
+
 ## 5. Visual Checks
 
 ### Fixed Runs

@@ -4,7 +4,7 @@
 
 - Status: In progress
 - Created: 2026-09-04
-- Current phase: Phase 5.2 — rebuild Income and savings and Year over year
+- Current phase: Phase 5.3 — rebuild Subscriptions, Spending by merchant, and Transactions
 - Owner: Portico maintainers
 - Target worktree: `../portico-roci-rebuild`
 - Target branch: `nccurry/roci-portico-plc`
@@ -118,6 +118,31 @@ Phase 5.1 completed on 2026-09-05.
   app formatter follow-up, not a missing Roci feature. Horizontal bars
   themselves are available; the initial issue was an app-side
   axis/orientation dispatch bug, which is now tested.
+- The merged phase passed `task roci:format`, `task roci:lint`,
+  `task roci:build:strict`, `task roci:test`, `task roci:visual`, and
+  `git diff --check`. The combined code and frontend reviews found no P1 or
+  P2 issue.
+
+Phase 5.2 completed on 2026-09-05.
+
+- Income and savings now follows the source page from the time and calculation
+  controls through the four summary cards, monthly cash-flow and savings-rate
+  charts, month detail, Included and Excluded tabs, and Monthly totals.
+- Regular and Actual keep separate adjustments. The Adjust calculation popover
+  supports category and group exclusions, description terms, large-income and
+  large-expense limits, the savings-rate target, and Reset defaults. Regular
+  defaults now keep only values that appear in the loaded page controls, which
+  matches the Streamlit page.
+- Year over year now has configured preset, single-category, and single-group
+  views. It shows the selected category picker, current and prior-year cards,
+  calendar-month comparison lines, and expandable totals and transactions.
+- The full suite has 176 passing non-visual tests. `task roci:visual` writes
+  and verifies 36 named current captures at both desktop sizes, including
+  default and adjusted Income views and preset and single-category Year over
+  year views.
+- Normal Roci flex layout, charts, controls, tables, and collapsibles were
+  sufficient for both pages. The Year over year chart maps every source year
+  onto one January-to-December date axis; no new Roci component was needed.
 - The merged phase passed `task roci:format`, `task roci:lint`,
   `task roci:build:strict`, `task roci:test`, `task roci:visual`, and
   `git diff --check`. The combined code and frontend reviews found no P1 or

@@ -30,6 +30,7 @@ public sealed class DashboardSession
         Filters = DashboardFilters.From(settings);
         Presentation = new DashboardPresentationState();
         Presentation.InitializeIncomeSavings(settings);
+        Presentation.SetIncomeSavingsAdjustments(regular: true, IncomeSavingsDefaultAdjustments(regular: true));
         foreach (DashboardFilterDefinition filter in definition.Pages
                      .SelectMany(page => page.Filters)
                      .GroupBy(filter => filter.Source, StringComparer.Ordinal)
@@ -255,7 +256,7 @@ public sealed class DashboardSession
                 RebuildReport();
                 return;
             case DashboardControlSource.IncomeReset:
-                SetIncomeSavingsAdjustments(IncomeSavingsAdjustments.Default(_settings, Filters.RegularIncome));
+                SetIncomeSavingsAdjustments(IncomeSavingsDefaultAdjustments(Filters.RegularIncome));
                 return;
             default:
                 throw new ArgumentException($"Dashboard control '{pageId}.{controlId}' does not have a reset action.", nameof(controlId));
@@ -322,7 +323,24 @@ public sealed class DashboardSession
 
     /// <summary>Gets the configured defaults for the selected Income calculation view.</summary>
     public IncomeSavingsAdjustments IncomeSavingsDefaultAdjustments(bool regular)
-        => IncomeSavingsAdjustments.Default(_settings, regular);
+    {
+        IncomeSavingsAdjustments defaults = IncomeSavingsAdjustments.Default(_settings, regular);
+        if (!regular)
+            return defaults;
+
+        return defaults with
+        {
+            ExcludedIncomeCategories = AvailableDefaults(
+                defaults.ExcludedIncomeCategories,
+                IncomeCategoryOptions(TransactionKind.Income)),
+            ExcludedExpenseGroups = AvailableDefaults(
+                defaults.ExcludedExpenseGroups,
+                IncomeExpenseGroupOptions()),
+            ExcludedExpenseCategories = AvailableDefaults(
+                defaults.ExcludedExpenseCategories,
+                IncomeCategoryOptions(TransactionKind.Expense))
+        };
+    }
 
     /// <summary>Sets the selected Spending entity and rebuilds selected detail reports.</summary>
     public void SetSpendingSelectedEntity(SpendingBreakdown breakdown, string? entity)
@@ -509,6 +527,13 @@ public sealed class DashboardSession
     private IReadOnlyList<string> IncomeExpenseGroupOptions()
         => IncomeSavingsAnalysisCalculator.ExpenseGroups(
             _snapshot.Transactions.Where(transaction => !transaction.IsHidden));
+
+    private static IReadOnlyList<string> AvailableDefaults(
+        IEnumerable<string> configured,
+        IReadOnlyList<string> available)
+        => configured
+            .Where(available.Contains)
+            .ToArray();
 
     private IReadOnlyList<string> IncomeMonthOptions()
     {

@@ -71,6 +71,44 @@ public sealed class DashboardPresentationTests
     }
 
     [Fact]
+    public void Session_RegularIncomeDefaultsOnlyKeepValuesAvailableInTheirOwnControls()
+    {
+        FinanceSettings settings = Settings() with
+        {
+            IncomeSavings = new IncomeSavingsSettings("regular", 20m, ["Bonus"], ["Travel"])
+        };
+        PortfolioSnapshot snapshot = new(
+        [
+            new FinancialTransaction(
+                "salary",
+                new DateOnly(2025, 6, 15),
+                "Salary",
+                "Income",
+                "Checking",
+                "Salary",
+                1_000m,
+                TransactionKind.Income),
+            new FinancialTransaction(
+                "food",
+                new DateOnly(2025, 6, 15),
+                "Bonus",
+                "Travel",
+                "Checking",
+                "Market",
+                -100m,
+                TransactionKind.Expense)
+        ], [], []);
+
+        var session = new DashboardSession(snapshot, settings, Definition());
+        IncomeSavingsAdjustments regular = session.Presentation.IncomeSavings.Adjustments(regular: true);
+
+        Assert.Empty(regular.ExcludedIncomeCategories);
+        Assert.Equal(["Travel"], regular.ExcludedExpenseGroups);
+        Assert.Equal(["Bonus"], regular.ExcludedExpenseCategories);
+        Assert.Empty(session.IncomeSavingsDefaultAdjustments(regular: true).ExcludedIncomeCategories);
+    }
+
+    [Fact]
     public void Session_RejectsValuesOutsideTheTypedControlDefinitions()
     {
         var session = new DashboardSession(new PortfolioSnapshot([], [], []), Settings(), Definition());
