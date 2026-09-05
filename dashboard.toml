@@ -10,6 +10,11 @@ id = "home"
 title = "Home"
 description = "Net worth, cash flow, and financial safety at a glance."
 visible = true
+group = "standalone"
+order = 1
+rail_label = "Home"
+page_heading = "Accounts and net worth"
+icon = "home"
 
 [[pages.filters]]
 id = "lookback"
@@ -57,6 +62,11 @@ id = "income_savings"
 title = "Income and Savings"
 description = "Monthly income, spending, surplus, and savings rate."
 visible = true
+group = "analyze"
+order = 2
+rail_label = "Income and savings"
+page_heading = "Income and savings"
+icon = "savings"
 
 [[pages.filters]]
 id = "income_view"
@@ -86,6 +96,11 @@ id = "spending"
 title = "Spending by Category"
 description = "Where expense money went over the selected period."
 visible = true
+group = "analyze"
+order = 4
+rail_label = "Spending by category"
+page_heading = "Spending by category"
+icon = "category"
 
 [[pages.filters]]
 id = "lookback"
@@ -122,6 +137,11 @@ id = "year_over_year"
 title = "Year over Year"
 description = "Compare a spending view across calendar years."
 visible = true
+group = "analyze"
+order = 5
+rail_label = "Year over year"
+page_heading = "Year over year"
+icon = "compare_arrows"
 
 [[pages.filters]]
 id = "transaction_set"
@@ -150,6 +170,11 @@ id = "subscriptions"
 title = "Subscriptions"
 description = "Known recurring expenses and active subscription history."
 visible = true
+group = "analyze"
+order = 6
+rail_label = "Subscriptions"
+page_heading = "Subscriptions"
+icon = "subscriptions"
 
 [[pages.widgets]]
 id = "active"
@@ -170,6 +195,11 @@ id = "merchants"
 title = "Merchant Analysis"
 description = "Merchants ranked by spend, with monthly history."
 visible = true
+group = "analyze"
+order = 3
+rail_label = "Spending by merchant"
+page_heading = "Spending by merchant"
+icon = "storefront"
 
 [[pages.filters]]
 id = "lookback"
@@ -206,6 +236,11 @@ id = "budget"
 title = "Budget"
 description = "Budget allocations and actual category spending."
 visible = true
+group = "plan"
+order = 8
+rail_label = "Budget"
+page_heading = "Budget"
+icon = "account_balance_wallet"
 
 [[pages.filters]]
 id = "lookback"
@@ -242,6 +277,11 @@ id = "top_transactions"
 title = "Top Transactions"
 description = "Large income and expense transactions in the selected period."
 visible = true
+group = "analyze"
+order = 7
+rail_label = "Transactions"
+page_heading = "Transactions"
+icon = "receipt_long"
 
 [[pages.filters]]
 id = "lookback"
@@ -277,6 +317,11 @@ id = "financial_independence"
 title = "Financial Independence"
 description = "Portfolio funding, projection, and runway sensitivity."
 visible = true
+group = "plan"
+order = 9
+rail_label = "Financial independence"
+page_heading = "Financial independence"
+icon = "monitoring"
 
 [[pages.widgets]]
 id = "summary"
@@ -302,6 +347,11 @@ id = "data_health"
 title = "Data Health"
 description = "Missing classifications, stale accounts, and duplicate-looking rows."
 visible = true
+group = "maintain"
+order = 10
+rail_label = "Data health"
+page_heading = "Data health"
+icon = "health_and_safety"
 
 [[pages.widgets]]
 id = "summary"

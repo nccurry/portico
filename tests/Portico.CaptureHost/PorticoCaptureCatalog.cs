@@ -1,5 +1,6 @@
 ﻿using Portico.Dashboard;
 using Roci.Launch;
+using Portico.App;
 using Roci.Testing;
 
 namespace Portico.CaptureHost;
@@ -54,7 +55,19 @@ public static class PorticoCaptureCatalog
             session.SetFilter("lookback", "3");
         }),
         new("financial-independence", static session => session.SelectPage(DashboardPageId.FinancialIndependence)),
-        new("data-health", static session => session.SelectPage(DashboardPageId.DataHealth))
+        new("data-health", static session => session.SelectPage(DashboardPageId.DataHealth)),
+        new("home-hidden", static session => session.SelectPage(DashboardPageId.Home), static state => state.ToggleHideValues()),
+        new("spending-loading", static session => session.SelectPage(DashboardPageId.Spending), static state => state.BeginRefresh()),
+        new("budget-refresh-failed", static session => session.SelectPage(DashboardPageId.Budget), static state =>
+        {
+            state.BeginRefresh();
+            state.CompleteRefresh(PorticoRefreshResult.Failed());
+        }),
+        new("data-health-refresh-unavailable", static session => session.SelectPage(DashboardPageId.DataHealth), static state =>
+        {
+            state.BeginRefresh();
+            state.CompleteRefresh(PorticoRefreshResult.Unavailable());
+        })
     ];
 
     private static readonly CaptureSize[] CaptureSizes =
@@ -80,6 +93,19 @@ public static class PorticoCaptureCatalog
         DashboardSession session = PorticoDemoSessionFactory.Create();
         RunCatalog.ApplyScenario(session, context);
         return session;
+    }
+
+    /// <summary>Creates visual-only state for a fixed capture scenario.</summary>
+    public static PorticoDashboardDisplayState CreateDisplayState(GameRunContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+
+        var state = new PorticoDashboardDisplayState(isDemoData: true);
+        Scenarios
+            .SingleOrDefault(scenario => string.Equals(scenario.Id, context.ScenarioId, StringComparison.Ordinal))
+            ?.ConfigureDisplayState
+            ?.Invoke(state);
+        return state;
     }
 
     private static GameRunCatalog<DashboardSession, string> CreateRunCatalog()
@@ -124,5 +150,8 @@ public static class PorticoCaptureCatalog
         return cases.ToArray();
     }
 
-    private sealed record CaptureScenario(string Id, Action<DashboardSession> Configure);
+    private sealed record CaptureScenario(
+        string Id,
+        Action<DashboardSession> Configure,
+        Action<PorticoDashboardDisplayState>? ConfigureDisplayState = null);
 }

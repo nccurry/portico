@@ -80,7 +80,15 @@ public static class PorticoCli
     private static async Task<int> RunDesktopAsync(PorticoCommand command, TextWriter output, TextWriter error)
     {
         LoadedPortico loaded = await LoadAsync(command, loadData: true);
-        return await DesktopDashboardHost.RunAsync(new DashboardSession(loaded.Snapshot!, loaded.Settings, loaded.Definition), output, error);
+        bool isDemoData = string.Equals(
+            Path.GetFileName(command.ConfigPath),
+            "portico-demo.toml",
+            StringComparison.OrdinalIgnoreCase);
+        return await DesktopDashboardHost.RunAsync(
+            new DashboardSession(loaded.Snapshot!, loaded.Settings, loaded.Definition),
+            output,
+            error,
+            isDemoData);
     }
 
     private static async Task<DoctorResult> InspectAsync(PorticoCommand command, bool loadData)

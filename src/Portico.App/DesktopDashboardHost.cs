@@ -9,7 +9,8 @@ public static class DesktopDashboardHost
     public static Task<int> RunAsync(
         DashboardSession session,
         TextWriter output,
-        TextWriter error)
+        TextWriter error,
+        bool isDemoData = false)
     {
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(output);
@@ -20,7 +21,10 @@ public static class DesktopDashboardHost
             output.WriteLine("Opening the Portico desktop dashboard.");
             Roci.Hosting.MonoGame.MonoGameHost.Run(
                 PorticoDashboardGame.CreateHostSettings(),
-                _ => new PorticoDashboardGame(session));
+                _ => new PorticoDashboardGame(
+                    session,
+                    Roci.Launch.GameRunContext.Empty,
+                    new PorticoDashboardDisplayState(isDemoData)));
             return Task.FromResult(0);
         }
         catch (Exception exception)

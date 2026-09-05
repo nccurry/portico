@@ -16,7 +16,8 @@ public static class Program
             PorticoCaptureCatalog.RunCatalog,
             static context => new PorticoDashboardGame(
                 PorticoCaptureCatalog.CreateSession(context),
-                context),
+                context,
+                PorticoCaptureCatalog.CreateDisplayState(context)),
             features: GameRunFeatures.Automation | GameRunFeatures.Capture);
     }
 }

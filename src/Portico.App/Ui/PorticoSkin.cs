@@ -39,6 +39,13 @@ internal static class PorticoSkin
     internal const float RailPadding = 20f;
     internal const float HeaderTopPadding = 24f;
     internal const float DividerHeight = 1f;
+    internal const float NavigationItemHorizontalPadding = 10f;
+    internal const float NavigationItemVerticalPadding = 7f;
+    internal const float NavigationIconGap = 8f;
+    internal const float NavigationIconWidth = 16f;
+    internal const float StatusPadding = 8f;
+    internal const float StatusIndicatorSize = 8f;
+    internal const float DemoBannerVerticalPadding = 10f;
     internal const float WidgetPadding = 14f;
     internal const float MetricGap = 3f;
     internal const float MetricPadding = 10f;

@@ -16,16 +16,20 @@ public sealed class PorticoCaptureCatalogTests
     {
         IReadOnlyList<CaptureCase> cases = PorticoCaptureCatalog.CaptureCatalog.CaptureCases;
 
-        Assert.Equal(20, cases.Count);
+        Assert.Equal(28, cases.Count);
         Assert.Equal(
         [
             "budget",
+            "budget-refresh-failed",
             "data-health",
+            "data-health-refresh-unavailable",
             "financial-independence",
             "home",
+            "home-hidden",
             "income-savings",
             "merchants",
             "spending",
+            "spending-loading",
             "subscriptions",
             "top-transactions",
             "year-over-year"
@@ -42,10 +46,10 @@ public sealed class PorticoCaptureCatalogTests
         }
 
         Assert.Equal(
-            10,
+            14,
             cases.Count(capture => capture.CaptureSize == new CaptureSize(1500, 1000)));
         Assert.Equal(
-            10,
+            14,
             cases.Count(capture => capture.CaptureSize == new CaptureSize(1024, 720)));
 
         DashboardPageId[] configuredPages = PorticoDemoSessionFactory.Create()
@@ -62,7 +66,11 @@ public sealed class PorticoCaptureCatalogTests
 
         Assert.Equal(configuredPages, capturedPages);
         foreach (DashboardPageId page in configuredPages)
-            Assert.Equal(2, cases.Count(capture => SelectedPageFor(capture) == page));
+        {
+            Assert.Equal(
+                2,
+                cases.Count(capture => string.Equals(capture.ScenarioId, NormalScenarioFor(page), StringComparison.Ordinal)));
+        }
     }
 
     [Fact]
@@ -119,6 +127,30 @@ public sealed class PorticoCaptureCatalogTests
         Assert.Equal(spendingSet, session.Filters.SpendingSet);
         Assert.Equal(yearOverYearSet, session.Filters.YearOverYearSet);
         Assert.Equal(regularIncome, session.Filters.RegularIncome);
+    }
+
+    [Theory]
+    [InlineData("home-hidden", true, PorticoDataLoadStatus.Loaded)]
+    [InlineData("spending-loading", false, PorticoDataLoadStatus.Loading)]
+    [InlineData("budget-refresh-failed", false, PorticoDataLoadStatus.Failed)]
+    [InlineData("data-health-refresh-unavailable", false, PorticoDataLoadStatus.Unavailable)]
+    public void CreateDisplayState_SpecialScenarioSuppliesTheExpectedVisualState(
+        string scenario,
+        bool hideValues,
+        PorticoDataLoadStatus status)
+    {
+        GameRunContext context = PorticoCaptureCatalog.RunCatalog.CreateContext(new GameRunOptions
+        {
+            StartStateId = PorticoCaptureCatalog.DemoLaunchState,
+            ScenarioId = scenario
+        });
+
+        PorticoDashboardDisplayState state = PorticoCaptureCatalog.CreateDisplayState(context);
+
+        Assert.True(state.IsDemoData);
+        Assert.Equal(hideValues, state.HideValues);
+        Assert.Equal(status, state.LoadStatus);
+        Assert.True(state.HasLastGoodData);
     }
 
     [Theory]
@@ -180,6 +212,22 @@ public sealed class PorticoCaptureCatalogTests
         });
         return PorticoCaptureCatalog.CreateSession(context).CurrentPage;
     }
+
+    private static string NormalScenarioFor(DashboardPageId page)
+        => page switch
+        {
+            DashboardPageId.Home => "home",
+            DashboardPageId.IncomeSavings => "income-savings",
+            DashboardPageId.Spending => "spending",
+            DashboardPageId.YearOverYear => "year-over-year",
+            DashboardPageId.Subscriptions => "subscriptions",
+            DashboardPageId.Merchants => "merchants",
+            DashboardPageId.Budget => "budget",
+            DashboardPageId.TopTransactions => "top-transactions",
+            DashboardPageId.FinancialIndependence => "financial-independence",
+            DashboardPageId.DataHealth => "data-health",
+            _ => throw new ArgumentOutOfRangeException(nameof(page), page, null)
+        };
 
     private static void AssertWithin(LayoutNode parent, LayoutNode child)
     {

@@ -30,6 +30,8 @@ public sealed class PorticoDashboardGame : HostedMonoGameGame
 
     private readonly IInputProvider _inputProvider;
     private readonly InputManager _inputHandler;
+    private readonly PorticoDashboardDisplayState _displayState;
+    private readonly IPorticoRefreshBoundary? _refreshBoundary;
     private readonly ScriptedInputProvider? _scriptedInputProvider;
     private readonly UiInputMap _uiInputMap;
 
@@ -49,12 +51,25 @@ public sealed class PorticoDashboardGame : HostedMonoGameGame
 
     /// <summary>Creates a dashboard that honors a resolved Roci launch context.</summary>
     public PorticoDashboardGame(DashboardSession session, GameRunContext context)
+        : this(session, context, new PorticoDashboardDisplayState())
+    {
+    }
+
+    /// <summary>Creates a dashboard with app-owned display and refresh state.</summary>
+    public PorticoDashboardGame(
+        DashboardSession session,
+        GameRunContext context,
+        PorticoDashboardDisplayState displayState,
+        IPorticoRefreshBoundary? refreshBoundary = null)
         : base(context, CreateHostSettings(context))
     {
         ArgumentNullException.ThrowIfNull(session);
+        ArgumentNullException.ThrowIfNull(displayState);
 
         Content.RootDirectory = "Content";
         Session = session;
+        _displayState = displayState;
+        _refreshBoundary = refreshBoundary;
         _inputHandler = new InputManager(CreateInputConfig(), new InputContextId("ui"));
         GameRunInputProviderResult inputProviderResult = GameRunInputProviders.Create(
             InputScripts,
@@ -102,7 +117,7 @@ public sealed class PorticoDashboardGame : HostedMonoGameGame
         _textMeasurer = _rendering.TextMeasurer!;
 
         RefreshUiViewport();
-        _scene = new PorticoDashboardScene(_uiViewport.LogicalSize, Session);
+        _scene = new PorticoDashboardScene(_uiViewport.LogicalSize, Session, _displayState, _refreshBoundary);
         _scene.Stage.SetCommandConfig(_uiInputMap.CreateCommandConfig());
         _uiRenderPass = new UiRenderPass(
             _scene.Stage,

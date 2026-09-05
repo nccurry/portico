@@ -42,6 +42,37 @@ public sealed class PorticoDashboardSceneTests
     }
 
     [Fact]
+    public async Task Scene_RendersLegacyDefinitionWithSafeRailFallbacks()
+    {
+        string root = FindRepositoryRoot();
+        FinanceSettings settings = TomlConfigurationLoader.LoadFinance(Path.Combine(root, "portico-demo.toml"));
+        PortfolioSnapshot snapshot = await new LocalCsvSnapshotSource(Path.Combine(root, "demo", "data"))
+            .LoadAsync(TestContext.Current.CancellationToken);
+        DashboardDefinition configured = Definition();
+        DashboardDefinition legacy = configured with
+        {
+            Pages = configured.Pages
+                .Select(page => page with
+                {
+                    NavigationGroup = DashboardNavigationGroup.Unspecified,
+                    NavigationOrder = 0,
+                    RailLabel = null,
+                    PageHeading = null,
+                    Icon = DashboardNavigationIcon.None
+                })
+                .ToArray()
+        };
+
+        var scene = new PorticoDashboardScene(
+            new Vector2(1280f, 820f),
+            new DashboardSession(snapshot, settings, legacy));
+
+        Assert.Equal("Home", Text(scene, "NavigationLabel:Home"));
+        Assert.Equal("?", Text(scene, "NavigationIcon:Home"));
+        Assert.Equal("Home", Text(scene, "PageTitle"));
+    }
+
+    [Fact]
     public async Task Scene_BuildsEveryVisiblePageFromTheCheckedInDashboard()
     {
         string root = FindRepositoryRoot();
@@ -190,7 +221,12 @@ public sealed class PorticoDashboardSceneTests
                         new DashboardWidgetDefinition("net-worth", "Net worth", DashboardWidgetKind.AreaChart, "home.net_worth", 2),
                         new DashboardWidgetDefinition("overview", "Overview", DashboardWidgetKind.Metric, "home.overview"),
                         new DashboardWidgetDefinition("safety", "Safety", DashboardWidgetKind.Metric, "home.safety")
-                    ]),
+                    ],
+                    NavigationGroup: DashboardNavigationGroup.Standalone,
+                    NavigationOrder: 1,
+                    RailLabel: "Home",
+                    PageHeading: "Accounts and net worth",
+                    Icon: DashboardNavigationIcon.Home),
                 new DashboardPageDefinition(
                     DashboardPageId.Spending,
                     "Spending",
@@ -199,11 +235,20 @@ public sealed class PorticoDashboardSceneTests
                         new DashboardFilterDefinition("lookback", "Lookback", DashboardFilterKind.Select, "lookback", "3", ["3", "6", "12", "24"]),
                         new DashboardFilterDefinition("spending", "View", DashboardFilterKind.Select, "spending", "all", ["all", "discretionary"])
                     ],
-                    [new DashboardWidgetDefinition("categories", "Categories", DashboardWidgetKind.BarChart, "spending.categories", 2)])
+                    [new DashboardWidgetDefinition("categories", "Categories", DashboardWidgetKind.BarChart, "spending.categories", 2)],
+                    NavigationGroup: DashboardNavigationGroup.Analyze,
+                    NavigationOrder: 2,
+                    RailLabel: "Spending by category",
+                    PageHeading: "Spending by category",
+                    Icon: DashboardNavigationIcon.Category)
             ]);
 
     private static bool HasNode(PorticoDashboardScene scene, string name)
         => scene.Stage.Root.GetSelfAndDescendants().Any(node => node.Name == name);
+
+    private static string Text(PorticoDashboardScene scene, string name)
+        => FindNode(scene, name).TextNodeState?.RawText
+            ?? throw new Xunit.Sdk.XunitException($"Expected text node '{name}'.");
 
     private static LayoutNode FindNode(PorticoDashboardScene scene, string name)
     {

@@ -34,6 +34,62 @@ public enum DashboardPageId
     DataHealth
 }
 
+/// <summary>Identifies the fixed groups shown in the permanent navigation rail.</summary>
+public enum DashboardNavigationGroup
+{
+    /// <summary>Leaves a direct page outside of a labeled group.</summary>
+    Standalone,
+
+    /// <summary>Groups analysis reports.</summary>
+    Analyze,
+
+    /// <summary>Groups financial planning reports.</summary>
+    Plan,
+
+    /// <summary>Groups maintenance reports.</summary>
+    Maintain,
+
+    /// <summary>Marks an older direct definition that has no rail metadata.</summary>
+    Unspecified
+}
+
+/// <summary>Identifies a source navigation icon through a finite C# mapping.</summary>
+public enum DashboardNavigationIcon
+{
+    /// <summary>No icon was supplied by an older direct definition.</summary>
+    None,
+
+    /// <summary>The source home icon.</summary>
+    Home,
+
+    /// <summary>The source savings icon.</summary>
+    Savings,
+
+    /// <summary>The source storefront icon.</summary>
+    Storefront,
+
+    /// <summary>The source category icon.</summary>
+    Category,
+
+    /// <summary>The source comparison icon.</summary>
+    CompareArrows,
+
+    /// <summary>The source subscriptions icon.</summary>
+    Subscriptions,
+
+    /// <summary>The source receipt icon.</summary>
+    ReceiptLong,
+
+    /// <summary>The source wallet icon.</summary>
+    AccountBalanceWallet,
+
+    /// <summary>The source monitoring icon.</summary>
+    Monitoring,
+
+    /// <summary>The source health and safety icon.</summary>
+    HealthAndSafety
+}
+
 /// <summary>Specifies the finite widget grammar accepted by the dashboard configuration.</summary>
 public enum DashboardWidgetKind
 {
@@ -101,7 +157,20 @@ public sealed record DashboardPageDefinition(
     string Description,
     IReadOnlyList<DashboardFilterDefinition> Filters,
     IReadOnlyList<DashboardWidgetDefinition> Widgets,
-    bool Visible = true);
+    bool Visible = true,
+    DashboardNavigationGroup NavigationGroup = DashboardNavigationGroup.Unspecified,
+    int NavigationOrder = 0,
+    string? RailLabel = null,
+    string? PageHeading = null,
+    DashboardNavigationIcon Icon = DashboardNavigationIcon.None)
+{
+    /// <summary>Gets whether this page supplies any navigation metadata that needs validation.</summary>
+    public bool HasNavigationMetadata => NavigationGroup != DashboardNavigationGroup.Unspecified
+        || NavigationOrder != 0
+        || RailLabel is not null
+        || PageHeading is not null
+        || Icon != DashboardNavigationIcon.None;
+}
 
 /// <summary>Represents the complete versioned dashboard presentation file.</summary>
 public sealed record DashboardDefinition(
@@ -132,6 +201,8 @@ public sealed record DashboardDefinition(
             problems.Add("dashboard.pages must contain at least one page.");
 
         var pageIds = new HashSet<DashboardPageId>();
+        var navigationOrders = new HashSet<int>();
+        bool requireNavigationMetadata = Pages.Any(page => page.HasNavigationMetadata);
         var filterDefaults = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (DashboardPageDefinition page in Pages)
         {
@@ -143,6 +214,7 @@ public sealed record DashboardDefinition(
                 problems.Add($"dashboard page '{page.Id}' needs at least one widget.");
 
             ValidatePage(page, problems);
+            ValidateNavigation(page, navigationOrders, problems, requireNavigationMetadata);
             foreach (DashboardFilterDefinition filter in page.Filters)
             {
                 if (filterDefaults.TryGetValue(filter.Source, out string? current)
@@ -218,5 +290,32 @@ public sealed record DashboardDefinition(
                 }
             }
         }
+    }
+
+    private static void ValidateNavigation(
+        DashboardPageDefinition page,
+        HashSet<int> navigationOrders,
+        List<string> problems,
+        bool required)
+    {
+        if (!required)
+            return;
+
+        if (page.NavigationGroup == DashboardNavigationGroup.Unspecified)
+            problems.Add($"dashboard page '{page.Id}' needs a navigation group.");
+        if (page.NavigationOrder < 1)
+            problems.Add($"dashboard page '{page.Id}' navigation order must be positive.");
+        else if (!navigationOrders.Add(page.NavigationOrder))
+            problems.Add($"dashboard navigation order '{page.NavigationOrder}' is duplicated.");
+        if (string.IsNullOrWhiteSpace(page.RailLabel))
+            problems.Add($"dashboard page '{page.Id}' needs a rail label.");
+        if (string.IsNullOrWhiteSpace(page.PageHeading))
+            problems.Add($"dashboard page '{page.Id}' needs a page heading.");
+        if (page.Icon == DashboardNavigationIcon.None)
+            problems.Add($"dashboard page '{page.Id}' needs a navigation icon.");
+        if (page.Id == DashboardPageId.Home && page.NavigationGroup != DashboardNavigationGroup.Standalone)
+            problems.Add("dashboard page 'Home' must be a standalone navigation item.");
+        if (page.Id != DashboardPageId.Home && page.NavigationGroup == DashboardNavigationGroup.Standalone)
+            problems.Add($"dashboard page '{page.Id}' cannot use the standalone navigation group.");
     }
 }

@@ -104,6 +104,10 @@ public sealed class PorticoCliTests
             title = "Home"
             icon = "home"
             description = "Overview"
+            group = "standalone"
+            order = 1
+            rail_label = "Home"
+            page_heading = "Accounts and net worth"
             [[pages.filters]]
             id = "lookback"
             label = "Lookback"
@@ -142,6 +146,10 @@ public sealed class PorticoCliTests
             title = "Home"
             icon = "home"
             description = "Overview"
+            group = "standalone"
+            order = 1
+            rail_label = "Home"
+            page_heading = "Accounts and net worth"
             [[pages.widgets]]
             id = "unknown"
             title = "Unknown"

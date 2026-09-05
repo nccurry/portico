@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using System.Net.Http;
 using Portico.Adapters;
+using Portico.Dashboard;
 using Portico.Finance;
 
 namespace Portico.Adapters.Tests;
@@ -120,6 +121,27 @@ public sealed class AdapterTests
         Assert.Equal("discretionary", finance.FilterSet("spending").Default);
         Assert.Single(dashboard.Pages);
         Assert.Equal("home.net_worth", dashboard.Pages[0].Widgets[0].Report);
+        Assert.Equal(DashboardNavigationGroup.Standalone, dashboard.Pages[0].NavigationGroup);
+        Assert.Equal(1, dashboard.Pages[0].NavigationOrder);
+        Assert.Equal("Home", dashboard.Pages[0].RailLabel);
+        Assert.Equal("Accounts and net worth", dashboard.Pages[0].PageHeading);
+        Assert.Equal(DashboardNavigationIcon.Home, dashboard.Pages[0].Icon);
+    }
+
+    [Fact]
+    public void ConfigurationLoader_RejectsUnknownNavigationMetadata()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"portico-dashboard-{Guid.NewGuid():N}.toml");
+        File.WriteAllText(
+            path,
+            DashboardToml()
+                .Replace("group = \"standalone\"", "group = \"unknown\"", StringComparison.Ordinal)
+                .Replace("icon = \"home\"", "icon = \"unknown\"", StringComparison.Ordinal));
+
+        ConfigurationException error = Assert.Throws<ConfigurationException>(() => TomlConfigurationLoader.LoadDashboard(path));
+
+        Assert.Contains(error.Errors, item => item.Path.EndsWith(".group", StringComparison.Ordinal));
+        Assert.Contains(error.Errors, item => item.Path.EndsWith(".icon", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -249,6 +271,11 @@ public sealed class AdapterTests
         id = "home"
         title = "Home"
         description = "Overview"
+        group = "standalone"
+        order = 1
+        rail_label = "Home"
+        page_heading = "Accounts and net worth"
+        icon = "home"
         [[pages.widgets]]
         id = "net-worth"
         title = "Net worth"

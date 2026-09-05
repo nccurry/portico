@@ -3,6 +3,7 @@ using System.Numerics;
 using Portico.App.Ui;
 using Portico.Dashboard;
 using Roci.Core;
+using Roci.Input;
 using Roci.Ui;
 using Roci.Ui.Rendering;
 
@@ -11,15 +12,31 @@ namespace Portico.App;
 /// <summary>Builds the configuration-driven Portico dashboard from typed reports.</summary>
 public sealed class PorticoDashboardScene
 {
+    private static readonly DashboardNavigationGroup[] NavigationGroups =
+    [
+        DashboardNavigationGroup.Analyze,
+        DashboardNavigationGroup.Plan,
+        DashboardNavigationGroup.Maintain
+    ];
+
     private readonly DashboardSession _session;
+    private readonly PorticoDashboardDisplayState _displayState;
+    private readonly IPorticoRefreshBoundary _refreshBoundary;
     private bool _rebuildRequired;
+    private Task<PorticoRefreshResult>? _refreshTask;
 
     /// <summary>Creates a retained scene for the given dashboard session.</summary>
-    public PorticoDashboardScene(Vector2 viewportSize, DashboardSession session)
+    public PorticoDashboardScene(
+        Vector2 viewportSize,
+        DashboardSession session,
+        PorticoDashboardDisplayState? displayState = null,
+        IPorticoRefreshBoundary? refreshBoundary = null)
     {
         ArgumentNullException.ThrowIfNull(session);
 
         _session = session;
+        _displayState = displayState ?? new PorticoDashboardDisplayState();
+        _refreshBoundary = refreshBoundary ?? new UnavailablePorticoRefreshBoundary();
         Stage = new UiStage(viewportSize, PorticoSkin.Create());
         Stage.ViewportChanged += _ => _rebuildRequired = true;
         Build();
@@ -27,6 +44,9 @@ public sealed class PorticoDashboardScene
 
     /// <summary>Gets the retained Roci stage owned by this scene.</summary>
     public UiStage Stage { get; }
+
+    /// <summary>Gets the small display state shared by the rail and visible page.</summary>
+    public PorticoDashboardDisplayState DisplayState => _displayState;
 
     /// <summary>Selects a configured page for the main content area.</summary>
     public void SelectPage(DashboardPageId pageId)
@@ -42,9 +62,35 @@ public sealed class PorticoDashboardScene
         _rebuildRequired = true;
     }
 
+    /// <summary>Changes the privacy presentation without changing the current report.</summary>
+    public void ToggleHideValues()
+    {
+        _displayState.ToggleHideValues();
+        _rebuildRequired = true;
+    }
+
+    /// <summary>Starts an app-owned source check when no other refresh request is pending.</summary>
+    public void RequestDataRefresh()
+    {
+        if (!_displayState.BeginRefresh())
+            return;
+
+        try
+        {
+            _refreshTask = _refreshBoundary.CheckSourceAsync();
+        }
+        catch (Exception)
+        {
+            _displayState.CompleteRefresh(PorticoRefreshResult.Failed());
+        }
+
+        _rebuildRequired = true;
+    }
+
     /// <summary>Applies pending state changes to the retained UI tree.</summary>
     public void Refresh()
     {
+        CompleteRefreshIfReady();
         if (_rebuildRequired)
             Build();
     }
@@ -66,6 +112,7 @@ public sealed class PorticoDashboardScene
     private void Build()
     {
         _rebuildRequired = false;
+        FocusBookmark? focusBookmark = FocusProcessor.CaptureBookmark(Stage.Root, static node => node.Name);
         Stage.Root.ClearChildren();
 
         Ui.RootPanel()
@@ -89,12 +136,19 @@ public sealed class PorticoDashboardScene
             .SetStyle(PorticoSkin.MainPanelStyle);
 
         DashboardPageDefinition page = CurrentPage();
+        if (_displayState.IsDemoData)
+            BuildDemoDataBanner();
         BuildPageHeader(page);
         BuildContent(page);
 
         Ui.End();
         Ui.EndRootPanel();
         Stage.InvalidateLayout();
+        FocusProcessor.RestoreBookmark(
+            Stage.Root,
+            focusBookmark,
+            FindFocusableNode,
+            CurrentNavigationNode);
     }
 
     private void BuildNavigationRail()
@@ -120,20 +174,151 @@ public sealed class PorticoDashboardScene
             .SetHeight(PorticoSkin.DividerHeight)
             .SetBackgroundColor(PorticoSkin.Border)
         .End();
-        Ui.Text("NAVIGATION", "RailPlaceholderLabel")
-            .SetTextStyle(PorticoSkin.NavigationGroupLabelText)
-            .SetFontStyle(FontStyle.Bold)
-        .End();
-        Ui.Text("Page navigation is added in Phase 2.", "RailPlaceholder")
-            .SetTextStyle(PorticoSkin.HelperText)
-            .SetTextWrap()
-        .End();
+
+        BuildRailNavigation();
+
         Ui.Panel("RailSpacer")
             .SetFlexGrow(1f)
         .End();
-        Ui.Text("Local demo data", "RailStatus")
-            .SetTextStyle(PorticoSkin.HelperText)
+        BuildRailDisplayState();
+
+        Ui.End();
+    }
+
+    private void BuildRailNavigation()
+    {
+        IReadOnlyList<DashboardPageDefinition> pages = NavigationPages();
+        int selectedIndex = pages
+            .Select((page, index) => (page, index))
+            .FirstOrDefault(item => item.page.Id == _session.CurrentPage)
+            .index;
+
+        Ui.VStack(PorticoSkin.CompactGap, "NavigationItems")
+            .SetCrossAlign(CrossAlignment.Stretch)
+            .SetSelectionGroup(
+                SelectionGroupOrientation.Vertical,
+                wrap: true,
+                syncFocus: true,
+                selectOnHover: false,
+                clearSelectionOnPointerMiss: false)
+            .Configure(node =>
+            {
+                SelectionGroupState state = node.GetStateOrDefault<SelectionGroupState>()
+                    ?? throw new InvalidOperationException("Navigation items need a selection group.");
+                state.SelectedIndex = selectedIndex;
+            });
+
+        foreach (DashboardPageDefinition page in pages.Where(page => NavigationGroupFor(page) == DashboardNavigationGroup.Standalone))
+            BuildNavigationItem(page);
+
+        foreach (DashboardNavigationGroup group in NavigationGroups)
+        {
+            DashboardPageDefinition[] groupedPages = pages
+                .Where(page => NavigationGroupFor(page) == group)
+                .ToArray();
+            if (groupedPages.Length == 0)
+                continue;
+
+            Ui.VStack(PorticoSkin.FilterGap, $"NavigationGroup:{group}")
+                .SetCrossAlign(CrossAlignment.Stretch)
+                .SetStyle(PorticoSkin.NavigationGroupPanelStyle);
+            Ui.Text(GroupLabel(group), $"NavigationGroupLabel:{group}")
+                .SetTextStyle(PorticoSkin.NavigationGroupLabelText)
+                .SetFontStyle(FontStyle.Bold)
+            .End();
+            foreach (DashboardPageDefinition page in groupedPages)
+                BuildNavigationItem(page);
+            Ui.End();
+        }
+
+        Ui.End();
+    }
+
+    private void BuildNavigationItem(DashboardPageDefinition page)
+    {
+        bool selected = page.Id == _session.CurrentPage;
+        string label = RailLabel(page);
+
+        Ui.Button($"NavigationItem:{page.Id}")
+            .SetPadding(PorticoSkin.NavigationItemHorizontalPadding, PorticoSkin.NavigationItemVerticalPadding)
+            .SetCornerRadius(PorticoSkin.SmallCornerRadius)
+            .SetStyle(selected ? PorticoSkin.SelectedNavigationActionStyle : PorticoSkin.NavigationActionStyle)
+            .SetSelectionGroupItem()
+            .SetCommandSurface(pointer: true, focus: true, selected: true)
+            .SetOnCommand(
+                _ =>
+                {
+                    SelectPage(page.Id);
+                    return true;
+                },
+                (int)InputCommands.ClickLeft,
+                (int)InputCommands.Accept)
+            .Configure(node => node.Active = selected);
+
+        Ui.HStack(PorticoSkin.NavigationIconGap, $"NavigationContent:{page.Id}")
+            .SetCrossAlign(CrossAlignment.Center)
+            .SetFlexGrow(1f);
+        Ui.Text(PorticoNavigationIcons.Glyph(page.Icon), $"NavigationIcon:{page.Id}")
+            .SetWidth(PorticoSkin.NavigationIconWidth)
+            .SetTextStyle(PorticoSkin.ActionText)
         .End();
+        Ui.Text(label, $"NavigationLabel:{page.Id}")
+            .SetFlexGrow(1f)
+            .SetTextStyle(PorticoSkin.ActionText)
+        .End();
+        Ui.End();
+        Ui.EndButton();
+    }
+
+    private void BuildRailDisplayState()
+    {
+        Ui.VStack(PorticoSkin.CompactGap, "RailGlobalState")
+            .SetCrossAlign(CrossAlignment.Stretch);
+
+        if (_displayState.IsDemoData)
+        {
+            Ui.Panel("RailDemoDataState")
+                .SetPadding(PorticoSkin.StatusPadding)
+                .SetCornerRadius(PorticoSkin.SmallCornerRadius)
+                .SetStyle(PorticoSkin.LoadingPanelStyle);
+            Ui.Text("Demo data", "RailDemoDataLabel")
+                .SetTextStyle(PorticoSkin.HelperText.Overlay(PorticoSkin.LoadingText))
+                .SetFontStyle(FontStyle.Bold)
+            .End();
+            Ui.End();
+        }
+
+        AddButton(
+            "HideValuesAction",
+            _displayState.HideValues ? "Show values" : "Hide values",
+            ToggleHideValues,
+            _displayState.HideValues ? PorticoSkin.SelectedActionStyle : PorticoSkin.QuietActionStyle,
+            compact: true);
+
+        Ui.HStack(PorticoSkin.FilterGap, "RailLoadStatus")
+            .SetCrossAlign(CrossAlignment.Center);
+        Ui.Panel("RailLoadStatusIndicator")
+            .SetSize(PorticoSkin.StatusIndicatorSize, PorticoSkin.StatusIndicatorSize)
+            .SetCornerRadius(PorticoSkin.StatusIndicatorSize)
+            .SetStyle(LoadStatusPanelStyle())
+        .End();
+        Ui.Text(LoadStatusLabel(), "RailLoadStatusLabel")
+            .SetTextStyle(PorticoSkin.HelperText.Overlay(PorticoSkin.ToneTextStyle(LoadStatusTone())))
+            .SetFontStyle(FontStyle.Bold)
+        .End();
+        Ui.End();
+        Ui.Text(_displayState.StatusMessage, "RailLoadStatusMessage")
+            .SetTextStyle(PorticoSkin.HelperText)
+            .SetTextWrap()
+        .End();
+
+        AddButton(
+            "RefreshDataAction",
+            _displayState.LoadStatus == PorticoDataLoadStatus.Loading ? "Refreshing..." : "Refresh data",
+            RequestDataRefresh,
+            PorticoSkin.SecondaryActionStyle,
+            compact: true,
+            enabled: _displayState.LoadStatus != PorticoDataLoadStatus.Loading);
 
         Ui.End();
     }
@@ -148,7 +333,7 @@ public sealed class PorticoDashboardScene
 
         Ui.VStack(PorticoSkin.HeadingGap, "PageHeading");
 
-        Ui.Text(page.Title, "PageTitle")
+        Ui.Text(PageHeading(page), "PageTitle")
             .SetTextStyle(PorticoSkin.PageTitleText)
             .SetFontStyle(FontStyle.Bold)
         .End();
@@ -211,6 +396,9 @@ public sealed class PorticoDashboardScene
             .SetScrollable(vertical: true, horizontal: false)
             .SetPadding(PorticoSkin.MainPadding, PorticoSkin.ShellPadding, PorticoSkin.MainPadding, PorticoSkin.MainPadding);
 
+        if (_displayState.LoadStatus != PorticoDataLoadStatus.Loaded)
+            BuildLoadStatePanel();
+
         DashboardPageReport report = _session.Report.Page(page.Id);
         for (int index = 0; index < page.Widgets.Count;)
         {
@@ -243,6 +431,41 @@ public sealed class PorticoDashboardScene
             Ui.End();
         }
 
+        Ui.End();
+    }
+
+    private void BuildDemoDataBanner()
+    {
+        Ui.HStack(PorticoSkin.FilterGap, "DemoDataBanner")
+            .SetPadding(PorticoSkin.MainPadding, PorticoSkin.DemoBannerVerticalPadding)
+            .SetCrossAlign(CrossAlignment.Center)
+            .SetStyle(PorticoSkin.LoadingPanelStyle);
+        Ui.Text("Demo data", "DemoDataBannerTitle")
+            .SetTextStyle(PorticoSkin.HelperText.Overlay(PorticoSkin.LoadingText))
+            .SetFontStyle(FontStyle.Bold)
+        .End();
+        Ui.Text("Synthetic records are shown in this desktop session.", "DemoDataBannerMessage")
+            .SetTextStyle(PorticoSkin.HelperText)
+        .End();
+        Ui.End();
+    }
+
+    private void BuildLoadStatePanel()
+    {
+        Ui.HStack(PorticoSkin.FilterGap, "LoadStatePanel")
+            .SetPadding(PorticoSkin.StatusPadding)
+            .SetCornerRadius(PorticoSkin.SmallCornerRadius)
+            .SetCrossAlign(CrossAlignment.Center)
+            .SetStyle(LoadStatusPanelStyle());
+        Ui.Text(LoadStatusLabel(), "LoadStateTitle")
+            .SetTextStyle(PorticoSkin.HelperText.Overlay(PorticoSkin.ToneTextStyle(LoadStatusTone())))
+            .SetFontStyle(FontStyle.Bold)
+        .End();
+        Ui.Text(_displayState.StatusMessage, "LoadStateMessage")
+            .SetFlexGrow(1f)
+            .SetTextStyle(PorticoSkin.HelperText)
+            .SetTextWrap()
+        .End();
         Ui.End();
     }
 
@@ -328,7 +551,7 @@ public sealed class PorticoDashboardScene
             Ui.Text(metric.Label, $"MetricLabel:{widgetId}:{metric.Label}")
                 .SetTextStyle(PorticoSkin.MetricLabelText)
             .End();
-            Ui.Text(metric.Display, $"MetricValue:{widgetId}:{metric.Label}")
+            Ui.Text(DisplayPrivateText(metric.Display), $"MetricValue:{widgetId}:{metric.Label}")
                 .SetTextStyle(PorticoSkin.MetricToneTextStyle(metric.Tone))
                 .SetFontStyle(FontStyle.Bold)
             .End();
@@ -417,7 +640,7 @@ public sealed class PorticoDashboardScene
 
         if (ContainsBothSigns(series))
             Ui.ReferenceLine(ChartAxis.Y, 0d).Stroke(PorticoSkin.Border).BelowSeries();
-        Ui.HoverDetails().SetFlexGrow(1f).EndChart();
+        EndChartWithDetails();
     }
 
     private void BuildDateComboChart(DashboardWidgetDefinition widget, IReadOnlyList<ReportSeries> series)
@@ -432,7 +655,7 @@ public sealed class PorticoDashboardScene
         IReadOnlySet<string> barSeries = ValidateComboSeries(widget, values.Select(item => (item.Item.Id, (IReadOnlyList<ChartCategoryValue>)item.Values)));
 
         Ui.CartesianChart($"Chart:{widget.Id}")
-            .XAxis(ChartAxisConfig.Category())
+            .XAxis(ChartAxisConfig.Category(formatter: FormatCategoryAxis))
             .YAxis(ChartAxisConfig.Linear("Value", formatter: FormatAxisValue))
             .Legend(ChartLegendPlacement.Bottom);
 
@@ -459,13 +682,13 @@ public sealed class PorticoDashboardScene
 
         if (ContainsBothSigns(series))
             Ui.ReferenceLine(ChartAxis.Y, 0d).Stroke(PorticoSkin.Border).BelowSeries();
-        Ui.HoverDetails().SetFlexGrow(1f).EndChart();
+        EndChartWithDetails();
     }
 
     private void BuildDateBarChart(DashboardWidgetDefinition widget, IReadOnlyList<ReportSeries> series)
     {
         Ui.CartesianChart($"Chart:{widget.Id}")
-            .XAxis(ChartAxisConfig.Category())
+            .XAxis(ChartAxisConfig.Category(formatter: FormatCategoryAxis))
             .YAxis(ChartAxisConfig.Linear("Value", formatter: FormatAxisValue))
             .Legend(series.Count > 1 ? ChartLegendPlacement.Bottom : ChartLegendPlacement.Hidden);
 
@@ -485,7 +708,7 @@ public sealed class PorticoDashboardScene
 
         if (ContainsBothSigns(series))
             Ui.ReferenceLine(ChartAxis.Y, 0d).Stroke(PorticoSkin.Border).BelowSeries();
-        Ui.HoverDetails().SetFlexGrow(1f).EndChart();
+        EndChartWithDetails();
     }
 
     private void BuildCategoryChart(DashboardWidgetDefinition widget, IReadOnlyList<ReportSeries> series)
@@ -497,7 +720,7 @@ public sealed class PorticoDashboardScene
         }
 
         Ui.CartesianChart($"Chart:{widget.Id}")
-            .XAxis(ChartAxisConfig.Category())
+            .XAxis(ChartAxisConfig.Category(formatter: FormatCategoryAxis))
             .YAxis(ChartAxisConfig.Linear("Value", formatter: FormatAxisValue))
             .Legend(series.Count > 1 ? ChartLegendPlacement.Bottom : ChartLegendPlacement.Hidden);
 
@@ -528,7 +751,7 @@ public sealed class PorticoDashboardScene
 
         if (ContainsBothSigns(series))
             Ui.ReferenceLine(ChartAxis.Y, 0d).Stroke(PorticoSkin.Border).BelowSeries();
-        Ui.HoverDetails().SetFlexGrow(1f).EndChart();
+        EndChartWithDetails();
     }
 
     private void BuildCategoryComboChart(DashboardWidgetDefinition widget, IReadOnlyList<ReportSeries> series)
@@ -541,7 +764,7 @@ public sealed class PorticoDashboardScene
         IReadOnlySet<string> barSeries = ValidateComboSeries(widget, values.Select(item => (item.Item.Id, (IReadOnlyList<ChartCategoryValue>)item.Values)));
 
         Ui.CartesianChart($"Chart:{widget.Id}")
-            .XAxis(ChartAxisConfig.Category())
+            .XAxis(ChartAxisConfig.Category(formatter: FormatCategoryAxis))
             .YAxis(ChartAxisConfig.Linear("Value", formatter: FormatAxisValue))
             .Legend(ChartLegendPlacement.Bottom);
 
@@ -568,7 +791,7 @@ public sealed class PorticoDashboardScene
 
         if (ContainsBothSigns(series))
             Ui.ReferenceLine(ChartAxis.Y, 0d).Stroke(PorticoSkin.Border).BelowSeries();
-        Ui.HoverDetails().SetFlexGrow(1f).EndChart();
+        EndChartWithDetails();
     }
 
     private void BuildNumericChart(DashboardWidgetDefinition widget, IReadOnlyList<ReportSeries> series)
@@ -577,7 +800,7 @@ public sealed class PorticoDashboardScene
             throw new InvalidOperationException($"Dashboard combo chart '{widget.Id}' needs date or category report data.");
 
         Ui.CartesianChart($"Chart:{widget.Id}")
-            .XAxis(ChartAxisConfig.Linear("Position"))
+            .XAxis(ChartAxisConfig.Linear("Position", formatter: FormatAxisValue))
             .YAxis(ChartAxisConfig.Linear("Value", formatter: FormatAxisValue))
             .Legend(series.Count > 1 ? ChartLegendPlacement.Bottom : ChartLegendPlacement.Hidden);
 
@@ -606,7 +829,7 @@ public sealed class PorticoDashboardScene
             }
         }
 
-        Ui.HoverDetails().SetFlexGrow(1f).EndChart();
+        EndChartWithDetails();
     }
 
     private void BuildSparkline(string widgetId, DashboardWidgetReport report)
@@ -659,12 +882,16 @@ public sealed class PorticoDashboardScene
         }
 
         ChartTimelineRange[] ranges = report.TimelineRanges
-            .Select(range => new ChartTimelineRange(range.Category, range.Start, range.End, range.Label))
+            .Select(range => new ChartTimelineRange(
+                DisplayPrivateText(range.Category),
+                range.Start,
+                range.End,
+                DisplayPrivateText(range.Label)))
             .ToArray();
 
         Ui.CartesianChart($"Chart:{widgetId}")
             .XAxis(ChartAxisConfig.Date("Date", formatter: FormatDateAxis))
-            .YAxis(ChartAxisConfig.Category("Merchant"))
+            .YAxis(ChartAxisConfig.Category("Merchant", formatter: FormatCategoryAxis))
             .Legend(ChartLegendPlacement.Hidden)
             .TimelineSeries("ranges")
                 .SeriesLabel("Subscription history")
@@ -679,7 +906,7 @@ public sealed class PorticoDashboardScene
         if (report.DateGuide is DateOnly dateGuide)
             Ui.ReferenceLine(dateGuide).Stroke(PorticoSkin.Warning).GuideLabel("As of");
 
-        Ui.HoverDetails().SetFlexGrow(1f).EndChart();
+        EndChartWithDetails();
     }
 
     private void BuildHeatmap(string widgetId, DashboardWidgetReport report)
@@ -695,12 +922,12 @@ public sealed class PorticoDashboardScene
                 cell.XCategory,
                 cell.YCategory,
                 (double)cell.Value,
-                cell.Display))
+                DisplayPrivateText(cell.Display)))
             .ToArray();
 
         Ui.CartesianChart($"Chart:{widgetId}")
-            .XAxis(ChartAxisConfig.Category("Spending change"))
-            .YAxis(ChartAxisConfig.Category("Return"))
+            .XAxis(ChartAxisConfig.Category("Spending change", formatter: FormatCategoryAxis))
+            .YAxis(ChartAxisConfig.Category("Return", formatter: FormatCategoryAxis))
             .Legend(ChartLegendPlacement.Hidden)
             .HeatmapSeries("sensitivity")
                 .SeriesLabel("Runway")
@@ -710,7 +937,7 @@ public sealed class PorticoDashboardScene
                     ColorScale = ChartHeatmapColorScale.Automatic(PorticoSkin.HeatmapLow, PorticoSkin.HeatmapHigh),
                     CellFillRatio = PorticoSkin.HeatmapCellFillRatio
                 });
-        Ui.HoverDetails().SetFlexGrow(1f).EndChart();
+        EndChartWithDetails();
     }
 
     private void BuildTableRow(string name, IReadOnlyList<string> values, bool header, string? tone)
@@ -722,7 +949,7 @@ public sealed class PorticoDashboardScene
             .SetStyle(header ? PorticoSkin.MutedPanelStyle : PorticoSkin.TablePanelStyle);
         foreach (string value in values)
         {
-            Ui.Text(TrimCell(value), $"{name}:{value}")
+            Ui.Text(TrimCell(header ? value : DisplayPrivateText(value)), $"{name}:{value}")
                 .SetFlexGrow(1f)
                 .SetTextStyle(header
                     ? PorticoSkin.NavigationGroupLabelText
@@ -742,7 +969,13 @@ public sealed class PorticoDashboardScene
         .End();
     }
 
-    private void AddButton(string name, string label, Action action, string style, bool compact = false)
+    private void AddButton(
+        string name,
+        string label,
+        Action action,
+        string style,
+        bool compact = false,
+        bool enabled = true)
     {
         Ui.Button(name)
             .SetPadding(
@@ -750,11 +983,16 @@ public sealed class PorticoDashboardScene
                 compact ? PorticoSkin.CompactActionVerticalPadding : PorticoSkin.ActionVerticalPadding)
             .SetCornerRadius(PorticoSkin.SmallCornerRadius)
             .SetStyle(style)
-            .SetClickable(_ =>
-            {
-                action();
-                return true;
-            });
+            .Enabled(enabled)
+            .SetCommandSurface(pointer: true, focus: true)
+            .SetOnCommand(
+                _ =>
+                {
+                    action();
+                    return true;
+                },
+                (int)InputCommands.ClickLeft,
+                (int)InputCommands.Accept);
         Ui.Text(label, $"{name}:Text")
             .SetTextStyle(compact ? PorticoSkin.CompactActionText : PorticoSkin.ActionText)
             .SetFontStyle(FontStyle.Bold)
@@ -764,6 +1002,91 @@ public sealed class PorticoDashboardScene
 
     private DashboardPageDefinition CurrentPage()
         => _session.Definition.Pages.First(page => page.Id == _session.CurrentPage);
+
+    private void CompleteRefreshIfReady()
+    {
+        if (_refreshTask is not { IsCompleted: true } refreshTask)
+            return;
+
+        _refreshTask = null;
+        try
+        {
+            _displayState.CompleteRefresh(refreshTask.GetAwaiter().GetResult());
+        }
+        catch (Exception)
+        {
+            _displayState.CompleteRefresh(PorticoRefreshResult.Failed());
+        }
+
+        _rebuildRequired = true;
+    }
+
+    private IReadOnlyList<DashboardPageDefinition> NavigationPages()
+        => _session.Definition.Pages
+            .Select((page, index) => (Page: page, Index: index))
+            .Where(item => item.Page.Visible)
+            .OrderBy(item => item.Page.NavigationOrder > 0 ? item.Page.NavigationOrder : item.Index + 1)
+            .Select(item => item.Page)
+            .ToArray();
+
+    private LayoutNode? FindFocusableNode(string name)
+        => Stage.Root.GetSelfAndDescendants()
+            .FirstOrDefault(node => string.Equals(node.Name, name, StringComparison.Ordinal));
+
+    private LayoutNode? CurrentNavigationNode()
+        => FindFocusableNode($"NavigationItem:{_session.CurrentPage}");
+
+    private static DashboardNavigationGroup NavigationGroupFor(DashboardPageDefinition page)
+        => page.NavigationGroup != DashboardNavigationGroup.Unspecified
+            ? page.NavigationGroup
+            : page.Id == DashboardPageId.Home
+                ? DashboardNavigationGroup.Standalone
+                : DashboardNavigationGroup.Analyze;
+
+    private static string GroupLabel(DashboardNavigationGroup group)
+        => group switch
+        {
+            DashboardNavigationGroup.Analyze => "ANALYZE",
+            DashboardNavigationGroup.Plan => "PLAN",
+            DashboardNavigationGroup.Maintain => "MAINTAIN",
+            _ => throw new ArgumentOutOfRangeException(nameof(group), group, "Only labeled navigation groups have a label.")
+        };
+
+    private static string RailLabel(DashboardPageDefinition page)
+        => page.RailLabel ?? page.Title;
+
+    private static string PageHeading(DashboardPageDefinition page)
+        => page.PageHeading ?? page.Title;
+
+    private string LoadStatusPanelStyle()
+        => _displayState.LoadStatus switch
+        {
+            PorticoDataLoadStatus.Loaded => PorticoSkin.PositivePanelStyle,
+            PorticoDataLoadStatus.Loading => PorticoSkin.LoadingPanelStyle,
+            PorticoDataLoadStatus.Failed => PorticoSkin.NegativePanelStyle,
+            PorticoDataLoadStatus.Unavailable => PorticoSkin.WarningPanelStyle,
+            _ => throw new ArgumentOutOfRangeException()
+        };
+
+    private string LoadStatusTone()
+        => _displayState.LoadStatus switch
+        {
+            PorticoDataLoadStatus.Loaded => "positive",
+            PorticoDataLoadStatus.Loading => "loading",
+            PorticoDataLoadStatus.Failed => "negative",
+            PorticoDataLoadStatus.Unavailable => "warning",
+            _ => throw new ArgumentOutOfRangeException()
+        };
+
+    private string LoadStatusLabel()
+        => _displayState.LoadStatus switch
+        {
+            PorticoDataLoadStatus.Loaded => _displayState.IsDemoData ? "Demo data ready" : "Data ready",
+            PorticoDataLoadStatus.Loading => "Refreshing data",
+            PorticoDataLoadStatus.Failed => "Refresh failed",
+            PorticoDataLoadStatus.Unavailable => "Refresh unavailable",
+            _ => throw new ArgumentOutOfRangeException()
+        };
 
     private string CurrentFilterValue(string source)
         => source switch
@@ -827,16 +1150,33 @@ public sealed class PorticoDashboardScene
             _ => value.Replace('_', ' ')
         };
 
-    private static string FormatDateAxis(DateOnly value)
-        => value.ToString("MMM yy", CultureInfo.InvariantCulture);
+    private string FormatDateAxis(DateOnly value)
+        => _displayState.HideValues ? "Hidden" : value.ToString("MMM yy", CultureInfo.InvariantCulture);
 
-    private static string FormatAxisValue(double value)
+    private string FormatAxisValue(double value)
     {
+        if (_displayState.HideValues)
+            return "Hidden";
         if (Math.Abs(value) >= 1_000_000d)
             return $"{value / 1_000_000d:0.#}m";
         if (Math.Abs(value) >= 1_000d)
             return $"{value / 1_000d:0.#}k";
         return value.ToString("0.#", CultureInfo.InvariantCulture);
+    }
+
+    private string FormatCategoryAxis(string value) => DisplayPrivateText(value);
+
+    private string DisplayPrivateText(string? value)
+        => value is null
+            ? string.Empty
+            : _displayState.HideValues && value.Any(char.IsDigit) ? "Hidden" : value;
+
+    private void EndChartWithDetails()
+    {
+        Ui.HoverDetails();
+        if (_displayState.HideValues)
+            Ui.FormatChartTooltip(static _ => "Values hidden.");
+        Ui.SetFlexGrow(1f).EndChart();
     }
 
     private static string TrimCell(string value)

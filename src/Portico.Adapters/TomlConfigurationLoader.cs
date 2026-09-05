@@ -173,6 +173,11 @@ public static class TomlConfigurationLoader
         string title = String(table, "title", path, errors);
         string description = String(table, "description", path, errors);
         bool visible = OptionalBoolean(table, "visible", true, path, errors);
+        string group = String(table, "group", path, errors);
+        int order = Integer(table, "order", path, errors);
+        string railLabel = String(table, "rail_label", path, errors);
+        string pageHeading = String(table, "page_heading", path, errors);
+        string icon = String(table, "icon", path, errors);
         IReadOnlyList<TomlTable> filters = OptionalTables(table, "filters", path, errors);
         IReadOnlyList<TomlTable> widgets = Tables(table, "widgets", path, errors);
         var parsedFilters = new List<DashboardFilterDefinition>(filters.Count);
@@ -206,7 +211,18 @@ public static class TomlConfigurationLoader
                 OptionalStrings(widget, "bar_series", widgetPath, errors)));
         }
 
-        return new DashboardPageDefinition(id, title, description, parsedFilters, parsedWidgets, visible);
+        return new DashboardPageDefinition(
+            id,
+            title,
+            description,
+            parsedFilters,
+            parsedWidgets,
+            visible,
+            ParseNavigationGroup(group, $"{path}.group", errors),
+            order,
+            railLabel,
+            pageHeading,
+            ParseNavigationIcon(icon, $"{path}.icon", errors));
     }
 
     private static IReadOnlyDictionary<string, IReadOnlyList<string>> ParseAliases(TomlTable root, List<ConfigurationError> errors)
@@ -581,6 +597,30 @@ public static class TomlConfigurationLoader
         => ParseEnum(value, path, errors, new Dictionary<string, DashboardFilterKind>(StringComparer.OrdinalIgnoreCase)
         {
             ["select"] = DashboardFilterKind.Select
+        });
+
+    private static DashboardNavigationGroup ParseNavigationGroup(string value, string path, List<ConfigurationError> errors)
+        => ParseEnum(value, path, errors, new Dictionary<string, DashboardNavigationGroup>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["standalone"] = DashboardNavigationGroup.Standalone,
+            ["analyze"] = DashboardNavigationGroup.Analyze,
+            ["plan"] = DashboardNavigationGroup.Plan,
+            ["maintain"] = DashboardNavigationGroup.Maintain
+        });
+
+    private static DashboardNavigationIcon ParseNavigationIcon(string value, string path, List<ConfigurationError> errors)
+        => ParseEnum(value, path, errors, new Dictionary<string, DashboardNavigationIcon>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["home"] = DashboardNavigationIcon.Home,
+            ["savings"] = DashboardNavigationIcon.Savings,
+            ["storefront"] = DashboardNavigationIcon.Storefront,
+            ["category"] = DashboardNavigationIcon.Category,
+            ["compare_arrows"] = DashboardNavigationIcon.CompareArrows,
+            ["subscriptions"] = DashboardNavigationIcon.Subscriptions,
+            ["receipt_long"] = DashboardNavigationIcon.ReceiptLong,
+            ["account_balance_wallet"] = DashboardNavigationIcon.AccountBalanceWallet,
+            ["monitoring"] = DashboardNavigationIcon.Monitoring,
+            ["health_and_safety"] = DashboardNavigationIcon.HealthAndSafety
         });
 
     private static DashboardWidgetKind ParseWidgetKind(string value, string path, List<ConfigurationError> errors)
