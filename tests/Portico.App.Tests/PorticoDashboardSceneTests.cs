@@ -146,6 +146,37 @@ public sealed class PorticoDashboardSceneTests
                 continue;
             }
 
+            if (page.Id == DashboardPageId.Budget)
+            {
+                Assert.True(HasNode(scene, "BudgetControlBar"));
+                Assert.True(HasNode(scene, "BudgetMetricDeck"));
+                Assert.True(HasNode(scene, "Section:daily_budget_pace"));
+                Assert.True(HasNode(scene, "Section:plan_comparison"));
+                Assert.True(HasNode(scene, "Section:budget_group_detail"));
+                Assert.True(HasNode(scene, "Year-to-date position"));
+                continue;
+            }
+
+            if (page.Id == DashboardPageId.FinancialIndependence)
+            {
+                Assert.True(HasNode(scene, "FinancialIndependenceControlBar"));
+                Assert.True(HasNode(scene, "Section:fi_scenario"));
+                Assert.True(HasNode(scene, "FinancialIndependenceMetricDeck"));
+                Assert.True(HasNode(scene, "Section:fi_projection"));
+                Assert.True(HasNode(scene, "FinancialIndependenceFundingSplit"));
+                Assert.True(HasNode(scene, "FinancialIndependenceSourceDetailsTabs"));
+                continue;
+            }
+
+            if (page.Id == DashboardPageId.DataHealth)
+            {
+                Assert.True(HasNode(scene, "DataHealthControlBar"));
+                Assert.True(HasNode(scene, "DataHealthMetricDeck"));
+                Assert.True(HasNode(scene, "Section:health_checks"));
+                Assert.True(HasNode(scene, "Section:health_detail"));
+                continue;
+            }
+
             Assert.All(page.Widgets, widget => Assert.True(HasNode(scene, $"Widget:{widget.Id}")));
         }
 

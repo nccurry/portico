@@ -71,6 +71,15 @@ public sealed record DashboardPageReport(
 
     /// <summary>Gets the optional source-shaped Transactions report view.</summary>
     public TransactionsPageView? TransactionsView { get; init; }
+
+    /// <summary>Gets the optional source-shaped Budget report view.</summary>
+    public BudgetPageView? BudgetView { get; init; }
+
+    /// <summary>Gets the optional source-shaped Financial Independence report view.</summary>
+    public FinancialIndependencePageView? FinancialIndependenceView { get; init; }
+
+    /// <summary>Gets the optional source-shaped Data Health report view.</summary>
+    public DataHealthPageView? DataHealthView { get; init; }
 }
 
 /// <summary>Contains the source-shaped data regions shown by the Income and savings page.</summary>
@@ -145,6 +154,33 @@ public sealed record TransactionsPageView(
     TransactionExplorerAnalysisResult Analysis,
     string? EmptyMessage = null);
 
+/// <summary>Contains the source-shaped data regions shown by the Budget page.</summary>
+public sealed record BudgetPageView(
+    string? LatestDataCaption,
+    BudgetAnalysisResult Analysis,
+    string? SelectedGroup,
+    string TransactionCategory,
+    IReadOnlyList<FinancialTransaction> VisibleTransactions,
+    string? EmptyMessage = null);
+
+/// <summary>Contains the source-shaped data regions shown by the Financial Independence page.</summary>
+public sealed record FinancialIndependencePageView(
+    string? LatestDataCaption,
+    FinancialIndependenceSourceAnalysis Source,
+    FinancialIndependenceScenario Scenario,
+    FinancialIndependenceSummary Summary,
+    IReadOnlyList<PortfolioProjectionPoint> Projection,
+    IReadOnlyList<RunwaySensitivityCell> Sensitivity,
+    string? EmptyMessage = null);
+
+/// <summary>Contains the source-shaped Data Health queue and selected-check detail.</summary>
+public sealed record DataHealthPageView(
+    string? LatestDataCaption,
+    DataHealthAnalysisResult Analysis,
+    string SelectedCheckId,
+    DataHealthCheckResult SelectedCheck,
+    string? EmptyMessage = null);
+
 /// <summary>Represents the complete report snapshot consumed by the desktop renderer.</summary>
 public sealed record DashboardReport(IReadOnlyDictionary<DashboardPageId, DashboardPageReport> Pages)
 {
@@ -173,7 +209,11 @@ public sealed record DashboardFilters(
     IReadOnlyList<string>? SubscriptionCategories = null,
     IReadOnlyList<string>? SubscriptionDiscoveryExclusions = null,
     int SubscriptionMinimumConfidence = 0,
-    TransactionExplorerFilters? TransactionExplorer = null)
+    TransactionExplorerFilters? TransactionExplorer = null,
+    BudgetRequest? Budget = null,
+    FinancialIndependenceSourceFilters? FinancialIndependenceSource = null,
+    FinancialIndependenceScenario? FinancialIndependenceScenario = null,
+    DataHealthCheckOptions? DataHealth = null)
 {
     /// <summary>Gets the page-local Income and savings lookback, preserving older direct callers.</summary>
     public int EffectiveIncomeLookbackMonths => IncomeLookbackMonths > 0 ? IncomeLookbackMonths : LookbackMonths;

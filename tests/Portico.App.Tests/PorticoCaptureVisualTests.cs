@@ -21,22 +21,15 @@ public sealed class PorticoCaptureVisualTests
     private const string CaptureHostProjectPath =
         "tests/Portico.CaptureHost/Portico.CaptureHost.csproj";
 
-    public static TheoryData<CaptureCase> CaptureCases
+    [Fact]
+    [Trait("Category", "VisualCapture")]
+    public async Task CaptureRun_WritesAVerifiedPngForEveryCase()
     {
-        get
-        {
-            var data = new TheoryData<CaptureCase>();
-            foreach (CaptureCase captureCase in PorticoCaptureCatalog.CaptureCatalog.CaptureCases)
-                data.Add(captureCase);
-
-            return data;
-        }
+        foreach (CaptureCase captureCase in PorticoCaptureCatalog.CaptureCatalog.CaptureCases)
+            await CaptureAndVerify(captureCase);
     }
 
-    [Theory]
-    [Trait("Category", "VisualCapture")]
-    [MemberData(nameof(CaptureCases))]
-    public async Task CaptureRun_NamedCaseWritesAVerifiedPng(CaptureCase captureCase)
+    private static async Task CaptureAndVerify(CaptureCase captureCase)
     {
         string root = FindRepositoryRoot();
         string capturePath = ResolveCapturePath(root, captureCase);

@@ -241,6 +241,8 @@ public static class PorticoCli
             "transactions_type" => value is "all" or "expenses" or "income" or "transfers",
             "transactions_focus" => value is "all" or "largest" or "one_off" or "unusual" or "reversals",
             "transactions_breakdown" => value is "group" or "category" or "merchant" or "account" or "type",
+            "fi_spending_lookback" => int.TryParse(value, out int fiMonths)
+                && fiMonths is 6 or 12 or 24 or 36,
             _ => false
         };
 

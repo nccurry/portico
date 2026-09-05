@@ -33,6 +33,7 @@ public static class DashboardReportBuilder
 
         IReadOnlyList<FinancialTransaction> visible = snapshot.Transactions.Where(transaction => !transaction.IsHidden).ToArray();
         DateOnly reportDate = asOfDate ?? snapshot.LatestDate ?? new DateOnly(2000, 1, 1);
+        DateOnly dataHealthDate = snapshot.LatestDate ?? reportDate;
         YearMonth? latestMonth = LatestMonth(snapshot);
         (YearMonth? start, YearMonth? end) = Period(latestMonth, filters.LookbackMonths);
         IReadOnlyList<FinancialTransaction> spending = FilterExpenseSet(visible, settings, filters.SpendingSet, start, end);
@@ -55,10 +56,24 @@ public static class DashboardReportBuilder
                 presentation.Subscriptions,
                 reportDate),
             [DashboardPageId.Merchants] = Merchants(visible, settings, filters, presentation.Merchants),
-            [DashboardPageId.Budget] = Budget(snapshot.Budgets, visible, start, end, settings.Budget.HistoryMonths),
+            [DashboardPageId.Budget] = filters.Budget is { } budgetRequest
+                ? BudgetPage(snapshot.Budgets, visible, budgetRequest, presentation.Budget, reportDate)
+                : Budget(snapshot.Budgets, visible, start, end, settings.Budget.HistoryMonths),
             [DashboardPageId.TopTransactions] = TopTransactions(visible, settings, filters, presentation.Transactions),
-            [DashboardPageId.FinancialIndependence] = FinancialIndependence(visible, accounts, settings, latestMonth, reportDate),
-            [DashboardPageId.DataHealth] = DataHealth(snapshot, settings.DataHealth, settings.Thresholds, reportDate)
+            [DashboardPageId.FinancialIndependence] = filters.FinancialIndependenceSource is not null
+                || filters.FinancialIndependenceScenario is not null
+                ? FinancialIndependencePage(
+                    visible,
+                    accounts,
+                    settings,
+                    filters.FinancialIndependenceSource
+                        ?? FinancialIndependenceSourceAnalysisCalculator.DefaultFilters(accounts, settings),
+                    filters.FinancialIndependenceScenario,
+                    reportDate)
+                : FinancialIndependence(visible, accounts, settings, latestMonth, reportDate),
+            [DashboardPageId.DataHealth] = filters.DataHealth is { } dataHealth
+                ? DataHealthPage(snapshot, dataHealth, presentation.DataHealth.SelectedCheckId, dataHealthDate)
+                : DataHealth(snapshot, settings.DataHealth, settings.Thresholds, reportDate)
         };
         return new DashboardReport(pages);
     }
@@ -75,10 +90,10 @@ public static class DashboardReportBuilder
         "yoy.comparison", "yoy.totals",
         "subscriptions.active", "subscriptions.monthly", "subscriptions.summary", "subscriptions.lifecycle", "subscriptions.history_spend", "subscriptions.history_active", "subscriptions.candidates", "subscriptions.inactive", "subscriptions.detail_charge_history", "subscriptions.detail_charges", "subscriptions.detail_monthly_totals",
         "merchants.ranking", "merchants.history", "merchants.summary", "merchants.overview", "merchants.detail_summary", "merchants.detail_history", "merchants.detail_categories", "merchants.detail_accounts", "merchants.detail_descriptions", "merchants.detail_transactions", "merchants.excluded",
-        "budget.comparison", "budget.history", "budget.table",
+        "budget.summary", "budget.pace", "budget.comparison", "budget.performance", "budget.group_summary", "budget.history", "budget.categories", "budget.category_table", "budget.transactions", "budget.ytd_summary", "budget.ytd_table", "budget.table",
         "top.expenses", "top.incomes", "top.table", "transactions.summary", "transactions.history", "transactions.breakdown", "transactions.table",
-        "fi.summary", "fi.projection", "fi.sensitivity",
-        "health.summary", "health.findings"
+        "fi.summary", "fi.projection", "fi.funding", "fi.sensitivity", "fi.source_accounts", "fi.source_spending", "fi.source_transactions",
+        "health.summary", "health.queue", "health.detail", "health.findings"
     };
 
     private static DashboardPageReport Home(
@@ -1356,6 +1371,192 @@ public static class DashboardReportBuilder
             _ => "Unknown"
         };
 
+    private static DashboardPageReport BudgetPage(
+        IReadOnlyList<BudgetEntry> budgets,
+        IReadOnlyList<FinancialTransaction> transactions,
+        BudgetRequest request,
+        BudgetPresentationState presentation,
+        DateOnly reportDate)
+    {
+        BudgetAnalysisResult analysis = BudgetAnalysisCalculator.Build(budgets, transactions, request);
+        string? selectedGroup = analysis.Groups.Any(entry => string.Equals(
+                entry.Entity,
+                presentation.SelectedGroup,
+                StringComparison.Ordinal))
+            ? presentation.SelectedGroup
+            : analysis.Groups.FirstOrDefault()?.Entity;
+        BudgetGroupDetail? detail = selectedGroup is not null
+            && analysis.GroupDetails.TryGetValue(selectedGroup, out BudgetGroupDetail? value)
+            ? value
+            : null;
+        string category = detail is not null
+            && (presentation.TransactionCategory == "all"
+                || detail.Categories.Any(entry => string.Equals(
+                    entry.Entity,
+                    presentation.TransactionCategory,
+                    StringComparison.Ordinal)))
+            ? presentation.TransactionCategory
+            : "all";
+        IReadOnlyList<FinancialTransaction> visibleTransactions = detail is null
+            ? []
+            : detail.Transactions
+                .Where(transaction => category == "all" || string.Equals(
+                    transaction.Category,
+                    category,
+                    StringComparison.Ordinal))
+                .ToArray();
+        DashboardWidgetReport summary = new(
+            BudgetSummaryMetrics(analysis),
+            [],
+            [],
+            [],
+            analysis.EmptyMessage);
+        DashboardWidgetReport comparison = Chart(
+            Series("budget", "Budget", analysis.Groups.Select(entry => Point(entry.Entity, entry.Budget))),
+            Series("actual", "Spent", analysis.Groups.Select(entry => Point(entry.Entity, entry.Spent))));
+        DashboardWidgetReport pace = Chart(
+            Series("actual", "Actual cumulative", analysis.DailyPace.Select(entry => Point(entry.Date, entry.ActualCumulative))),
+            Series("ideal", "Ideal pace", analysis.DailyPace.Select(entry => Point(entry.Date, entry.IdealCumulative))));
+        DashboardWidgetReport performance = BudgetPerformanceTable(analysis.Groups, analysis.MonthProgress, "Group");
+        DashboardWidgetReport groupSummary = detail is null
+            ? new DashboardWidgetReport([], [], [], [], analysis.EmptyMessage ?? "Select a budget group to inspect it.")
+            : Metrics(
+                Metric("Spent", detail.Performance.Spent),
+                Metric("Budget", detail.Performance.Budget),
+                Metric("Typical month", detail.Performance.TypicalSpending),
+                Metric("Outside the plan", detail.Performance.OutsidePlan));
+        DashboardWidgetReport history = detail is null
+            ? new DashboardWidgetReport([], [], [], [], "Select a budget group to see its history.")
+            : Chart(
+                Series("budget", "Budget", detail.History.Select(entry => Point(entry.Month.Start, entry.Budget))),
+                Series("spent", "Spent", detail.History.Select(entry => Point(entry.Month.Start, entry.Spent))));
+        DashboardWidgetReport categories = detail is null
+            ? new DashboardWidgetReport([], [], [], [], "Select a budget group to see its category drivers.")
+            : Chart(
+                Series("budget", "Budget", detail.Categories.Select(entry => Point(entry.Entity, entry.Budget))),
+                Series("spent", "Spent", detail.Categories.Select(entry => Point(entry.Entity, entry.Spent))));
+        DashboardWidgetReport categoryTable = detail is null
+            ? new DashboardWidgetReport([], [], [], [], "Select a budget group to see its category drivers.")
+            : BudgetPerformanceTable(detail.Categories, analysis.MonthProgress, "Category");
+        DashboardWidgetReport transactionTable = new(
+            [],
+            [],
+            ["Date", "Category", "Description", "Account", "Net spending"],
+            visibleTransactions.Select(transaction => new ReportTableRow([
+                FormatDate(transaction.Date),
+                transaction.Category,
+                transaction.Description,
+                transaction.Account,
+                FormatMoney(-transaction.Amount)
+            ])).ToArray(),
+            detail is null ? "Select a budget group to inspect its transactions." : "No transactions match this category selection.");
+        decimal ytdBudget = analysis.YearToDate.Sum(entry => entry.Budget);
+        decimal ytdSpent = analysis.YearToDate.Sum(entry => entry.Spent);
+        DashboardWidgetReport ytdSummary = Metrics(
+            Metric("YTD spending", ytdSpent),
+            Metric("YTD budget", ytdBudget),
+            Metric("YTD remaining", ytdBudget - ytdSpent),
+            new ReportMetric(
+                "YTD used",
+                ytdBudget > 0m ? ytdSpent / ytdBudget * 100m : null,
+                FormatPercent(ytdBudget > 0m ? ytdSpent / ytdBudget * 100m : null),
+                ytdSpent > ytdBudget && ytdBudget > 0m ? "negative" : null));
+        DashboardWidgetReport ytdTable = BudgetPerformanceTable(analysis.YearToDate, 1m, "Group");
+        var widgets = new Dictionary<string, DashboardWidgetReport>(StringComparer.Ordinal)
+        {
+            ["budget.summary"] = summary,
+            ["budget.pace"] = pace,
+            ["budget.comparison"] = comparison,
+            ["budget.performance"] = performance,
+            ["budget.group_summary"] = groupSummary,
+            ["budget.history"] = history,
+            ["budget.categories"] = categories,
+            ["budget.category_table"] = categoryTable,
+            ["budget.transactions"] = transactionTable,
+            ["budget.ytd_summary"] = ytdSummary,
+            ["budget.ytd_table"] = ytdTable,
+            // Keep older direct report consumers working while the new page uses the source-shaped IDs.
+            ["budget.table"] = performance
+        };
+        return new DashboardPageReport(DashboardPageId.Budget, widgets)
+        {
+            BudgetView = new BudgetPageView(
+                transactions.Count == 0 ? null : $"Spending through {FormatDate(reportDate)}",
+                analysis,
+                selectedGroup,
+                category,
+                visibleTransactions,
+                analysis.EmptyMessage)
+        };
+    }
+
+    private static DashboardWidgetReport BudgetPerformanceTable(
+        IReadOnlyList<BudgetPerformanceEntry> entries,
+        decimal monthProgress,
+        string entityLabel)
+        => new(
+            [],
+            [],
+            [entityLabel, "Status", "Budget", "Spent", "Remaining", "Used", "Vs typical", "Outside plan"],
+            entries.Select(entry => new ReportTableRow([
+                entry.Entity,
+                BudgetStatus(entry, monthProgress),
+                FormatMoney(entry.Budget),
+                FormatMoney(entry.Spent),
+                FormatMoney(entry.Remaining),
+                FormatPercent(entry.PercentUsed),
+                FormatSignedMoney(entry.VersusTypical),
+                FormatMoney(entry.OutsidePlan)
+            ], BudgetTone(entry, monthProgress))).ToArray(),
+            entries.Count == 0 ? "No budget data is available for this selection." : null);
+
+    private static IReadOnlyList<ReportMetric> BudgetSummaryMetrics(BudgetAnalysisResult analysis)
+    {
+        BudgetSummary summary = analysis.Summary;
+        decimal paceDelta = summary.PercentUsed - analysis.MonthProgress * 100m;
+        int within = analysis.Groups.Count(entry => entry.Budget > 0m && entry.Spent <= entry.Budget);
+        int budgeted = analysis.Groups.Count(entry => entry.Budget > 0m);
+        int outside = analysis.Groups.Count(entry => entry.OutsidePlan > 0m);
+        return
+        [
+            new ReportMetric(
+                "Spending",
+                summary.Spent,
+                FormatMoney(summary.Spent),
+                summary.VersusTypical > 0m ? "negative" : null,
+                summary.TypicalSpending > 0m ? $"{FormatSignedMoney(summary.VersusTypical)} vs typical" : null),
+            new ReportMetric("Remaining", summary.Remaining, FormatMoney(summary.Remaining), summary.Remaining < 0m ? "negative" : null, $"{FormatMoney(summary.Budget)} budget"),
+            new ReportMetric(
+                "Budget used",
+                summary.PercentUsed,
+                FormatPercent(summary.PercentUsed),
+                summary.PercentUsed > 100m ? "negative" : null,
+                analysis.MonthProgress < 1m
+                    ? $"{paceDelta:+0.0;-0.0;0.0} pts vs month elapsed"
+                    : $"{within} of {budgeted} groups within budget"),
+            new ReportMetric("Outside the plan", summary.OutsidePlan, FormatMoney(summary.OutsidePlan), summary.OutsidePlan > 0m ? "negative" : null, $"{outside} unbudgeted categories")
+        ];
+    }
+
+    private static string BudgetStatus(BudgetPerformanceEntry entry, decimal monthProgress)
+    {
+        if (entry.Budget <= 0m && entry.Spent > 0m)
+            return "Outside plan";
+        if (entry.Budget > 0m && entry.Spent > entry.Budget)
+            return "Over budget";
+        if (entry.Budget > 0m && monthProgress < 1m && entry.PercentUsed > monthProgress * 100m + 10m)
+            return "Ahead of pace";
+        return "On pace";
+    }
+
+    private static string? BudgetTone(BudgetPerformanceEntry entry, decimal monthProgress)
+        => BudgetStatus(entry, monthProgress) switch
+        {
+            "Over budget" or "Outside plan" => "negative",
+            "Ahead of pace" => "warning",
+            _ => null
+        };
+
     private static DashboardPageReport Budget(
         IReadOnlyList<BudgetEntry> budgets,
         IReadOnlyList<FinancialTransaction> spending,
@@ -1562,6 +1763,267 @@ public static class DashboardReportBuilder
         };
         return new DashboardPageReport(DashboardPageId.FinancialIndependence, widgets);
     }
+
+    private static DashboardPageReport FinancialIndependencePage(
+        IReadOnlyList<FinancialTransaction> transactions,
+        IReadOnlyList<AccountBalance> accounts,
+        FinanceSettings settings,
+        FinancialIndependenceSourceFilters sourceFilters,
+        FinancialIndependenceScenario? selectedScenario,
+        DateOnly reportDate)
+    {
+        FinancialIndependenceSourceAnalysis source = FinancialIndependenceSourceAnalysisCalculator.Build(
+            accounts,
+            transactions,
+            sourceFilters);
+        FinancialIndependenceScenario scenario = selectedScenario
+            ?? FinancialIndependenceSourceAnalysisCalculator.DefaultScenario(source, settings.FinancialIndependence);
+        scenario.Validate();
+        FinancialIndependenceSummary summary = FinancialIndependenceCalculator.Summarize(
+            scenario.Assets,
+            scenario.AnnualSpending,
+            scenario.ExpectedReturnRate,
+            scenario.AnnualIncome,
+            scenario.WithdrawalRate);
+        IReadOnlyList<PortfolioProjectionPoint> projection = FinancialIndependenceCalculator.Project(
+            scenario.Assets,
+            scenario.AnnualSpending,
+            scenario.ExpectedReturnRate,
+            scenario.ProjectionYears,
+            scenario.AnnualIncome);
+        decimal[] spendingChanges = [-20m, -10m, 0m, 10m, 20m];
+        decimal[] returns = [0m, 3m, 5m, scenario.ExpectedReturnRate, 9m];
+        IReadOnlyList<RunwaySensitivityCell> sensitivity = FinancialIndependenceCalculator.BuildSensitivity(
+            scenario.Assets,
+            scenario.AnnualSpending,
+            scenario.AnnualIncome,
+            spendingChanges,
+            returns.Distinct().Order().ToArray());
+        string runway = summary.RunwayYears is null ? "Sustainable" : $"{summary.RunwayYears:0.0} years";
+        var widgets = new Dictionary<string, DashboardWidgetReport>(StringComparer.Ordinal)
+        {
+            ["fi.summary"] = Metrics(
+                new ReportMetric("Runway", summary.RunwayYears, runway, summary.RunwayYears is null ? "positive" : null, summary.RunwayYears is null ? "Portfolio does not deplete" : "Until portfolio reaches $0"),
+                new ReportMetric("Annual gap", summary.AnnualSurplus, FormatSignedMoney(summary.AnnualSurplus), summary.AnnualSurplus >= 0m ? "positive" : "negative", summary.AnnualSurplus >= 0m ? "Annual surplus" : "Annual shortfall"),
+                new ReportMetric("Net portfolio spending", summary.NetAnnualSpending, FormatMoney(summary.NetAnnualSpending), null, $"{FormatMoney(summary.SustainableSpending)} supported at withdrawal rate"),
+                new ReportMetric("FI target", summary.FinancialIndependenceTarget, FormatMoney(summary.FinancialIndependenceTarget), summary.FundingGap >= 0m ? "positive" : "negative", summary.FundingGap >= 0m ? $"{FormatMoney(summary.FundingGap)} above target" : $"{FormatMoney(-summary.FundingGap)} still needed")),
+            ["fi.projection"] = Chart(Series("portfolio", "Projected portfolio", projection.Select(point => Point(new DateOnly(reportDate.Year + point.Year, 1, 1), point.Balance)))),
+            ["fi.funding"] = Chart(
+                Series("investment-return", "Investment return", [Point("Annual funding", summary.AnnualReturn)]),
+                Series("earned-income", "Earned income", [Point("Annual funding", summary.AnnualIncome)]),
+                Series("spending", "Spending", [Point("Annual funding", -summary.AnnualSpending)])),
+            ["fi.sensitivity"] = SensitivityReport(sensitivity, scenario.AnnualSpending),
+            ["fi.source_accounts"] = new DashboardWidgetReport(
+                [],
+                [],
+                ["Group", "Account", "Balance"],
+                source.Accounts.Select(account => new ReportTableRow([account.Group, account.Account, FormatMoney(account.SignedBalance)])).ToArray(),
+                source.Accounts.Count == 0 ? "No portfolio accounts are selected." : null),
+            ["fi.source_spending"] = Chart(Series("spending", "Spending", source.MonthlySpending.Select(entry => Point(entry.Month.Start, entry.Spending)))),
+            ["fi.source_transactions"] = new DashboardWidgetReport(
+                [],
+                [],
+                ["Date", "Description", "Group", "Category", "Account", "Spending"],
+                source.Expenses.Select(transaction => new ReportTableRow([
+                    FormatDate(transaction.Date),
+                    transaction.Description,
+                    transaction.Group,
+                    transaction.Category,
+                    transaction.Account,
+                    FormatMoney(-transaction.Amount)
+                ])).ToArray(),
+                source.Expenses.Count == 0 ? "No expense rows are included in this source range." : null)
+        };
+        return new DashboardPageReport(DashboardPageId.FinancialIndependence, widgets)
+        {
+            FinancialIndependenceView = new FinancialIndependencePageView(
+                transactions.Count == 0 ? null : $"Transactions through {FormatDate(reportDate)}",
+                source,
+                scenario,
+                summary,
+                projection,
+                sensitivity,
+                transactions.Count == 0 && accounts.Count == 0 ? "Transaction and balance history are required for this analysis." : null)
+        };
+    }
+
+    private static DashboardWidgetReport SensitivityReport(
+        IReadOnlyList<RunwaySensitivityCell> sensitivity,
+        decimal baselineSpending)
+        => new(
+            [],
+            sensitivity
+                .GroupBy(cell => cell.ReturnRate)
+                .OrderBy(group => group.Key)
+                .Select(group => Series(
+                    $"return-{group.Key:0.##}",
+                    $"{group.Key:0.##}% return",
+                    group.Select(cell => Point(SpendingChangeLabel(cell.AnnualSpending, baselineSpending), cell.RunwayYears ?? 100m))))
+                .ToArray(),
+            ["Spending change", "Return", "Runway"],
+            sensitivity.Select(cell => new ReportTableRow([
+                SpendingChangeLabel(cell.AnnualSpending, baselineSpending),
+                $"{cell.ReturnRate:0.##}%",
+                cell.RunwayYears is null ? "Sustainable" : $"{cell.RunwayYears:0.0} years"
+            ])).ToArray(),
+            "A sustainable scenario is shown without a finite runway.")
+        {
+            HeatmapCells = sensitivity
+                .Select(cell => new ReportHeatmapCell(
+                    SpendingChangeLabel(cell.AnnualSpending, baselineSpending),
+                    $"{cell.ReturnRate:0.##}% return",
+                    cell.RunwayYears ?? 100m,
+                    cell.RunwayYears is null ? "Sustainable" : $"{cell.RunwayYears:0.0} years"))
+                .ToArray()
+        };
+
+    private static string SpendingChangeLabel(decimal spending, decimal baseline)
+    {
+        if (baseline == 0m)
+            return "Baseline";
+        decimal change = (spending / baseline - 1m) * 100m;
+        return change == 0m ? "Baseline" : $"{change:+0;-0;0}%";
+    }
+
+    private static DashboardPageReport DataHealthPage(
+        PortfolioSnapshot snapshot,
+        DataHealthCheckOptions options,
+        string selectedCheckId,
+        DateOnly asOfDate)
+    {
+        DataHealthAnalysisResult analysis = DataHealthAnalysisCalculator.Build(
+            snapshot.Transactions,
+            snapshot.Balances,
+            options,
+            asOfDate);
+        DataHealthCheckResult selected = analysis.Checks.FirstOrDefault(check => string.Equals(
+                check.Id,
+                selectedCheckId,
+                StringComparison.Ordinal))
+            ?? analysis.Checks[0];
+        int transactionCount = snapshot.Transactions.Count(transaction => options.IncludeInactive || !transaction.IsHidden);
+        DashboardWidgetReport queue = new(
+            [],
+            [],
+            ["Status", "Check", "Findings", "Financial scope", "Next step"],
+            analysis.Checks.Select(check => new ReportTableRow([
+                check.Status,
+                check.Name,
+                check.FindingCount.ToString(CultureInfo.InvariantCulture),
+                check.FindingCount == 0 ? "—" : FormatMoney(check.FinancialScope),
+                check.Action
+            ], HealthTone(check.Status))).ToArray());
+        DashboardWidgetReport detail = DataHealthDetailReport(selected);
+        string? emptyMessage = snapshot.Transactions.Count == 0 && snapshot.Balances.Count == 0
+            ? "No transaction or balance data is available."
+            : null;
+        var widgets = new Dictionary<string, DashboardWidgetReport>(StringComparer.Ordinal)
+        {
+            ["health.summary"] = Metrics(
+                new ReportMetric(
+                    "Needs attention",
+                    analysis.NeedsAttention,
+                    analysis.NeedsAttention.ToString(CultureInfo.InvariantCulture),
+                    analysis.NeedsAttention == 0 ? "positive" : "negative"),
+                new ReportMetric(
+                    "Review items",
+                    analysis.ReviewItems,
+                    analysis.ReviewItems.ToString(CultureInfo.InvariantCulture),
+                    analysis.ReviewItems == 0 ? "positive" : "warning"),
+                new ReportMetric(
+                    "Transactions through",
+                    analysis.LatestTransactionDate?.DayNumber,
+                    FormatDateOrNoData(analysis.LatestTransactionDate),
+                    null,
+                    $"{transactionCount.ToString(CultureInfo.InvariantCulture)} rows"),
+                new ReportMetric(
+                    "Balances through",
+                    analysis.LatestBalanceDate?.DayNumber,
+                    FormatDateOrNoData(analysis.LatestBalanceDate),
+                    null,
+                    $"{analysis.AccountCount.ToString(CultureInfo.InvariantCulture)} accounts")),
+            ["health.queue"] = queue,
+            ["health.detail"] = detail,
+            ["health.findings"] = queue
+        };
+        return new DashboardPageReport(DashboardPageId.DataHealth, widgets)
+        {
+            DataHealthView = new DataHealthPageView(
+                "Review source freshness, mapping gaps, and suspicious records.",
+                analysis,
+                selected.Id,
+                selected,
+                emptyMessage)
+        };
+    }
+
+    private static DashboardWidgetReport DataHealthDetailReport(DataHealthCheckResult check)
+    {
+        if (check.Id == "duplicates")
+        {
+            return new DashboardWidgetReport(
+                [],
+                [],
+                ["Date 1", "Date 2", "Days apart", "Amount", "Account 1", "Account 2", "Description 1", "Description 2"],
+                check.DuplicatePairs.Select(pair => new ReportTableRow([
+                    FormatDate(pair.First.Date),
+                    FormatDate(pair.Second.Date),
+                    pair.DaysApart.ToString(CultureInfo.InvariantCulture),
+                    FormatMoney(decimal.Abs(pair.First.Amount)),
+                    pair.First.Account,
+                    pair.Second.Account,
+                    pair.First.Description,
+                    pair.Second.Description
+                ], "warning")).ToArray(),
+                check.FindingCount == 0 ? "No findings for this check." : null);
+        }
+
+        if (check.Id is "account_mapping" or "stale_accounts")
+        {
+            string finalColumn = check.Id == "stale_accounts" ? "Days stale" : "Missing fields";
+            return new DashboardWidgetReport(
+                [],
+                [],
+                ["Latest date", "Account", "Group", "Balance", finalColumn],
+                check.Records.Select(record => new ReportTableRow([
+                    FormatDateOrNoData(record.Date),
+                    record.Account,
+                    record.Group,
+                    record.Amount is null ? "—" : FormatMoney(record.Amount.Value),
+                    record.Details
+                ], HealthTone(check.Status))).ToArray(),
+                check.FindingCount == 0 ? "No findings for this check." : null);
+        }
+
+        string detailsColumn = check.Id switch
+        {
+            "incomplete" => "Missing fields",
+            "reversals" => "Review reason",
+            _ => "Details"
+        };
+        return new DashboardWidgetReport(
+            [],
+            [],
+            ["Date", "Description", "Account", "Category", "Group", "Amount", detailsColumn],
+            check.Records.Select(record => new ReportTableRow([
+                FormatDateOrNoData(record.Date),
+                record.Description,
+                record.Account,
+                record.Category,
+                record.Group,
+                record.Amount is null ? "—" : FormatMoney(record.Amount.Value),
+                record.Details
+            ], HealthTone(check.Status))).ToArray(),
+            check.FindingCount == 0 ? "No findings for this check." : null);
+    }
+
+    private static string HealthTone(string status)
+        => status switch
+        {
+            "Needs attention" => "negative",
+            "Review" => "warning",
+            _ => "positive"
+        };
 
     private static DashboardPageReport DataHealth(
         PortfolioSnapshot snapshot,
@@ -1936,6 +2398,9 @@ public static class DashboardReportBuilder
 
     private static string FormatDate(DateOnly value)
         => value.ToString("MMM d, yyyy", CultureInfo.GetCultureInfo("en-US"));
+
+    private static string FormatDateOrNoData(DateOnly? value)
+        => value is null ? "No data" : FormatDate(value.Value);
 
     private static string Slug(string value)
     {

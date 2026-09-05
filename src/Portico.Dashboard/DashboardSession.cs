@@ -31,6 +31,8 @@ public sealed class DashboardSession
         Presentation = new DashboardPresentationState();
         Presentation.InitializeIncomeSavings(settings);
         Presentation.SetIncomeSavingsAdjustments(regular: true, IncomeSavingsDefaultAdjustments(regular: true));
+        InitializePlanFilters();
+        InitializeDataHealthFilters();
         foreach (DashboardFilterDefinition filter in definition.Pages
                      .SelectMany(page => page.Filters)
                      .GroupBy(filter => filter.Source, StringComparer.Ordinal)
@@ -75,6 +77,14 @@ public sealed class DashboardSession
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(source);
         ArgumentNullException.ThrowIfNull(value);
+        if (string.Equals(source, "fi_spending_lookback", StringComparison.Ordinal))
+        {
+            SetFinancialIndependenceSource(CurrentFinancialIndependenceSource with
+            {
+                SpendingLookbackMonths = int.Parse(value, CultureInfo.InvariantCulture)
+            });
+            return;
+        }
         if (string.Equals(source, "year_over_year_view", StringComparison.Ordinal))
         {
             SetYearOverYearView(value);
@@ -85,7 +95,9 @@ public sealed class DashboardSession
         if (updated == Filters)
             return;
 
+        updated.DataHealth?.Validate();
         Filters = updated;
+        SyncDataHealthPresentation(source);
         RebuildReport();
     }
 
@@ -210,6 +222,60 @@ public sealed class DashboardSession
             case DashboardControlSource.TransactionsAccounts:
                 SetTransactionExplorer(CurrentTransactionExplorer with { Accounts = selected });
                 return;
+            case DashboardControlSource.BudgetGroups:
+                SetBudgetRequest(CurrentBudgetRequest with { Groups = selected });
+                return;
+            case DashboardControlSource.BudgetExcludedGroups:
+                SetBudgetRequest(CurrentBudgetRequest with
+                {
+                    Adjustments = CurrentBudgetRequest.Adjustments with { ExcludedGroups = selected }
+                });
+                return;
+            case DashboardControlSource.BudgetExcludedCategories:
+                SetBudgetRequest(CurrentBudgetRequest with
+                {
+                    Adjustments = CurrentBudgetRequest.Adjustments with { ExcludedCategories = selected }
+                });
+                return;
+            case DashboardControlSource.BudgetIncludedDescriptions:
+                SetBudgetRequest(CurrentBudgetRequest with
+                {
+                    Adjustments = CurrentBudgetRequest.Adjustments with { IncludedDescriptions = selected }
+                });
+                return;
+            case DashboardControlSource.BudgetExcludedDescriptions:
+                SetBudgetRequest(CurrentBudgetRequest with
+                {
+                    Adjustments = CurrentBudgetRequest.Adjustments with { ExcludedDescriptions = selected }
+                });
+                return;
+            case DashboardControlSource.FinancialIndependenceIncludedAccounts:
+                SetFinancialIndependenceSource(CurrentFinancialIndependenceSource with { IncludedAccounts = selected });
+                return;
+            case DashboardControlSource.FinancialIndependenceExcludedGroups:
+                SetFinancialIndependenceSource(CurrentFinancialIndependenceSource with
+                {
+                    Adjustments = CurrentFinancialIndependenceSource.Adjustments with { ExcludedGroups = selected }
+                });
+                return;
+            case DashboardControlSource.FinancialIndependenceExcludedCategories:
+                SetFinancialIndependenceSource(CurrentFinancialIndependenceSource with
+                {
+                    Adjustments = CurrentFinancialIndependenceSource.Adjustments with { ExcludedCategories = selected }
+                });
+                return;
+            case DashboardControlSource.FinancialIndependenceIncludedDescriptions:
+                SetFinancialIndependenceSource(CurrentFinancialIndependenceSource with
+                {
+                    Adjustments = CurrentFinancialIndependenceSource.Adjustments with { IncludedDescriptions = selected }
+                });
+                return;
+            case DashboardControlSource.FinancialIndependenceExcludedDescriptions:
+                SetFinancialIndependenceSource(CurrentFinancialIndependenceSource with
+                {
+                    Adjustments = CurrentFinancialIndependenceSource.Adjustments with { ExcludedDescriptions = selected }
+                });
+                return;
             default:
                 throw new ArgumentException($"Dashboard control '{pageId}.{controlId}' does not accept multiple values.", nameof(controlId));
         }
@@ -226,7 +292,7 @@ public sealed class DashboardSession
             || control.Step is null
             || value < control.Minimum
             || value > control.Maximum
-            || decimal.Remainder(value - control.Minimum.Value, control.Step.Value) != 0m)
+            || !MatchesNumberStep(pageId, control, value))
         {
             throw new ArgumentOutOfRangeException(nameof(value), value, $"Value must use the configured range and step for '{pageId}.{controlId}'.");
         }
@@ -239,6 +305,14 @@ public sealed class DashboardSession
                 return;
             case DashboardControlSource.DataHealthStaleThreshold:
                 Presentation.SetDataHealthStaleThreshold(value);
+                if (UsesSourceDataHealthPage())
+                    SetDataHealthOptions(CurrentDataHealthOptions with { StaleAccountDays = (int)value });
+                return;
+            case DashboardControlSource.DataHealthDuplicateDays:
+                SetDataHealthOptions(CurrentDataHealthOptions with { DuplicateDays = (int)value });
+                return;
+            case DashboardControlSource.DataHealthDuplicateMinimum:
+                SetDataHealthOptions(CurrentDataHealthOptions with { DuplicateMinimum = value });
                 return;
             case DashboardControlSource.SpendingExpenseLimit:
                 SetSpendingAdjustments(CurrentSpendingAdjustments with { ExpenseLimit = value });
@@ -268,6 +342,36 @@ public sealed class DashboardSession
             case DashboardControlSource.TransactionsLargestCount:
                 SetTransactionExplorer(CurrentTransactionExplorer with { LargestCount = (int)value });
                 return;
+            case DashboardControlSource.BudgetExpenseLimit:
+                SetBudgetRequest(CurrentBudgetRequest with
+                {
+                    Adjustments = CurrentBudgetRequest.Adjustments with { ExpenseLimit = value }
+                });
+                return;
+            case DashboardControlSource.FinancialIndependenceAssets:
+                SetFinancialIndependenceScenario(CurrentFinancialIndependenceScenario with { Assets = value });
+                return;
+            case DashboardControlSource.FinancialIndependenceSpending:
+                SetFinancialIndependenceScenario(CurrentFinancialIndependenceScenario with { AnnualSpending = value });
+                return;
+            case DashboardControlSource.FinancialIndependenceIncome:
+                SetFinancialIndependenceScenario(CurrentFinancialIndependenceScenario with { AnnualIncome = value });
+                return;
+            case DashboardControlSource.FinancialIndependenceReturnRate:
+                SetFinancialIndependenceScenario(CurrentFinancialIndependenceScenario with { ExpectedReturnRate = value });
+                return;
+            case DashboardControlSource.FinancialIndependenceWithdrawalRate:
+                SetFinancialIndependenceScenario(CurrentFinancialIndependenceScenario with { WithdrawalRate = value });
+                return;
+            case DashboardControlSource.FinancialIndependenceProjectionYears:
+                SetFinancialIndependenceScenario(CurrentFinancialIndependenceScenario with { ProjectionYears = (int)value });
+                return;
+            case DashboardControlSource.FinancialIndependenceExpenseLimit:
+                SetFinancialIndependenceSource(CurrentFinancialIndependenceSource with
+                {
+                    Adjustments = CurrentFinancialIndependenceSource.Adjustments with { ExpenseLimit = value }
+                });
+                return;
             default:
                 throw new ArgumentException($"Dashboard control '{pageId}.{controlId}' does not accept a number.", nameof(controlId));
         }
@@ -285,6 +389,17 @@ public sealed class DashboardSession
         {
             case DashboardControlSource.DataHealthIncludeInactive:
                 Presentation.SetDataHealthIncludeInactive(value);
+                if (UsesSourceDataHealthPage())
+                    SetDataHealthOptions(CurrentDataHealthOptions with { IncludeInactive = value });
+                return;
+            case DashboardControlSource.DataHealthDuplicateSameAccount:
+                SetDataHealthOptions(CurrentDataHealthOptions with { DuplicateRequireSameAccount = value });
+                return;
+            case DashboardControlSource.DataHealthDuplicateSameCategory:
+                SetDataHealthOptions(CurrentDataHealthOptions with { DuplicateRequireSameCategory = value });
+                return;
+            case DashboardControlSource.DataHealthDuplicateSameDescription:
+                SetDataHealthOptions(CurrentDataHealthOptions with { DuplicateRequireSameDescription = value });
                 return;
             case DashboardControlSource.SpendingExcludeLargeExpenses:
                 SetSpendingAdjustments(CurrentSpendingAdjustments with { ExcludeLargeExpenses = value });
@@ -297,6 +412,18 @@ public sealed class DashboardSession
                 return;
             case DashboardControlSource.MerchantExcludeLargeExpenses:
                 SetMerchantAdjustments(CurrentMerchantAdjustments with { ExcludeLargeExpenses = value });
+                return;
+            case DashboardControlSource.BudgetExcludeLargeExpenses:
+                SetBudgetRequest(CurrentBudgetRequest with
+                {
+                    Adjustments = CurrentBudgetRequest.Adjustments with { ExcludeLargeExpenses = value }
+                });
+                return;
+            case DashboardControlSource.FinancialIndependenceExcludeLargeExpenses:
+                SetFinancialIndependenceSource(CurrentFinancialIndependenceSource with
+                {
+                    Adjustments = CurrentFinancialIndependenceSource.Adjustments with { ExcludeLargeExpenses = value }
+                });
                 return;
             default:
                 throw new ArgumentException($"Dashboard control '{pageId}.{controlId}' does not accept a toggle value.", nameof(controlId));
@@ -314,9 +441,27 @@ public sealed class DashboardSession
         switch (mapping.Source)
         {
             case DashboardControlSource.FinancialIndependenceReset:
-                Presentation.ResetFinancialIndependence(ConfiguredNumberDefault(
-                    DashboardPageId.FinancialIndependence,
-                    "target_amount"));
+                if (!UsesSourceFinancialIndependencePage())
+                {
+                    Presentation.ResetFinancialIndependence(ConfiguredNumberDefault(
+                        DashboardPageId.FinancialIndependence,
+                        "target_amount"));
+                    RebuildReport();
+                    return;
+                }
+
+                FinancialIndependenceSourceAnalysis source = FinancialIndependenceSourceAnalysisCalculator.Build(
+                    PortfolioCalculator.LatestBalances(_snapshot.Balances),
+                    _snapshot.Transactions,
+                    CurrentFinancialIndependenceSource);
+                Filters = Filters with
+                {
+                    FinancialIndependenceScenario = FinancialIndependenceSourceAnalysisCalculator.DefaultScenario(
+                        source,
+                        _settings.FinancialIndependence)
+                };
+                Presentation.ResetFinancialIndependence(_settings.FinancialIndependence.TargetAmount);
+                RebuildReport();
                 return;
             case DashboardControlSource.SpendingReset:
                 Filters = Filters with
@@ -336,6 +481,12 @@ public sealed class DashboardSession
                     MerchantAdjustments = SpendingAdjustments.Default(ConfiguredMerchantExpenseLimit())
                 };
                 RebuildReport();
+                return;
+            case DashboardControlSource.BudgetReset:
+                SetBudgetRequest(CurrentBudgetRequest with
+                {
+                    Adjustments = SpendingAdjustments.Default(ConfiguredBudgetExpenseLimit())
+                });
                 return;
             default:
                 throw new ArgumentException($"Dashboard control '{pageId}.{controlId}' does not have a reset action.", nameof(controlId));
@@ -374,6 +525,11 @@ public sealed class DashboardSession
             DashboardControlOptionSource.AllAccounts => AllTransactionOptions(transaction => transaction.Account),
             DashboardControlOptionSource.SubscriptionDiscoveryCategories => SubscriptionDiscoveryCategoryOptions(),
             DashboardControlOptionSource.MerchantMonths => MerchantMonthOptions(),
+            DashboardControlOptionSource.BudgetMonths => BudgetMonthOptions(),
+            DashboardControlOptionSource.BudgetGroups => BudgetGroupOptions(),
+            DashboardControlOptionSource.BudgetTransactionCategories => BudgetTransactionCategoryOptions(),
+            DashboardControlOptionSource.FinancialIndependenceAccounts => FinancialIndependenceAccountOptions(),
+            DashboardControlOptionSource.DataHealthChecks => DataHealthCheckIds(),
             _ => throw new ArgumentOutOfRangeException(nameof(control.OptionSource))
         };
     }
@@ -404,6 +560,16 @@ public sealed class DashboardSession
             DashboardControlSource.TransactionsGroups => CurrentTransactionExplorer.Groups.ToHashSet(StringComparer.Ordinal),
             DashboardControlSource.TransactionsCategories => CurrentTransactionExplorer.Categories.ToHashSet(StringComparer.Ordinal),
             DashboardControlSource.TransactionsAccounts => CurrentTransactionExplorer.Accounts.ToHashSet(StringComparer.Ordinal),
+            DashboardControlSource.BudgetGroups => CurrentBudgetRequest.Groups.ToHashSet(StringComparer.Ordinal),
+            DashboardControlSource.BudgetExcludedGroups => CurrentBudgetRequest.Adjustments.ExcludedGroups.ToHashSet(StringComparer.Ordinal),
+            DashboardControlSource.BudgetExcludedCategories => CurrentBudgetRequest.Adjustments.ExcludedCategories.ToHashSet(StringComparer.Ordinal),
+            DashboardControlSource.BudgetIncludedDescriptions => CurrentBudgetRequest.Adjustments.IncludedDescriptions.ToHashSet(StringComparer.Ordinal),
+            DashboardControlSource.BudgetExcludedDescriptions => CurrentBudgetRequest.Adjustments.ExcludedDescriptions.ToHashSet(StringComparer.Ordinal),
+            DashboardControlSource.FinancialIndependenceIncludedAccounts => CurrentFinancialIndependenceSource.IncludedAccounts.ToHashSet(StringComparer.Ordinal),
+            DashboardControlSource.FinancialIndependenceExcludedGroups => CurrentFinancialIndependenceSource.Adjustments.ExcludedGroups.ToHashSet(StringComparer.Ordinal),
+            DashboardControlSource.FinancialIndependenceExcludedCategories => CurrentFinancialIndependenceSource.Adjustments.ExcludedCategories.ToHashSet(StringComparer.Ordinal),
+            DashboardControlSource.FinancialIndependenceIncludedDescriptions => CurrentFinancialIndependenceSource.Adjustments.IncludedDescriptions.ToHashSet(StringComparer.Ordinal),
+            DashboardControlSource.FinancialIndependenceExcludedDescriptions => CurrentFinancialIndependenceSource.Adjustments.ExcludedDescriptions.ToHashSet(StringComparer.Ordinal),
             _ => Presentation.ValuesFor(mapping.Source)
         };
     }
@@ -497,6 +663,51 @@ public sealed class DashboardSession
 
     /// <summary>Sets whether transaction filters are open.</summary>
     public void SetTransactionsMoreFiltersOpen(bool open) => Presentation.SetTransactionsMoreFiltersOpen(open);
+
+    /// <summary>Sets the selected Budget group and rebuilds selected detail reports.</summary>
+    public void SetBudgetSelectedGroup(string? group)
+    {
+        Presentation.SetBudgetSelectedGroup(group);
+        RebuildReport();
+    }
+
+    /// <summary>Sets the Budget transaction-category detail view.</summary>
+    public void SetBudgetTransactionCategory(string category)
+    {
+        Presentation.SetBudgetTransactionCategory(category);
+        RebuildReport();
+    }
+
+    /// <summary>Sets whether the Budget Adjust view is open.</summary>
+    public void SetBudgetAdjustViewOpen(bool open) => Presentation.SetBudgetAdjustViewOpen(open);
+
+    /// <summary>Sets whether the Budget year-to-date detail is expanded.</summary>
+    public void SetBudgetYearToDateOpen(bool open) => Presentation.SetBudgetYearToDateOpen(open);
+
+    /// <summary>Sets whether Financial Independence source controls are open.</summary>
+    public void SetFinancialIndependenceAdjustSourceDataOpen(bool open)
+        => Presentation.SetFinancialIndependenceAdjustSourceDataOpen(open);
+
+    /// <summary>Sets whether Financial Independence source details are expanded.</summary>
+    public void SetFinancialIndependenceSourceDetailsOpen(bool open)
+        => Presentation.SetFinancialIndependenceSourceDetailsOpen(open);
+
+    /// <summary>Sets the active Financial Independence source-details tab.</summary>
+    public void SetFinancialIndependenceSourceDetailsTab(string tab)
+        => Presentation.SetFinancialIndependenceSourceDetailsTab(tab);
+
+    /// <summary>Sets whether the Data Health check-settings popover is open.</summary>
+    public void SetDataHealthCheckSettingsOpen(bool open)
+        => Presentation.SetDataHealthCheckSettingsOpen(open);
+
+    /// <summary>Sets the selected Data Health check and rebuilds its detail report.</summary>
+    public void SetDataHealthSelectedCheck(string checkId)
+    {
+        if (!DataHealthCheckIds().Contains(checkId, StringComparer.Ordinal))
+            throw new ArgumentException($"Data Health check '{checkId}' is not available.", nameof(checkId));
+        Presentation.SetDataHealthSelectedCheck(checkId);
+        RebuildReport();
+    }
 
     /// <summary>Sets whether one Year over year card's details are visible.</summary>
     public void SetYearOverYearDetailsExpanded(string entity, bool expanded)
@@ -637,6 +848,70 @@ public sealed class DashboardSession
             "transactions_focus" => filters with { TransactionExplorer = TransactionFilters(filters) with { Focus = ParseTransactionFocus(value) } },
             "transactions_search" => filters with { TransactionExplorer = TransactionFilters(filters) with { Search = value } },
             "transactions_breakdown" => filters with { TransactionExplorer = TransactionFilters(filters) with { Breakdown = ParseTransactionBreakdown(value) } },
+            "budget_month" => filters with { Budget = CurrentBudgetRequest with { SelectedMonth = YearMonth.Parse(value) } },
+            "budget_exclude_large_expenses" => filters with
+            {
+                Budget = CurrentBudgetRequest with
+                {
+                    Adjustments = CurrentBudgetRequest.Adjustments with { ExcludeLargeExpenses = bool.Parse(value) }
+                }
+            },
+            "budget_expense_limit" => filters with
+            {
+                Budget = CurrentBudgetRequest with
+                {
+                    Adjustments = CurrentBudgetRequest.Adjustments with { ExpenseLimit = decimal.Parse(value, CultureInfo.InvariantCulture) }
+                }
+            },
+            "fi_assets" => filters with { FinancialIndependenceScenario = CurrentFinancialIndependenceScenario with { Assets = decimal.Parse(value, CultureInfo.InvariantCulture) } },
+            "fi_spending" => filters with { FinancialIndependenceScenario = CurrentFinancialIndependenceScenario with { AnnualSpending = decimal.Parse(value, CultureInfo.InvariantCulture) } },
+            "fi_income" => filters with { FinancialIndependenceScenario = CurrentFinancialIndependenceScenario with { AnnualIncome = decimal.Parse(value, CultureInfo.InvariantCulture) } },
+            "fi_return_rate" => filters with { FinancialIndependenceScenario = CurrentFinancialIndependenceScenario with { ExpectedReturnRate = decimal.Parse(value, CultureInfo.InvariantCulture) } },
+            "fi_withdrawal_rate" => filters with { FinancialIndependenceScenario = CurrentFinancialIndependenceScenario with { WithdrawalRate = decimal.Parse(value, CultureInfo.InvariantCulture) } },
+            "fi_years" => filters with { FinancialIndependenceScenario = CurrentFinancialIndependenceScenario with { ProjectionYears = int.Parse(value, CultureInfo.InvariantCulture) } },
+            "fi_spending_lookback" => filters with { FinancialIndependenceSource = CurrentFinancialIndependenceSource with { SpendingLookbackMonths = int.Parse(value, CultureInfo.InvariantCulture) } },
+            "fi_exclude_large_expenses" => filters with
+            {
+                FinancialIndependenceSource = CurrentFinancialIndependenceSource with
+                {
+                    Adjustments = CurrentFinancialIndependenceSource.Adjustments with { ExcludeLargeExpenses = bool.Parse(value) }
+                }
+            },
+            "fi_expense_limit" => filters with
+            {
+                FinancialIndependenceSource = CurrentFinancialIndependenceSource with
+                {
+                    Adjustments = CurrentFinancialIndependenceSource.Adjustments with { ExpenseLimit = decimal.Parse(value, CultureInfo.InvariantCulture) }
+                }
+            },
+            "health_stale_days" => filters with
+            {
+                DataHealth = CurrentDataHealthOptions with { StaleAccountDays = int.Parse(value, CultureInfo.InvariantCulture) }
+            },
+            "health_duplicate_days" => filters with
+            {
+                DataHealth = CurrentDataHealthOptions with { DuplicateDays = int.Parse(value, CultureInfo.InvariantCulture) }
+            },
+            "health_duplicate_minimum" => filters with
+            {
+                DataHealth = CurrentDataHealthOptions with { DuplicateMinimum = decimal.Parse(value, CultureInfo.InvariantCulture) }
+            },
+            "health_same_account" => filters with
+            {
+                DataHealth = CurrentDataHealthOptions with { DuplicateRequireSameAccount = bool.Parse(value) }
+            },
+            "health_same_category" => filters with
+            {
+                DataHealth = CurrentDataHealthOptions with { DuplicateRequireSameCategory = bool.Parse(value) }
+            },
+            "health_same_description" => filters with
+            {
+                DataHealth = CurrentDataHealthOptions with { DuplicateRequireSameDescription = bool.Parse(value) }
+            },
+            "health_include_inactive" => filters with
+            {
+                DataHealth = CurrentDataHealthOptions with { IncludeInactive = bool.Parse(value) }
+            },
             _ => throw new ArgumentException($"Unsupported dashboard filter source '{source}'.", nameof(source))
         };
 
@@ -660,10 +935,13 @@ public sealed class DashboardSession
                 break;
             case DashboardControlKind.NumberInput:
             case DashboardControlKind.Slider:
-                SetControlNumber(
-                    pageId,
-                    control.Id,
-                    decimal.Parse(control.DefaultValue!, CultureInfo.InvariantCulture));
+                if (control.DefaultValue is not null)
+                {
+                    SetControlNumber(
+                        pageId,
+                        control.Id,
+                        decimal.Parse(control.DefaultValue, CultureInfo.InvariantCulture));
+                }
                 break;
             case DashboardControlKind.Toggle:
                 SetControlToggle(pageId, control.Id, bool.Parse(control.DefaultValue!));
@@ -731,6 +1009,15 @@ public sealed class DashboardSession
             case DashboardControlSource.MerchantDetailTab:
                 SetMerchantDetailTab(value);
                 return;
+            case DashboardControlSource.BudgetTransactionCategory:
+                SetBudgetTransactionCategory(value);
+                return;
+            case DashboardControlSource.FinancialIndependenceSourceDetailsTab:
+                SetFinancialIndependenceSourceDetailsTab(value);
+                return;
+            case DashboardControlSource.DataHealthSelectedCheck:
+                SetDataHealthSelectedCheck(value);
+                return;
             default:
                 throw new ArgumentException($"Dashboard control source '{mapping.Source}' does not accept one choice value.", nameof(mapping));
         }
@@ -747,6 +1034,32 @@ public sealed class DashboardSession
 
     private TransactionExplorerFilters CurrentTransactionExplorer
         => Filters.TransactionExplorer ?? TransactionExplorerFilters.Default;
+
+    private BudgetRequest CurrentBudgetRequest
+        => Filters.Budget ?? DefaultBudgetRequest();
+
+    private FinancialIndependenceSourceFilters CurrentFinancialIndependenceSource
+        => Filters.FinancialIndependenceSource
+            ?? FinancialIndependenceSourceAnalysisCalculator.DefaultFilters(
+                PortfolioCalculator.LatestBalances(_snapshot.Balances),
+                _settings);
+
+    private FinancialIndependenceScenario CurrentFinancialIndependenceScenario
+    {
+        get
+        {
+            if (Filters.FinancialIndependenceScenario is { } scenario)
+                return scenario;
+            FinancialIndependenceSourceAnalysis source = FinancialIndependenceSourceAnalysisCalculator.Build(
+                PortfolioCalculator.LatestBalances(_snapshot.Balances),
+                _snapshot.Transactions,
+                CurrentFinancialIndependenceSource);
+            return FinancialIndependenceSourceAnalysisCalculator.DefaultScenario(source, _settings.FinancialIndependence);
+        }
+    }
+
+    private DataHealthCheckOptions CurrentDataHealthOptions
+        => Filters.DataHealth ?? DataHealthCheckOptions.From(_settings);
 
     private static TransactionExplorerFilters TransactionFilters(DashboardFilters filters)
         => filters.TransactionExplorer ?? TransactionExplorerFilters.Default;
@@ -772,6 +1085,150 @@ public sealed class DashboardSession
     private void SetTransactionExplorer(TransactionExplorerFilters filters)
     {
         Filters = Filters with { TransactionExplorer = filters };
+        RebuildReport();
+    }
+
+    private void InitializePlanFilters()
+    {
+        if (UsesSourceBudgetPage())
+        {
+            Filters = Filters with { Budget = DefaultBudgetRequest() };
+        }
+
+        if (!UsesSourceFinancialIndependencePage())
+            return;
+
+        IReadOnlyList<AccountBalance> accounts = PortfolioCalculator.LatestBalances(_snapshot.Balances);
+        FinancialIndependenceSourceFilters sourceFilters = FinancialIndependenceSourceAnalysisCalculator.DefaultFilters(accounts, _settings);
+        FinancialIndependenceSourceAnalysis source = FinancialIndependenceSourceAnalysisCalculator.Build(
+            accounts,
+            _snapshot.Transactions,
+            sourceFilters);
+        Filters = Filters with
+        {
+            FinancialIndependenceSource = sourceFilters,
+            FinancialIndependenceScenario = FinancialIndependenceSourceAnalysisCalculator.DefaultScenario(
+                source,
+                _settings.FinancialIndependence)
+        };
+    }
+
+    private void InitializeDataHealthFilters()
+    {
+        if (!UsesSourceDataHealthPage())
+            return;
+
+        DataHealthCheckOptions options = DataHealthCheckOptions.From(_settings);
+        Filters = Filters with { DataHealth = options };
+        Presentation.SetDataHealthStaleThreshold(options.StaleAccountDays);
+        Presentation.SetDataHealthIncludeInactive(options.IncludeInactive);
+    }
+
+    private bool UsesSourceBudgetPage()
+        => Definition.Pages.Any(page => page.Id == DashboardPageId.Budget
+            && page.Controls.Any(control => control.Source == DashboardControlSource.BudgetMonth));
+
+    private bool UsesSourceFinancialIndependencePage()
+        => Definition.Pages.Any(page => page.Id == DashboardPageId.FinancialIndependence
+            && page.Controls.Any(control => control.Source == DashboardControlSource.FinancialIndependenceAssets));
+
+    private bool UsesSourceDataHealthPage()
+        => Definition.Pages.Any(page => page.Id == DashboardPageId.DataHealth
+            && page.Controls.Any(control => control.Source == DashboardControlSource.DataHealthDuplicateDays));
+
+    private bool MatchesNumberStep(DashboardPageId pageId, DashboardControlDefinition control, decimal value)
+    {
+        decimal step = control.Step!.Value;
+        if (decimal.Remainder(value - control.Minimum!.Value, step) == 0m)
+            return true;
+
+        if (pageId != DashboardPageId.FinancialIndependence
+            || control.DefaultValue is not null
+            || control.Source is not (DashboardControlSource.FinancialIndependenceAssets
+                or DashboardControlSource.FinancialIndependenceSpending
+                or DashboardControlSource.FinancialIndependenceIncome))
+        {
+            return false;
+        }
+
+        decimal current = decimal.Parse(ControlValue(pageId, control.Id), CultureInfo.InvariantCulture);
+        return decimal.Remainder(value - current, step) == 0m;
+    }
+
+    private BudgetRequest DefaultBudgetRequest()
+    {
+        YearMonth month = _snapshot.Transactions
+            .Where(transaction => !transaction.IsHidden)
+            .Select(transaction => transaction.Month)
+            .Concat(_snapshot.Budgets.Where(entry => !entry.IsHidden).Select(entry => entry.Month))
+            .DefaultIfEmpty(new YearMonth(2000, 1))
+            .Max();
+        string[] groups = _snapshot.Budgets
+            .Where(entry => !entry.IsHidden
+                && entry.Kind == TransactionKind.Expense
+                && entry.Month == month
+                && entry.Amount > 0m)
+            .Select(entry => entry.Group)
+            .Where(group => !string.IsNullOrWhiteSpace(group))
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(group => group, StringComparer.Ordinal)
+            .ToArray();
+        return new BudgetRequest(
+            month,
+            groups,
+            SpendingAdjustments.Default(_settings.Thresholds.Expense),
+            _settings.Budget.HistoryMonths,
+            _asOfDate ?? _snapshot.LatestDate ?? month.End);
+    }
+
+    private void SetBudgetRequest(BudgetRequest request)
+    {
+        request.Validate();
+        Filters = Filters with { Budget = request };
+        RebuildReport();
+    }
+
+    private void SetFinancialIndependenceScenario(FinancialIndependenceScenario scenario)
+    {
+        scenario.Validate();
+        Filters = Filters with { FinancialIndependenceScenario = scenario };
+        RebuildReport();
+    }
+
+    private void SetFinancialIndependenceSource(FinancialIndependenceSourceFilters filters)
+    {
+        filters.Validate();
+        IReadOnlyList<AccountBalance> accounts = PortfolioCalculator.LatestBalances(_snapshot.Balances);
+        FinancialIndependenceSourceAnalysis previousSource = FinancialIndependenceSourceAnalysisCalculator.Build(
+            accounts,
+            _snapshot.Transactions,
+            CurrentFinancialIndependenceSource);
+        FinancialIndependenceScenario scenario = CurrentFinancialIndependenceScenario;
+        bool followsSource = scenario.Assets == previousSource.PortfolioValue
+            && scenario.AnnualSpending == previousSource.AnnualSpending;
+        Filters = Filters with { FinancialIndependenceSource = filters };
+        if (followsSource)
+        {
+            FinancialIndependenceSourceAnalysis nextSource = FinancialIndependenceSourceAnalysisCalculator.Build(
+                accounts,
+                _snapshot.Transactions,
+                filters);
+            Filters = Filters with
+            {
+                FinancialIndependenceScenario = FinancialIndependenceSourceAnalysisCalculator.DefaultScenario(
+                    nextSource,
+                    _settings.FinancialIndependence)
+            };
+        }
+        RebuildReport();
+    }
+
+    private void SetDataHealthOptions(DataHealthCheckOptions options)
+    {
+        options.Validate();
+        Filters = Filters with { DataHealth = options };
+        Presentation.SetDataHealthStaleThreshold(options.StaleAccountDays);
+        Presentation.SetDataHealthIncludeInactive(options.IncludeInactive);
         RebuildReport();
     }
 
@@ -831,6 +1288,61 @@ public sealed class DashboardSession
             CurrentMerchantAdjustments);
         return ["all", .. analysis.Period.CurrentMonths.Reverse().Select(month => month.ToString())];
     }
+
+    private IReadOnlyList<string> BudgetMonthOptions()
+        => _snapshot.Transactions
+            .Where(transaction => !transaction.IsHidden)
+            .Select(transaction => transaction.Month)
+            .Concat(_snapshot.Budgets.Where(entry => !entry.IsHidden).Select(entry => entry.Month))
+            .Distinct()
+            .OrderByDescending(month => month)
+            .Select(month => month.ToString())
+            .ToArray();
+
+    private IReadOnlyList<string> BudgetGroupOptions()
+        => _snapshot.Budgets
+            .Where(entry => !entry.IsHidden && entry.Kind == TransactionKind.Expense)
+            .Select(entry => entry.Group)
+            .Concat(_snapshot.Transactions
+                .Where(transaction => !transaction.IsHidden && transaction.Kind == TransactionKind.Expense)
+                .Select(transaction => transaction.Group))
+            .Where(group => !string.IsNullOrWhiteSpace(group))
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(group => group, StringComparer.Ordinal)
+            .ToArray();
+
+    private IReadOnlyList<string> BudgetTransactionCategoryOptions()
+    {
+        string? group = Presentation.Budget.SelectedGroup;
+        if (group is null)
+            group = CurrentBudgetRequest.Groups.FirstOrDefault();
+        if (group is null)
+            return ["all"];
+        return [
+            "all",
+            .. _snapshot.Budgets
+                .Where(entry => !entry.IsHidden && entry.Group == group && entry.Month == CurrentBudgetRequest.SelectedMonth)
+                .Select(entry => entry.Category)
+                .Concat(_snapshot.Transactions
+                    .Where(transaction => !transaction.IsHidden && transaction.Kind == TransactionKind.Expense
+                        && transaction.Group == group && transaction.Month == CurrentBudgetRequest.SelectedMonth)
+                    .Select(transaction => transaction.Category))
+                .Where(category => !string.IsNullOrWhiteSpace(category))
+                .Distinct(StringComparer.Ordinal)
+                .OrderBy(category => category, StringComparer.Ordinal)
+        ];
+    }
+
+    private IReadOnlyList<string> FinancialIndependenceAccountOptions()
+        => PortfolioCalculator.LatestBalances(_snapshot.Balances)
+            .Select(account => account.Account)
+            .Where(account => !string.IsNullOrWhiteSpace(account))
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(account => account, StringComparer.Ordinal)
+            .ToArray();
+
+    private static IReadOnlyList<string> DataHealthCheckIds()
+        => ["uncategorized", "incomplete", "account_mapping", "stale_accounts", "duplicates", "reversals"];
 
     private IReadOnlyList<string> SpendingMonthOptions()
     {
@@ -916,6 +1428,15 @@ public sealed class DashboardSession
             : _settings.Thresholds.Expense;
     }
 
+    private decimal ConfiguredBudgetExpenseLimit()
+    {
+        DashboardPageDefinition? budget = Definition.Pages.FirstOrDefault(page => page.Id == DashboardPageId.Budget);
+        DashboardControlDefinition? control = budget?.Controls.FirstOrDefault(candidate => candidate.Id == "expense_limit");
+        return control?.DefaultValue is { } value
+            ? decimal.Parse(value, CultureInfo.InvariantCulture)
+            : _settings.Thresholds.Expense;
+    }
+
     private void RebuildReport()
     {
         Report = DashboardReportBuilder.Build(_snapshot, _settings, Filters, Presentation, _asOfDate);
@@ -924,6 +1445,9 @@ public sealed class DashboardSession
         NormalizeYearOverYearPresentation();
         NormalizeSubscriptionsPresentation();
         NormalizeMerchantsPresentation();
+        NormalizeBudgetPresentation();
+        NormalizeFinancialIndependencePresentation();
+        NormalizeDataHealthPresentation();
     }
 
     private void NormalizeIncomePresentation()
@@ -1093,6 +1617,82 @@ public sealed class DashboardSession
             Report = DashboardReportBuilder.Build(_snapshot, _settings, Filters, Presentation, _asOfDate);
     }
 
+    private void NormalizeBudgetPresentation()
+    {
+        BudgetPageView? budget = Report.Page(DashboardPageId.Budget).BudgetView;
+        if (budget is null)
+            return;
+
+        bool needsRebuild = false;
+        if (!budget.Analysis.Groups.Any(entry => string.Equals(
+                entry.Entity,
+                Presentation.Budget.SelectedGroup,
+                StringComparison.Ordinal)))
+        {
+            Presentation.SetBudgetSelectedGroup(budget.SelectedGroup);
+            needsRebuild = true;
+        }
+
+        BudgetGroupDetail? detail = budget.SelectedGroup is not null
+            && budget.Analysis.GroupDetails.TryGetValue(budget.SelectedGroup, out BudgetGroupDetail? value)
+            ? value
+            : null;
+        if (Presentation.Budget.TransactionCategory != "all"
+            && (detail is null || !detail.Categories.Any(entry => string.Equals(
+                entry.Entity,
+                Presentation.Budget.TransactionCategory,
+                StringComparison.Ordinal))))
+        {
+            Presentation.SetBudgetTransactionCategory("all");
+            needsRebuild = true;
+        }
+
+        if (needsRebuild)
+            Report = DashboardReportBuilder.Build(_snapshot, _settings, Filters, Presentation, _asOfDate);
+    }
+
+    private void NormalizeFinancialIndependencePresentation()
+    {
+        if (Presentation.FinancialIndependence.SourceDetailsTab is not ("Accounts" or "Spending" or "Transactions"))
+            Presentation.SetFinancialIndependenceSourceDetailsTab("Accounts");
+    }
+
+    private void NormalizeDataHealthPresentation()
+    {
+        DataHealthPageView? health = Report.Page(DashboardPageId.DataHealth).DataHealthView;
+        if (health is null || health.Analysis.Checks.Count == 0)
+            return;
+
+        if (health.Analysis.Checks.Any(check => string.Equals(
+                check.Id,
+                Presentation.DataHealth.SelectedCheckId,
+                StringComparison.Ordinal)))
+        {
+            return;
+        }
+
+        DataHealthCheckResult preferred = health.Analysis.Checks.FirstOrDefault(check => check.FindingCount > 0)
+            ?? health.Analysis.Checks[0];
+        Presentation.SetDataHealthSelectedCheck(preferred.Id);
+        Report = DashboardReportBuilder.Build(_snapshot, _settings, Filters, Presentation, _asOfDate);
+    }
+
+    private void SyncDataHealthPresentation(string source)
+    {
+        if (Filters.DataHealth is not { } options)
+            return;
+
+        switch (source)
+        {
+            case "health_stale_days":
+                Presentation.SetDataHealthStaleThreshold(options.StaleAccountDays);
+                break;
+            case "health_include_inactive":
+                Presentation.SetDataHealthIncludeInactive(options.IncludeInactive);
+                break;
+        }
+    }
+
     private static string? PreferredYearOverYearEntity(
         IReadOnlyList<string> values,
         YearOverYearDimension dimension)
@@ -1166,6 +1766,25 @@ public sealed class DashboardSession
             "transactions_maximum_amount" => (CurrentTransactionExplorer.MaximumMagnitude ?? 0m).ToString(CultureInfo.InvariantCulture),
             "transactions_largest_count" => CurrentTransactionExplorer.LargestCount.ToString(CultureInfo.InvariantCulture),
             "transactions_breakdown" => FormatTransactionBreakdown(CurrentTransactionExplorer.Breakdown),
+            "budget_month" => CurrentBudgetRequest.SelectedMonth.ToString(),
+            "budget_exclude_large_expenses" => CurrentBudgetRequest.Adjustments.ExcludeLargeExpenses.ToString(CultureInfo.InvariantCulture).ToLowerInvariant(),
+            "budget_expense_limit" => CurrentBudgetRequest.Adjustments.ExpenseLimit.ToString(CultureInfo.InvariantCulture),
+            "fi_assets" => CurrentFinancialIndependenceScenario.Assets.ToString(CultureInfo.InvariantCulture),
+            "fi_spending" => CurrentFinancialIndependenceScenario.AnnualSpending.ToString(CultureInfo.InvariantCulture),
+            "fi_income" => CurrentFinancialIndependenceScenario.AnnualIncome.ToString(CultureInfo.InvariantCulture),
+            "fi_return_rate" => CurrentFinancialIndependenceScenario.ExpectedReturnRate.ToString(CultureInfo.InvariantCulture),
+            "fi_withdrawal_rate" => CurrentFinancialIndependenceScenario.WithdrawalRate.ToString(CultureInfo.InvariantCulture),
+            "fi_years" => CurrentFinancialIndependenceScenario.ProjectionYears.ToString(CultureInfo.InvariantCulture),
+            "fi_spending_lookback" => CurrentFinancialIndependenceSource.SpendingLookbackMonths.ToString(CultureInfo.InvariantCulture),
+            "fi_exclude_large_expenses" => CurrentFinancialIndependenceSource.Adjustments.ExcludeLargeExpenses.ToString(CultureInfo.InvariantCulture).ToLowerInvariant(),
+            "fi_expense_limit" => CurrentFinancialIndependenceSource.Adjustments.ExpenseLimit.ToString(CultureInfo.InvariantCulture),
+            "health_stale_days" => CurrentDataHealthOptions.StaleAccountDays.ToString(CultureInfo.InvariantCulture),
+            "health_duplicate_days" => CurrentDataHealthOptions.DuplicateDays.ToString(CultureInfo.InvariantCulture),
+            "health_duplicate_minimum" => CurrentDataHealthOptions.DuplicateMinimum.ToString(CultureInfo.InvariantCulture),
+            "health_same_account" => CurrentDataHealthOptions.DuplicateRequireSameAccount.ToString(CultureInfo.InvariantCulture).ToLowerInvariant(),
+            "health_same_category" => CurrentDataHealthOptions.DuplicateRequireSameCategory.ToString(CultureInfo.InvariantCulture).ToLowerInvariant(),
+            "health_same_description" => CurrentDataHealthOptions.DuplicateRequireSameDescription.ToString(CultureInfo.InvariantCulture).ToLowerInvariant(),
+            "health_include_inactive" => CurrentDataHealthOptions.IncludeInactive.ToString(CultureInfo.InvariantCulture).ToLowerInvariant(),
             _ => throw new ArgumentException($"Unsupported report filter source '{source}'.", nameof(source))
         };
 

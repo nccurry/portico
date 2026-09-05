@@ -725,6 +725,15 @@ public static class TomlConfigurationLoader
             ["financial_independence_target_amount"] = DashboardControlSource.FinancialIndependenceTargetAmount,
             ["data_health_stale_threshold"] = DashboardControlSource.DataHealthStaleThreshold,
             ["data_health_include_inactive"] = DashboardControlSource.DataHealthIncludeInactive,
+            ["health_check_settings"] = DashboardControlSource.DataHealthCheckSettings,
+            ["health_stale_days"] = DashboardControlSource.DataHealthStaleThreshold,
+            ["health_duplicate_days"] = DashboardControlSource.DataHealthDuplicateDays,
+            ["health_duplicate_minimum"] = DashboardControlSource.DataHealthDuplicateMinimum,
+            ["health_same_account"] = DashboardControlSource.DataHealthDuplicateSameAccount,
+            ["health_same_category"] = DashboardControlSource.DataHealthDuplicateSameCategory,
+            ["health_same_description"] = DashboardControlSource.DataHealthDuplicateSameDescription,
+            ["health_include_inactive"] = DashboardControlSource.DataHealthIncludeInactive,
+            ["health_selected_check"] = DashboardControlSource.DataHealthSelectedCheck,
             ["income_detail_tab"] = DashboardControlSource.IncomeDetailTab,
             ["financial_independence_reset"] = DashboardControlSource.FinancialIndependenceReset,
             ["spending_comparison"] = DashboardControlSource.SpendingComparison,
@@ -769,7 +778,37 @@ public static class TomlConfigurationLoader
             ["transactions_maximum_amount"] = DashboardControlSource.TransactionsMaximumAmount,
             ["transactions_largest_count"] = DashboardControlSource.TransactionsLargestCount,
             ["transactions_breakdown"] = DashboardControlSource.TransactionsBreakdown,
-            ["transactions_more_filters"] = DashboardControlSource.TransactionsMoreFilters
+            ["transactions_more_filters"] = DashboardControlSource.TransactionsMoreFilters,
+            ["budget_month"] = DashboardControlSource.BudgetMonth,
+            ["budget_groups"] = DashboardControlSource.BudgetGroups,
+            ["budget_adjust_view"] = DashboardControlSource.BudgetAdjustView,
+            ["budget_reset"] = DashboardControlSource.BudgetReset,
+            ["budget_excluded_groups"] = DashboardControlSource.BudgetExcludedGroups,
+            ["budget_excluded_categories"] = DashboardControlSource.BudgetExcludedCategories,
+            ["budget_included_descriptions"] = DashboardControlSource.BudgetIncludedDescriptions,
+            ["budget_excluded_descriptions"] = DashboardControlSource.BudgetExcludedDescriptions,
+            ["budget_exclude_large_expenses"] = DashboardControlSource.BudgetExcludeLargeExpenses,
+            ["budget_expense_limit"] = DashboardControlSource.BudgetExpenseLimit,
+            ["budget_selected_group"] = DashboardControlSource.BudgetSelectedGroup,
+            ["budget_transaction_category"] = DashboardControlSource.BudgetTransactionCategory,
+            ["budget_year_to_date"] = DashboardControlSource.BudgetYearToDate,
+            ["fi_assets"] = DashboardControlSource.FinancialIndependenceAssets,
+            ["fi_spending"] = DashboardControlSource.FinancialIndependenceSpending,
+            ["fi_income"] = DashboardControlSource.FinancialIndependenceIncome,
+            ["fi_return_rate"] = DashboardControlSource.FinancialIndependenceReturnRate,
+            ["fi_withdrawal_rate"] = DashboardControlSource.FinancialIndependenceWithdrawalRate,
+            ["fi_years"] = DashboardControlSource.FinancialIndependenceProjectionYears,
+            ["fi_adjust_source_data"] = DashboardControlSource.FinancialIndependenceAdjustSourceData,
+            ["fi_included_accounts"] = DashboardControlSource.FinancialIndependenceIncludedAccounts,
+            ["fi_spending_lookback"] = DashboardControlSource.FinancialIndependenceSpendingLookback,
+            ["fi_excluded_groups"] = DashboardControlSource.FinancialIndependenceExcludedGroups,
+            ["fi_excluded_categories"] = DashboardControlSource.FinancialIndependenceExcludedCategories,
+            ["fi_included_descriptions"] = DashboardControlSource.FinancialIndependenceIncludedDescriptions,
+            ["fi_excluded_descriptions"] = DashboardControlSource.FinancialIndependenceExcludedDescriptions,
+            ["fi_exclude_large_expenses"] = DashboardControlSource.FinancialIndependenceExcludeLargeExpenses,
+            ["fi_expense_limit"] = DashboardControlSource.FinancialIndependenceExpenseLimit,
+            ["fi_source_details"] = DashboardControlSource.FinancialIndependenceSourceDetails,
+            ["fi_source_tab"] = DashboardControlSource.FinancialIndependenceSourceDetailsTab
         });
 
     private static DashboardControlOptionSource ParseControlOptionSource(string value, string path, List<ConfigurationError> errors)
@@ -790,7 +829,12 @@ public static class TomlConfigurationLoader
             ["all_groups"] = DashboardControlOptionSource.AllGroups,
             ["all_accounts"] = DashboardControlOptionSource.AllAccounts,
             ["subscription_discovery_categories"] = DashboardControlOptionSource.SubscriptionDiscoveryCategories,
-            ["merchant_months"] = DashboardControlOptionSource.MerchantMonths
+            ["merchant_months"] = DashboardControlOptionSource.MerchantMonths,
+            ["budget_months"] = DashboardControlOptionSource.BudgetMonths,
+            ["budget_groups"] = DashboardControlOptionSource.BudgetGroups,
+            ["budget_transaction_categories"] = DashboardControlOptionSource.BudgetTransactionCategories,
+            ["fi_accounts"] = DashboardControlOptionSource.FinancialIndependenceAccounts,
+            ["health_checks"] = DashboardControlOptionSource.DataHealthChecks
         });
 
     private static DashboardControlWidth ParseControlWidth(string value, string path, List<ConfigurationError> errors)

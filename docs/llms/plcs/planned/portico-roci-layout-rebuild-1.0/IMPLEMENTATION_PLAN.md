@@ -314,8 +314,9 @@ sizes.
 3. Audit the changed code for repeated styling, copied layout, inaccessible
    controls, and configuration that bypasses typed validation.
 4. Write the local-component review from SADD section 11.
-5. Keep the Roci worktree untouched. If a component is worth moving later,
-   write a short separate proposal instead of starting the port here.
+5. Keep app-specific UI pieces in Portico. Move only a proven generic component
+   to the separate Roci worktree, with a small fluent API and self-contained
+   tests.
 
 ### Deliverable
 
@@ -337,3 +338,24 @@ future Roci work.
 
 All required checks pass, every known P1/P2 issue is fixed, and the packet has
 evidence for the page-by-page comparison and the local-component decision.
+
+## Completion Record
+
+Completed on 2026-09-05.
+
+- All ten Streamlit-shaped dashboard pages are built in the Roci desktop app.
+  The dark rail, fixed header, scrolling page body, configured controls, cards,
+  charts, tables, popovers, tabs, and details are in place.
+- The source comparison fixed three material fidelity problems: What changed
+  is horizontal with its guide on the numeric X axis; Budget history starts at
+  the first observed selected-group month; and Data Health staleness uses the
+  latest loaded date rather than the display clock.
+- The capture host produced 48 current images: 24 named scenarios at 1500 by
+  1000 and 1024 by 720. The final visual review found no clipping, overlap, or
+  hidden primary control in the reviewed states.
+- Timeline and Heatmap are generic Roci additions in
+  `../roci-portico-components` at `a5832a83`. The other local pieces remain in
+  Portico because they contain dashboard-specific behavior or skin values.
+- Formatting, lint, strict build, the full non-visual test suite, visual
+  capture, doctor, publish, and `git diff --check` are recorded in the final
+  PLC completion evidence.

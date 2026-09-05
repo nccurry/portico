@@ -175,14 +175,17 @@ additional component.
   multi-select proof. The multi-select retains state but cannot restore focus
   directly to a checkbox because the current Roci Checkbox API has no focus
   configuration.
-- Pending: later source pages need their own real control/report mappings and
-  page-specific tests as their rebuild phases begin. Display-only Phase 3
-  controls must not be mistaken for completed report behavior.
+- Complete: all ten source pages have typed control/report mappings,
+  page-specific calculations, and desktop tests. Budget, Financial
+  Independence, and Data Health use source-shaped layouts and controls.
+- Complete: the visual catalog has 48 captures. It covers 24 fixed scenarios
+  at each required desktop size.
 - Deferred: `Download CSV` and `Open spreadsheet`. They are source actions
   outside this visualization and UI experiment. They need explicit export and
   external-link policies before an app implements them.
-- No Roci source changed. The capture part of Phase 0 added a test-only C# host
-  and Taskfile command; the release CLI keeps its normal startup path.
+- The companion Roci worktree adds generic timeline and heatmap charts. The
+  Portico app uses them for subscription lifecycle and FI sensitivity views.
+  The release CLI keeps its normal startup path.
 
 ## Local Component Rule
 
@@ -205,9 +208,9 @@ Roci.
 | Visual test method | A sample capture and one stable comparison run. | Completed: use `GameRunCaptureCatalog` and Roci's capture verifier. Cross-renderer pixel comparisons remain out of scope. |
 | Capture host | A test-only host that accepts capture arguments and enables Roci automation/capture. | Completed: `Portico.CaptureHost` accepts normal Roci capture arguments and runs fixed demo sessions. |
 | Navigation rail | A local proof with selected page, keyboard focus, and narrow-window behavior. | Completed in Phase 2: exact TOML-backed rail, selected state, pointer/keyboard navigation, focus retention, fixed rail, and 28 visual captures. |
-| Multi-select | A local proof used by at least two real page filters. | First proof complete in Phase 3 on Income and savings. Phase 5 must use it in at least one more real source filter. |
-| Typed page controls | A table that maps each source control to state, report/display behavior, and a test. | First grammar and mappings complete in Phase 3. Each later source page must add its own real report/display mapping with its rebuild. |
-| Any chart gap | A named Streamlit chart and the smallest attempted Roci composition. | Phase 5.1 proved horizontal bars are available. Per-category bar fills remain a real chart API candidate; compact currency ticks are an app formatter follow-up. |
+| Multi-select | A local proof used by at least two real page filters. | Complete. Income, Spending, Merchants, Budget, and Financial Independence use it. Keep it in Portico until its focus and keyboard model has a general Roci design. |
+| Typed page controls | A table that maps each source control to state, report/display behavior, and a test. | Complete. Every visible source page has its own typed mapping and app test. |
+| Any chart gap | A named Streamlit chart and the smallest attempted Roci composition. | Timeline and heatmap now have generic Roci APIs. Horizontal bars are available. Per-category bar fills remain a separate Roci candidate. |
 | Page configuration fields | Current TOML types plus one representative page loaded through them. | Completed in Phase 3: validated sections, typed controls, C# mapping routes, and Home/Income configurations. |
 
 ### Phase 5.1 Spending Findings
@@ -251,6 +254,24 @@ Roci.
 - Per-category bar fills remain the only chart API candidate from Phase 5.1.
   Income uses one color per series, which is already supported.
 
+### Phase 6 And 7 Plan And Data Health Findings
+
+- Budget, Financial Independence, and Data Health use the same source order,
+  typed control routes, and retained page state as the Analyze pages.
+- Timeline and heatmap charts became generic Roci APIs in the companion
+  worktree. Subscriptions uses the timeline. Financial Independence uses the
+  heatmap.
+- Data Health panels and tables use normal Portico compositions. Retained
+  panels use explicit minimum sizes so the flex layout keeps visible space.
+- Data Health must compare stale balances with the latest date in the loaded
+  sheet, not a fixed capture or display date. Otherwise an old but internally
+  consistent demo sheet falsely marks every balance as stale.
+- A slider in a bounded popover needs an explicit minimum track length. The
+  Data Health settings label also shows its selected day count, so the control
+  stays understandable when space is tight.
+- The all-page navigation test changes one control on every page, leaves the
+  page, and returns. Each changed value remains selected.
+
 ### Phase 4 Home Findings
 
 - The six Home choices are report inputs, not display state. Their source day
@@ -265,9 +286,9 @@ Roci.
 - Liability cards show debt magnitude and treat a lower debt balance as a
   positive change. What changed keeps the signed net-worth contribution so debt
   paydown remains a positive contribution.
-- The native Roci category chart is vertical. The source What changed chart is
-  horizontal. The Portico implementation keeps the same values and order and
-  records the orientation difference for the final comparison.
+- What changed uses `HorizontalBars()` with a linear X axis and category Y
+  axis. The zero guide uses the numeric X axis. The generic renderer now makes
+  this axis choice for every horizontal bar chart.
 
 ## Phase 0 Exit Check
 

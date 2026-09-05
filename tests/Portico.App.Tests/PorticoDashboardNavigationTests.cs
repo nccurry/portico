@@ -195,6 +195,52 @@ public sealed class PorticoDashboardNavigationTests
     }
 
     [Fact]
+    public void NavigationLoop_ChangesOneControlOnEveryPageAndRetainsItAfterReturn()
+    {
+        DashboardSession session = CreateSession();
+        var scene = CreateScene(session);
+        var controls = new Dictionary<DashboardPageId, string>
+        {
+            [DashboardPageId.Home] = "time_frame",
+            [DashboardPageId.IncomeSavings] = "lookback",
+            [DashboardPageId.Merchants] = "lookback",
+            [DashboardPageId.Spending] = "lookback",
+            [DashboardPageId.YearOverYear] = "view",
+            [DashboardPageId.Subscriptions] = "history_lookback",
+            [DashboardPageId.TopTransactions] = "lookback",
+            [DashboardPageId.Budget] = "month",
+            [DashboardPageId.FinancialIndependence] = "spending_lookback",
+            [DashboardPageId.DataHealth] = "selected_check"
+        };
+
+        foreach (DashboardPageDefinition page in session.Definition.Pages.Where(page => page.Visible))
+        {
+            string controlId = controls[page.Id];
+            scene.SelectPage(page.Id);
+            scene.Refresh();
+
+            string current = session.ControlValue(page.Id, controlId);
+            string changed = session.ControlOptions(page.Id, controlId)
+                .First(value => !string.Equals(value, current, StringComparison.Ordinal));
+            session.SetControlValue(page.Id, controlId, changed);
+            scene.Refresh();
+
+            Assert.Equal(changed, session.ControlValue(page.Id, controlId));
+
+            DashboardPageId otherPage = page.Id == DashboardPageId.Home
+                ? DashboardPageId.IncomeSavings
+                : DashboardPageId.Home;
+            scene.SelectPage(otherPage);
+            scene.Refresh();
+            scene.SelectPage(page.Id);
+            scene.Refresh();
+
+            Assert.Equal(page.PageHeading, Text(scene, "PageTitle"));
+            Assert.Equal(changed, session.ControlValue(page.Id, controlId));
+        }
+    }
+
+    [Fact]
     public void HideValuesMasksMetricTableAxisAndTooltipPresentationWithoutChangingTheReport()
     {
         DashboardSession session = CreateSession();

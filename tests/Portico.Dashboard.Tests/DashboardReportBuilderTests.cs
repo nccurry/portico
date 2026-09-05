@@ -597,6 +597,31 @@ public sealed class DashboardReportBuilderTests
     }
 
     [Fact]
+    public void Build_SourceDataHealthUsesTheLatestSheetDateRatherThanTheDisplayDate()
+    {
+        var snapshot = new PortfolioSnapshot(
+            [Row("recent", 2024, 2, 10, "Food", "Living", "Market", -20m, TransactionKind.Expense)],
+            [Balance("cash", "Checking", "Cash", 2024, 2, 3, 100m)],
+            []);
+        var filters = new DashboardFilters(
+            3,
+            "all",
+            "all",
+            true,
+            DataHealth: new DataHealthCheckOptions(7, 1, 10m, true, false, true, false));
+
+        DataHealthPageView view = DashboardReportBuilder.Build(
+                snapshot,
+                Settings(),
+                filters,
+                new DateOnly(2030, 6, 1))
+            .Page(DashboardPageId.DataHealth)
+            .DataHealthView!;
+
+        Assert.Equal("Passed", view.Analysis.Checks.Single(check => check.Id == "stale_accounts").Status);
+    }
+
+    [Fact]
     public void Build_SpendingKeepsComparisonOnlyOverviewRowsButMarksTheCurrentViewEmpty()
     {
         var snapshot = new PortfolioSnapshot(

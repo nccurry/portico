@@ -17,14 +17,17 @@ public sealed class PorticoCaptureCatalogTests
     {
         IReadOnlyList<CaptureCase> cases = PorticoCaptureCatalog.CaptureCatalog.CaptureCases;
 
-        Assert.Equal(42, cases.Count);
+        Assert.Equal(48, cases.Count);
         Assert.Equal(
         [
             "budget",
+            "budget-adjusted",
             "budget-refresh-failed",
             "data-health",
             "data-health-refresh-unavailable",
+            "data-health-settings",
             "financial-independence",
+            "financial-independence-source-data",
             "home",
             "home-all",
             "home-hidden",
@@ -54,10 +57,10 @@ public sealed class PorticoCaptureCatalogTests
         }
 
         Assert.Equal(
-            21,
+            24,
             cases.Count(capture => capture.CaptureSize == new CaptureSize(1500, 1000)));
         Assert.Equal(
-            21,
+            24,
             cases.Count(capture => capture.CaptureSize == new CaptureSize(1024, 720)));
 
         DashboardPageId[] configuredPages = PorticoDemoSessionFactory.Create()
@@ -188,6 +191,19 @@ public sealed class PorticoCaptureCatalogTests
         Assert.Equal(90, transactions.Filters.TransactionExplorer!.LookbackDays);
         Assert.Equal(TransactionExplorerType.Expenses, transactions.Filters.TransactionExplorer.Type);
         Assert.True(transactions.Presentation.Transactions.MoreFiltersOpen);
+    }
+
+    [Fact]
+    public void CreateSession_PlanAndDataHealthSpecialScenariosExposeTheirOpenControls()
+    {
+        DashboardSession budget = CreateSession("budget-adjusted");
+        DashboardSession financialIndependence = CreateSession("financial-independence-source-data");
+        DashboardSession dataHealth = CreateSession("data-health-settings");
+
+        Assert.True(budget.Presentation.Budget.AdjustViewOpen);
+        Assert.True(budget.Filters.Budget!.Adjustments.IsModified);
+        Assert.True(financialIndependence.Presentation.FinancialIndependence.AdjustSourceDataOpen);
+        Assert.True(dataHealth.Presentation.DataHealth.CheckSettingsOpen);
     }
 
     [Theory]

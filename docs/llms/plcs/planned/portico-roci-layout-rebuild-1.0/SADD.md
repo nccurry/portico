@@ -224,3 +224,14 @@ At the end, review each local component using these questions:
 Only a component that answers yes to all five becomes a separate Roci proposal.
 The expected starting answer is that multi-select may qualify after proof;
 navigation, metric cards, and section panels are likely Portico-local.
+
+### Final Decision
+
+| Item | Decision | Reason |
+| --- | --- | --- |
+| Multi-select | Keep it in Portico. | It has several page uses, but its keyboard and focus behavior still needs a library-level design. |
+| Navigation rail | Keep it in Portico. | Its pages, groups, labels, icons, and actions are specific to this dashboard. |
+| Headers, control bars, metric cards, and panels | Keep them in Portico. | Roci stacks, panels, text, and controls compose these pieces without a missing primitive. Portico owns their visual tokens. |
+| Typed TOML control routes | Keep them in Portico. | They map Portico report inputs and page state. They are not a general UI component. |
+| Timeline and heatmap charts | Move to the companion Roci worktree. | Subscriptions and Financial Independence use them through generic chart data and fluent APIs. |
+| Per-category bar colors | Make a separate Roci proposal later. | The current chart style has one fill per series. The source needs one fill per category value. |

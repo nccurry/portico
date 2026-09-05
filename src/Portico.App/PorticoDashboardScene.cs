@@ -32,6 +32,9 @@ public sealed class PorticoDashboardScene
     private readonly PorticoSubscriptionsPageRenderer _subscriptionsPageRenderer;
     private readonly PorticoMerchantsPageRenderer _merchantsPageRenderer;
     private readonly PorticoTransactionsPageRenderer _transactionsPageRenderer;
+    private readonly PorticoBudgetPageRenderer _budgetPageRenderer;
+    private readonly PorticoFinancialIndependencePageRenderer _financialIndependencePageRenderer;
+    private readonly PorticoDataHealthPageRenderer _dataHealthPageRenderer;
     private bool _rebuildRequired;
     private Task<PorticoRefreshResult>? _refreshTask;
 
@@ -55,6 +58,9 @@ public sealed class PorticoDashboardScene
         _subscriptionsPageRenderer = new PorticoSubscriptionsPageRenderer(_session, () => _rebuildRequired = true);
         _merchantsPageRenderer = new PorticoMerchantsPageRenderer(_session, () => _rebuildRequired = true);
         _transactionsPageRenderer = new PorticoTransactionsPageRenderer(_session, () => _rebuildRequired = true);
+        _budgetPageRenderer = new PorticoBudgetPageRenderer(_session, () => _rebuildRequired = true);
+        _financialIndependencePageRenderer = new PorticoFinancialIndependencePageRenderer(_session, () => _rebuildRequired = true);
+        _dataHealthPageRenderer = new PorticoDataHealthPageRenderer(_session, () => _rebuildRequired = true);
         Stage = new UiStage(viewportSize, PorticoSkin.Create());
         Stage.ViewportChanged += _ => _rebuildRequired = true;
         Build();
@@ -76,6 +82,8 @@ public sealed class PorticoDashboardScene
             DashboardPageId.Subscriptions => _subscriptionsPageRenderer.MultiSelectState(controlId),
             DashboardPageId.Merchants => _merchantsPageRenderer.MultiSelectState(controlId),
             DashboardPageId.TopTransactions => _transactionsPageRenderer.MultiSelectState(controlId),
+            DashboardPageId.Budget => _budgetPageRenderer.MultiSelectState(controlId),
+            DashboardPageId.FinancialIndependence => _financialIndependencePageRenderer.MultiSelectState(controlId),
             _ => _pageRenderer.MultiSelectState(pageId, controlId)
         };
 
@@ -182,6 +190,12 @@ public sealed class PorticoDashboardScene
             _merchantsPageRenderer.BuildHeader(Ui, page, headerReport);
         else if (_transactionsPageRenderer.CanRender(page))
             _transactionsPageRenderer.BuildHeader(Ui, page, headerReport);
+        else if (_budgetPageRenderer.CanRender(page))
+            _budgetPageRenderer.BuildHeader(Ui, page, headerReport);
+        else if (_financialIndependencePageRenderer.CanRender(page))
+            _financialIndependencePageRenderer.BuildHeader(Ui, page, headerReport);
+        else if (_dataHealthPageRenderer.CanRender(page))
+            _dataHealthPageRenderer.BuildHeader(Ui, page, headerReport);
         else
             _pageRenderer.BuildHeader(Ui, page);
         BuildContent(page);
@@ -442,6 +456,32 @@ public sealed class PorticoDashboardScene
                 page,
                 report,
                 (widget, item, expand) => BuildWidget(widget, item, expand),
+                value => DisplayPrivateText(value));
+        }
+        else if (_budgetPageRenderer.CanRender(page))
+        {
+            _budgetPageRenderer.Build(
+                Ui,
+                page,
+                report,
+                (widget, item, grow) => BuildWidget(widget, item, true, null, false, grow),
+                value => DisplayPrivateText(value));
+        }
+        else if (_financialIndependencePageRenderer.CanRender(page))
+        {
+            _financialIndependencePageRenderer.Build(
+                Ui,
+                page,
+                report,
+                (widget, item, expand) => BuildWidget(widget, item, expand),
+                value => DisplayPrivateText(value));
+        }
+        else if (_dataHealthPageRenderer.CanRender(page))
+        {
+            _dataHealthPageRenderer.Build(
+                Ui,
+                page,
+                report,
                 value => DisplayPrivateText(value));
         }
         else
@@ -771,7 +811,12 @@ public sealed class PorticoDashboardScene
         }
 
         if (ContainsBothSigns(series))
-            Ui.ReferenceLine(ChartAxis.Y, 0d).Stroke(PorticoSkin.Border).BelowSeries();
+        {
+            ChartAxis numericAxis = widget.Kind == DashboardWidgetKind.HorizontalBarChart
+                ? ChartAxis.X
+                : ChartAxis.Y;
+            Ui.ReferenceLine(numericAxis, 0d).Stroke(PorticoSkin.Border).BelowSeries();
+        }
         EndChartWithDetails();
     }
 
@@ -823,7 +868,12 @@ public sealed class PorticoDashboardScene
         }
 
         if (ContainsBothSigns(series))
-            Ui.ReferenceLine(ChartAxis.Y, 0d).Stroke(PorticoSkin.Border).BelowSeries();
+        {
+            ChartAxis numericAxis = widget.Kind == DashboardWidgetKind.HorizontalBarChart
+                ? ChartAxis.X
+                : ChartAxis.Y;
+            Ui.ReferenceLine(numericAxis, 0d).Stroke(PorticoSkin.Border).BelowSeries();
+        }
         EndChartWithDetails();
     }
 

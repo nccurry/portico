@@ -97,6 +97,13 @@ public static class PorticoCaptureCatalog
             session.SelectPage(DashboardPageId.Budget);
             session.SetFilter("lookback", "3");
         }),
+        new("budget-adjusted", static session =>
+        {
+            session.SelectPage(DashboardPageId.Budget);
+            string group = session.ControlOptions(DashboardPageId.Budget, "exclude_groups")[0];
+            session.SetControlValues(DashboardPageId.Budget, "exclude_groups", [group]);
+            session.SetBudgetAdjustViewOpen(true);
+        }),
         new("top-transactions", static session =>
         {
             session.SelectPage(DashboardPageId.TopTransactions);
@@ -110,7 +117,17 @@ public static class PorticoCaptureCatalog
             session.SetTransactionsMoreFiltersOpen(true);
         }),
         new("financial-independence", static session => session.SelectPage(DashboardPageId.FinancialIndependence)),
+        new("financial-independence-source-data", static session =>
+        {
+            session.SelectPage(DashboardPageId.FinancialIndependence);
+            session.SetFinancialIndependenceAdjustSourceDataOpen(true);
+        }),
         new("data-health", static session => session.SelectPage(DashboardPageId.DataHealth)),
+        new("data-health-settings", static session =>
+        {
+            session.SelectPage(DashboardPageId.DataHealth);
+            session.SetDataHealthCheckSettingsOpen(true);
+        }),
         new("home-hidden", static session => session.SelectPage(DashboardPageId.Home), static state => state.ToggleHideValues()),
         new("spending-loading", static session => session.SelectPage(DashboardPageId.Spending), static state => state.BeginRefresh()),
         new("budget-refresh-failed", static session => session.SelectPage(DashboardPageId.Budget), static state =>

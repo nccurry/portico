@@ -126,9 +126,14 @@ window.
 ```powershell
 task roci:build:strict
 task roci:test
+task roci:visual
 task roci:publish:win-x64
 task roci:publish:linux-x64
 ```
+
+`task roci:visual` writes and validates 48 PNG files in
+`artifacts/visual/portico-current`. It captures 24 named page states at 1500 by
+1000 and 1024 by 720.
 
 The publish tasks create one self-contained executable in each
 `artifacts/publish` folder. They do not use Native AOT. After the Windows task

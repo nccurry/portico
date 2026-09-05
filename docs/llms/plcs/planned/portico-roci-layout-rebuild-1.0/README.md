@@ -2,13 +2,13 @@
 
 ## Lifecycle
 
-- Status: In progress
+- Status: Completed
 - Created: 2026-09-04
-- Current phase: Phase 6.1 — rebuild Budget
+- Current phase: Phase 8 — completed
 - Owner: Portico maintainers
 - Target worktree: `../portico-roci-rebuild`
 - Target branch: `nccurry/roci-portico-plc`
-- Roci branch: no changes in this PLC
+- Companion Roci worktree: `../roci-portico-components` at `a5832a83`
 
 ## Implementation Progress
 
@@ -90,9 +90,9 @@ Phase 4 completed on 2026-09-05.
   detail-retention cases. The full suite now has 129 passing tests.
 - `task roci:visual` now writes 32 current captures. Home is covered at both
   desktop sizes for the normal, All, and hidden-value states.
-- The source uses horizontal Altair bars for What changed. The local Roci page
-  uses a vertical category bar chart because that is the available native chart
-  form; its values, signed ordering, and interaction state match the source.
+- What changed now uses native horizontal bars with a linear X axis and a
+  category Y axis. Its zero guide follows the numeric X axis, matching the
+  source reading direction.
 - The merged phase passed `task roci:format`, `task roci:lint`,
   `task roci:build:strict`, `task roci:test`, `task roci:visual`, and
   `git diff --check`. The combined code audit found no blocking or deferred
@@ -166,16 +166,52 @@ Phase 5.3 completed on 2026-09-05.
   still reports existing SourceLink warnings from the linked Roci worktree;
   they do not come from Portico code and are recorded for Phase 8.
 
+Phase 6 completed on 2026-09-05.
+
+- Budget now has source-shaped month and group controls, an Adjust view
+  popover, summary cards, plan-versus-actual detail, and Year-to-date position.
+  Its history begins at the first observed selected-group month instead of
+  adding invented leading zero months.
+- Financial Independence now has typed scenario inputs, source-data adjustment,
+  reset, metric cards, projection, funding, sensitivity, and source details.
+  Its sensitivity view uses the generic heatmap supplied by the companion Roci
+  worktree.
+- Finance, dashboard, and app tests cover normal, boundary, negative, empty,
+  source-data, adjustment, and reset cases for both pages.
+
+Phase 7 completed on 2026-09-05.
+
+- Data Health now has Check settings, summary counts, check details, warning
+  panels, and source-shaped tables for uncategorized, incomplete, unmapped,
+  stale, duplicate, and reversal records.
+- Staleness uses the latest loaded source date, not the capture clock. The
+  bounded settings popover gives its slider a visible minimum track length and
+  shows the selected threshold in its label.
+- The navigation-loop test proves that control state survives leaving and
+  returning to every page. The visual catalog contains 24 scenarios at both
+  desktop sizes, for 48 current captures.
+
+Phase 8 completed on 2026-09-05.
+
+- The full non-visual C# suite passed 222 tests: 57 Finance, 47 Dashboard,
+  16 Adapter, and 102 App tests. Formatting, lint, strict build, visual
+  capture, doctor, and whitespace checks passed.
+- Final code and visual audits found no P1 or P2 issue. The strict build emits
+  57 SourceLink warnings from the linked Roci source, not from Portico code.
+- Timeline and heatmap are the only generic components moved to the companion
+  Roci worktree. Multi-select, navigation, cards, panels, and TOML routes stay
+  local because they still carry Portico behavior or skin choices.
+
 ## Purpose
 
 The first dashboard PLC proved that Portico can load its data and draw its
 reports with Roci. This PLC rebuilds the desktop UI so its structure, controls,
 and visual weight follow the Streamlit Portico app much more closely.
 
-This is a local Portico change first. New UI pieces live in the Portico app,
-but they must use Roci's normal fluent builder style and compose normal Roci
-controls. At the end, the team will decide which pieces are general enough to
-move into Roci. This PLC does not change the Roci worktree.
+This is a Portico change first. New UI pieces live in the Portico app and use
+Roci's normal fluent builder style. Only the generic Timeline and Heatmap chart
+APIs were added in the separate companion Roci worktree after the Portico pages
+proved their needed shape.
 
 ## What This Packet Covers
 

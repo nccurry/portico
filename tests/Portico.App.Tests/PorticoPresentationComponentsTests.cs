@@ -75,6 +75,17 @@ public sealed class PorticoPresentationComponentsTests
         Assert.Equal("Assets", Text(scene, "MetricLabel:net-worth:Assets"));
         Assert.Equal("Liabilities", Text(scene, "MetricLabel:net-worth:Liabilities"));
         Assert.Contains("over 1Y", Text(scene, "MetricDetail:net-worth:Net worth"), StringComparison.Ordinal);
+
+        ChartState changesChart = State<ChartState>(scene, "Chart:what-changed");
+        ChartBarSeries changeBars = Assert.Single(changesChart.Series) switch
+        {
+            ChartBarSeries value => value,
+            _ => throw new Xunit.Sdk.XunitException("Expected What changed to use a bar series.")
+        };
+        Assert.Equal(ChartBarOrientation.Horizontal, changeBars.Orientation);
+        Assert.True(changesChart.XAxis is ChartLinearAxisConfig { Title: "Net-worth movement ($)" });
+        Assert.True(changesChart.YAxis is ChartCategoryAxisConfig { Title: null });
+
         Assert.True(FindNode(scene, "Section:net_worth").ComputedPosition.Y
             < FindNode(scene, "Section:what_changed").ComputedPosition.Y);
         Assert.True(FindNode(scene, "Section:what_changed").ComputedPosition.Y

@@ -243,11 +243,32 @@ public enum DashboardControlSource
     /// <summary>Uses the Financial independence target display state.</summary>
     FinancialIndependenceTargetAmount,
 
-    /// <summary>Uses the Data health stale-account threshold display state.</summary>
+    /// <summary>Uses the Data Health stale-account threshold report input.</summary>
     DataHealthStaleThreshold,
 
-    /// <summary>Uses the Data health inactive-item display state.</summary>
+    /// <summary>Uses the Data Health inactive-item report input.</summary>
     DataHealthIncludeInactive,
+
+    /// <summary>Uses whether the Data Health check-settings popover is open.</summary>
+    DataHealthCheckSettings,
+
+    /// <summary>Uses the Data Health duplicate-days report input.</summary>
+    DataHealthDuplicateDays,
+
+    /// <summary>Uses the Data Health duplicate-minimum report input.</summary>
+    DataHealthDuplicateMinimum,
+
+    /// <summary>Uses the Data Health same-account duplicate rule.</summary>
+    DataHealthDuplicateSameAccount,
+
+    /// <summary>Uses the Data Health same-category duplicate rule.</summary>
+    DataHealthDuplicateSameCategory,
+
+    /// <summary>Uses the Data Health same-description duplicate rule.</summary>
+    DataHealthDuplicateSameDescription,
+
+    /// <summary>Uses the Data Health selected-check detail state.</summary>
+    DataHealthSelectedCheck,
 
     /// <summary>Uses the Income and savings selected-detail-tab state.</summary>
     IncomeDetailTab,
@@ -394,7 +415,97 @@ public enum DashboardControlSource
     TransactionsBreakdown,
 
     /// <summary>Uses whether the Transactions More filters popover is open.</summary>
-    TransactionsMoreFilters
+    TransactionsMoreFilters,
+
+    /// <summary>Uses the selected Budget month.</summary>
+    BudgetMonth,
+
+    /// <summary>Uses the selected Budget groups.</summary>
+    BudgetGroups,
+
+    /// <summary>Uses whether the Budget Adjust view popover is open.</summary>
+    BudgetAdjustView,
+
+    /// <summary>Runs the Budget adjustment reset.</summary>
+    BudgetReset,
+
+    /// <summary>Uses Budget excluded groups.</summary>
+    BudgetExcludedGroups,
+
+    /// <summary>Uses Budget excluded categories.</summary>
+    BudgetExcludedCategories,
+
+    /// <summary>Uses Budget included description terms.</summary>
+    BudgetIncludedDescriptions,
+
+    /// <summary>Uses Budget excluded description terms.</summary>
+    BudgetExcludedDescriptions,
+
+    /// <summary>Uses the Budget large-expense switch.</summary>
+    BudgetExcludeLargeExpenses,
+
+    /// <summary>Uses the Budget large-expense limit.</summary>
+    BudgetExpenseLimit,
+
+    /// <summary>Uses the Budget selected group display state.</summary>
+    BudgetSelectedGroup,
+
+    /// <summary>Uses the Budget transaction-category display state.</summary>
+    BudgetTransactionCategory,
+
+    /// <summary>Uses whether Budget year-to-date detail is expanded.</summary>
+    BudgetYearToDate,
+
+    /// <summary>Uses Financial Independence scenario assets.</summary>
+    FinancialIndependenceAssets,
+
+    /// <summary>Uses Financial Independence scenario annual spending.</summary>
+    FinancialIndependenceSpending,
+
+    /// <summary>Uses Financial Independence scenario annual income.</summary>
+    FinancialIndependenceIncome,
+
+    /// <summary>Uses Financial Independence scenario return rate.</summary>
+    FinancialIndependenceReturnRate,
+
+    /// <summary>Uses Financial Independence scenario withdrawal rate.</summary>
+    FinancialIndependenceWithdrawalRate,
+
+    /// <summary>Uses Financial Independence scenario projection years.</summary>
+    FinancialIndependenceProjectionYears,
+
+    /// <summary>Uses whether Financial Independence source controls are open.</summary>
+    FinancialIndependenceAdjustSourceData,
+
+    /// <summary>Uses the Financial Independence source account selection.</summary>
+    FinancialIndependenceIncludedAccounts,
+
+    /// <summary>Uses the Financial Independence source spending lookback.</summary>
+    FinancialIndependenceSpendingLookback,
+
+    /// <summary>Uses Financial Independence excluded source groups.</summary>
+    FinancialIndependenceExcludedGroups,
+
+    /// <summary>Uses Financial Independence excluded source categories.</summary>
+    FinancialIndependenceExcludedCategories,
+
+    /// <summary>Uses Financial Independence included source descriptions.</summary>
+    FinancialIndependenceIncludedDescriptions,
+
+    /// <summary>Uses Financial Independence excluded source descriptions.</summary>
+    FinancialIndependenceExcludedDescriptions,
+
+    /// <summary>Uses the Financial Independence large-expense switch.</summary>
+    FinancialIndependenceExcludeLargeExpenses,
+
+    /// <summary>Uses the Financial Independence large-expense limit.</summary>
+    FinancialIndependenceExpenseLimit,
+
+    /// <summary>Uses whether Financial Independence source details are expanded.</summary>
+    FinancialIndependenceSourceDetails,
+
+    /// <summary>Uses the selected Financial Independence source-details tab.</summary>
+    FinancialIndependenceSourceDetailsTab
 }
 
 /// <summary>Identifies how a control gets its finite set of visible choices.</summary>
@@ -446,7 +557,22 @@ public enum DashboardControlOptionSource
     SubscriptionDiscoveryCategories,
 
     /// <summary>Reads source Spending by merchant detail months.</summary>
-    MerchantMonths
+    MerchantMonths,
+
+    /// <summary>Reads available Budget months from budget and transaction data.</summary>
+    BudgetMonths,
+
+    /// <summary>Reads available Budget groups from budget and transaction data.</summary>
+    BudgetGroups,
+
+    /// <summary>Reads source Budget categories for the selected group.</summary>
+    BudgetTransactionCategories,
+
+    /// <summary>Reads available Financial Independence accounts from balance data.</summary>
+    FinancialIndependenceAccounts,
+
+    /// <summary>Reads the fixed set of source Data Health checks.</summary>
+    DataHealthChecks
 }
 
 /// <summary>Describes the requested horizontal footprint of a control in a wrapping control bar.</summary>
@@ -745,11 +871,9 @@ public sealed record DashboardDefinition(
         foreach (DashboardControlDefinition reset in page.Controls.Where(control => control.Kind == DashboardControlKind.ActionReset))
         {
             if (reset.Source == DashboardControlSource.FinancialIndependenceReset
-                && !page.Controls.Any(control => control.Id == "target_amount"
-                    && control.Kind == DashboardControlKind.NumberInput
-                    && control.Source == DashboardControlSource.FinancialIndependenceTargetAmount))
+                && !HasFinancialIndependenceResetInputs(page.Controls))
             {
-                problems.Add($"dashboard reset action '{page.Id}.{reset.Id}' needs the configured target_amount number input.");
+                problems.Add($"dashboard reset action '{page.Id}.{reset.Id}' needs a configured FI scenario input set.");
             }
             if (reset.Source == DashboardControlSource.SpendingReset
                 && !page.Controls.Any(control => control.Id == "expense_limit"
@@ -765,7 +889,28 @@ public sealed record DashboardDefinition(
             {
                 problems.Add($"dashboard reset action '{page.Id}.{reset.Id}' needs the configured expense_limit number input.");
             }
+            if (reset.Source == DashboardControlSource.BudgetReset
+                && !page.Controls.Any(control => control.Id == "expense_limit"
+                    && control.Kind == DashboardControlKind.NumberInput
+                    && control.Source == DashboardControlSource.BudgetExpenseLimit))
+            {
+                problems.Add($"dashboard reset action '{page.Id}.{reset.Id}' needs the configured expense_limit number input.");
+            }
         }
+    }
+
+    private static bool HasFinancialIndependenceResetInputs(IReadOnlyList<DashboardControlDefinition> controls)
+    {
+        bool legacyTarget = controls.Any(control => control.Id == "target_amount"
+            && control.Kind == DashboardControlKind.NumberInput
+            && control.Source == DashboardControlSource.FinancialIndependenceTargetAmount);
+        bool scenario = controls.Any(control => control.Id == "assets"
+            && control.Kind == DashboardControlKind.NumberInput
+            && control.Source == DashboardControlSource.FinancialIndependenceAssets)
+            && controls.Any(control => control.Id == "spending"
+                && control.Kind == DashboardControlKind.NumberInput
+                && control.Source == DashboardControlSource.FinancialIndependenceSpending);
+        return legacyTarget || scenario;
     }
 
     private static void ValidateControlShape(
@@ -820,18 +965,29 @@ public sealed record DashboardDefinition(
         }
         else if (isNumeric)
         {
-            if (!TryParseDecimal(control.DefaultValue, out decimal value)
-                || control.Minimum is null
-                || control.Maximum is null
-                || control.Step is null
-                || control.Minimum > control.Maximum
-                || control.Step <= 0m
-                || value < control.Minimum
-                || value > control.Maximum
-                || !IsStepAligned(value, control.Minimum!.Value, control.Step!.Value)
-                || !IsStepAligned(control.Maximum!.Value, control.Minimum.Value, control.Step.Value))
+            bool sourceSuppliesDefault = control.Source is DashboardControlSource.FinancialIndependenceAssets
+                or DashboardControlSource.FinancialIndependenceSpending
+                or DashboardControlSource.FinancialIndependenceIncome
+                or DashboardControlSource.FinancialIndependenceReturnRate
+                or DashboardControlSource.FinancialIndependenceWithdrawalRate
+                or DashboardControlSource.FinancialIndependenceProjectionYears;
+            bool hasDefault = TryParseDecimal(control.DefaultValue, out decimal value);
+            bool rangeValid = control.Minimum is not null
+                && control.Maximum is not null
+                && control.Step is not null
+                && control.Minimum <= control.Maximum
+                && control.Step > 0m
+                && IsStepAligned(control.Maximum.Value, control.Minimum.Value, control.Step.Value);
+            bool defaultValid = hasDefault
+                && rangeValid
+                && value >= control.Minimum!.Value
+                && value <= control.Maximum!.Value
+                && IsStepAligned(value, control.Minimum.Value, control.Step!.Value);
+            if (!rangeValid || (!sourceSuppliesDefault && !defaultValid) || (hasDefault && !defaultValid))
             {
-                problems.Add($"dashboard numeric control '{page.Id}.{control.Id}' needs an in-range default, aligned minimum/maximum, and positive step.");
+                problems.Add(sourceSuppliesDefault
+                    ? $"dashboard numeric control '{page.Id}.{control.Id}' needs an aligned minimum/maximum and positive step."
+                    : $"dashboard numeric control '{page.Id}.{control.Id}' needs an in-range default, aligned minimum/maximum, and positive step.");
             }
             if (control.MultiSelectDefaults.Count > 0)
                 problems.Add($"dashboard numeric control '{page.Id}.{control.Id}' cannot define multi-select defaults.");

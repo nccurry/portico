@@ -128,10 +128,33 @@ also state the value, row count, warning, or action that it proves.
 - App tests cover both desktop sizes, controls, popovers, multi-selects,
   number inputs, reset actions, details, empty states, retained page bounds,
   current-year visual emphasis, and the calendar-month chart axis.
-- `task roci:visual` runs 42 named captures. It includes default and adjusted
-  Income, Spending by merchant, and Spending states; preset and single-category
-  Year over year states; subscription settings; and Transactions More filters
-  at 1500 by 1000 and 1024 by 720.
+- `task roci:visual` runs 48 named captures. It includes normal and adjusted
+  views for the rebuilt Analyze and Plan pages, Data Health settings, and the
+  selected loading, failed, unavailable, and hidden-value states at both
+  desktop sizes.
+
+### Phase 6 And 7 Plan And Data Health Evidence
+
+- Finance tests cover Budget plan, actual, remaining, adjustment, refund,
+  empty, and over-budget cases. They also cover Financial Independence input,
+  funding, sensitivity, reset, and source-data cases.
+- Budget tests prove that the history window starts at the first observed
+  selected-group month. This prevents leading zero months from changing the
+  source median and trend.
+- Data Health tests cover uncategorized, incomplete, account-mapping, stale,
+  duplicate, reversal, hidden-row, and empty-result cases.
+- Dashboard tests prove that source-shaped Data Health compares staleness with
+  the latest loaded date instead of the capture or display date. App tests
+  prove that the settings slider keeps its visible minimum track length.
+- App tests cover both desktop sizes, source-data and adjustment popovers,
+  retained page state, Data Health settings, selected check detail, and the
+  all-page navigation loop.
+- The visual catalog has 24 scenarios at each size: Home, Home All, Income,
+  adjusted Income, Spending, adjusted Spending, Year over year, one-category
+  Year over year, Subscriptions, Subscription settings, Merchants, adjusted
+  Merchants, Budget, adjusted Budget, Transactions, More filters, Financial
+  Independence, source data, Data Health, Data Health settings, hidden Home,
+  loading Spending, failed Budget refresh, and unavailable Data Health refresh.
 
 ## 5. Visual Checks
 
@@ -204,12 +227,13 @@ task roci:publish:linux-x64
 ```
 
 `roci:visual` first builds the matching configuration and its test/capture
-host, then runs the test-only `Portico.CaptureHost` cases serially with Roci
-automation and capture. The command currently writes 42 PNG files to
-`artifacts/visual/portico-current`: every configured page at 1500 by 1000 and
-1024 by 720, plus Home All, hidden-value, wrapped-control, default and
-adjusted Spending, loading, failed, and unavailable states. A direct host run
-accepts normal Roci arguments such as
+host. It then runs all test-only `Portico.CaptureHost` cases serially with Roci
+automation and capture. The command writes 48 PNG files to
+`artifacts/visual/portico-current`: 24 fixed scenarios at 1500 by 1000 and
+1024 by 720. The scenarios include every normal page plus Home All, hidden
+values, adjusted Analyze and Plan pages, settings/source-data popovers, and
+loading, failed, and unavailable states. A direct host run accepts normal Roci
+arguments such as
 `--start-state`, `--scenario`, `--capture-size`, `--capture-frame`, and
 `--capture`.
 

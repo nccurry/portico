@@ -9,7 +9,7 @@ using Roci.Ui.Widgets;
 
 namespace Portico.App.Ui.Components;
 
-/// <summary>Builds the shared source-style adjustment popover used by both spending pages.</summary>
+/// <summary>Builds the shared source-style adjustment popover used by spending and Budget pages.</summary>
 internal sealed class PorticoSpendingAdjustmentsControl
 {
     private readonly DashboardSession _session;
@@ -18,12 +18,12 @@ internal sealed class PorticoSpendingAdjustmentsControl
     private readonly Dictionary<string, PorticoMultiSelectState<string>> _multiSelectStates = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _termDrafts = new(StringComparer.Ordinal);
 
-    /// <summary>Creates the shared popover for a page with the configured spending adjustment grammar.</summary>
+    /// <summary>Creates the shared popover for a page with the configured expense-adjustment grammar.</summary>
     public PorticoSpendingAdjustmentsControl(DashboardSession session, Action requestRebuild, DashboardPageId pageId)
     {
         _session = session ?? throw new ArgumentNullException(nameof(session));
         _requestRebuild = requestRebuild ?? throw new ArgumentNullException(nameof(requestRebuild));
-        if (pageId is not (DashboardPageId.Spending or DashboardPageId.Merchants))
+        if (pageId is not (DashboardPageId.Spending or DashboardPageId.Merchants or DashboardPageId.Budget))
             throw new ArgumentOutOfRangeException(nameof(pageId));
         _pageId = pageId;
     }
@@ -275,21 +275,33 @@ internal sealed class PorticoSpendingAdjustmentsControl
     private bool IsOpen
         => _pageId == DashboardPageId.Spending
             ? _session.Presentation.Spending.AdjustViewOpen
-            : _session.Presentation.Merchants.AdjustViewOpen;
+            : _pageId == DashboardPageId.Merchants
+                ? _session.Presentation.Merchants.AdjustViewOpen
+                : _session.Presentation.Budget.AdjustViewOpen;
 
     private bool IsModified
         => _pageId == DashboardPageId.Spending
             ? _session.Filters.SpendingAdjustments?.IsModified == true
-            : _session.Filters.MerchantAdjustments?.IsModified == true;
+            : _pageId == DashboardPageId.Merchants
+                ? _session.Filters.MerchantAdjustments?.IsModified == true
+                : _session.Filters.Budget?.Adjustments.IsModified == true;
 
-    private string Prefix => _pageId == DashboardPageId.Spending ? "Spending" : "Merchants";
+    private string Prefix => _pageId switch
+    {
+        DashboardPageId.Spending => "Spending",
+        DashboardPageId.Merchants => "Merchants",
+        DashboardPageId.Budget => "Budget",
+        _ => throw new InvalidOperationException()
+    };
 
     private void SetOpen(bool open)
     {
         if (_pageId == DashboardPageId.Spending)
             _session.SetSpendingAdjustViewOpen(open);
-        else
+        else if (_pageId == DashboardPageId.Merchants)
             _session.SetMerchantAdjustViewOpen(open);
+        else
+            _session.SetBudgetAdjustViewOpen(open);
     }
 
     private static DashboardControlDefinition Control(DashboardPageDefinition page, string id)

@@ -354,6 +354,136 @@ public static class DashboardControlMappings
                 DashboardControlSource.TransactionsBreakdown,
                 DashboardControlBehavior.ReportInput,
                 "transactions_breakdown"),
+            [(DashboardPageId.Budget, "month")] = new(
+                DashboardControlKind.Select,
+                DashboardControlSource.BudgetMonth,
+                DashboardControlBehavior.ReportInput,
+                "budget_month"),
+            [(DashboardPageId.Budget, "groups")] = new(
+                DashboardControlKind.MultiSelect,
+                DashboardControlSource.BudgetGroups,
+                DashboardControlBehavior.ReportInput,
+                "budget_groups"),
+            [(DashboardPageId.Budget, "adjust_view")] = new(
+                DashboardControlKind.Popover,
+                DashboardControlSource.BudgetAdjustView,
+                DashboardControlBehavior.DisplayState),
+            [(DashboardPageId.Budget, "reset_adjustments")] = new(
+                DashboardControlKind.ActionReset,
+                DashboardControlSource.BudgetReset,
+                DashboardControlBehavior.Action),
+            [(DashboardPageId.Budget, "exclude_groups")] = new(
+                DashboardControlKind.MultiSelect,
+                DashboardControlSource.BudgetExcludedGroups,
+                DashboardControlBehavior.ReportInput,
+                "budget_excluded_groups"),
+            [(DashboardPageId.Budget, "exclude_categories")] = new(
+                DashboardControlKind.MultiSelect,
+                DashboardControlSource.BudgetExcludedCategories,
+                DashboardControlBehavior.ReportInput,
+                "budget_excluded_categories"),
+            [(DashboardPageId.Budget, "include_transaction_names")] = new(
+                DashboardControlKind.TextMultiSelect,
+                DashboardControlSource.BudgetIncludedDescriptions,
+                DashboardControlBehavior.ReportInput,
+                "budget_included_descriptions"),
+            [(DashboardPageId.Budget, "exclude_transaction_names")] = new(
+                DashboardControlKind.TextMultiSelect,
+                DashboardControlSource.BudgetExcludedDescriptions,
+                DashboardControlBehavior.ReportInput,
+                "budget_excluded_descriptions"),
+            [(DashboardPageId.Budget, "exclude_large_expenses")] = new(
+                DashboardControlKind.Toggle,
+                DashboardControlSource.BudgetExcludeLargeExpenses,
+                DashboardControlBehavior.ReportInput,
+                "budget_exclude_large_expenses"),
+            [(DashboardPageId.Budget, "expense_limit")] = new(
+                DashboardControlKind.NumberInput,
+                DashboardControlSource.BudgetExpenseLimit,
+                DashboardControlBehavior.ReportInput,
+                "budget_expense_limit"),
+            [(DashboardPageId.Budget, "transaction_category")] = new(
+                DashboardControlKind.Select,
+                DashboardControlSource.BudgetTransactionCategory,
+                DashboardControlBehavior.DisplayState),
+            [(DashboardPageId.Budget, "year_to_date")] = new(
+                DashboardControlKind.Collapsible,
+                DashboardControlSource.BudgetYearToDate,
+                DashboardControlBehavior.DisplayState),
+            [(DashboardPageId.FinancialIndependence, "assets")] = new(
+                DashboardControlKind.NumberInput,
+                DashboardControlSource.FinancialIndependenceAssets,
+                DashboardControlBehavior.ReportInput,
+                "fi_assets"),
+            [(DashboardPageId.FinancialIndependence, "spending")] = new(
+                DashboardControlKind.NumberInput,
+                DashboardControlSource.FinancialIndependenceSpending,
+                DashboardControlBehavior.ReportInput,
+                "fi_spending"),
+            [(DashboardPageId.FinancialIndependence, "income")] = new(
+                DashboardControlKind.NumberInput,
+                DashboardControlSource.FinancialIndependenceIncome,
+                DashboardControlBehavior.ReportInput,
+                "fi_income"),
+            [(DashboardPageId.FinancialIndependence, "return_rate")] = new(
+                DashboardControlKind.NumberInput,
+                DashboardControlSource.FinancialIndependenceReturnRate,
+                DashboardControlBehavior.ReportInput,
+                "fi_return_rate"),
+            [(DashboardPageId.FinancialIndependence, "withdrawal_rate")] = new(
+                DashboardControlKind.NumberInput,
+                DashboardControlSource.FinancialIndependenceWithdrawalRate,
+                DashboardControlBehavior.ReportInput,
+                "fi_withdrawal_rate"),
+            [(DashboardPageId.FinancialIndependence, "years")] = new(
+                DashboardControlKind.NumberInput,
+                DashboardControlSource.FinancialIndependenceProjectionYears,
+                DashboardControlBehavior.ReportInput,
+                "fi_years"),
+            [(DashboardPageId.FinancialIndependence, "adjust_source_data")] = new(
+                DashboardControlKind.Popover,
+                DashboardControlSource.FinancialIndependenceAdjustSourceData,
+                DashboardControlBehavior.DisplayState),
+            [(DashboardPageId.FinancialIndependence, "include_accounts")] = new(
+                DashboardControlKind.MultiSelect,
+                DashboardControlSource.FinancialIndependenceIncludedAccounts,
+                DashboardControlBehavior.ReportInput,
+                "fi_included_accounts"),
+            [(DashboardPageId.FinancialIndependence, "spending_lookback")] = new(
+                DashboardControlKind.Select,
+                DashboardControlSource.FinancialIndependenceSpendingLookback,
+                DashboardControlBehavior.ReportInput,
+                "fi_spending_lookback"),
+            [(DashboardPageId.FinancialIndependence, "exclude_groups")] = new(
+                DashboardControlKind.MultiSelect,
+                DashboardControlSource.FinancialIndependenceExcludedGroups,
+                DashboardControlBehavior.ReportInput,
+                "fi_excluded_groups"),
+            [(DashboardPageId.FinancialIndependence, "exclude_categories")] = new(
+                DashboardControlKind.MultiSelect,
+                DashboardControlSource.FinancialIndependenceExcludedCategories,
+                DashboardControlBehavior.ReportInput,
+                "fi_excluded_categories"),
+            [(DashboardPageId.FinancialIndependence, "include_transaction_names")] = new(
+                DashboardControlKind.TextMultiSelect,
+                DashboardControlSource.FinancialIndependenceIncludedDescriptions,
+                DashboardControlBehavior.ReportInput,
+                "fi_included_descriptions"),
+            [(DashboardPageId.FinancialIndependence, "exclude_transaction_names")] = new(
+                DashboardControlKind.TextMultiSelect,
+                DashboardControlSource.FinancialIndependenceExcludedDescriptions,
+                DashboardControlBehavior.ReportInput,
+                "fi_excluded_descriptions"),
+            [(DashboardPageId.FinancialIndependence, "exclude_large_expenses")] = new(
+                DashboardControlKind.Toggle,
+                DashboardControlSource.FinancialIndependenceExcludeLargeExpenses,
+                DashboardControlBehavior.ReportInput,
+                "fi_exclude_large_expenses"),
+            [(DashboardPageId.FinancialIndependence, "expense_limit")] = new(
+                DashboardControlKind.NumberInput,
+                DashboardControlSource.FinancialIndependenceExpenseLimit,
+                DashboardControlBehavior.ReportInput,
+                "fi_expense_limit"),
             [(DashboardPageId.FinancialIndependence, "target_amount")] = new(
                 DashboardControlKind.NumberInput,
                 DashboardControlSource.FinancialIndependenceTargetAmount,
@@ -362,13 +492,56 @@ public static class DashboardControlMappings
                 DashboardControlKind.ActionReset,
                 DashboardControlSource.FinancialIndependenceReset,
                 DashboardControlBehavior.Action),
+            [(DashboardPageId.FinancialIndependence, "source_details")] = new(
+                DashboardControlKind.Collapsible,
+                DashboardControlSource.FinancialIndependenceSourceDetails,
+                DashboardControlBehavior.DisplayState),
+            [(DashboardPageId.FinancialIndependence, "source_tab")] = new(
+                DashboardControlKind.TabChoice,
+                DashboardControlSource.FinancialIndependenceSourceDetailsTab,
+                DashboardControlBehavior.DisplayState),
+            [(DashboardPageId.DataHealth, "check_settings")] = new(
+                DashboardControlKind.Popover,
+                DashboardControlSource.DataHealthCheckSettings,
+                DashboardControlBehavior.DisplayState),
             [(DashboardPageId.DataHealth, "stale_threshold")] = new(
                 DashboardControlKind.Slider,
                 DashboardControlSource.DataHealthStaleThreshold,
-                DashboardControlBehavior.DisplayState),
+                DashboardControlBehavior.ReportInput,
+                "health_stale_days"),
+            [(DashboardPageId.DataHealth, "duplicate_days")] = new(
+                DashboardControlKind.NumberInput,
+                DashboardControlSource.DataHealthDuplicateDays,
+                DashboardControlBehavior.ReportInput,
+                "health_duplicate_days"),
+            [(DashboardPageId.DataHealth, "duplicate_minimum")] = new(
+                DashboardControlKind.NumberInput,
+                DashboardControlSource.DataHealthDuplicateMinimum,
+                DashboardControlBehavior.ReportInput,
+                "health_duplicate_minimum"),
+            [(DashboardPageId.DataHealth, "same_account")] = new(
+                DashboardControlKind.Toggle,
+                DashboardControlSource.DataHealthDuplicateSameAccount,
+                DashboardControlBehavior.ReportInput,
+                "health_same_account"),
+            [(DashboardPageId.DataHealth, "same_category")] = new(
+                DashboardControlKind.Toggle,
+                DashboardControlSource.DataHealthDuplicateSameCategory,
+                DashboardControlBehavior.ReportInput,
+                "health_same_category"),
+            [(DashboardPageId.DataHealth, "same_description")] = new(
+                DashboardControlKind.Toggle,
+                DashboardControlSource.DataHealthDuplicateSameDescription,
+                DashboardControlBehavior.ReportInput,
+                "health_same_description"),
             [(DashboardPageId.DataHealth, "include_inactive")] = new(
                 DashboardControlKind.Toggle,
                 DashboardControlSource.DataHealthIncludeInactive,
+                DashboardControlBehavior.ReportInput,
+                "health_include_inactive"),
+            [(DashboardPageId.DataHealth, "selected_check")] = new(
+                DashboardControlKind.Select,
+                DashboardControlSource.DataHealthSelectedCheck,
                 DashboardControlBehavior.DisplayState)
         };
 
@@ -417,7 +590,8 @@ public static class DashboardControlMappings
                     || mapping.Source is not (DashboardControlSource.FinancialIndependenceReset
                         or DashboardControlSource.SpendingReset
                         or DashboardControlSource.IncomeReset
-                        or DashboardControlSource.MerchantReset))
+                        or DashboardControlSource.MerchantReset
+                        or DashboardControlSource.BudgetReset))
                 {
                     problem = "needs a named action handler";
                     return false;
@@ -530,6 +704,17 @@ public static class DashboardControlMappings
             }
         }
 
+        if (mapping.Source == DashboardControlSource.FinancialIndependenceSpendingLookback)
+        {
+            string? unsupported = options.FirstOrDefault(option => !int.TryParse(option, CultureInfo.InvariantCulture, out int months)
+                || months is < 1 or > 120);
+            if (unsupported is not null)
+            {
+                problem = $"has unsupported Financial Independence spending lookback option '{unsupported}'";
+                return false;
+            }
+        }
+
         problem = null;
         return true;
     }
@@ -551,9 +736,15 @@ public static class DashboardControlMappings
             (DashboardControlSource.MerchantDetailMonth, DashboardControlKind.Select) => true,
             (DashboardControlSource.MerchantDetailTab, DashboardControlKind.TabChoice) => true,
             (DashboardControlSource.TransactionsMoreFilters, DashboardControlKind.Popover) => true,
+            (DashboardControlSource.BudgetAdjustView, DashboardControlKind.Popover) => true,
+            (DashboardControlSource.BudgetTransactionCategory, DashboardControlKind.Select) => true,
+            (DashboardControlSource.BudgetYearToDate, DashboardControlKind.Collapsible) => true,
             (DashboardControlSource.FinancialIndependenceTargetAmount, DashboardControlKind.NumberInput) => true,
-            (DashboardControlSource.DataHealthStaleThreshold, DashboardControlKind.Slider) => true,
-            (DashboardControlSource.DataHealthIncludeInactive, DashboardControlKind.Toggle) => true,
+            (DashboardControlSource.FinancialIndependenceAdjustSourceData, DashboardControlKind.Popover) => true,
+            (DashboardControlSource.FinancialIndependenceSourceDetails, DashboardControlKind.Collapsible) => true,
+            (DashboardControlSource.FinancialIndependenceSourceDetailsTab, DashboardControlKind.TabChoice) => true,
+            (DashboardControlSource.DataHealthCheckSettings, DashboardControlKind.Popover) => true,
+            (DashboardControlSource.DataHealthSelectedCheck, DashboardControlKind.Select) => true,
             _ => false
         };
 
@@ -612,6 +803,35 @@ public static class DashboardControlMappings
             DashboardControlSource.TransactionsLargestCount => "transactions_largest_count",
             DashboardControlSource.TransactionsBreakdown => "transactions_breakdown",
             DashboardControlSource.HomeTimeFrame => "home_time_frame",
+            DashboardControlSource.BudgetMonth => "budget_month",
+            DashboardControlSource.BudgetGroups => "budget_groups",
+            DashboardControlSource.BudgetExcludedGroups => "budget_excluded_groups",
+            DashboardControlSource.BudgetExcludedCategories => "budget_excluded_categories",
+            DashboardControlSource.BudgetIncludedDescriptions => "budget_included_descriptions",
+            DashboardControlSource.BudgetExcludedDescriptions => "budget_excluded_descriptions",
+            DashboardControlSource.BudgetExcludeLargeExpenses => "budget_exclude_large_expenses",
+            DashboardControlSource.BudgetExpenseLimit => "budget_expense_limit",
+            DashboardControlSource.FinancialIndependenceAssets => "fi_assets",
+            DashboardControlSource.FinancialIndependenceSpending => "fi_spending",
+            DashboardControlSource.FinancialIndependenceIncome => "fi_income",
+            DashboardControlSource.FinancialIndependenceReturnRate => "fi_return_rate",
+            DashboardControlSource.FinancialIndependenceWithdrawalRate => "fi_withdrawal_rate",
+            DashboardControlSource.FinancialIndependenceProjectionYears => "fi_years",
+            DashboardControlSource.FinancialIndependenceIncludedAccounts => "fi_included_accounts",
+            DashboardControlSource.FinancialIndependenceSpendingLookback => "fi_spending_lookback",
+            DashboardControlSource.FinancialIndependenceExcludedGroups => "fi_excluded_groups",
+            DashboardControlSource.FinancialIndependenceExcludedCategories => "fi_excluded_categories",
+            DashboardControlSource.FinancialIndependenceIncludedDescriptions => "fi_included_descriptions",
+            DashboardControlSource.FinancialIndependenceExcludedDescriptions => "fi_excluded_descriptions",
+            DashboardControlSource.FinancialIndependenceExcludeLargeExpenses => "fi_exclude_large_expenses",
+            DashboardControlSource.FinancialIndependenceExpenseLimit => "fi_expense_limit",
+            DashboardControlSource.DataHealthStaleThreshold => "health_stale_days",
+            DashboardControlSource.DataHealthDuplicateDays => "health_duplicate_days",
+            DashboardControlSource.DataHealthDuplicateMinimum => "health_duplicate_minimum",
+            DashboardControlSource.DataHealthDuplicateSameAccount => "health_same_account",
+            DashboardControlSource.DataHealthDuplicateSameCategory => "health_same_category",
+            DashboardControlSource.DataHealthDuplicateSameDescription => "health_same_description",
+            DashboardControlSource.DataHealthIncludeInactive => "health_include_inactive",
             _ => null
         };
 
@@ -768,18 +988,37 @@ public sealed record TransactionsPresentationState(bool MoreFiltersOpen)
     public static TransactionsPresentationState Default { get; } = new(false);
 }
 
-/// <summary>Holds Financial independence scenario presentation inputs until Phase 6 connects the report request.</summary>
-public sealed record FinancialIndependencePresentationState(decimal TargetAmount)
+/// <summary>Holds Budget display choices that do not change the budget calculation request.</summary>
+public sealed record BudgetPresentationState(
+    string? SelectedGroup,
+    string TransactionCategory,
+    bool AdjustViewOpen,
+    bool YearToDateOpen)
 {
-    /// <summary>Creates the initial display state.</summary>
-    public static FinancialIndependencePresentationState Default { get; } = new(1_000_000m);
+    /// <summary>Creates the source page's initially closed detail state.</summary>
+    public static BudgetPresentationState Default { get; } = new(null, "all", false, false);
 }
 
-/// <summary>Holds Data health presentation settings until Phase 7 connects its report request.</summary>
-public sealed record DataHealthPresentationState(decimal StaleThreshold, bool IncludeInactive)
+/// <summary>Holds Financial Independence display choices alongside legacy target state.</summary>
+public sealed record FinancialIndependencePresentationState(
+    decimal TargetAmount,
+    bool AdjustSourceDataOpen,
+    bool SourceDetailsOpen,
+    string SourceDetailsTab)
 {
     /// <summary>Creates the initial display state.</summary>
-    public static DataHealthPresentationState Default { get; } = new(30m, false);
+    public static FinancialIndependencePresentationState Default { get; } = new(1_000_000m, false, false, "Accounts");
+}
+
+/// <summary>Holds Data Health display state while typed check settings feed the report.</summary>
+public sealed record DataHealthPresentationState(
+    decimal StaleThreshold,
+    bool IncludeInactive,
+    bool CheckSettingsOpen,
+    string SelectedCheckId)
+{
+    /// <summary>Creates the initial display state.</summary>
+    public static DataHealthPresentationState Default { get; } = new(30m, false, false, string.Empty);
 }
 
 /// <summary>Owns typed page state that is separate from finance settings and reports.</summary>
@@ -805,6 +1044,9 @@ public sealed class DashboardPresentationState
 
     /// <summary>Gets the retained Transactions page display state.</summary>
     public TransactionsPresentationState Transactions { get; private set; } = TransactionsPresentationState.Default;
+
+    /// <summary>Gets the retained Budget page display state.</summary>
+    public BudgetPresentationState Budget { get; private set; } = BudgetPresentationState.Default;
 
     /// <summary>Gets the Financial independence page's retained state.</summary>
     public FinancialIndependencePresentationState FinancialIndependence { get; private set; } = FinancialIndependencePresentationState.Default;
@@ -1039,13 +1281,57 @@ public sealed class DashboardPresentationState
     public void SetTransactionsMoreFiltersOpen(bool open)
         => Transactions = Transactions with { MoreFiltersOpen = open };
 
+    /// <summary>Sets the selected Budget group for the source detail section.</summary>
+    public void SetBudgetSelectedGroup(string? group)
+    {
+        if (group is not null)
+            ArgumentException.ThrowIfNullOrWhiteSpace(group);
+        Budget = Budget with { SelectedGroup = group };
+    }
+
+    /// <summary>Sets the Budget transaction category or the all-categories choice.</summary>
+    public void SetBudgetTransactionCategory(string category)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(category);
+        Budget = Budget with { TransactionCategory = category };
+    }
+
+    /// <summary>Sets whether the Budget Adjust view popover is open.</summary>
+    public void SetBudgetAdjustViewOpen(bool open)
+        => Budget = Budget with { AdjustViewOpen = open };
+
+    /// <summary>Sets whether the Budget year-to-date detail is expanded.</summary>
+    public void SetBudgetYearToDateOpen(bool open)
+        => Budget = Budget with { YearToDateOpen = open };
+
     /// <summary>Sets the Financial independence target shown by the scenario control.</summary>
     public void SetFinancialIndependenceTargetAmount(decimal value)
         => FinancialIndependence = FinancialIndependence with { TargetAmount = value };
 
     /// <summary>Restores the Financial independence display inputs to their configured initial value.</summary>
     public void ResetFinancialIndependence(decimal targetAmount)
-        => FinancialIndependence = FinancialIndependence with { TargetAmount = targetAmount };
+        => FinancialIndependence = FinancialIndependence with
+        {
+            TargetAmount = targetAmount,
+            AdjustSourceDataOpen = false,
+            SourceDetailsOpen = false,
+            SourceDetailsTab = "Accounts"
+        };
+
+    /// <summary>Sets whether Financial Independence source controls are open.</summary>
+    public void SetFinancialIndependenceAdjustSourceDataOpen(bool open)
+        => FinancialIndependence = FinancialIndependence with { AdjustSourceDataOpen = open };
+
+    /// <summary>Sets whether Financial Independence source details are expanded.</summary>
+    public void SetFinancialIndependenceSourceDetailsOpen(bool open)
+        => FinancialIndependence = FinancialIndependence with { SourceDetailsOpen = open };
+
+    /// <summary>Sets the active Financial Independence source-details tab.</summary>
+    public void SetFinancialIndependenceSourceDetailsTab(string tab)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(tab);
+        FinancialIndependence = FinancialIndependence with { SourceDetailsTab = tab };
+    }
 
     /// <summary>Sets the Data health stale-account threshold.</summary>
     public void SetDataHealthStaleThreshold(decimal value)
@@ -1054,6 +1340,17 @@ public sealed class DashboardPresentationState
     /// <summary>Sets whether the Data health page includes inactive items.</summary>
     public void SetDataHealthIncludeInactive(bool value)
         => DataHealth = DataHealth with { IncludeInactive = value };
+
+    /// <summary>Sets whether the Data Health check-settings popover is open.</summary>
+    public void SetDataHealthCheckSettingsOpen(bool open)
+        => DataHealth = DataHealth with { CheckSettingsOpen = open };
+
+    /// <summary>Sets the selected Data Health check detail.</summary>
+    public void SetDataHealthSelectedCheck(string checkId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(checkId);
+        DataHealth = DataHealth with { SelectedCheckId = checkId };
+    }
 
     /// <summary>Gets the configured control value formatted for a native Roci control.</summary>
     public string ValueFor(DashboardControlSource source)
@@ -1072,9 +1369,17 @@ public sealed class DashboardPresentationState
             DashboardControlSource.MerchantDetailMonth => Merchants.DetailMonth,
             DashboardControlSource.MerchantDetailTab => Merchants.DetailTab,
             DashboardControlSource.TransactionsMoreFilters => Transactions.MoreFiltersOpen.ToString(CultureInfo.InvariantCulture).ToLowerInvariant(),
+            DashboardControlSource.BudgetAdjustView => Budget.AdjustViewOpen.ToString(CultureInfo.InvariantCulture).ToLowerInvariant(),
+            DashboardControlSource.BudgetTransactionCategory => Budget.TransactionCategory,
+            DashboardControlSource.BudgetYearToDate => Budget.YearToDateOpen.ToString(CultureInfo.InvariantCulture).ToLowerInvariant(),
             DashboardControlSource.FinancialIndependenceTargetAmount => FinancialIndependence.TargetAmount.ToString(CultureInfo.InvariantCulture),
+            DashboardControlSource.FinancialIndependenceAdjustSourceData => FinancialIndependence.AdjustSourceDataOpen.ToString(CultureInfo.InvariantCulture).ToLowerInvariant(),
+            DashboardControlSource.FinancialIndependenceSourceDetails => FinancialIndependence.SourceDetailsOpen.ToString(CultureInfo.InvariantCulture).ToLowerInvariant(),
+            DashboardControlSource.FinancialIndependenceSourceDetailsTab => FinancialIndependence.SourceDetailsTab,
             DashboardControlSource.DataHealthStaleThreshold => DataHealth.StaleThreshold.ToString(CultureInfo.InvariantCulture),
             DashboardControlSource.DataHealthIncludeInactive => DataHealth.IncludeInactive.ToString(CultureInfo.InvariantCulture).ToLowerInvariant(),
+            DashboardControlSource.DataHealthCheckSettings => DataHealth.CheckSettingsOpen.ToString(CultureInfo.InvariantCulture).ToLowerInvariant(),
+            DashboardControlSource.DataHealthSelectedCheck => DataHealth.SelectedCheckId,
             _ => throw new ArgumentException($"Control source '{source}' does not hold one display value.", nameof(source))
         };
 

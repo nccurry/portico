@@ -65,10 +65,11 @@ section = "net_worth"
 [[pages.widgets]]
 id = "what-changed"
 title = "What changed"
-kind = "bar_chart"
+kind = "horizontal_bar_chart"
 report = "home.attribution"
 span = 2
 section = "what_changed"
+x_axis_title = "Net-worth movement ($)"
 
 [[pages.widgets]]
 id = "accounts"
@@ -900,7 +901,7 @@ span = 2
 [[pages]]
 id = "budget"
 title = "Budget"
-description = "Budget allocations and actual category spending."
+description = "Monthly budget pulse, plan comparison, and budget detail."
 visible = true
 group = "plan"
 order = 8
@@ -908,35 +909,207 @@ rail_label = "Budget"
 page_heading = "Budget"
 icon = "account_balance_wallet"
 
-[[pages.filters]]
-id = "lookback"
-label = "Lookback"
+[[pages.sections]]
+id = "daily_budget_pace"
+title = "Daily budget pace"
+description = "Cumulative spending compared with the selected budget pace."
+layout = "flow"
+order = 1
+
+[[pages.sections]]
+id = "plan_comparison"
+title = "This month against the plan"
+description = "Compare group spending with the selected monthly plan."
+layout = "flow"
+order = 2
+
+[[pages.sections]]
+id = "budget_group_detail"
+title = "Budget group detail"
+description = "Inspect one group's history, categories, and transactions."
+layout = "flow"
+order = 3
+
+[[pages.sections]]
+id = "year_to_date"
+title = "Year-to-date position"
+description = "Review group budgets and spending for the selected year."
+layout = "flow"
+order = 4
+
+[[pages.controls]]
+id = "month"
+label = "Month"
 kind = "select"
-source = "lookback"
-default = "12"
-options = ["3", "6", "12", "24"]
+source = "budget_month"
+option_source = "budget_months"
+
+[[pages.controls]]
+id = "groups"
+label = "Budget groups"
+kind = "multi_select"
+source = "budget_groups"
+option_source = "budget_groups"
+defaults = []
+
+[[pages.controls]]
+id = "adjust_view"
+label = "Adjust view"
+kind = "popover"
+source = "budget_adjust_view"
+
+[[pages.controls]]
+id = "reset_adjustments"
+label = "Reset defaults"
+kind = "action_reset"
+source = "budget_reset"
+
+[[pages.controls]]
+id = "exclude_groups"
+label = "Exclude groups"
+kind = "multi_select"
+source = "budget_excluded_groups"
+option_source = "budget_groups"
+defaults = []
+
+[[pages.controls]]
+id = "exclude_categories"
+label = "Exclude categories"
+kind = "multi_select"
+source = "budget_excluded_categories"
+option_source = "spending_categories"
+defaults = []
+
+[[pages.controls]]
+id = "include_transaction_names"
+label = "Include transaction names containing"
+kind = "text_multi_select"
+source = "budget_included_descriptions"
+
+[[pages.controls]]
+id = "exclude_transaction_names"
+label = "Exclude transaction names containing"
+kind = "text_multi_select"
+source = "budget_excluded_descriptions"
+
+[[pages.controls]]
+id = "exclude_large_expenses"
+label = "Exclude individual expenses over a limit"
+kind = "toggle"
+source = "budget_exclude_large_expenses"
+default = "false"
+
+[[pages.controls]]
+id = "expense_limit"
+label = "Expense limit"
+kind = "number_input"
+source = "budget_expense_limit"
+default = "3000"
+minimum = 1000
+maximum = 100000
+step = 500
+
+[[pages.controls]]
+id = "transaction_category"
+label = "Transactions"
+kind = "select"
+source = "budget_transaction_category"
+option_source = "budget_transaction_categories"
+
+[[pages.controls]]
+id = "year_to_date"
+label = "Year-to-date position"
+kind = "collapsible"
+source = "budget_year_to_date"
 
 [[pages.widgets]]
-id = "budget-vs-actual"
-title = "Budget versus actual"
-kind = "bar_chart"
-report = "budget.comparison"
+id = "summary"
+title = "Budget summary"
+kind = "metric"
+report = "budget.summary"
 span = 2
 
 [[pages.widgets]]
-id = "budget-history"
-title = "Budget history"
+id = "pace"
+title = "Daily budget pace"
+kind = "line_chart"
+report = "budget.pace"
+span = 2
+section = "daily_budget_pace"
+y_axis_title = "Cumulative spending ($)"
+
+[[pages.widgets]]
+id = "comparison"
+title = "Plan versus actual"
+kind = "horizontal_bar_chart"
+report = "budget.comparison"
+span = 2
+section = "plan_comparison"
+x_axis_title = "Spending ($)"
+
+[[pages.widgets]]
+id = "performance"
+title = "Budget group performance"
+kind = "table"
+report = "budget.performance"
+span = 2
+section = "plan_comparison"
+
+[[pages.widgets]]
+id = "group-summary"
+title = "Selected group"
+kind = "metric"
+report = "budget.group_summary"
+span = 2
+section = "budget_group_detail"
+
+[[pages.widgets]]
+id = "history"
+title = "Selected group history"
 kind = "combo_chart"
 report = "budget.history"
 span = 2
 bar_series = ["budget"]
+section = "budget_group_detail"
 
 [[pages.widgets]]
-id = "budget-table"
-title = "Budget details"
+id = "categories"
+title = "What drove spending"
+kind = "horizontal_bar_chart"
+report = "budget.categories"
+section = "budget_group_detail"
+x_axis_title = "Spending ($)"
+
+[[pages.widgets]]
+id = "category-table"
+title = "Category detail"
 kind = "table"
-report = "budget.table"
+report = "budget.category_table"
+section = "budget_group_detail"
+
+[[pages.widgets]]
+id = "transactions"
+title = "Selected transactions"
+kind = "table"
+report = "budget.transactions"
 span = 2
+section = "budget_group_detail"
+
+[[pages.widgets]]
+id = "ytd-summary"
+title = "Year-to-date summary"
+kind = "metric"
+report = "budget.ytd_summary"
+span = 2
+section = "year_to_date"
+
+[[pages.widgets]]
+id = "ytd-table"
+title = "Year-to-date groups"
+kind = "table"
+report = "budget.ytd_table"
+span = 2
+section = "year_to_date"
 
 [[pages]]
 id = "top_transactions"
@@ -1077,13 +1250,168 @@ span = 2
 [[pages]]
 id = "financial_independence"
 title = "Financial Independence"
-description = "Portfolio funding, projection, and runway sensitivity."
+description = "Editable financial independence scenario with source data and runway sensitivity."
 visible = true
 group = "plan"
 order = 9
 rail_label = "Financial independence"
 page_heading = "Financial independence"
 icon = "monitoring"
+
+[[pages.sections]]
+id = "fi_scenario"
+title = "Scenario"
+description = "Annual assumptions used for the projection."
+layout = "flow"
+order = 1
+
+[[pages.sections]]
+id = "fi_projection"
+title = "Portfolio runway projection"
+description = "Projected portfolio balance over the selected horizon."
+layout = "flow"
+order = 2
+
+[[pages.controls]]
+id = "adjust_source_data"
+label = "Adjust source data"
+kind = "popover"
+source = "fi_adjust_source_data"
+
+[[pages.controls]]
+id = "include_accounts"
+label = "Included accounts"
+kind = "multi_select"
+source = "fi_included_accounts"
+option_source = "fi_accounts"
+defaults = []
+
+[[pages.controls]]
+id = "spending_lookback"
+label = "Spending history"
+kind = "select"
+source = "fi_spending_lookback"
+default = "12"
+options = ["6", "12", "24", "36"]
+
+[[pages.controls]]
+id = "exclude_groups"
+label = "Exclude groups"
+kind = "multi_select"
+source = "fi_excluded_groups"
+option_source = "spending_groups"
+defaults = []
+
+[[pages.controls]]
+id = "exclude_categories"
+label = "Exclude categories"
+kind = "multi_select"
+source = "fi_excluded_categories"
+option_source = "spending_categories"
+defaults = []
+
+[[pages.controls]]
+id = "include_transaction_names"
+label = "Include transaction names containing"
+kind = "text_multi_select"
+source = "fi_included_descriptions"
+
+[[pages.controls]]
+id = "exclude_transaction_names"
+label = "Exclude transaction names containing"
+kind = "text_multi_select"
+source = "fi_excluded_descriptions"
+
+[[pages.controls]]
+id = "exclude_large_expenses"
+label = "Exclude large transactions"
+kind = "toggle"
+source = "fi_exclude_large_expenses"
+default = "false"
+
+[[pages.controls]]
+id = "expense_limit"
+label = "Maximum individual expense"
+kind = "number_input"
+source = "fi_expense_limit"
+default = "3000"
+minimum = 1000
+maximum = 100000
+step = 500
+
+[[pages.controls]]
+id = "reset_scenario"
+label = "Reset to source data"
+kind = "action_reset"
+source = "financial_independence_reset"
+
+[[pages.controls]]
+id = "assets"
+label = "Investable assets"
+kind = "number_input"
+source = "fi_assets"
+minimum = 0
+maximum = 100000000
+step = 10000
+
+[[pages.controls]]
+id = "spending"
+label = "Annual spending"
+kind = "number_input"
+source = "fi_spending"
+minimum = 0
+maximum = 10000000
+step = 1000
+
+[[pages.controls]]
+id = "income"
+label = "Annual earned income"
+kind = "number_input"
+source = "fi_income"
+minimum = 0
+maximum = 10000000
+step = 1000
+
+[[pages.controls]]
+id = "return_rate"
+label = "Expected real return (%)"
+kind = "number_input"
+source = "fi_return_rate"
+minimum = 0
+maximum = 20
+step = 0.5
+
+[[pages.controls]]
+id = "withdrawal_rate"
+label = "Withdrawal rate (%)"
+kind = "number_input"
+source = "fi_withdrawal_rate"
+minimum = 0.5
+maximum = 10
+step = 0.25
+
+[[pages.controls]]
+id = "years"
+label = "Projection horizon"
+kind = "number_input"
+source = "fi_years"
+minimum = 1
+maximum = 100
+step = 1
+
+[[pages.controls]]
+id = "source_details"
+label = "Source details"
+kind = "collapsible"
+source = "fi_source_details"
+
+[[pages.controls]]
+id = "source_tab"
+label = "Source details"
+kind = "tab_choice"
+source = "fi_source_tab"
+default = "Accounts"
+options = ["Accounts", "Spending", "Transactions"]
 
 [[pages.widgets]]
 id = "summary"
@@ -1098,16 +1426,43 @@ kind = "line_chart"
 report = "fi.projection"
 
 [[pages.widgets]]
+id = "funding"
+title = "Annual funding"
+kind = "bar_chart"
+report = "fi.funding"
+
+[[pages.widgets]]
 id = "sensitivity"
 title = "Runway sensitivity"
 kind = "heatmap"
 report = "fi.sensitivity"
 span = 2
 
+[[pages.widgets]]
+id = "source-accounts"
+title = "Source accounts"
+kind = "table"
+report = "fi.source_accounts"
+span = 2
+
+[[pages.widgets]]
+id = "source-spending"
+title = "Source spending"
+kind = "line_chart"
+report = "fi.source_spending"
+span = 2
+
+[[pages.widgets]]
+id = "source-transactions"
+title = "Source transactions"
+kind = "table"
+report = "fi.source_transactions"
+span = 2
+
 [[pages]]
 id = "data_health"
 title = "Data Health"
-description = "Missing classifications, stale accounts, and duplicate-looking rows."
+description = "Review source freshness, mapping gaps, and suspicious records."
 visible = true
 group = "maintain"
 order = 10
@@ -1115,15 +1470,106 @@ rail_label = "Data health"
 page_heading = "Data health"
 icon = "health_and_safety"
 
+[[pages.sections]]
+id = "health_checks"
+title = "Health checks"
+description = "Review each source check and its next step."
+layout = "flow"
+order = 1
+
+[[pages.sections]]
+id = "health_detail"
+title = "Inspect check"
+description = "Review the source rows behind one check."
+layout = "flow"
+order = 2
+
+[[pages.controls]]
+id = "check_settings"
+label = "Check settings"
+kind = "popover"
+source = "health_check_settings"
+
+[[pages.controls]]
+id = "stale_threshold"
+label = "Stale account threshold"
+kind = "slider"
+source = "health_stale_days"
+default = "7"
+minimum = 1
+maximum = 365
+step = 1
+
+[[pages.controls]]
+id = "duplicate_days"
+label = "Maximum days apart"
+kind = "number_input"
+source = "health_duplicate_days"
+default = "1"
+minimum = 0
+maximum = 7
+step = 1
+
+[[pages.controls]]
+id = "duplicate_minimum"
+label = "Minimum amount"
+kind = "number_input"
+source = "health_duplicate_minimum"
+default = "10"
+minimum = 0
+maximum = 1000
+step = 10
+
+[[pages.controls]]
+id = "same_account"
+label = "Require the same account"
+kind = "toggle"
+source = "health_same_account"
+default = "true"
+
+[[pages.controls]]
+id = "same_category"
+label = "Require the same category"
+kind = "toggle"
+source = "health_same_category"
+default = "false"
+
+[[pages.controls]]
+id = "same_description"
+label = "Require the same description"
+kind = "toggle"
+source = "health_same_description"
+default = "true"
+
+[[pages.controls]]
+id = "include_inactive"
+label = "Include hidden source rows"
+kind = "toggle"
+source = "health_include_inactive"
+default = "false"
+
+[[pages.controls]]
+id = "selected_check"
+label = "Inspect check"
+kind = "select"
+source = "health_selected_check"
+option_source = "health_checks"
+
 [[pages.widgets]]
 id = "summary"
-title = "Data health"
+title = "Data health summary"
 kind = "metric"
 report = "health.summary"
 
 [[pages.widgets]]
-id = "findings"
-title = "Findings"
+id = "queue"
+title = "Health checks"
 kind = "table"
-report = "health.findings"
+report = "health.queue"
+
+[[pages.widgets]]
+id = "detail"
+title = "Check detail"
+kind = "table"
+report = "health.detail"
 span = 2
