@@ -4,7 +4,7 @@
 
 - Status: In progress
 - Created: 2026-09-04
-- Current phase: Phase 5.1 — rebuild Spending by category
+- Current phase: Phase 5.2 — rebuild Income and savings and Year over year
 - Owner: Portico maintainers
 - Target worktree: `../portico-roci-rebuild`
 - Target branch: `nccurry/roci-portico-plc`
@@ -97,6 +97,31 @@ Phase 4 completed on 2026-09-05.
   `task roci:build:strict`, `task roci:test`, `task roci:visual`, and
   `git diff --check`. The combined code audit found no blocking or deferred
   issue.
+
+Phase 5.1 completed on 2026-09-05.
+
+- Spending by category now follows the source reading order: time, view,
+  comparison, and Adjust view controls; three summary cards; an optional
+  exclusion line; the trend/ranking section; the overview; selected detail;
+  and excluded rows.
+- TOML now declares the page's typed controls, dynamic group/category/month
+  options, chart axis titles, and horizontal ranking widget. C# owns the
+  validated report inputs and calculations; TOML does not contain a formula.
+- Finance tests cover period matching, empty months, refunds, stable ranking,
+  named views, merchant aliases, every adjustment, and comparison-only rows.
+  UI tests cover pointer/keyboard controls, filter resets, retained selection,
+  empty results, source order, and retained-layout bounds.
+- The full suite has 147 passing tests. `task roci:visual` writes 34 captures,
+  including default and adjusted Spending views at both desktop sizes.
+- The phase exposed one Roci chart follow-up for the final review: bar fill is
+  set per series rather than per category value. Compact currency ticks are an
+  app formatter follow-up, not a missing Roci feature. Horizontal bars
+  themselves are available; the initial issue was an app-side
+  axis/orientation dispatch bug, which is now tested.
+- The merged phase passed `task roci:format`, `task roci:lint`,
+  `task roci:build:strict`, `task roci:test`, `task roci:visual`, and
+  `git diff --check`. The combined code and frontend reviews found no P1 or
+  P2 issue.
 
 ## Purpose
 

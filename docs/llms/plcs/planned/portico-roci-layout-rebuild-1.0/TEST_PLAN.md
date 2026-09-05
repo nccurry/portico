@@ -96,6 +96,22 @@ also state the value, row count, warning, or action that it proves.
 - Data Health settings, warnings, and counts match the synthetic invalid/missing
   fixtures.
 
+### Phase 5.1 Spending Evidence
+
+- The finance tests prove previous-period and last-year month alignment,
+  empty/current/comparison-only cases, refunds, named views, merchant aliases,
+  stable ranking, independent and combined adjustments, and the expense-limit
+  boundary.
+- The dashboard tests prove that one change updates Spending metrics, trend,
+  ranking, overview, selected detail, and excluded rows together.
+- The app tests prove pointer and keyboard use of Time frame, Compare with,
+  Adjust view, multi-selects, editable terms, the large-expense setting,
+  Reset defaults, selected rows, detail month, hide values, navigation, and
+  the source empty state.
+- Retained-layout checks cover horizontal bar orientation and axes, source
+  regions/order, a compact Adjust button, a readable exclusion badge gap, and
+  both required desktop sizes.
+
 ## 5. Visual Checks
 
 ### Fixed Runs
@@ -168,10 +184,11 @@ task roci:publish:linux-x64
 
 `roci:visual` first builds the matching configuration, then runs the
 test-only `Portico.CaptureHost` cases serially with Roci automation and
-capture. The command currently writes 32 PNG files to
+capture. The command currently writes 34 PNG files to
 `artifacts/visual/portico-current`: every configured page at 1500 by 1000 and
-1024 by 720, plus Home All, hidden-value, wrapped-control, loading, failed,
-and unavailable states. A direct host run accepts normal Roci arguments such as
+1024 by 720, plus Home All, hidden-value, wrapped-control, default and
+adjusted Spending, loading, failed, and unavailable states. A direct host run
+accepts normal Roci arguments such as
 `--start-state`, `--scenario`, `--capture-size`, `--capture-frame`, and
 `--capture`.
 

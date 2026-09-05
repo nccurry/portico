@@ -207,8 +207,33 @@ Roci.
 | Navigation rail | A local proof with selected page, keyboard focus, and narrow-window behavior. | Completed in Phase 2: exact TOML-backed rail, selected state, pointer/keyboard navigation, focus retention, fixed rail, and 28 visual captures. |
 | Multi-select | A local proof used by at least two real page filters. | First proof complete in Phase 3 on Income and savings. Phase 5 must use it in at least one more real source filter. |
 | Typed page controls | A table that maps each source control to state, report/display behavior, and a test. | First grammar and mappings complete in Phase 3. Each later source page must add its own real report/display mapping with its rebuild. |
-| Any chart gap | A named Streamlit chart and the smallest attempted Roci composition. | Pending. |
+| Any chart gap | A named Streamlit chart and the smallest attempted Roci composition. | Phase 5.1 proved horizontal bars are available. Per-category bar fills remain a real chart API candidate; compact currency ticks are an app formatter follow-up. |
 | Page configuration fields | Current TOML types plus one representative page loaded through them. | Completed in Phase 3: validated sections, typed controls, C# mapping routes, and Home/Income configurations. |
+
+### Phase 5.1 Spending Findings
+
+- The source Spending page is feasible with normal Roci flex rows, panels,
+  controls, charts, tables, tabs, collapsibles, and a Portico-local
+  multi-select. Its controls are TOML-selected but route through typed C#
+  settings and state.
+- `HorizontalBars()` with a linear X axis and category Y axis expresses the
+  source ranking. The first local result was vertical because the app renderer
+  set the axes before it declared horizontal bars. This was an app dispatch
+  error, not a missing Roci chart feature. A retained-tree test now checks the
+  orientation and both axes.
+- A one-series ranking cannot give every category its trend color: Roci's bar
+  style is currently per series, not per bar value. The local page keeps a
+  single teal series rather than creating a chart-specific workaround. This is
+  a candidate for an app-first experiment and then a separate Roci proposal.
+- The native numeric axis accepts a formatter. The page now sets the source
+  axis title, while compact currency ticks such as `$2k` remain an app
+  formatting follow-up rather than a Roci API gap.
+- Render-only badge content needs an explicit minimum height in retained flex
+  layout. The local page uses the existing `SetMinSize` API and a tested gap;
+  no new Roci component is needed.
+- The local multi-select now has a second real use: Spending group and category
+  exclusions. It remains a candidate for final promotion review after more
+  pages use it.
 
 ### Phase 4 Home Findings
 
