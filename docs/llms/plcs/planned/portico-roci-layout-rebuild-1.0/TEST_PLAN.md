@@ -128,9 +128,10 @@ also state the value, row count, warning, or action that it proves.
 - App tests cover both desktop sizes, controls, popovers, multi-selects,
   number inputs, reset actions, details, empty states, retained page bounds,
   current-year visual emphasis, and the calendar-month chart axis.
-- `task roci:visual` runs 36 named captures. It includes default and adjusted
-  Income states and preset and single-category Year over year states at 1500 by
-  1000 and 1024 by 720.
+- `task roci:visual` runs 42 named captures. It includes default and adjusted
+  Income, Spending by merchant, and Spending states; preset and single-category
+  Year over year states; subscription settings; and Transactions More filters
+  at 1500 by 1000 and 1024 by 720.
 
 ## 5. Visual Checks
 
@@ -202,9 +203,9 @@ task roci:publish:win-x64
 task roci:publish:linux-x64
 ```
 
-`roci:visual` first builds the matching configuration, then runs the
-test-only `Portico.CaptureHost` cases serially with Roci automation and
-capture. The command currently writes 34 PNG files to
+`roci:visual` first builds the matching configuration and its test/capture
+host, then runs the test-only `Portico.CaptureHost` cases serially with Roci
+automation and capture. The command currently writes 42 PNG files to
 `artifacts/visual/portico-current`: every configured page at 1500 by 1000 and
 1024 by 720, plus Home All, hidden-value, wrapped-control, default and
 adjusted Spending, loading, failed, and unavailable states. A direct host run

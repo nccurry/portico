@@ -29,15 +29,14 @@ internal sealed class PorticoSpendingPageRenderer
 
     private readonly DashboardSession _session;
     private readonly Action _requestRebuild;
-    private readonly Dictionary<string, PorticoMultiSelectState<string>> _multiSelectStates = new(StringComparer.Ordinal);
-    private string _includedTermDraft = string.Empty;
-    private string _excludedTermDraft = string.Empty;
+    private readonly PorticoSpendingAdjustmentsControl _adjustmentsControl;
 
     /// <summary>Creates the renderer around the dashboard session that owns spending report state.</summary>
     public PorticoSpendingPageRenderer(DashboardSession session, Action requestRebuild)
     {
         _session = session ?? throw new ArgumentNullException(nameof(session));
         _requestRebuild = requestRebuild ?? throw new ArgumentNullException(nameof(requestRebuild));
+        _adjustmentsControl = new PorticoSpendingAdjustmentsControl(_session, _requestRebuild, DashboardPageId.Spending);
     }
 
     /// <summary>Gets whether a page has the complete source-shaped Spending grammar.</summary>
@@ -109,7 +108,7 @@ internal sealed class PorticoSpendingPageRenderer
 
     /// <summary>Returns a local multi-select state for interaction tests.</summary>
     public PorticoMultiSelectState<string>? MultiSelectState(string controlId)
-        => _multiSelectStates.GetValueOrDefault(controlId);
+        => _adjustmentsControl.MultiSelectState(controlId);
 
     private void BuildControls(UiBuilder ui, DashboardPageDefinition page)
     {
@@ -200,246 +199,7 @@ internal sealed class PorticoSpendingPageRenderer
     }
 
     private void BuildAdjustControl(UiBuilder ui, DashboardPageDefinition page)
-    {
-        DashboardControlDefinition control = Control(page, "adjust_view");
-        bool modified = _session.Filters.SpendingAdjustments?.IsModified == true;
-        string label = modified ? $"{control.Label} · modified" : control.Label;
-        PopoverState? popover = null;
-
-        ui.HStack(PorticoSkin.FilterGap, "Control:Spending:adjust_view:Group")
-            .SetFlexBasis(320f)
-            .SetFlexGrow(0f)
-            .SetFlexShrink(0f)
-            .SetCrossAlign(CrossAlignment.Center);
-        ui.Button("Control:Spending:AdjustView")
-            .SetFlexBasis(320f)
-            .SetFlexGrow(0f)
-            .SetFlexShrink(0f)
-            .SetPadding(PorticoSkin.CompactActionHorizontalPadding, PorticoSkin.CompactActionVerticalPadding)
-            .SetCornerRadius(PorticoSkin.SmallCornerRadius)
-            .SetStyle(modified ? PorticoSkin.SelectedActionStyle : PorticoSkin.QuietActionStyle)
-            .SetCommandSurface(pointer: true, focus: true);
-        ui.Text(label, "Control:Spending:AdjustView:Text")
-            .SetTextStyle(PorticoSkin.ActionText)
-            .SetFontStyle(FontStyle.Bold)
-        .End();
-        ui.SetPopover(
-                content => BuildAdjustPopover(content, page, () => popover),
-                PopoverOpenMode.Manual)
-            .Configure(node =>
-            {
-                popover = node.GetStateOrDefault<PopoverState>()
-                    ?? throw new InvalidOperationException("Spending Adjust view needs a popover state.");
-                popover.OnOpened = () => _session.SetSpendingAdjustViewOpen(true);
-                popover.OnClosed = () => _session.SetSpendingAdjustViewOpen(false);
-                UiBuilder.SetPopoverOpen(popover, _session.Presentation.Spending.AdjustViewOpen);
-            })
-            .SetOnCommand(_ =>
-            {
-                PopoverState current = popover
-                    ?? throw new InvalidOperationException("Spending Adjust view needs a popover state.");
-                bool open = !_session.Presentation.Spending.AdjustViewOpen;
-                _session.SetSpendingAdjustViewOpen(open);
-                UiBuilder.SetPopoverOpen(current, open);
-                _requestRebuild();
-                return true;
-            }, (int)InputCommands.ClickLeft, (int)InputCommands.Accept);
-        ui.EndButton();
-        ui.End();
-    }
-
-    private void BuildAdjustPopover(UiBuilder ui, DashboardPageDefinition page, Func<PopoverState?> popover)
-    {
-        ui.VStack(PorticoSkin.SectionGap, "SpendingAdjustPopover")
-            .SetWidth(400f)
-            .SetMaxHeight(520f)
-            .SetScrollable(vertical: true, horizontal: false)
-            .SetPadding(PorticoSkin.ControlBarPadding)
-            .SetCrossAlign(CrossAlignment.Stretch)
-            .SetStyle(PorticoSkin.RaisedPanelStyle);
-        ui.HStack(PorticoSkin.CompactGap, "SpendingAdjustPopover:Header")
-            .SetCrossAlign(CrossAlignment.Center);
-        ui.Text("Adjust view", "SpendingAdjustPopover:Title")
-            .SetFlexGrow(1f)
-            .SetTextStyle(PorticoSkin.SectionTitleText)
-            .SetFontStyle(FontStyle.Bold)
-        .End();
-        AddActionButton(
-            ui,
-            "Control:Spending:ResetAdjustments",
-            Control(page, "reset_adjustments").Label,
-            () =>
-            {
-                _session.InvokeControlAction(DashboardPageId.Spending, "reset_adjustments");
-                _requestRebuild();
-            },
-            PorticoSkin.SecondaryActionStyle,
-            compact: true);
-        ui.End();
-
-        BuildAdjustmentMultiSelect(ui, page, "exclude_groups");
-        BuildAdjustmentMultiSelect(ui, page, "exclude_categories");
-        BuildTextTerms(ui, page, "include_transaction_names", () => _includedTermDraft, value => _includedTermDraft = value);
-        BuildTextTerms(ui, page, "exclude_transaction_names", () => _excludedTermDraft, value => _excludedTermDraft = value);
-        BuildLargeExpenseControl(ui, page);
-
-        AddActionButton(
-            ui,
-            "Control:Spending:CloseAdjustments",
-            "Close",
-            () =>
-            {
-                _session.SetSpendingAdjustViewOpen(false);
-                if (popover() is { } current)
-                    UiBuilder.SetPopoverOpen(current, false);
-                _requestRebuild();
-            },
-            PorticoSkin.SecondaryActionStyle,
-            compact: true);
-        ui.End();
-    }
-
-    private void BuildAdjustmentMultiSelect(UiBuilder ui, DashboardPageDefinition page, string controlId)
-    {
-        DashboardControlDefinition control = Control(page, controlId);
-        PorticoMultiSelectState<string> state = _multiSelectStates.GetValueOrDefault(controlId)
-            ?? new PorticoMultiSelectState<string>(comparer: StringComparer.Ordinal);
-        _multiSelectStates[controlId] = state;
-        IReadOnlyList<string> options = _session.ControlOptions(DashboardPageId.Spending, controlId);
-        PorticoMultiSelectItem<string>[] items = options
-            .Select(value => new PorticoMultiSelectItem<string>(value, value, value))
-            .ToArray();
-
-        ui.VStack(PorticoSkin.FilterGap, $"SpendingAdjustment:{controlId}")
-            .SetCrossAlign(CrossAlignment.Stretch);
-        ui.Text(control.Label, $"SpendingAdjustment:{controlId}:Label")
-            .SetTextStyle(PorticoSkin.HelperText)
-        .End();
-        ui.MultiSelect(
-            $"Control:Spending:{controlId}",
-            control.Label,
-            items,
-            _session.ControlValues(DashboardPageId.Spending, controlId),
-            state,
-            values => _session.SetControlValues(DashboardPageId.Spending, controlId, values),
-            _requestRebuild);
-        ui.End();
-    }
-
-    private void BuildTextTerms(
-        UiBuilder ui,
-        DashboardPageDefinition page,
-        string controlId,
-        Func<string> getDraft,
-        Action<string> setDraft)
-    {
-        DashboardControlDefinition control = Control(page, controlId);
-        IReadOnlySet<string> values = _session.ControlValues(DashboardPageId.Spending, controlId);
-        ui.VStack(PorticoSkin.FilterGap, $"SpendingTerms:{controlId}")
-            .SetCrossAlign(CrossAlignment.Stretch);
-        ui.Text(control.Label, $"SpendingTerms:{controlId}:Label")
-            .SetTextStyle(PorticoSkin.HelperText)
-            .SetTextWrap()
-        .End();
-        ui.HStack(PorticoSkin.FilterGap, $"SpendingTerms:{controlId}:Input")
-            .SetCrossAlign(CrossAlignment.Center);
-        string currentDraft = getDraft();
-        ui.TextInput($"Control:Spending:{controlId}:Input", "Type text")
-            .SetFlexGrow(1f)
-            .Configure(node =>
-            {
-                TextInputState state = node.GetStateOrDefault<TextInputState>()
-                    ?? throw new InvalidOperationException("Spending term input needs a text state.");
-                state.Text = currentDraft;
-            })
-            .SetOnTextChanged(setDraft)
-        .End();
-        AddActionButton(
-            ui,
-            $"Control:Spending:{controlId}:Add",
-            "Add",
-            () =>
-            {
-                string next = getDraft();
-                if (string.IsNullOrWhiteSpace(next))
-                    return;
-                _session.SetControlValues(DashboardPageId.Spending, controlId, values.Append(next));
-                setDraft(string.Empty);
-                _requestRebuild();
-            },
-            PorticoSkin.SecondaryActionStyle,
-            compact: true);
-        ui.End();
-
-        if (values.Count > 0)
-        {
-            ui.HStack(PorticoSkin.FilterGap, $"SpendingTerms:{controlId}:Values")
-                .SetFlexWrap()
-                .SetCrossGap(PorticoSkin.FilterGap)
-                .SetCrossAlign(CrossAlignment.Center);
-            foreach (string value in values.OrderBy(value => value, StringComparer.Ordinal))
-            {
-                string captured = value;
-                AddActionButton(
-                    ui,
-                    $"Control:Spending:{controlId}:Remove:{captured}",
-                    $"Remove {captured}",
-                    () =>
-                    {
-                        _session.SetControlValues(DashboardPageId.Spending, controlId, values.Where(value => !string.Equals(value, captured, StringComparison.Ordinal)));
-                        _requestRebuild();
-                    },
-                    PorticoSkin.QuietActionStyle,
-                    compact: true);
-            }
-            ui.End();
-        }
-        ui.End();
-    }
-
-    private void BuildLargeExpenseControl(UiBuilder ui, DashboardPageDefinition page)
-    {
-        DashboardControlDefinition toggle = Control(page, "exclude_large_expenses");
-        bool selected = bool.Parse(_session.ControlValue(DashboardPageId.Spending, "exclude_large_expenses"));
-        ui.VStack(PorticoSkin.FilterGap, "SpendingLargeExpense")
-            .SetCrossAlign(CrossAlignment.Stretch);
-        ui.ToggleButton("Control:Spending:exclude_large_expenses", selected, next =>
-        {
-            _session.SetControlToggle(DashboardPageId.Spending, "exclude_large_expenses", next);
-            _requestRebuild();
-        })
-            .SetFlexGrow(1f);
-        ui.Text(toggle.Label, "Control:Spending:exclude_large_expenses:Label")
-            .SetTextStyle(PorticoSkin.ActionText)
-        .End();
-        ui.EndButton();
-
-        if (selected)
-        {
-            DashboardControlDefinition limit = Control(page, "expense_limit");
-            decimal value = decimal.Parse(_session.ControlValue(DashboardPageId.Spending, "expense_limit"), CultureInfo.InvariantCulture);
-            ui.HStack(PorticoSkin.FilterGap, "SpendingExpenseLimit")
-                .SetCrossAlign(CrossAlignment.Center);
-            ui.Text(limit.Label, "Control:Spending:expense_limit:Label")
-                .SetTextStyle(PorticoSkin.HelperText)
-            .End();
-            ui.NumberInput(
-                    "Control:Spending:expense_limit",
-                    (double)limit.Minimum!.Value,
-                    (double)limit.Maximum!.Value,
-                    (double)value,
-                    (double)limit.Step!.Value)
-                .SetFlexGrow(1f)
-                .SetOnNumberValueChanged(next =>
-                {
-                    _session.SetControlNumber(DashboardPageId.Spending, "expense_limit", (decimal)next);
-                    _requestRebuild();
-                })
-            .EndNumberInput();
-            ui.End();
-        }
-        ui.End();
-    }
+        => _adjustmentsControl.Build(ui, page);
 
     private void BuildSummary(UiBuilder ui, DashboardPageReport report, Func<string?, string> display)
     {
@@ -834,33 +594,4 @@ internal sealed class PorticoSpendingPageRenderer
     private static string TitleCase(string value)
         => value.Length == 0 ? value : char.ToUpperInvariant(value[0]) + value[1..];
 
-    private static void AddActionButton(
-        UiBuilder ui,
-        string name,
-        string label,
-        Action action,
-        string style,
-        bool compact)
-    {
-        ui.Button(name)
-            .SetPadding(
-                compact ? PorticoSkin.CompactActionHorizontalPadding : PorticoSkin.ActionHorizontalPadding,
-                compact ? PorticoSkin.CompactActionVerticalPadding : PorticoSkin.ActionVerticalPadding)
-            .SetCornerRadius(PorticoSkin.SmallCornerRadius)
-            .SetStyle(style)
-            .SetCommandSurface(pointer: true, focus: true)
-            .SetOnCommand(
-                _ =>
-                {
-                    action();
-                    return true;
-                },
-                (int)InputCommands.ClickLeft,
-                (int)InputCommands.Accept);
-        ui.Text(label, $"{name}:Text")
-            .SetTextStyle(compact ? PorticoSkin.CompactActionText : PorticoSkin.ActionText)
-            .SetFontStyle(FontStyle.Bold)
-        .End();
-        ui.EndButton();
-    }
 }

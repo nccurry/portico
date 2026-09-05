@@ -27,7 +27,7 @@ public sealed class DashboardReportBuilderTests
         Assert.NotEmpty(report.Page(DashboardPageId.FinancialIndependence).Widgets["fi.projection"].Series);
         DashboardWidgetReport subscriptions = report.Page(DashboardPageId.Subscriptions).Widgets["subscriptions.active"];
         Assert.NotEmpty(subscriptions.TimelineRanges);
-        Assert.Equal(new DateOnly(2024, 2, 29), subscriptions.DateGuide);
+        Assert.Equal(new DateOnly(2024, 2, 7), subscriptions.DateGuide);
         Assert.NotEmpty(report.Page(DashboardPageId.Subscriptions).Widgets["subscriptions.monthly"].Series.Single().Points);
         Assert.NotEmpty(report.Page(DashboardPageId.FinancialIndependence).Widgets["fi.sensitivity"].HeatmapCells);
         Assert.Equal(3, report.Page(DashboardPageId.Home).Widgets["home.safety"].Metrics.Count);
@@ -51,7 +51,7 @@ public sealed class DashboardReportBuilderTests
     }
 
     [Fact]
-    public void Build_TopTransactionsUsesSeparateConfiguredIncomeAndExpenseThresholds()
+    public void Build_TopTransactionsUsesTheConfiguredMagnitudeFilter()
     {
         PortfolioSnapshot source = Snapshot();
         PortfolioSnapshot snapshot = source with
@@ -65,16 +65,21 @@ public sealed class DashboardReportBuilderTests
                 Row("small-income", 2024, 2, 13, "Bonus", "Income", "Small income", 49_999m, TransactionKind.Income)
             ]
         };
-        FinanceSettings settings = Settings() with { Thresholds = new ThresholdSettings(10_000m, 50_000m, 10m, 1) };
-
         DashboardPageReport page = DashboardReportBuilder.Build(
             snapshot,
-            settings,
-            new DashboardFilters(1, "all", "all", true))
+            Settings(),
+            new DashboardFilters(
+                1,
+                "all",
+                "all",
+                true,
+                TransactionExplorer: TransactionExplorerFilters.Default with { MinimumMagnitude = 10_000m }))
             .Page(DashboardPageId.TopTransactions);
 
         Assert.Equal("Large expense", Assert.Single(page.Widgets["top.expenses"].Series.Single().Points).Label);
-        Assert.Equal("Large income", Assert.Single(page.Widgets["top.incomes"].Series.Single().Points).Label);
+        Assert.Equal(
+            ["Large income", "Small income"],
+            page.Widgets["top.incomes"].Series.Single().Points.Select(point => point.Label));
         Assert.Equal(
             ["Large income", "Small income", "Large expense"],
             page.Widgets["top.table"].Rows.Take(3).Select(row => row.Values[1]));
@@ -220,20 +225,20 @@ public sealed class DashboardReportBuilderTests
             }
         };
 
-        DashboardWidgetReport strictReport = DashboardReportBuilder.Build(
+        DashboardPageReport strictPage = DashboardReportBuilder.Build(
             snapshot,
             strict,
             new DashboardFilters(3, "all", "all", true),
             new DateOnly(2024, 4, 15))
-            .Page(DashboardPageId.Subscriptions)
-            .Widgets["subscriptions.active"];
+            .Page(DashboardPageId.Subscriptions);
+        DashboardWidgetReport strictReport = strictPage.Widgets["subscriptions.active"];
 
-        Assert.Contains(strictReport.Rows, row => row.Values[0] == "Video Service");
+        Assert.Contains(strictReport.Rows, row => row.Values[0] == "VIDEO SERVICE");
         Assert.DoesNotContain(strictReport.Rows, row => row.Values[0] == "FOOD BOX");
         Assert.DoesNotContain(strictReport.Rows, row => row.Values[0] == "COFFEE CLUB");
-        ReportMetric strictAge = strictReport.Metrics.Single(metric => metric.Label == "Data age");
-        Assert.Equal("39 days old", strictAge.Display);
-        Assert.Equal("negative", strictAge.Tone);
+        SubscriptionsPageView strictView = Assert.IsType<SubscriptionsPageView>(strictPage.SubscriptionsView);
+        Assert.Equal(39, strictView.DataAgeDays);
+        Assert.True(strictView.DataIsStale);
 
         FinanceSettings permissive = strict with
         {
@@ -245,7 +250,7 @@ public sealed class DashboardReportBuilderTests
             new DashboardFilters(3, "all", "all", true),
             new DateOnly(2024, 4, 15))
             .Page(DashboardPageId.Subscriptions)
-            .Widgets["subscriptions.active"];
+            .Widgets["subscriptions.candidates"];
 
         Assert.Contains(permissiveReport.Rows, row => row.Values[0] == "COFFEE CLUB" && row.Values[1] == "Detected (85%)");
     }

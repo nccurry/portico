@@ -234,6 +234,13 @@ public static class PorticoCli
             "home_time_frame" => HomeReportRange.TryParse(value, out _),
             "spending_comparison" => DashboardControlMappings.TryParseSpendingComparison(value, out _),
             "spending_breakdown" => DashboardControlMappings.TryParseSpendingBreakdown(value, out _),
+            "merchant_lookback" => int.TryParse(value, out int merchantMonths) && settings.Lookback.Months.Contains(merchantMonths),
+            "merchant_spending" => settings.FilterSet("spending").Options.Contains(value, StringComparer.Ordinal),
+            "merchant_comparison" => DashboardControlMappings.TryParseSpendingComparison(value, out _),
+            "transactions_lookback" => value is "3m" or "6m" or "1y" or "2y" or "all",
+            "transactions_type" => value is "all" or "expenses" or "income" or "transfers",
+            "transactions_focus" => value is "all" or "largest" or "one_off" or "unusual" or "reversals",
+            "transactions_breakdown" => value is "group" or "category" or "merchant" or "account" or "type",
             _ => false
         };
 

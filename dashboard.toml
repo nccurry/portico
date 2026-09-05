@@ -589,7 +589,7 @@ span = 2
 [[pages]]
 id = "subscriptions"
 title = "Subscriptions"
-description = "Known recurring expenses and active subscription history."
+description = "Known recurring expenses, detected candidates, and subscription history."
 visible = true
 group = "analyze"
 order = 6
@@ -597,24 +597,127 @@ rail_label = "Subscriptions"
 page_heading = "Subscriptions"
 icon = "subscriptions"
 
+[[pages.controls]]
+id = "subscription_settings"
+label = "Subscription settings"
+kind = "collapsible"
+source = "subscription_settings_open"
+width = "full"
+
+[[pages.controls]]
+id = "subscription_categories"
+label = "Subscription categories"
+kind = "multi_select"
+source = "subscription_categories"
+option_source = "all_categories"
+
+[[pages.controls]]
+id = "discovery_exclusions"
+label = "Exclude from discovery"
+kind = "multi_select"
+source = "subscription_discovery_exclusions"
+option_source = "subscription_discovery_categories"
+
+[[pages.controls]]
+id = "minimum_confidence"
+label = "Minimum confidence"
+kind = "slider"
+source = "subscription_minimum_confidence"
+default = "80"
+minimum = 70
+maximum = 100
+step = 1
+
+[[pages.controls]]
+id = "history_lookback"
+label = "History"
+kind = "select"
+source = "subscription_history_lookback"
+default = "12m"
+options = ["3m", "6m", "12m", "24m", "all"]
+
+[[pages.controls]]
+id = "timeline_scope"
+label = "Lifecycle view"
+kind = "segmented_choice"
+source = "subscription_timeline_scope"
+default = "active_recent"
+options = ["active_recent", "all"]
+
+[[pages.widgets]]
+id = "summary"
+title = "Subscription summary"
+kind = "metric"
+report = "subscriptions.summary"
+span = 2
+
 [[pages.widgets]]
 id = "active"
 title = "Active subscriptions"
-kind = "timeline"
+kind = "table"
 report = "subscriptions.active"
 span = 2
 
 [[pages.widgets]]
-id = "monthly"
-title = "Monthly subscription spending"
+id = "lifecycle"
+title = "Subscription lifecycle"
+kind = "timeline"
+report = "subscriptions.lifecycle"
+span = 2
+
+[[pages.widgets]]
+id = "history-spend"
+title = "Subscription spending"
 kind = "line_chart"
-report = "subscriptions.monthly"
+report = "subscriptions.history_spend"
+span = 2
+
+[[pages.widgets]]
+id = "history-active"
+title = "Active subscriptions over time"
+kind = "line_chart"
+report = "subscriptions.history_active"
+span = 2
+
+[[pages.widgets]]
+id = "candidates"
+title = "Detected candidates"
+kind = "table"
+report = "subscriptions.candidates"
+span = 2
+
+[[pages.widgets]]
+id = "inactive"
+title = "Inactive subscriptions"
+kind = "table"
+report = "subscriptions.inactive"
+span = 2
+
+[[pages.widgets]]
+id = "detail-charge-history"
+title = "Charge history"
+kind = "line_chart"
+report = "subscriptions.detail_charge_history"
+span = 2
+
+[[pages.widgets]]
+id = "detail-charges"
+title = "Selected subscription charges"
+kind = "table"
+report = "subscriptions.detail_charges"
+span = 2
+
+[[pages.widgets]]
+id = "detail-monthly-totals"
+title = "Selected monthly totals"
+kind = "table"
+report = "subscriptions.detail_monthly_totals"
 span = 2
 
 [[pages]]
 id = "merchants"
 title = "Merchant Analysis"
-description = "Merchants ranked by spend, with monthly history."
+description = "Merchants ranked by spending, with history and source transaction detail."
 visible = true
 group = "analyze"
 order = 3
@@ -622,34 +725,176 @@ rail_label = "Spending by merchant"
 page_heading = "Spending by merchant"
 icon = "storefront"
 
-[[pages.filters]]
+[[pages.controls]]
 id = "lookback"
 label = "Lookback"
-kind = "select"
-source = "lookback"
+kind = "segmented_choice"
+source = "merchant_lookback"
 default = "12"
 options = ["3", "6", "12", "24"]
 
-[[pages.filters]]
-id = "transaction_set"
+[[pages.controls]]
+id = "spending_view"
 label = "Spending view"
 kind = "select"
-source = "spending"
-default = "discretionary"
-options = ["all", "discretionary"]
+source = "merchant_spending"
+default = "all"
+options = ["all"]
+
+[[pages.controls]]
+id = "comparison"
+label = "Compare with"
+kind = "segmented_choice"
+source = "merchant_comparison"
+default = "previous_period"
+options = ["previous_period", "last_year"]
+
+[[pages.controls]]
+id = "adjust_view"
+label = "Adjust view"
+kind = "popover"
+source = "merchant_adjust_view"
+
+[[pages.controls]]
+id = "reset_adjustments"
+label = "Reset adjustments"
+kind = "action_reset"
+source = "merchant_reset"
+
+[[pages.controls]]
+id = "exclude_groups"
+label = "Exclude groups"
+kind = "multi_select"
+source = "merchant_excluded_groups"
+option_source = "spending_groups"
+
+[[pages.controls]]
+id = "exclude_categories"
+label = "Exclude categories"
+kind = "multi_select"
+source = "merchant_excluded_categories"
+option_source = "spending_categories"
+
+[[pages.controls]]
+id = "include_transaction_names"
+label = "Include transaction names"
+kind = "text_multi_select"
+source = "merchant_included_descriptions"
+
+[[pages.controls]]
+id = "exclude_transaction_names"
+label = "Exclude transaction names"
+kind = "text_multi_select"
+source = "merchant_excluded_descriptions"
+
+[[pages.controls]]
+id = "exclude_large_expenses"
+label = "Exclude large expenses"
+kind = "toggle"
+source = "merchant_exclude_large_expenses"
+default = "false"
+
+[[pages.controls]]
+id = "expense_limit"
+label = "Large expense limit"
+kind = "number_input"
+source = "merchant_expense_limit"
+default = "3000"
+minimum = 1000
+maximum = 100000
+step = 1000
+
+[[pages.controls]]
+id = "search"
+label = "Search merchants"
+kind = "text_input"
+source = "merchant_search"
+default = ""
+width = "full"
+
+[[pages.controls]]
+id = "detail_month"
+label = "Detail month"
+kind = "select"
+source = "merchant_detail_month"
+option_source = "merchant_months"
+
+[[pages.controls]]
+id = "detail_tab"
+label = "Details"
+kind = "tab_choice"
+source = "merchant_detail_tab"
+default = "Breakdown"
+options = ["Breakdown", "Descriptions", "Transactions"]
+
+[[pages.widgets]]
+id = "summary"
+title = "Merchant summary"
+kind = "metric"
+report = "merchants.summary"
+span = 2
 
 [[pages.widgets]]
 id = "ranking"
 title = "Top merchants"
-kind = "bar_chart"
+kind = "horizontal_bar_chart"
 report = "merchants.ranking"
 span = 2
 
 [[pages.widgets]]
-id = "history"
+id = "overview"
+title = "Merchant rankings"
+kind = "table"
+report = "merchants.overview"
+span = 2
+
+[[pages.widgets]]
+id = "detail-summary"
+title = "Selected merchant"
+kind = "metric"
+report = "merchants.detail_summary"
+span = 2
+
+[[pages.widgets]]
+id = "detail-history"
 title = "Merchant history"
 kind = "line_chart"
-report = "merchants.history"
+report = "merchants.detail_history"
+span = 2
+
+[[pages.widgets]]
+id = "detail-categories"
+title = "Category detail"
+kind = "table"
+report = "merchants.detail_categories"
+span = 2
+
+[[pages.widgets]]
+id = "detail-accounts"
+title = "Account detail"
+kind = "table"
+report = "merchants.detail_accounts"
+span = 2
+
+[[pages.widgets]]
+id = "detail-descriptions"
+title = "Description detail"
+kind = "table"
+report = "merchants.detail_descriptions"
+span = 2
+
+[[pages.widgets]]
+id = "detail-transactions"
+title = "Merchant transactions"
+kind = "table"
+report = "merchants.detail_transactions"
+span = 2
+
+[[pages.widgets]]
+id = "excluded"
+title = "Excluded transactions"
+kind = "table"
+report = "merchants.excluded"
 span = 2
 
 [[pages]]
@@ -696,7 +941,7 @@ span = 2
 [[pages]]
 id = "top_transactions"
 title = "Top Transactions"
-description = "Large income and expense transactions in the selected period."
+description = "Searchable transaction inventory with source-style quick focuses and filters."
 visible = true
 group = "analyze"
 order = 7
@@ -704,33 +949,129 @@ rail_label = "Transactions"
 page_heading = "Transactions"
 icon = "receipt_long"
 
-[[pages.filters]]
+[[pages.controls]]
 id = "lookback"
 label = "Lookback"
-kind = "select"
-source = "lookback"
-default = "12"
-options = ["3", "6", "12", "24"]
+kind = "segmented_choice"
+source = "transactions_lookback"
+default = "1y"
+options = ["3m", "6m", "1y", "2y", "all"]
+
+[[pages.controls]]
+id = "type"
+label = "Type"
+kind = "segmented_choice"
+source = "transactions_type"
+default = "all"
+options = ["all", "expenses", "income", "transfers"]
+
+[[pages.controls]]
+id = "focus"
+label = "Focus"
+kind = "segmented_choice"
+source = "transactions_focus"
+default = "all"
+options = ["all", "largest", "one_off", "unusual", "reversals"]
+
+[[pages.controls]]
+id = "search"
+label = "Search transactions"
+kind = "text_input"
+source = "transactions_search"
+default = ""
+width = "full"
+
+[[pages.controls]]
+id = "more_filters"
+label = "More filters"
+kind = "popover"
+source = "transactions_more_filters"
+
+[[pages.controls]]
+id = "groups"
+label = "Groups"
+kind = "multi_select"
+source = "transactions_groups"
+option_source = "all_groups"
+
+[[pages.controls]]
+id = "categories"
+label = "Categories"
+kind = "multi_select"
+source = "transactions_categories"
+option_source = "all_categories"
+
+[[pages.controls]]
+id = "accounts"
+label = "Accounts"
+kind = "multi_select"
+source = "transactions_accounts"
+option_source = "all_accounts"
+
+[[pages.controls]]
+id = "minimum_amount"
+label = "Minimum amount"
+kind = "number_input"
+source = "transactions_minimum_amount"
+default = "0"
+minimum = 0
+maximum = 100000
+step = 50
+
+[[pages.controls]]
+id = "maximum_amount"
+label = "Maximum amount (0 means no maximum)"
+kind = "number_input"
+source = "transactions_maximum_amount"
+default = "0"
+minimum = 0
+maximum = 100000
+step = 1000
+
+[[pages.controls]]
+id = "largest_count"
+label = "Largest results"
+kind = "number_input"
+source = "transactions_largest_count"
+default = "25"
+minimum = 5
+maximum = 500
+step = 5
+
+[[pages.controls]]
+id = "breakdown"
+label = "Break down by"
+kind = "segmented_choice"
+source = "transactions_breakdown"
+default = "group"
+options = ["group", "category", "merchant", "account", "type"]
 
 [[pages.widgets]]
-id = "expense-scatter"
-title = "Large expenses"
-kind = "scatter_chart"
-report = "top.expenses"
+id = "summary"
+title = "Transaction summary"
+kind = "metric"
+report = "transactions.summary"
 span = 2
 
 [[pages.widgets]]
-id = "income-scatter"
-title = "Large income"
+id = "history"
+title = "Transactions over time"
 kind = "scatter_chart"
-report = "top.incomes"
+report = "transactions.history"
+span = 2
+
+[[pages.widgets]]
+id = "breakdown"
+title = "Magnitude by selection"
+kind = "horizontal_bar_chart"
+report = "transactions.breakdown"
 span = 2
 
 [[pages.widgets]]
 id = "transactions"
-title = "Largest transactions"
+title = "Matching transactions"
 kind = "table"
-report = "top.table"
+report = "transactions.table"
 span = 2
 
 [[pages]]

@@ -420,7 +420,7 @@ tasks:
       PORTICO_CAPTURE_RETAIN_OUTPUT: "true"
     cmds:
       - task: roci:build
-      - dotnet test tests/Portico.App.Tests/Portico.App.Tests.csproj --no-build --no-restore --configuration {{default "Debug" .ROCI_CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false --filter "Category=VisualCapture" -m:1 -- xUnit.ParallelizeTestCollections=false
+      - dotnet test tests/Portico.App.Tests/Portico.App.Tests.csproj --no-restore --configuration {{default "Debug" .ROCI_CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false --filter "Category=VisualCapture" -m:1 -- xUnit.ParallelizeTestCollections=false
 
   roci:lint:
     desc: "Check C# formatting and analyzers"

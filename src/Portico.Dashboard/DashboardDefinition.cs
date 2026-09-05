@@ -165,7 +165,13 @@ public enum DashboardControlKind
     TextMultiSelect,
 
     /// <summary>Opens one configured popover without changing a report by itself.</summary>
-    Popover
+    Popover,
+
+    /// <summary>Expands or collapses inline configured content without changing a report by itself.</summary>
+    Collapsible,
+
+    /// <summary>Edits one free-text report input.</summary>
+    TextInput
 }
 
 /// <summary>Identifies the fixed C# state or report input used by a configured control.</summary>
@@ -292,7 +298,103 @@ public enum DashboardControlSource
     YearOverYearSingleCategory,
 
     /// <summary>Uses the Year over year selected single group.</summary>
-    YearOverYearSingleGroup
+    YearOverYearSingleGroup,
+
+    /// <summary>Uses the Subscriptions selected categories.</summary>
+    SubscriptionCategories,
+
+    /// <summary>Uses the Subscriptions extra discovery exclusions.</summary>
+    SubscriptionDiscoveryExclusions,
+
+    /// <summary>Uses the Subscriptions minimum discovery confidence.</summary>
+    SubscriptionMinimumConfidence,
+
+    /// <summary>Uses whether the Subscriptions settings expander is open.</summary>
+    SubscriptionSettingsOpen,
+
+    /// <summary>Uses the Subscriptions history lookback display state.</summary>
+    SubscriptionHistoryLookback,
+
+    /// <summary>Uses the Subscriptions lifecycle scope display state.</summary>
+    SubscriptionTimelineScope,
+
+    /// <summary>Uses the Spending by merchant time-frame input.</summary>
+    MerchantLookback,
+
+    /// <summary>Uses the Spending by merchant transaction-set input.</summary>
+    MerchantSpending,
+
+    /// <summary>Uses the Spending by merchant comparison input.</summary>
+    MerchantComparison,
+
+    /// <summary>Uses the Spending by merchant exclusion groups.</summary>
+    MerchantExcludedGroups,
+
+    /// <summary>Uses the Spending by merchant exclusion categories.</summary>
+    MerchantExcludedCategories,
+
+    /// <summary>Uses the Spending by merchant include terms.</summary>
+    MerchantIncludedDescriptions,
+
+    /// <summary>Uses the Spending by merchant exclude terms.</summary>
+    MerchantExcludedDescriptions,
+
+    /// <summary>Uses the Spending by merchant large-expense switch.</summary>
+    MerchantExcludeLargeExpenses,
+
+    /// <summary>Uses the Spending by merchant large-expense limit.</summary>
+    MerchantExpenseLimit,
+
+    /// <summary>Uses whether the Spending by merchant Adjust view popover is open.</summary>
+    MerchantAdjustView,
+
+    /// <summary>Runs the Spending by merchant adjustment reset.</summary>
+    MerchantReset,
+
+    /// <summary>Uses the Spending by merchant search text.</summary>
+    MerchantSearch,
+
+    /// <summary>Uses the Spending by merchant selected-detail month.</summary>
+    MerchantDetailMonth,
+
+    /// <summary>Uses the Spending by merchant selected-detail tab.</summary>
+    MerchantDetailTab,
+
+    /// <summary>Uses the Transactions time-frame input.</summary>
+    TransactionsLookback,
+
+    /// <summary>Uses the Transactions type input.</summary>
+    TransactionsType,
+
+    /// <summary>Uses the Transactions quick-focus input.</summary>
+    TransactionsFocus,
+
+    /// <summary>Uses the Transactions search text.</summary>
+    TransactionsSearch,
+
+    /// <summary>Uses the Transactions groups filter.</summary>
+    TransactionsGroups,
+
+    /// <summary>Uses the Transactions categories filter.</summary>
+    TransactionsCategories,
+
+    /// <summary>Uses the Transactions accounts filter.</summary>
+    TransactionsAccounts,
+
+    /// <summary>Uses the Transactions minimum magnitude input.</summary>
+    TransactionsMinimumAmount,
+
+    /// <summary>Uses the Transactions maximum magnitude input.</summary>
+    TransactionsMaximumAmount,
+
+    /// <summary>Uses the Transactions largest-result count input.</summary>
+    TransactionsLargestCount,
+
+    /// <summary>Uses the Transactions breakdown input.</summary>
+    TransactionsBreakdown,
+
+    /// <summary>Uses whether the Transactions More filters popover is open.</summary>
+    TransactionsMoreFilters
 }
 
 /// <summary>Identifies how a control gets its finite set of visible choices.</summary>
@@ -329,7 +431,22 @@ public enum DashboardControlOptionSource
     YearOverYearCategories,
 
     /// <summary>Reads single-group choices for Year over year.</summary>
-    YearOverYearGroups
+    YearOverYearGroups,
+
+    /// <summary>Reads all categories from the loaded transaction data.</summary>
+    AllCategories,
+
+    /// <summary>Reads all groups from the loaded transaction data.</summary>
+    AllGroups,
+
+    /// <summary>Reads all accounts from the loaded transaction data.</summary>
+    AllAccounts,
+
+    /// <summary>Reads the Subscription discovery categories not already selected.</summary>
+    SubscriptionDiscoveryCategories,
+
+    /// <summary>Reads source Spending by merchant detail months.</summary>
+    MerchantMonths
 }
 
 /// <summary>Describes the requested horizontal footprint of a control in a wrapping control bar.</summary>
@@ -641,6 +758,13 @@ public sealed record DashboardDefinition(
             {
                 problems.Add($"dashboard reset action '{page.Id}.{reset.Id}' needs the configured expense_limit number input.");
             }
+            if (reset.Source == DashboardControlSource.MerchantReset
+                && !page.Controls.Any(control => control.Id == "expense_limit"
+                    && control.Kind == DashboardControlKind.NumberInput
+                    && control.Source == DashboardControlSource.MerchantExpenseLimit))
+            {
+                problems.Add($"dashboard reset action '{page.Id}.{reset.Id}' needs the configured expense_limit number input.");
+            }
         }
     }
 
@@ -727,7 +851,18 @@ public sealed record DashboardDefinition(
                 problems.Add($"dashboard reset action '{page.Id}.{control.Id}' cannot define a value or range.");
             }
         }
-        else if (control.Kind is DashboardControlKind.TextMultiSelect or DashboardControlKind.Popover)
+        else if (control.Kind == DashboardControlKind.TextInput)
+        {
+            if (control.ChoiceOptions.Count > 0 || control.MultiSelectDefaults.Count > 0
+                || control.Minimum is not null || control.Maximum is not null || control.Step is not null
+                || control.DefaultValue is null)
+            {
+                problems.Add($"dashboard text input '{page.Id}.{control.Id}' needs a default and cannot define options, multi-select defaults, or a range.");
+            }
+        }
+        else if (control.Kind is DashboardControlKind.TextMultiSelect
+            or DashboardControlKind.Popover
+            or DashboardControlKind.Collapsible)
         {
             if (control.ChoiceOptions.Count > 0 || control.DefaultValue is not null || control.MultiSelectDefaults.Count > 0
                 || control.Minimum is not null || control.Maximum is not null || control.Step is not null)

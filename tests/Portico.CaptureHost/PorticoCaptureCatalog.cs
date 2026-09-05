@@ -72,11 +72,25 @@ public static class PorticoCaptureCatalog
             session.SetControlValue(DashboardPageId.YearOverYear, "view", "single_category");
         }),
         new("subscriptions", static session => session.SelectPage(DashboardPageId.Subscriptions)),
+        new("subscriptions-settings", static session =>
+        {
+            session.SelectPage(DashboardPageId.Subscriptions);
+            session.SetSubscriptionSettingsOpen(true);
+        }),
         new("merchants", static session =>
         {
             session.SelectPage(DashboardPageId.Merchants);
-            session.SetFilter("lookback", "3");
-            session.SetFilter("spending", "all");
+            session.SetControlValue(DashboardPageId.Merchants, "lookback", "3");
+            session.SetControlValue(DashboardPageId.Merchants, "spending_view", "all");
+        }),
+        new("merchants-adjusted", static session =>
+        {
+            session.SelectPage(DashboardPageId.Merchants);
+            session.SetControlValue(DashboardPageId.Merchants, "lookback", "3");
+            session.SetControlValue(DashboardPageId.Merchants, "comparison", "last_year");
+            string group = session.ControlOptions(DashboardPageId.Merchants, "exclude_groups")[0];
+            session.SetControlValues(DashboardPageId.Merchants, "exclude_groups", [group]);
+            session.SetMerchantAdjustViewOpen(true);
         }),
         new("budget", static session =>
         {
@@ -86,7 +100,14 @@ public static class PorticoCaptureCatalog
         new("top-transactions", static session =>
         {
             session.SelectPage(DashboardPageId.TopTransactions);
-            session.SetFilter("lookback", "3");
+            session.SetControlValue(DashboardPageId.TopTransactions, "lookback", "3m");
+        }),
+        new("top-transactions-more-filters", static session =>
+        {
+            session.SelectPage(DashboardPageId.TopTransactions);
+            session.SetControlValue(DashboardPageId.TopTransactions, "lookback", "3m");
+            session.SetControlValue(DashboardPageId.TopTransactions, "type", "expenses");
+            session.SetTransactionsMoreFiltersOpen(true);
         }),
         new("financial-independence", static session => session.SelectPage(DashboardPageId.FinancialIndependence)),
         new("data-health", static session => session.SelectPage(DashboardPageId.DataHealth)),

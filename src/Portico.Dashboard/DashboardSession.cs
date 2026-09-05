@@ -103,6 +103,30 @@ public sealed class DashboardSession
         ApplySingleValue(mapping, value);
     }
 
+    /// <summary>Changes a configured free-text control.</summary>
+    public void SetControlText(DashboardPageId pageId, string controlId, string value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        DashboardControlDefinition control = Control(pageId, controlId);
+        if (control.Kind != DashboardControlKind.TextInput)
+            throw new ArgumentException($"Dashboard control '{pageId}.{controlId}' is not a text input.", nameof(controlId));
+
+        DashboardControlMapping mapping = DashboardControlMappings.Resolve(pageId, controlId);
+        if (mapping.Behavior == DashboardControlBehavior.ReportInput)
+        {
+            SetFilter(mapping.ReportFilterSource!, value);
+            return;
+        }
+
+        if (mapping.Source == DashboardControlSource.MerchantSearch)
+        {
+            Presentation.SetMerchantSearch(value);
+            return;
+        }
+
+        throw new ArgumentException($"Dashboard control '{pageId}.{controlId}' does not accept text.", nameof(controlId));
+    }
+
     /// <summary>Changes a configured multi-select control.</summary>
     public void SetControlValues(DashboardPageId pageId, string controlId, IEnumerable<string> values)
     {
@@ -157,6 +181,35 @@ public sealed class DashboardSession
             case DashboardControlSource.SpendingExcludedDescriptions:
                 SetSpendingAdjustments(CurrentSpendingAdjustments with { ExcludedDescriptions = selected });
                 return;
+            case DashboardControlSource.SubscriptionCategories:
+                Filters = Filters with { SubscriptionCategories = selected };
+                RebuildReport();
+                return;
+            case DashboardControlSource.SubscriptionDiscoveryExclusions:
+                Filters = Filters with { SubscriptionDiscoveryExclusions = selected };
+                RebuildReport();
+                return;
+            case DashboardControlSource.MerchantExcludedGroups:
+                SetMerchantAdjustments(CurrentMerchantAdjustments with { ExcludedGroups = selected });
+                return;
+            case DashboardControlSource.MerchantExcludedCategories:
+                SetMerchantAdjustments(CurrentMerchantAdjustments with { ExcludedCategories = selected });
+                return;
+            case DashboardControlSource.MerchantIncludedDescriptions:
+                SetMerchantAdjustments(CurrentMerchantAdjustments with { IncludedDescriptions = selected });
+                return;
+            case DashboardControlSource.MerchantExcludedDescriptions:
+                SetMerchantAdjustments(CurrentMerchantAdjustments with { ExcludedDescriptions = selected });
+                return;
+            case DashboardControlSource.TransactionsGroups:
+                SetTransactionExplorer(CurrentTransactionExplorer with { Groups = selected });
+                return;
+            case DashboardControlSource.TransactionsCategories:
+                SetTransactionExplorer(CurrentTransactionExplorer with { Categories = selected });
+                return;
+            case DashboardControlSource.TransactionsAccounts:
+                SetTransactionExplorer(CurrentTransactionExplorer with { Accounts = selected });
+                return;
             default:
                 throw new ArgumentException($"Dashboard control '{pageId}.{controlId}' does not accept multiple values.", nameof(controlId));
         }
@@ -199,6 +252,22 @@ public sealed class DashboardSession
             case DashboardControlSource.IncomeTargetRate:
                 SetIncomeSavingsAdjustments(CurrentIncomeAdjustments with { TargetRate = value });
                 return;
+            case DashboardControlSource.SubscriptionMinimumConfidence:
+                Filters = Filters with { SubscriptionMinimumConfidence = (int)value };
+                RebuildReport();
+                return;
+            case DashboardControlSource.MerchantExpenseLimit:
+                SetMerchantAdjustments(CurrentMerchantAdjustments with { ExpenseLimit = value });
+                return;
+            case DashboardControlSource.TransactionsMinimumAmount:
+                SetTransactionExplorer(CurrentTransactionExplorer with { MinimumMagnitude = value });
+                return;
+            case DashboardControlSource.TransactionsMaximumAmount:
+                SetTransactionExplorer(CurrentTransactionExplorer with { MaximumMagnitude = value == 0m ? null : value });
+                return;
+            case DashboardControlSource.TransactionsLargestCount:
+                SetTransactionExplorer(CurrentTransactionExplorer with { LargestCount = (int)value });
+                return;
             default:
                 throw new ArgumentException($"Dashboard control '{pageId}.{controlId}' does not accept a number.", nameof(controlId));
         }
@@ -225,6 +294,9 @@ public sealed class DashboardSession
                 return;
             case DashboardControlSource.IncomeExcludeLargeExpenses:
                 SetIncomeSavingsAdjustments(CurrentIncomeAdjustments with { ExcludeLargeExpenses = value });
+                return;
+            case DashboardControlSource.MerchantExcludeLargeExpenses:
+                SetMerchantAdjustments(CurrentMerchantAdjustments with { ExcludeLargeExpenses = value });
                 return;
             default:
                 throw new ArgumentException($"Dashboard control '{pageId}.{controlId}' does not accept a toggle value.", nameof(controlId));
@@ -258,6 +330,13 @@ public sealed class DashboardSession
             case DashboardControlSource.IncomeReset:
                 SetIncomeSavingsAdjustments(IncomeSavingsDefaultAdjustments(Filters.RegularIncome));
                 return;
+            case DashboardControlSource.MerchantReset:
+                Filters = Filters with
+                {
+                    MerchantAdjustments = SpendingAdjustments.Default(ConfiguredMerchantExpenseLimit())
+                };
+                RebuildReport();
+                return;
             default:
                 throw new ArgumentException($"Dashboard control '{pageId}.{controlId}' does not have a reset action.", nameof(controlId));
         }
@@ -290,6 +369,11 @@ public sealed class DashboardSession
             DashboardControlOptionSource.YearOverYearPresetCategories => YearOverYearPresetCategoryOptions(),
             DashboardControlOptionSource.YearOverYearCategories => YearOverYearEntityOptions(YearOverYearDimension.Category),
             DashboardControlOptionSource.YearOverYearGroups => YearOverYearEntityOptions(YearOverYearDimension.Group),
+            DashboardControlOptionSource.AllCategories => AllTransactionOptions(transaction => transaction.Category),
+            DashboardControlOptionSource.AllGroups => AllTransactionOptions(transaction => transaction.Group),
+            DashboardControlOptionSource.AllAccounts => AllTransactionOptions(transaction => transaction.Account),
+            DashboardControlOptionSource.SubscriptionDiscoveryCategories => SubscriptionDiscoveryCategoryOptions(),
+            DashboardControlOptionSource.MerchantMonths => MerchantMonthOptions(),
             _ => throw new ArgumentOutOfRangeException(nameof(control.OptionSource))
         };
     }
@@ -311,6 +395,15 @@ public sealed class DashboardSession
             DashboardControlSource.IncomeIncludedDescriptions => CurrentIncomeAdjustments.IncludedDescriptions.ToHashSet(StringComparer.Ordinal),
             DashboardControlSource.IncomeExcludedDescriptions => CurrentIncomeAdjustments.ExcludedDescriptions.ToHashSet(StringComparer.Ordinal),
             DashboardControlSource.YearOverYearPresetCategories => Presentation.YearOverYear.PresetCategories,
+            DashboardControlSource.SubscriptionCategories => (Filters.SubscriptionCategories ?? SubscriptionCategoryDefaults()).ToHashSet(StringComparer.Ordinal),
+            DashboardControlSource.SubscriptionDiscoveryExclusions => (Filters.SubscriptionDiscoveryExclusions ?? SubscriptionDiscoveryDefaults()).ToHashSet(StringComparer.Ordinal),
+            DashboardControlSource.MerchantExcludedGroups => CurrentMerchantAdjustments.ExcludedGroups.ToHashSet(StringComparer.Ordinal),
+            DashboardControlSource.MerchantExcludedCategories => CurrentMerchantAdjustments.ExcludedCategories.ToHashSet(StringComparer.Ordinal),
+            DashboardControlSource.MerchantIncludedDescriptions => CurrentMerchantAdjustments.IncludedDescriptions.ToHashSet(StringComparer.Ordinal),
+            DashboardControlSource.MerchantExcludedDescriptions => CurrentMerchantAdjustments.ExcludedDescriptions.ToHashSet(StringComparer.Ordinal),
+            DashboardControlSource.TransactionsGroups => CurrentTransactionExplorer.Groups.ToHashSet(StringComparer.Ordinal),
+            DashboardControlSource.TransactionsCategories => CurrentTransactionExplorer.Categories.ToHashSet(StringComparer.Ordinal),
+            DashboardControlSource.TransactionsAccounts => CurrentTransactionExplorer.Accounts.ToHashSet(StringComparer.Ordinal),
             _ => Presentation.ValuesFor(mapping.Source)
         };
     }
@@ -358,6 +451,53 @@ public sealed class DashboardSession
     /// <summary>Sets whether excluded Spending rows are expanded.</summary>
     public void SetSpendingExcludedRowsExpanded(bool expanded) => Presentation.SetSpendingExcludedRowsExpanded(expanded);
 
+    /// <summary>Sets the selected subscription merchant and rebuilds its detail reports.</summary>
+    public void SetSubscriptionSelectedMerchant(string? merchant)
+    {
+        Presentation.SetSubscriptionSelectedMerchant(merchant);
+        RebuildReport();
+    }
+
+    /// <summary>Sets whether subscription settings are open.</summary>
+    public void SetSubscriptionSettingsOpen(bool open) => Presentation.SetSubscriptionSettingsOpen(open);
+
+    /// <summary>Sets the selected subscription history range.</summary>
+    public void SetSubscriptionHistoryLookback(string value)
+    {
+        Presentation.SetSubscriptionHistoryLookback(value);
+        RebuildReport();
+    }
+
+    /// <summary>Sets the subscription timeline scope.</summary>
+    public void SetSubscriptionTimelineScope(string value)
+    {
+        Presentation.SetSubscriptionTimelineScope(value);
+        RebuildReport();
+    }
+
+    /// <summary>Sets the selected merchant and rebuilds its detail reports.</summary>
+    public void SetMerchantSelectedMerchant(string? merchant)
+    {
+        Presentation.SetMerchantSelectedMerchant(merchant);
+        RebuildReport();
+    }
+
+    /// <summary>Sets the selected merchant detail month.</summary>
+    public void SetMerchantDetailMonth(string month)
+    {
+        Presentation.SetMerchantDetailMonth(month);
+        RebuildReport();
+    }
+
+    /// <summary>Sets the selected merchant detail tab.</summary>
+    public void SetMerchantDetailTab(string tab) => Presentation.SetMerchantDetailTab(tab);
+
+    /// <summary>Sets whether merchant adjustments are open.</summary>
+    public void SetMerchantAdjustViewOpen(bool open) => Presentation.SetMerchantAdjustViewOpen(open);
+
+    /// <summary>Sets whether transaction filters are open.</summary>
+    public void SetTransactionsMoreFiltersOpen(bool open) => Presentation.SetTransactionsMoreFiltersOpen(open);
+
     /// <summary>Sets whether one Year over year card's details are visible.</summary>
     public void SetYearOverYearDetailsExpanded(string entity, bool expanded)
         => Presentation.SetYearOverYearDetailsExpanded(entity, expanded);
@@ -385,6 +525,92 @@ public sealed class DashboardSession
             _ => throw new ArgumentException("Income view must be 'regular' or 'actual'.", nameof(value))
         };
 
+    private static int? ParseTransactionLookback(string value)
+        => value switch
+        {
+            "3m" => 90,
+            "6m" => 180,
+            "1y" => 365,
+            "2y" => 730,
+            "all" => null,
+            _ => throw new ArgumentException("Transaction lookback must be 3m, 6m, 1y, 2y, or all.", nameof(value))
+        };
+
+    private static string FormatTransactionLookback(int? days)
+        => days switch
+        {
+            90 => "3m",
+            180 => "6m",
+            365 => "1y",
+            730 => "2y",
+            null => "all",
+            _ => "all"
+        };
+
+    private static TransactionExplorerType ParseTransactionType(string value)
+        => value switch
+        {
+            "all" => TransactionExplorerType.All,
+            "expenses" => TransactionExplorerType.Expenses,
+            "income" => TransactionExplorerType.Income,
+            "transfers" => TransactionExplorerType.Transfers,
+            _ => throw new ArgumentException("Transaction type must be all, expenses, income, or transfers.", nameof(value))
+        };
+
+    private static string FormatTransactionType(TransactionExplorerType value)
+        => value switch
+        {
+            TransactionExplorerType.All => "all",
+            TransactionExplorerType.Expenses => "expenses",
+            TransactionExplorerType.Income => "income",
+            TransactionExplorerType.Transfers => "transfers",
+            _ => throw new ArgumentOutOfRangeException(nameof(value))
+        };
+
+    private static TransactionExplorerFocus ParseTransactionFocus(string value)
+        => value switch
+        {
+            "all" => TransactionExplorerFocus.AllTransactions,
+            "largest" => TransactionExplorerFocus.Largest,
+            "one_off" => TransactionExplorerFocus.OneOffMerchants,
+            "unusual" => TransactionExplorerFocus.UnusualAmounts,
+            "reversals" => TransactionExplorerFocus.RefundsReversals,
+            _ => throw new ArgumentException("Transaction focus must be all, largest, one_off, unusual, or reversals.", nameof(value))
+        };
+
+    private static string FormatTransactionFocus(TransactionExplorerFocus value)
+        => value switch
+        {
+            TransactionExplorerFocus.AllTransactions => "all",
+            TransactionExplorerFocus.Largest => "largest",
+            TransactionExplorerFocus.OneOffMerchants => "one_off",
+            TransactionExplorerFocus.UnusualAmounts => "unusual",
+            TransactionExplorerFocus.RefundsReversals => "reversals",
+            _ => throw new ArgumentOutOfRangeException(nameof(value))
+        };
+
+    private static TransactionExplorerBreakdown ParseTransactionBreakdown(string value)
+        => value switch
+        {
+            "group" => TransactionExplorerBreakdown.Group,
+            "category" => TransactionExplorerBreakdown.Category,
+            "merchant" => TransactionExplorerBreakdown.Merchant,
+            "account" => TransactionExplorerBreakdown.Account,
+            "type" => TransactionExplorerBreakdown.Type,
+            _ => throw new ArgumentException("Transaction breakdown must be group, category, merchant, account, or type.", nameof(value))
+        };
+
+    private static string FormatTransactionBreakdown(TransactionExplorerBreakdown value)
+        => value switch
+        {
+            TransactionExplorerBreakdown.Group => "group",
+            TransactionExplorerBreakdown.Category => "category",
+            TransactionExplorerBreakdown.Merchant => "merchant",
+            TransactionExplorerBreakdown.Account => "account",
+            TransactionExplorerBreakdown.Type => "type",
+            _ => throw new ArgumentOutOfRangeException(nameof(value))
+        };
+
     private DashboardFilters ApplyFilter(DashboardFilters filters, string source, string value)
         => source switch
         {
@@ -401,6 +627,16 @@ public sealed class DashboardSession
             "year_over_year" => filters with { YearOverYearSet = ValidateFilterSet("year_over_year", value) },
             "income_view" => filters with { RegularIncome = ParseIncomeView(value) },
             "income_calculation" => filters with { RegularIncome = ParseIncomeView(value) },
+            "merchant_lookback" => filters with { MerchantLookbackMonths = ParseLookback(value) },
+            "merchant_spending" => filters with { MerchantSet = ValidateFilterSet("spending", value) },
+            "merchant_comparison" => DashboardControlMappings.TryParseSpendingComparison(value, out SpendingComparison merchantComparison)
+                ? filters with { MerchantComparison = merchantComparison }
+                : throw new ArgumentException("Merchant comparison must be 'previous_period' or 'last_year'.", nameof(value)),
+            "transactions_lookback" => filters with { TransactionExplorer = TransactionFilters(filters) with { LookbackDays = ParseTransactionLookback(value) } },
+            "transactions_type" => filters with { TransactionExplorer = TransactionFilters(filters) with { Type = ParseTransactionType(value) } },
+            "transactions_focus" => filters with { TransactionExplorer = TransactionFilters(filters) with { Focus = ParseTransactionFocus(value) } },
+            "transactions_search" => filters with { TransactionExplorer = TransactionFilters(filters) with { Search = value } },
+            "transactions_breakdown" => filters with { TransactionExplorer = TransactionFilters(filters) with { Breakdown = ParseTransactionBreakdown(value) } },
             _ => throw new ArgumentException($"Unsupported dashboard filter source '{source}'.", nameof(source))
         };
 
@@ -432,8 +668,13 @@ public sealed class DashboardSession
             case DashboardControlKind.Toggle:
                 SetControlToggle(pageId, control.Id, bool.Parse(control.DefaultValue!));
                 break;
+            case DashboardControlKind.TextInput:
+                if (control.DefaultValue is not null)
+                    SetControlText(pageId, control.Id, control.DefaultValue);
+                break;
             case DashboardControlKind.ActionReset:
             case DashboardControlKind.Popover:
+            case DashboardControlKind.Collapsible:
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(control));
@@ -478,6 +719,18 @@ public sealed class DashboardSession
                 Presentation.SetSpendingDetailMonth(value);
                 RebuildReport();
                 return;
+            case DashboardControlSource.SubscriptionHistoryLookback:
+                SetSubscriptionHistoryLookback(value);
+                return;
+            case DashboardControlSource.SubscriptionTimelineScope:
+                SetSubscriptionTimelineScope(value);
+                return;
+            case DashboardControlSource.MerchantDetailMonth:
+                SetMerchantDetailMonth(value);
+                return;
+            case DashboardControlSource.MerchantDetailTab:
+                SetMerchantDetailTab(value);
+                return;
             default:
                 throw new ArgumentException($"Dashboard control source '{mapping.Source}' does not accept one choice value.", nameof(mapping));
         }
@@ -488,6 +741,15 @@ public sealed class DashboardSession
 
     private IncomeSavingsAdjustments CurrentIncomeAdjustments
         => Presentation.IncomeSavingsAdjustments(Filters.RegularIncome);
+
+    private SpendingAdjustments CurrentMerchantAdjustments
+        => Filters.MerchantAdjustments ?? SpendingAdjustments.Default(ConfiguredMerchantExpenseLimit());
+
+    private TransactionExplorerFilters CurrentTransactionExplorer
+        => Filters.TransactionExplorer ?? TransactionExplorerFilters.Default;
+
+    private static TransactionExplorerFilters TransactionFilters(DashboardFilters filters)
+        => filters.TransactionExplorer ?? TransactionExplorerFilters.Default;
 
     private void SetSpendingAdjustments(SpendingAdjustments adjustments)
     {
@@ -501,6 +763,18 @@ public sealed class DashboardSession
         RebuildReport();
     }
 
+    private void SetMerchantAdjustments(SpendingAdjustments adjustments)
+    {
+        Filters = Filters with { MerchantAdjustments = adjustments };
+        RebuildReport();
+    }
+
+    private void SetTransactionExplorer(TransactionExplorerFilters filters)
+    {
+        Filters = Filters with { TransactionExplorer = filters };
+        RebuildReport();
+    }
+
     private IReadOnlyList<string> SpendingAdjustmentOptions(Func<FinancialTransaction, string> selector)
         => _snapshot.Transactions
             .Where(transaction => !transaction.IsHidden && transaction.Kind == TransactionKind.Expense)
@@ -510,6 +784,53 @@ public sealed class DashboardSession
             .Distinct(StringComparer.Ordinal)
             .OrderBy(value => value, StringComparer.Ordinal)
             .ToArray();
+
+    private IReadOnlyList<string> AllTransactionOptions(Func<FinancialTransaction, string> selector)
+        => _snapshot.Transactions
+            .Where(transaction => !transaction.IsHidden)
+            .Select(selector)
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+
+    private IReadOnlyList<string> SubscriptionCategoryOptions()
+        => AllTransactionOptions(transaction => transaction.Category);
+
+    private IReadOnlyList<string> SubscriptionCategoryDefaults()
+        => AvailableDefaults(_settings.Subscriptions.KnownCategories, SubscriptionCategoryOptions());
+
+    private IReadOnlyList<string> SubscriptionDiscoveryDefaults()
+    {
+        IReadOnlyList<string> categories = SubscriptionCategoryOptions();
+        IReadOnlyList<string> selected = Filters.SubscriptionCategories ?? SubscriptionCategoryDefaults();
+        return _settings.Subscriptions.DefaultExcludeCategories
+            .Where(categories.Contains)
+            .Where(category => !category.EndsWith("bill", StringComparison.OrdinalIgnoreCase))
+            .Where(category => !selected.Contains(category, StringComparer.Ordinal))
+            .ToArray();
+    }
+
+    private IReadOnlyList<string> SubscriptionDiscoveryCategoryOptions()
+    {
+        IReadOnlyList<string> selected = Filters.SubscriptionCategories ?? SubscriptionCategoryDefaults();
+        return SubscriptionCategoryOptions()
+            .Where(category => !selected.Contains(category, StringComparer.Ordinal))
+            .ToArray();
+    }
+
+    private IReadOnlyList<string> MerchantMonthOptions()
+    {
+        MerchantAnalysisResult analysis = MerchantAnalysisCalculator.Build(
+            _snapshot.Transactions.Where(transaction => !transaction.IsHidden),
+            _settings,
+            Filters.MerchantSet ?? Filters.SpendingSet,
+            Filters.EffectiveMerchantLookbackMonths,
+            Filters.MerchantComparison,
+            CurrentMerchantAdjustments);
+        return ["all", .. analysis.Period.CurrentMonths.Reverse().Select(month => month.ToString())];
+    }
 
     private IReadOnlyList<string> SpendingMonthOptions()
     {
@@ -586,12 +907,23 @@ public sealed class DashboardSession
             : _settings.Thresholds.Expense;
     }
 
+    private decimal ConfiguredMerchantExpenseLimit()
+    {
+        DashboardPageDefinition? merchants = Definition.Pages.FirstOrDefault(page => page.Id == DashboardPageId.Merchants);
+        DashboardControlDefinition? control = merchants?.Controls.FirstOrDefault(candidate => candidate.Id == "expense_limit");
+        return control?.DefaultValue is { } value
+            ? decimal.Parse(value, CultureInfo.InvariantCulture)
+            : _settings.Thresholds.Expense;
+    }
+
     private void RebuildReport()
     {
         Report = DashboardReportBuilder.Build(_snapshot, _settings, Filters, Presentation, _asOfDate);
         NormalizeIncomePresentation();
         NormalizeSpendingPresentation();
         NormalizeYearOverYearPresentation();
+        NormalizeSubscriptionsPresentation();
+        NormalizeMerchantsPresentation();
     }
 
     private void NormalizeIncomePresentation()
@@ -696,6 +1028,71 @@ public sealed class DashboardSession
             Report = DashboardReportBuilder.Build(_snapshot, _settings, Filters, Presentation, _asOfDate);
     }
 
+    private void NormalizeSubscriptionsPresentation()
+    {
+        SubscriptionsPageView? subscriptions = Report.Page(DashboardPageId.Subscriptions).SubscriptionsView;
+        if (subscriptions is null)
+            return;
+
+        bool needsRebuild = false;
+        string? selected = Presentation.Subscriptions.SelectedMerchant;
+        if (selected is not null
+            && !subscriptions.Analysis.Inventory
+                .Concat(subscriptions.Analysis.Candidates)
+                .Concat(subscriptions.Analysis.Inactive)
+                .Any(entry => string.Equals(entry.Merchant, selected, StringComparison.Ordinal)))
+        {
+            Presentation.SetSubscriptionSelectedMerchant(subscriptions.SelectedMerchant);
+            needsRebuild = true;
+        }
+
+        IReadOnlyList<string> historyRanges = ["3m", "6m", "12m", "24m", "all"];
+        if (!historyRanges.Contains(Presentation.Subscriptions.HistoryLookback, StringComparer.Ordinal))
+        {
+            Presentation.SetSubscriptionHistoryLookback("12m");
+            needsRebuild = true;
+        }
+
+        if (Presentation.Subscriptions.TimelineScope is not ("active_recent" or "all"))
+        {
+            Presentation.SetSubscriptionTimelineScope("active_recent");
+            needsRebuild = true;
+        }
+
+        if (needsRebuild)
+            Report = DashboardReportBuilder.Build(_snapshot, _settings, Filters, Presentation, _asOfDate);
+    }
+
+    private void NormalizeMerchantsPresentation()
+    {
+        MerchantsPageView? merchants = Report.Page(DashboardPageId.Merchants).MerchantsView;
+        if (merchants is null)
+            return;
+
+        bool needsRebuild = false;
+        if (Presentation.Merchants.SelectedMerchant is not null
+            && !merchants.Analysis.Overview.Any(entry => string.Equals(
+                entry.Merchant,
+                Presentation.Merchants.SelectedMerchant,
+                StringComparison.Ordinal)))
+        {
+            Presentation.SetMerchantSelectedMerchant(merchants.SelectedMerchant);
+            needsRebuild = true;
+        }
+
+        if (!MerchantMonthOptions().Contains(Presentation.Merchants.DetailMonth, StringComparer.Ordinal))
+        {
+            Presentation.SetMerchantDetailMonth("all");
+            needsRebuild = true;
+        }
+
+        if (Presentation.Merchants.DetailTab is not ("Breakdown" or "Descriptions" or "Transactions"))
+            Presentation.SetMerchantDetailTab("Breakdown");
+
+        if (needsRebuild)
+            Report = DashboardReportBuilder.Build(_snapshot, _settings, Filters, Presentation, _asOfDate);
+    }
+
     private static string? PreferredYearOverYearEntity(
         IReadOnlyList<string> values,
         YearOverYearDimension dimension)
@@ -755,6 +1152,20 @@ public sealed class DashboardSession
             "income_exclude_large_expenses" => CurrentIncomeAdjustments.ExcludeLargeExpenses.ToString(CultureInfo.InvariantCulture).ToLowerInvariant(),
             "income_expense_limit" => CurrentIncomeAdjustments.ExpenseLimit.ToString(CultureInfo.InvariantCulture),
             "income_target_rate" => CurrentIncomeAdjustments.TargetRate.ToString(CultureInfo.InvariantCulture),
+            "subscription_minimum_confidence" => Filters.SubscriptionMinimumConfidence.ToString(CultureInfo.InvariantCulture),
+            "merchant_lookback" => Filters.EffectiveMerchantLookbackMonths.ToString(CultureInfo.InvariantCulture),
+            "merchant_spending" => Filters.MerchantSet ?? Filters.SpendingSet,
+            "merchant_comparison" => Filters.MerchantComparison == SpendingComparison.PreviousPeriod ? "previous_period" : "last_year",
+            "merchant_exclude_large_expenses" => CurrentMerchantAdjustments.ExcludeLargeExpenses.ToString(CultureInfo.InvariantCulture).ToLowerInvariant(),
+            "merchant_expense_limit" => CurrentMerchantAdjustments.ExpenseLimit.ToString(CultureInfo.InvariantCulture),
+            "transactions_lookback" => FormatTransactionLookback(CurrentTransactionExplorer.LookbackDays),
+            "transactions_type" => FormatTransactionType(CurrentTransactionExplorer.Type),
+            "transactions_focus" => FormatTransactionFocus(CurrentTransactionExplorer.Focus),
+            "transactions_search" => CurrentTransactionExplorer.Search,
+            "transactions_minimum_amount" => CurrentTransactionExplorer.MinimumMagnitude.ToString(CultureInfo.InvariantCulture),
+            "transactions_maximum_amount" => (CurrentTransactionExplorer.MaximumMagnitude ?? 0m).ToString(CultureInfo.InvariantCulture),
+            "transactions_largest_count" => CurrentTransactionExplorer.LargestCount.ToString(CultureInfo.InvariantCulture),
+            "transactions_breakdown" => FormatTransactionBreakdown(CurrentTransactionExplorer.Breakdown),
             _ => throw new ArgumentException($"Unsupported report filter source '{source}'.", nameof(source))
         };
 

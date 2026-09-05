@@ -50,13 +50,13 @@ public static class DashboardReportBuilder
             [DashboardPageId.YearOverYear] = YearOverYear(visible, settings, filters, presentation.YearOverYear),
             [DashboardPageId.Subscriptions] = Subscriptions(
                 visible,
-                settings.Subscriptions,
-                settings.MerchantAliases,
-                latestMonth,
+                settings,
+                filters,
+                presentation.Subscriptions,
                 reportDate),
-            [DashboardPageId.Merchants] = Merchants(spending, settings.MerchantAliases),
+            [DashboardPageId.Merchants] = Merchants(visible, settings, filters, presentation.Merchants),
             [DashboardPageId.Budget] = Budget(snapshot.Budgets, visible, start, end, settings.Budget.HistoryMonths),
-            [DashboardPageId.TopTransactions] = TopTransactions(visible, settings.Thresholds, start, end),
+            [DashboardPageId.TopTransactions] = TopTransactions(visible, settings, filters, presentation.Transactions),
             [DashboardPageId.FinancialIndependence] = FinancialIndependence(visible, accounts, settings, latestMonth, reportDate),
             [DashboardPageId.DataHealth] = DataHealth(snapshot, settings.DataHealth, settings.Thresholds, reportDate)
         };
@@ -73,10 +73,10 @@ public static class DashboardReportBuilder
         "spending.summary", "spending.trend", "spending.ranking", "spending.overview", "spending.detail_summary", "spending.detail_history",
         "spending.detail_categories", "spending.detail_merchants", "spending.detail_transactions", "spending.excluded",
         "yoy.comparison", "yoy.totals",
-        "subscriptions.active", "subscriptions.monthly",
-        "merchants.ranking", "merchants.history",
+        "subscriptions.active", "subscriptions.monthly", "subscriptions.summary", "subscriptions.lifecycle", "subscriptions.history_spend", "subscriptions.history_active", "subscriptions.candidates", "subscriptions.inactive", "subscriptions.detail_charge_history", "subscriptions.detail_charges", "subscriptions.detail_monthly_totals",
+        "merchants.ranking", "merchants.history", "merchants.summary", "merchants.overview", "merchants.detail_summary", "merchants.detail_history", "merchants.detail_categories", "merchants.detail_accounts", "merchants.detail_descriptions", "merchants.detail_transactions", "merchants.excluded",
         "budget.comparison", "budget.history", "budget.table",
-        "top.expenses", "top.incomes", "top.table",
+        "top.expenses", "top.incomes", "top.table", "transactions.summary", "transactions.history", "transactions.breakdown", "transactions.table",
         "fi.summary", "fi.projection", "fi.sensitivity",
         "health.summary", "health.findings"
     };
@@ -952,78 +952,409 @@ public static class DashboardReportBuilder
 
     private static DashboardPageReport Subscriptions(
         IReadOnlyList<FinancialTransaction> transactions,
-        SubscriptionSettings settings,
-        IReadOnlyDictionary<string, IReadOnlyList<string>> aliases,
-        YearMonth? latestMonth,
+        FinanceSettings settings,
+        DashboardFilters filters,
+        SubscriptionsPresentationState presentation,
         DateOnly reportDate)
     {
-        IReadOnlyList<SubscriptionItem> subscriptions = FindSubscriptions(transactions, settings, aliases);
-        IReadOnlyList<FinancialTransaction> selected = transactions
-            .Where(transaction => transaction.Kind == TransactionKind.Expense
-                && subscriptions.Any(item => string.Equals(item.Merchant, Merchant(transaction, aliases), StringComparison.Ordinal)))
-            .ToArray();
-        int? dataAgeDays = transactions.Count == 0
-            ? null
-            : Math.Max(0, reportDate.DayNumber - transactions.Max(transaction => transaction.Date).DayNumber);
-        IReadOnlyList<ReportPoint> monthly = ByMonth(selected, latestMonth is null ? null : latestMonth.Value.AddMonths(-11), latestMonth)
-            .Select(value => Point(value.Month.Start, value.Value))
-            .ToArray();
+        IReadOnlyList<string> categories = filters.SubscriptionCategories ?? settings.Subscriptions.KnownCategories;
+        IReadOnlyList<string> exclusions = filters.SubscriptionDiscoveryExclusions ?? settings.Subscriptions.DefaultExcludeCategories;
+        int confidence = filters.SubscriptionMinimumConfidence is >= 70 and <= 100
+            ? filters.SubscriptionMinimumConfidence
+            : settings.Subscriptions.MinimumConfidence;
+        SubscriptionAnalysisResult analysis = SubscriptionAnalysisCalculator.Build(
+            transactions,
+            settings.Subscriptions,
+            settings.MerchantAliases,
+            categories,
+            exclusions,
+            confidence);
+        string? selectedMerchant = SelectedSubscriptionMerchant(analysis, presentation.SelectedMerchant);
+        bool selectedCandidate = selectedMerchant is not null
+            && analysis.Candidates.Any(entry => string.Equals(entry.Merchant, selectedMerchant, StringComparison.Ordinal));
+        IReadOnlyList<SubscriptionChargeEntry> selectedCharges = selectedMerchant is null
+            ? []
+            : SubscriptionAnalysisCalculator.ChargesFor(analysis, selectedMerchant, selectedCandidate);
+        int? ageDays = analysis.LatestDataDate is DateOnly latest
+            ? Math.Max(0, reportDate.DayNumber - latest.DayNumber)
+            : null;
+        IReadOnlyList<ReportMetric> summaryMetrics =
+        [
+            Metric("Active subscriptions", analysis.Summary.ActiveCount, analysis.Summary.ActiveCount.ToString(CultureInfo.InvariantCulture)),
+            Metric("Estimated monthly run rate", analysis.Summary.MonthlyRunRate),
+            Metric("Spent in the last 12 months", analysis.Summary.TrailingTwelveMonthSpend),
+            new ReportMetric(
+                "12-month change",
+                analysis.Summary.AnnualChangePercent,
+                analysis.Summary.AnnualChangePercent is null ? "Not available" : FormatSignedPercent(analysis.Summary.AnnualChangePercent.Value),
+                analysis.Summary.AnnualChangePercent is null ? null : analysis.Summary.AnnualChangePercent > 0m ? "negative" : "positive",
+                analysis.Summary.AnnualChangePercent is null ? null : FormatSignedMoney(analysis.Summary.TrailingTwelveMonthSpend - analysis.Summary.PriorTwelveMonthSpend))
+        ];
+        IReadOnlyList<ReportSeries> spendHistory =
+        [
+            Series("actual", "Actual spend", analysis.History.Select(entry => Point(entry.Month.Start, entry.ActualSpend))),
+            Series("average", "3-month average", analysis.History.Select(entry => Point(entry.Month.Start, entry.RollingAverage)))
+        ];
+        IReadOnlyList<ReportSeries> activeHistory =
+        [
+            Series("active", "Active merchants", analysis.History.Select(entry => Point(entry.Month.Start, entry.ActiveMerchants)))
+        ];
         var widgets = new Dictionary<string, DashboardWidgetReport>(StringComparer.Ordinal)
         {
-            ["subscriptions.active"] = new DashboardWidgetReport(
-                [
-                    Metric("Active subscriptions", subscriptions.Count, subscriptions.Count.ToString(CultureInfo.InvariantCulture)),
-                    Metric(
-                        "Data age",
-                        dataAgeDays,
-                        dataAgeDays is null ? "No transaction data" : $"{dataAgeDays.Value} days old",
-                        dataAgeDays > settings.StaleAfterDays ? "negative" : null)
-                ],
+            ["subscriptions.summary"] = new DashboardWidgetReport(summaryMetrics, [], [], []),
+            ["subscriptions.active"] = SubscriptionInventoryReport(
+                analysis.Active,
+                "No active subscriptions are present in the selected categories.",
+                summaryMetrics,
+                analysis.Lifecycles,
+                analysis.LatestDataDate),
+            ["subscriptions.lifecycle"] = new DashboardWidgetReport(
                 [],
-                ["Merchant", "Source", "First seen", "Last seen", "Monthly run rate"],
-                subscriptions.Select(item => new ReportTableRow([
-                    item.Merchant,
-                    item.Confidence is int confidence ? $"Detected ({confidence}%)" : item.Source,
-                    FormatDate(item.FirstDate),
-                    FormatDate(item.LastDate),
-                    FormatMoney(item.MonthlyRunRate)
-                ])).ToArray(),
-                subscriptions.Count == 0 ? "No recurring subscription candidates were found." : null)
+                [],
+                [],
+                [],
+                analysis.Lifecycles.Count == 0 ? "No subscription lifecycles overlap this history range." : null)
             {
-                TimelineRanges = subscriptions
-                    .Select(item => new ReportTimelineRange(
-                        item.Merchant,
-                        item.FirstDate,
-                        item.LastDate,
-                        FormatMoney(item.MonthlyRunRate)))
-                    .ToArray(),
-                DateGuide = reportDate
+                TimelineRanges = analysis.Lifecycles.Select(entry => new ReportTimelineRange(
+                    entry.Merchant,
+                    entry.EpisodeStart,
+                    entry.DisplayEnd,
+                    FormatOptionalMoney(entry.MonthlyRunRate))).ToArray(),
+                DateGuide = analysis.LatestDataDate
             },
-            ["subscriptions.monthly"] = Chart(Series("subscriptions", "Subscription spending", monthly))
+            ["subscriptions.monthly"] = Chart(Series("subscriptions", "Subscription spending", analysis.History.Select(entry => Point(entry.Month.Start, entry.ActualSpend)))),
+            ["subscriptions.history_spend"] = Chart(spendHistory),
+            ["subscriptions.history_active"] = Chart(activeHistory),
+            ["subscriptions.candidates"] = SubscriptionInventoryReport(
+                analysis.Candidates,
+                "No strong uncategorized subscription candidates were found."),
+            ["subscriptions.inactive"] = SubscriptionInventoryReport(
+                analysis.Inactive,
+                "No inactive subscriptions are present in the selected categories."),
+            ["subscriptions.detail_charge_history"] = Chart(
+                Series(
+                    "charges",
+                    "Charge amount",
+                    selectedCharges
+                        .OrderBy(entry => entry.Transaction.Date)
+                        .ThenBy(entry => entry.Transaction.Id, StringComparer.Ordinal)
+                        .Select(entry => Point(entry.Transaction.Date, entry.Amount)))),
+            ["subscriptions.detail_charges"] = SubscriptionChargesReport(selectedCharges),
+            ["subscriptions.detail_monthly_totals"] = SubscriptionMonthlyTotalsReport(selectedCharges)
         };
-        return new DashboardPageReport(DashboardPageId.Subscriptions, widgets);
+        string? caption = analysis.LatestDataDate is DateOnly date
+            ? $"Transaction history through {date.ToString("MMMM d, yyyy", CultureInfo.InvariantCulture)}."
+            : null;
+        return new DashboardPageReport(DashboardPageId.Subscriptions, widgets)
+        {
+            SubscriptionsView = new SubscriptionsPageView(
+                caption,
+                ageDays,
+                ageDays is int days && days > settings.Subscriptions.StaleAfterDays,
+                analysis,
+                selectedMerchant,
+                selectedCandidate,
+                selectedCharges,
+                transactions.Count == 0 ? "No transactions are available. Refresh the spreadsheet data to build a subscription inventory." : null)
+        };
     }
 
     private static DashboardPageReport Merchants(
         IReadOnlyList<FinancialTransaction> transactions,
-        IReadOnlyDictionary<string, IReadOnlyList<string>> aliases)
+        FinanceSettings settings,
+        DashboardFilters filters,
+        MerchantsPresentationState presentation)
     {
-        IReadOnlyList<SpendingItem> ranked = CashFlowCalculator.AggregateSpending(
+        string setKey = filters.MerchantSet ?? filters.SpendingSet;
+        SpendingAdjustments adjustments = filters.MerchantAdjustments
+            ?? SpendingAdjustments.Default(settings.Thresholds.Expense);
+        MerchantAnalysisResult analysis = MerchantAnalysisCalculator.Build(
             transactions,
-            transaction => Merchant(transaction, aliases));
-        string[] selected = ranked.Take(6).Select(item => item.Entity).ToArray();
-        IReadOnlyList<ReportSeries> history = selected.Select(merchant => Series(
-            Slug(merchant),
-            merchant,
-            ByMonth(transactions.Where(transaction => string.Equals(Merchant(transaction, aliases), merchant, StringComparison.Ordinal)), null, null)
-                .Select(value => Point(value.Month.Start, value.Value)))).ToArray();
+            settings,
+            setKey,
+            filters.EffectiveMerchantLookbackMonths,
+            filters.MerchantComparison,
+            adjustments);
+        string? selectedMerchant = analysis.Overview.Any(entry => string.Equals(entry.Merchant, presentation.SelectedMerchant, StringComparison.Ordinal))
+            ? presentation.SelectedMerchant
+            : analysis.Overview.FirstOrDefault()?.Merchant;
+        YearMonth? detailMonth = YearMonth.TryParse(presentation.DetailMonth, out YearMonth parsedMonth)
+            ? parsedMonth
+            : null;
+        IReadOnlyList<MerchantHistoryEntry> selectedHistory = selectedMerchant is null
+            ? []
+            : MerchantAnalysisCalculator.History(analysis, selectedMerchant, settings.MerchantAliases);
+        IReadOnlyList<MerchantDetailBreakdownEntry> selectedCategories = selectedMerchant is null
+            ? []
+            : MerchantAnalysisCalculator.Breakdown(analysis.CurrentLedger, selectedMerchant, "Category", settings.MerchantAliases);
+        IReadOnlyList<MerchantDetailBreakdownEntry> selectedAccounts = selectedMerchant is null
+            ? []
+            : MerchantAnalysisCalculator.Breakdown(analysis.CurrentLedger, selectedMerchant, "Account", settings.MerchantAliases);
+        IReadOnlyList<MerchantDescriptionEntry> selectedDescriptions = selectedMerchant is null
+            ? []
+            : MerchantAnalysisCalculator.Descriptions(analysis.CurrentLedger, selectedMerchant, settings.MerchantAliases);
+        IReadOnlyList<SpendingLedgerEntry> selectedTransactions = selectedMerchant is null
+            ? []
+            : MerchantAnalysisCalculator.Transactions(analysis.CurrentLedger, selectedMerchant, detailMonth, settings.MerchantAliases);
+        MerchantOverviewEntry? detail = analysis.Overview.FirstOrDefault(entry => string.Equals(entry.Merchant, selectedMerchant, StringComparison.Ordinal));
+        IReadOnlyList<ReportMetric> summary =
+        [
+            Metric("Total spending", analysis.Summary.TotalSpending),
+            Metric("Average monthly", analysis.Summary.AverageMonthlySpending),
+            Metric("Merchants", analysis.Summary.MerchantCount, analysis.Summary.MerchantCount.ToString(CultureInfo.InvariantCulture)),
+            Metric("At repeat merchants", analysis.Summary.RepeatSpendingSharePercent, FormatPercent(analysis.Summary.RepeatSpendingSharePercent))
+        ];
+        IReadOnlyList<ReportSeries> history = selectedMerchant is null
+            ? []
+            :
+            [
+                Series("current", "Current period", selectedHistory.Select(entry => Point(entry.CurrentMonth.Start, entry.CurrentSpending))),
+                Series("comparison", "Comparison", selectedHistory.Select(entry => Point(entry.CurrentMonth.Start, entry.ComparisonSpending)))
+            ];
         var widgets = new Dictionary<string, DashboardWidgetReport>(StringComparer.Ordinal)
         {
-            ["merchants.ranking"] = Chart(Series("merchants", "Spending", ranked.Select(item => Point(item.Entity, item.Spending)))),
-            ["merchants.history"] = Chart(history)
+            ["merchants.summary"] = new DashboardWidgetReport(summary, [], [], []),
+            ["merchants.ranking"] = Chart(Series("merchants", "Spending", analysis.Overview.Take(12).Select(entry => Point(entry.Merchant, entry.Spending)))),
+            ["merchants.overview"] = MerchantOverviewReport(analysis.Overview),
+            ["merchants.history"] = Chart(history),
+            ["merchants.detail_summary"] = MerchantDetailSummary(detail, filters.MerchantComparison),
+            ["merchants.detail_history"] = Chart(history),
+            ["merchants.detail_categories"] = MerchantBreakdownReport("Category", selectedCategories),
+            ["merchants.detail_accounts"] = MerchantBreakdownReport("Account", selectedAccounts),
+            ["merchants.detail_descriptions"] = MerchantDescriptionsReport(selectedDescriptions),
+            ["merchants.detail_transactions"] = MerchantTransactionsReport(selectedTransactions),
+            ["merchants.excluded"] = MerchantExcludedReport(analysis.CurrentLedger)
         };
-        return new DashboardPageReport(DashboardPageId.Merchants, widgets);
+        DateOnly? latest = transactions.Where(transaction => transaction.Kind == TransactionKind.Expense).Select(transaction => (DateOnly?)transaction.Date).Max();
+        return new DashboardPageReport(DashboardPageId.Merchants, widgets)
+        {
+            MerchantsView = new MerchantsPageView(
+                latest is DateOnly date ? $"Spending through {date.ToString("MMMM d, yyyy", CultureInfo.InvariantCulture)}" : null,
+                analysis,
+                selectedMerchant,
+                detailMonth?.ToString() ?? "all",
+                selectedHistory,
+                selectedCategories,
+                selectedAccounts,
+                selectedDescriptions,
+                selectedTransactions,
+                analysis.Overview.Count == 0 ? "No spending is included in this view. Adjust the filters to continue." : null)
+        };
     }
+
+    private static string? SelectedSubscriptionMerchant(SubscriptionAnalysisResult analysis, string? selected)
+    {
+        if (!string.IsNullOrWhiteSpace(selected)
+            && analysis.Active.Concat(analysis.Candidates).Concat(analysis.Inactive)
+                .Any(entry => string.Equals(entry.Merchant, selected, StringComparison.Ordinal)))
+        {
+            return selected;
+        }
+
+        return analysis.Active.FirstOrDefault()?.Merchant
+            ?? analysis.Candidates.FirstOrDefault()?.Merchant
+            ?? analysis.Inactive.FirstOrDefault()?.Merchant;
+    }
+
+    private static DashboardWidgetReport SubscriptionInventoryReport(
+        IReadOnlyList<SubscriptionInventoryEntry> entries,
+        string emptyMessage,
+        IReadOnlyList<ReportMetric>? metrics = null,
+        IReadOnlyList<SubscriptionLifecycleEntry>? lifecycles = null,
+        DateOnly? dateGuide = null)
+    {
+        var report = new DashboardWidgetReport(
+            metrics ?? [],
+            [],
+            ["Merchant", "Status", "Cadence", "Est. monthly", "Last charge"],
+            entries.Select(entry => new ReportTableRow([
+                entry.Merchant,
+                entry.Source == "Detected" ? $"Detected ({entry.Confidence}%)" : entry.Status,
+                entry.Cadence,
+                FormatOptionalMoney(entry.MonthlyRunRate),
+                FormatDate(entry.LastDate)
+            ], string.Equals(entry.Status, "Active", StringComparison.Ordinal) ? "positive" : null)).ToArray(),
+            entries.Count == 0 ? emptyMessage : null);
+        if (lifecycles is null)
+            return report;
+
+        return report with
+        {
+            TimelineRanges = lifecycles.Select(entry => new ReportTimelineRange(
+                entry.Merchant,
+                entry.EpisodeStart,
+                entry.DisplayEnd,
+                FormatOptionalMoney(entry.MonthlyRunRate))).ToArray(),
+            DateGuide = dateGuide
+        };
+    }
+
+    private static DashboardWidgetReport SubscriptionChargesReport(IReadOnlyList<SubscriptionChargeEntry> charges)
+        => new(
+            [],
+            [],
+            ["Date", "Description", "Category", "Account", "Amount"],
+            charges.Select(entry => new ReportTableRow([
+                FormatDate(entry.Transaction.Date),
+                entry.Transaction.Description,
+                entry.Transaction.Category,
+                entry.Transaction.Account,
+                FormatMoney(entry.Amount)
+            ])).ToArray(),
+            charges.Count == 0 ? "No subscription charges are available for this merchant." : null);
+
+    private static DashboardWidgetReport SubscriptionMonthlyTotalsReport(IReadOnlyList<SubscriptionChargeEntry> charges)
+        => new(
+            [],
+            [],
+            ["Month", "Actual spend"],
+            charges
+                .GroupBy(entry => entry.Transaction.Month)
+                .OrderByDescending(group => group.Key)
+                .Select(group => new ReportTableRow([
+                    group.Key.Start.ToString("MMM yyyy", CultureInfo.InvariantCulture),
+                    FormatMoney(group.Sum(entry => entry.Amount))
+                ]))
+                .ToArray(),
+            charges.Count == 0 ? "No monthly totals are available." : null);
+
+    private static DashboardWidgetReport MerchantOverviewReport(IReadOnlyList<MerchantOverviewEntry> entries)
+        => new(
+            [],
+            [],
+            ["Merchant", "Spending", "Share", "Average monthly", "Change", "Transactions", "Category"],
+            entries.Select(entry => new ReportTableRow([
+                entry.Merchant,
+                FormatMoney(entry.Spending),
+                FormatPercent(entry.SharePercent),
+                FormatMoney(entry.AverageMonthlySpending),
+                FormatSignedMoney(entry.Change),
+                entry.TransactionCount.ToString(CultureInfo.InvariantCulture),
+                entry.PrimaryCategory
+            ], entry.Change > 0m ? "negative" : entry.Change < 0m ? "positive" : null)).ToArray(),
+            entries.Count == 0 ? "No spending is included in this view. Adjust the filters to continue." : null);
+
+    private static DashboardWidgetReport MerchantDetailSummary(MerchantOverviewEntry? entry, SpendingComparison comparison)
+    {
+        if (entry is null)
+            return new DashboardWidgetReport([], [], [], [], "Select a merchant to inspect its detail.");
+
+        string comparisonLabel = comparison == SpendingComparison.PreviousPeriod ? "previous period" : "last year";
+        return new DashboardWidgetReport(
+            [
+                Metric("Spending", entry.Spending),
+                new ReportMetric(
+                    $"Change vs {comparisonLabel}",
+                    entry.Change,
+                    FormatSignedMoney(entry.Change),
+                    entry.Change > 0m ? "negative" : entry.Change < 0m ? "positive" : null,
+                    FormatPercent(entry.ChangePercent)),
+                Metric("Transactions", entry.TransactionCount, entry.TransactionCount.ToString(CultureInfo.InvariantCulture)),
+                Metric("Average purchase", entry.AverageTransaction)
+            ],
+            [],
+            [],
+            []);
+    }
+
+    private static DashboardWidgetReport MerchantBreakdownReport(string label, IReadOnlyList<MerchantDetailBreakdownEntry> entries)
+        => new(
+            [],
+            [],
+            [label, "Spending", "Share", "Transactions"],
+            entries.Select(entry => new ReportTableRow([
+                entry.Entity,
+                FormatMoney(entry.Spending),
+                FormatPercent(entry.SharePercent),
+                entry.Transactions.ToString(CultureInfo.InvariantCulture)
+            ])).ToArray(),
+            entries.Count == 0 ? $"No {label.ToLowerInvariant()} detail is available." : null);
+
+    private static DashboardWidgetReport MerchantDescriptionsReport(IReadOnlyList<MerchantDescriptionEntry> entries)
+        => new(
+            [],
+            [],
+            ["Description", "Spending", "Transactions", "Last transaction"],
+            entries.Select(entry => new ReportTableRow([
+                entry.Description,
+                FormatMoney(entry.Spending),
+                entry.Transactions.ToString(CultureInfo.InvariantCulture),
+                FormatDate(entry.LastTransaction)
+            ])).ToArray(),
+            entries.Count == 0 ? "No descriptions are available." : null);
+
+    private static DashboardWidgetReport MerchantTransactionsReport(IReadOnlyList<SpendingLedgerEntry> entries)
+        => new(
+            [],
+            [],
+            ["Date", "Description", "Category", "Group", "Account", "Spending"],
+            entries.Select(entry => new ReportTableRow([
+                FormatDate(entry.Transaction.Date),
+                entry.Transaction.Description,
+                entry.Transaction.Category,
+                entry.Transaction.Group,
+                entry.Transaction.Account,
+                FormatMoney(entry.NetSpending)
+            ])).ToArray(),
+            entries.Count == 0 ? "No transactions are available for this merchant." : null);
+
+    private static DashboardWidgetReport MerchantExcludedReport(IReadOnlyList<SpendingLedgerEntry> entries)
+    {
+        SpendingLedgerEntry[] excluded = entries.Where(entry => !entry.Included).ToArray();
+        return new DashboardWidgetReport(
+            [],
+            [],
+            ["Date", "Description", "Category", "Group", "Spending", "Reason"],
+            excluded.Select(entry => new ReportTableRow([
+                FormatDate(entry.Transaction.Date),
+                entry.Transaction.Description,
+                entry.Transaction.Category,
+                entry.Transaction.Group,
+                FormatMoney(entry.NetSpending),
+                entry.ExclusionReason
+            ], "negative")).ToArray(),
+            excluded.Length == 0 ? "No current-period rows are excluded." : null);
+    }
+
+    private static DashboardWidgetReport TransactionsTableReport(IReadOnlyList<TransactionExplorerEntry> entries)
+        => new(
+            [],
+            [],
+            ["Date", "Description", "Merchant", "Type", "Group", "Category", "Account", "Amount", "Occurrences", "Flags"],
+            entries.Select(entry => new ReportTableRow([
+                FormatDate(entry.Transaction.Date),
+                entry.Transaction.Description,
+                entry.Merchant,
+                TransactionKindLabel(entry.Transaction.Kind),
+                entry.Transaction.Group,
+                entry.Transaction.Category,
+                entry.Transaction.Account,
+                FormatSignedMoney(entry.Transaction.Amount),
+                entry.Occurrences.ToString(CultureInfo.InvariantCulture),
+                TransactionFlags(entry)
+            ], entry.Transaction.Amount < 0m ? "negative" : entry.Transaction.Amount > 0m ? "positive" : null)).ToArray(),
+            entries.Count == 0 ? "No transactions match this view." : null);
+
+    private static string TransactionFlags(TransactionExplorerEntry entry)
+    {
+        var values = new List<string>();
+        if (entry.IsOneOff)
+            values.Add("One-off");
+        if (entry.IsUnusual)
+            values.Add("Unusual amount");
+        if (entry.IsReversal)
+            values.Add("Refund / reversal");
+        return string.Join(", ", values);
+    }
+
+    private static string TransactionKindLabel(TransactionKind kind)
+        => kind switch
+        {
+            TransactionKind.Income => "Income",
+            TransactionKind.Expense => "Expense",
+            TransactionKind.Transfer => "Transfer",
+            _ => "Unknown"
+        };
 
     private static DashboardPageReport Budget(
         IReadOnlyList<BudgetEntry> budgets,
@@ -1100,54 +1431,56 @@ public static class DashboardReportBuilder
 
     private static DashboardPageReport TopTransactions(
         IReadOnlyList<FinancialTransaction> transactions,
-        ThresholdSettings thresholds,
-        YearMonth? start,
-        YearMonth? end)
+        FinanceSettings settings,
+        DashboardFilters filters,
+        TransactionsPresentationState presentation)
     {
-        IReadOnlyList<FinancialTransaction> inPeriod = transactions.Where(transaction => IsInside(transaction.Month, start, end)).ToArray();
-        IReadOnlyList<FinancialTransaction> expenses = inPeriod
-            .Where(transaction => transaction.Kind == TransactionKind.Expense && -transaction.Amount >= thresholds.Expense)
-            .OrderBy(transaction => transaction.Date)
-            .ThenBy(transaction => transaction.Id, StringComparer.Ordinal)
+        TransactionExplorerFilters request = filters.TransactionExplorer ?? TransactionExplorerFilters.Default;
+        TransactionExplorerAnalysisResult analysis = TransactionExplorerAnalysisCalculator.Build(
+            transactions,
+            settings.MerchantAliases,
+            request);
+        IReadOnlyList<ReportMetric> summary =
+        [
+            Metric("Transactions", analysis.Summary.TransactionCount, analysis.Summary.TransactionCount.ToString(CultureInfo.InvariantCulture)),
+            Metric("Money out", analysis.Summary.Outflow),
+            Metric("Money in", analysis.Summary.Inflow),
+            new ReportMetric(
+                "Net amount",
+                analysis.Summary.NetAmount,
+                FormatSignedMoney(analysis.Summary.NetAmount),
+                analysis.Summary.NetAmount > 0m ? "positive" : analysis.Summary.NetAmount < 0m ? "negative" : null)
+        ];
+        IReadOnlyList<ReportSeries> history = analysis.Results
+            .GroupBy(entry => entry.Transaction.Kind)
+            .OrderBy(group => group.Key)
+            .Select(group => Series(
+                group.Key.ToString().ToLowerInvariant(),
+                TransactionKindLabel(group.Key),
+                group.Select(entry => Point(entry.Transaction.Date, entry.Transaction.Amount, entry.Transaction.Description))))
             .ToArray();
-        IReadOnlyList<FinancialTransaction> incomes = inPeriod
-            .Where(transaction => transaction.Kind == TransactionKind.Income && transaction.Amount >= thresholds.Income)
-            .OrderBy(transaction => transaction.Date)
-            .ThenBy(transaction => transaction.Id, StringComparer.Ordinal)
-            .ToArray();
-        IReadOnlyList<FinancialTransaction> top = inPeriod
-            .Where(transaction => transaction.Kind is TransactionKind.Expense or TransactionKind.Income)
-            .OrderByDescending(transaction => decimal.Abs(transaction.Amount))
-            .ThenByDescending(transaction => transaction.Date)
-            .ThenBy(transaction => transaction.Id, StringComparer.Ordinal)
-            .Take(30)
-            .ToArray();
+        IReadOnlyList<ReportSeries> breakdown =
+        [
+            Series("magnitude", "Total magnitude", analysis.Breakdown.Take(12).Select(entry => Point(entry.Entity, entry.Magnitude)))
+        ];
+        DashboardWidgetReport table = TransactionsTableReport(analysis.Results);
         var widgets = new Dictionary<string, DashboardWidgetReport>(StringComparer.Ordinal)
         {
-            ["top.expenses"] = Chart(Series("expenses", "Large expense", expenses.Select(transaction => Point(
-                transaction.Date,
-                -transaction.Amount,
-                transaction.Description)))),
-            ["top.incomes"] = Chart(Series("incomes", "Large income", incomes.Select(transaction => Point(
-                transaction.Date,
-                transaction.Amount,
-                transaction.Description)))),
-            ["top.table"] = new DashboardWidgetReport(
-                [
-                    Metric("Large expenses", expenses.Count, expenses.Count.ToString(CultureInfo.InvariantCulture)),
-                    Metric("Large income", incomes.Count, incomes.Count.ToString(CultureInfo.InvariantCulture))
-                ],
-                [],
-                ["Date", "Description", "Category", "Amount"],
-                top.Select(transaction => new ReportTableRow([
-                    FormatDate(transaction.Date),
-                    transaction.Description,
-                    transaction.Category,
-                    FormatMoney(transaction.Amount)
-                ], transaction.Kind == TransactionKind.Expense ? "negative" : "positive")).ToArray(),
-                top.Count == 0 ? "No income or expense transactions are available." : null)
+            ["transactions.summary"] = new DashboardWidgetReport(summary, [], [], []),
+            ["transactions.history"] = Chart(history),
+            ["transactions.breakdown"] = Chart(breakdown),
+            ["transactions.table"] = table,
+            ["top.expenses"] = Chart(history.Where(series => string.Equals(series.Id, "expense", StringComparison.Ordinal)).ToArray()),
+            ["top.incomes"] = Chart(history.Where(series => string.Equals(series.Id, "income", StringComparison.Ordinal)).ToArray()),
+            ["top.table"] = table
         };
-        return new DashboardPageReport(DashboardPageId.TopTransactions, widgets);
+        return new DashboardPageReport(DashboardPageId.TopTransactions, widgets)
+        {
+            TransactionsView = new TransactionsPageView(
+                analysis.EndDate is DateOnly date ? $"Latest transaction {date.ToString("MMM d, yyyy", CultureInfo.InvariantCulture)}" : null,
+                analysis,
+                analysis.Results.Count == 0 ? "No transactions match this view." : null)
+        };
     }
 
     private static DashboardPageReport FinancialIndependence(
@@ -1285,101 +1618,6 @@ public static class DashboardReportBuilder
         => TransactionSetMatcher.Select(transactions, setKey, settings.TransactionSets, settings.MerchantAliases)
             .Where(transaction => transaction.Kind == TransactionKind.Expense && IsInside(transaction.Month, start, end))
             .ToArray();
-
-    private static IReadOnlyList<SubscriptionItem> FindSubscriptions(
-        IReadOnlyList<FinancialTransaction> transactions,
-        SubscriptionSettings settings,
-        IReadOnlyDictionary<string, IReadOnlyList<string>> aliases)
-    {
-        FinancialTransaction[] expenses = transactions
-            .Where(transaction => transaction.Kind == TransactionKind.Expense)
-            .ToArray();
-        var results = new List<SubscriptionItem>();
-        var knownMerchants = new HashSet<string>(StringComparer.Ordinal);
-
-        foreach (IGrouping<string, FinancialTransaction> group in expenses
-                     .Where(transaction => settings.KnownCategories.Contains(transaction.Category, StringComparer.Ordinal))
-                     .GroupBy(transaction => Merchant(transaction, aliases), StringComparer.Ordinal))
-        {
-            FinancialTransaction[] values = group.OrderBy(transaction => transaction.Date).ToArray();
-            knownMerchants.Add(group.Key);
-            results.Add(CreateSubscription(group.Key, values, "Configured", null));
-        }
-
-        foreach (IGrouping<string, FinancialTransaction> group in expenses
-                     .Where(transaction => !settings.KnownCategories.Contains(transaction.Category, StringComparer.Ordinal)
-                         && !settings.DefaultExcludeCategories.Contains(transaction.Category, StringComparer.Ordinal)
-                         && !settings.DetectionExcludedCategories.Contains(transaction.Category, StringComparer.Ordinal))
-                     .GroupBy(transaction => Merchant(transaction, aliases), StringComparer.Ordinal))
-        {
-            if (knownMerchants.Contains(group.Key))
-                continue;
-
-            FinancialTransaction[] values = group.OrderBy(transaction => transaction.Date).ToArray();
-            int confidence = SubscriptionConfidence(values);
-            if (confidence < settings.MinimumConfidence)
-                continue;
-
-            results.Add(CreateSubscription(group.Key, values, "Detected", confidence));
-        }
-
-        return results
-            .OrderByDescending(item => item.MonthlyRunRate)
-            .ThenBy(item => item.Merchant, StringComparer.Ordinal)
-            .ToArray();
-    }
-
-    private static SubscriptionItem CreateSubscription(
-        string merchant,
-        IReadOnlyList<FinancialTransaction> values,
-        string source,
-        int? confidence)
-    {
-        decimal months = decimal.Max(1m, MonthsBetween(values[0].Month, values[^1].Month) + 1m);
-        return new SubscriptionItem(
-            merchant,
-            values[0].Date,
-            values[^1].Date,
-            -values.Sum(transaction => transaction.Amount) / months,
-            source,
-            confidence);
-    }
-
-    private static int SubscriptionConfidence(IReadOnlyList<FinancialTransaction> values)
-    {
-        int uniqueMonths = values.Select(transaction => transaction.Month).Distinct().Count();
-        if (values.Count < 3 || uniqueMonths < 3 || values.Count > uniqueMonths * 1.25m)
-            return 0;
-
-        decimal[] intervals = values
-            .Zip(values.Skip(1), (first, second) => (decimal)(second.Date.DayNumber - first.Date.DayNumber))
-            .ToArray();
-        decimal cadence = Median(intervals);
-        decimal tolerance = decimal.Max(7m, cadence * 0.25m);
-        decimal regularity = intervals.Count(interval => decimal.Abs(interval - cadence) <= tolerance) / (decimal)intervals.Length;
-        decimal medianAmount = Median(values.Select(transaction => decimal.Abs(transaction.Amount)));
-        decimal meanDeviation = values.Average(transaction => decimal.Abs(decimal.Abs(transaction.Amount) - medianAmount));
-        decimal amountStability = medianAmount == 0m
-            ? 0m
-            : decimal.Max(0m, 1m - meanDeviation / (medianAmount * 0.5m));
-        decimal confidence = regularity * 50m
-            + decimal.Min(values.Count / 6m, 1m) * 15m
-            + decimal.Min(uniqueMonths / 6m, 1m) * 15m
-            + amountStability * 20m;
-        return decimal.ToInt32(decimal.Round(confidence, 0, MidpointRounding.AwayFromZero));
-    }
-
-    private static decimal Median(IEnumerable<decimal> values)
-    {
-        decimal[] ordered = values.Order().ToArray();
-        if (ordered.Length == 0)
-            return 0m;
-
-        int middle = ordered.Length / 2;
-        return ordered.Length % 2 == 0
-            ? (ordered[middle - 1] + ordered[middle]) / 2m
-            : ordered[middle];
-    }
 
     private static IReadOnlyList<MonthlyValue> ByMonth(
         IEnumerable<FinancialTransaction> transactions,
@@ -1647,12 +1885,6 @@ public static class DashboardReportBuilder
     private static bool IsInside(YearMonth month, YearMonth? start, YearMonth? end)
         => start is null || (month.CompareTo(start.Value) >= 0 && month.CompareTo(end!.Value) <= 0);
 
-    private static int MonthsBetween(YearMonth start, YearMonth end)
-        => (end.Year - start.Year) * 12 + end.Month - start.Month;
-
-    private static string Merchant(FinancialTransaction transaction, IReadOnlyDictionary<string, IReadOnlyList<string>> aliases)
-        => TransactionSetMatcher.NormalizeMerchant(transaction.Description, aliases);
-
     private static DashboardWidgetReport Metrics(params ReportMetric[] metrics)
         => new(metrics, [], [], []);
 
@@ -1684,6 +1916,9 @@ public static class DashboardReportBuilder
 
     private static string FormatMoney(decimal value)
         => value.ToString("C0", CultureInfo.GetCultureInfo("en-US"));
+
+    private static string FormatOptionalMoney(decimal? value)
+        => value is null ? "Pending" : FormatMoney(value.Value);
 
     private static string FormatSignedMoney(decimal value)
         => value == 0m
@@ -1720,11 +1955,4 @@ public static class DashboardReportBuilder
 
     private sealed record DuplicatePair(FinancialTransaction First, FinancialTransaction Second, int DaysApart);
 
-    private sealed record SubscriptionItem(
-        string Merchant,
-        DateOnly FirstDate,
-        DateOnly LastDate,
-        decimal MonthlyRunRate,
-        string Source,
-        int? Confidence);
 }

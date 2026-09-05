@@ -62,6 +62,15 @@ public sealed record DashboardPageReport(
 
     /// <summary>Gets the optional source-shaped Year over year report view.</summary>
     public YearOverYearPageView? YearOverYearView { get; init; }
+
+    /// <summary>Gets the optional source-shaped Subscriptions report view.</summary>
+    public SubscriptionsPageView? SubscriptionsView { get; init; }
+
+    /// <summary>Gets the optional source-shaped Spending by merchant report view.</summary>
+    public MerchantsPageView? MerchantsView { get; init; }
+
+    /// <summary>Gets the optional source-shaped Transactions report view.</summary>
+    public TransactionsPageView? TransactionsView { get; init; }
 }
 
 /// <summary>Contains the source-shaped data regions shown by the Income and savings page.</summary>
@@ -106,6 +115,36 @@ public sealed record YearOverYearPageView(
     IReadOnlyList<YearOverYearComparisonView> Comparisons,
     string? EmptyMessage = null);
 
+/// <summary>Contains the source-shaped data regions shown by the Subscriptions page.</summary>
+public sealed record SubscriptionsPageView(
+    string? LatestDataCaption,
+    int? DataAgeDays,
+    bool DataIsStale,
+    SubscriptionAnalysisResult Analysis,
+    string? SelectedMerchant,
+    bool SelectedMerchantIsCandidate,
+    IReadOnlyList<SubscriptionChargeEntry> SelectedCharges,
+    string? EmptyMessage = null);
+
+/// <summary>Contains the source-shaped data regions shown by the Spending by merchant page.</summary>
+public sealed record MerchantsPageView(
+    string? LatestDataCaption,
+    MerchantAnalysisResult Analysis,
+    string? SelectedMerchant,
+    string DetailMonth,
+    IReadOnlyList<MerchantHistoryEntry> SelectedHistory,
+    IReadOnlyList<MerchantDetailBreakdownEntry> SelectedCategories,
+    IReadOnlyList<MerchantDetailBreakdownEntry> SelectedAccounts,
+    IReadOnlyList<MerchantDescriptionEntry> SelectedDescriptions,
+    IReadOnlyList<SpendingLedgerEntry> SelectedTransactions,
+    string? EmptyMessage = null);
+
+/// <summary>Contains the source-shaped data regions shown by the Transactions page.</summary>
+public sealed record TransactionsPageView(
+    string? LatestDataCaption,
+    TransactionExplorerAnalysisResult Analysis,
+    string? EmptyMessage = null);
+
 /// <summary>Represents the complete report snapshot consumed by the desktop renderer.</summary>
 public sealed record DashboardReport(IReadOnlyDictionary<DashboardPageId, DashboardPageReport> Pages)
 {
@@ -126,10 +165,21 @@ public sealed record DashboardFilters(
     SpendingComparison SpendingComparison = SpendingComparison.PreviousPeriod,
     SpendingBreakdown SpendingBreakdown = SpendingBreakdown.Category,
     SpendingAdjustments? SpendingAdjustments = null,
-    int IncomeLookbackMonths = 0)
+    int IncomeLookbackMonths = 0,
+    int MerchantLookbackMonths = 0,
+    string? MerchantSet = null,
+    SpendingComparison MerchantComparison = SpendingComparison.PreviousPeriod,
+    SpendingAdjustments? MerchantAdjustments = null,
+    IReadOnlyList<string>? SubscriptionCategories = null,
+    IReadOnlyList<string>? SubscriptionDiscoveryExclusions = null,
+    int SubscriptionMinimumConfidence = 0,
+    TransactionExplorerFilters? TransactionExplorer = null)
 {
     /// <summary>Gets the page-local Income and savings lookback, preserving older direct callers.</summary>
     public int EffectiveIncomeLookbackMonths => IncomeLookbackMonths > 0 ? IncomeLookbackMonths : LookbackMonths;
+
+    /// <summary>Gets the page-local merchant lookback while keeping older callers compatible.</summary>
+    public int EffectiveMerchantLookbackMonths => MerchantLookbackMonths > 0 ? MerchantLookbackMonths : LookbackMonths;
 
     /// <summary>Creates the default filter state from finance settings.</summary>
     public static DashboardFilters From(FinanceSettings settings)
@@ -144,6 +194,12 @@ public sealed record DashboardFilters(
             SpendingComparison.PreviousPeriod,
             SpendingBreakdown.Category,
             SpendingAdjustments.Default(settings.Thresholds.Expense),
-            settings.Lookback.DefaultMonths);
+            settings.Lookback.DefaultMonths,
+            MerchantLookbackMonths: settings.Lookback.DefaultMonths,
+            MerchantSet: settings.FilterSet("spending").Default,
+            MerchantComparison: SpendingComparison.PreviousPeriod,
+            MerchantAdjustments: SpendingAdjustments.Default(settings.Thresholds.Expense),
+            SubscriptionMinimumConfidence: settings.Subscriptions.MinimumConfidence,
+            TransactionExplorer: TransactionExplorerFilters.Default);
     }
 }

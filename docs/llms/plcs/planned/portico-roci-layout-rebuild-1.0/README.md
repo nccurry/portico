@@ -4,7 +4,7 @@
 
 - Status: In progress
 - Created: 2026-09-04
-- Current phase: Phase 5.3 — rebuild Subscriptions, Spending by merchant, and Transactions
+- Current phase: Phase 6.1 — rebuild Budget
 - Owner: Portico maintainers
 - Target worktree: `../portico-roci-rebuild`
 - Target branch: `nccurry/roci-portico-plc`
@@ -147,6 +147,24 @@ Phase 5.2 completed on 2026-09-05.
   `task roci:build:strict`, `task roci:test`, `task roci:visual`, and
   `git diff --check`. The combined code and frontend reviews found no P1 or
   P2 issue.
+
+Phase 5.3 completed on 2026-09-05.
+
+- Subscriptions now has its settings expander, metric deck, inventory table,
+  lifecycle timeline, history chart, and selected subscription detail.
+- Spending by merchant now has source-shaped filters, an Adjust view popover,
+  summary cards, a wide ranking-and-table split, and selected merchant tabs.
+- Transactions now has quick filters, a More filters popover, metrics,
+  history and breakdown charts, and its paged transaction table.
+- The report and UI layers keep each page's state separate. Tests cover
+  filters, empty states, selected rows, tabs, multi-selects, and both desktop
+  reference sizes.
+- `task roci:visual` now writes 42 captures. It rebuilds the test and capture
+  host before capture so it cannot render an old copied app assembly.
+- The full C# test suite, focused finance and desktop tests, formatting, lint,
+  strict build, visual capture, and `git diff --check` passed. The strict build
+  still reports existing SourceLink warnings from the linked Roci worktree;
+  they do not come from Portico code and are recorded for Phase 8.
 
 ## Purpose
 

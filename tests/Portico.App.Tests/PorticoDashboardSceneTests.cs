@@ -118,13 +118,41 @@ public sealed class PorticoDashboardSceneTests
                 continue;
             }
 
+            if (page.Id == DashboardPageId.Subscriptions)
+            {
+                Assert.True(HasNode(scene, "SubscriptionsControlBar"));
+                Assert.True(HasNode(scene, "SubscriptionsMetricDeck"));
+                Assert.True(HasNode(scene, "Section:subscription_inventory"));
+                Assert.True(HasNode(scene, "Section:subscription_lifecycle"));
+                Assert.True(HasNode(scene, "Chart:lifecycle"));
+                continue;
+            }
+
+            if (page.Id == DashboardPageId.Merchants)
+            {
+                Assert.True(HasNode(scene, "MerchantsControlBar"));
+                Assert.True(HasNode(scene, "MerchantsMetricDeck"));
+                Assert.True(HasNode(scene, "Section:merchant_rankings"));
+                Assert.True(HasNode(scene, "Section:merchant_detail"));
+                continue;
+            }
+
+            if (page.Id == DashboardPageId.TopTransactions)
+            {
+                Assert.True(HasNode(scene, "TransactionsControlBar"));
+                Assert.True(HasNode(scene, "TransactionsMetricDeck"));
+                Assert.True(HasNode(scene, "Chart:history"));
+                Assert.True(HasNode(scene, "Section:transactions_table"));
+                continue;
+            }
+
             Assert.All(page.Widgets, widget => Assert.True(HasNode(scene, $"Widget:{widget.Id}")));
         }
 
         scene.SelectPage(DashboardPageId.Subscriptions);
         scene.Refresh();
-        Assert.True(HasNode(scene, "Chart:active"));
-        ChartState subscriptions = GetChartState(scene, "Chart:active");
+        Assert.True(HasNode(scene, "Chart:lifecycle"));
+        ChartState subscriptions = GetChartState(scene, "Chart:lifecycle");
         Assert.True(Assert.Single(subscriptions.Series) is ChartTimelineSeries);
         Assert.True(Assert.Single(subscriptions.Guides) is ChartDateReferenceLine);
 

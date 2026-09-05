@@ -136,6 +136,40 @@ public sealed class AdapterTests
     }
 
     [Fact]
+    public void ConfigurationLoader_AcceptsAnEmptyTextInputDefault()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"portico-dashboard-{Guid.NewGuid():N}.toml");
+        File.WriteAllText(path, """
+            schema_version = 1
+            app_title = "Portico"
+            [[pages]]
+            id = "merchants"
+            title = "Merchants"
+            description = "Overview"
+            group = "analyze"
+            order = 1
+            rail_label = "Merchants"
+            page_heading = "Merchants"
+            icon = "storefront"
+            [[pages.controls]]
+            id = "search"
+            label = "Search merchants"
+            kind = "text_input"
+            source = "merchant_search"
+            default = ""
+            [[pages.widgets]]
+            id = "summary"
+            title = "Summary"
+            kind = "metric"
+            report = "merchants.summary"
+            """);
+
+        DashboardDefinition dashboard = TomlConfigurationLoader.LoadDashboard(path);
+
+        Assert.Equal(string.Empty, Assert.Single(dashboard.Pages[0].Controls).DefaultValue);
+    }
+
+    [Fact]
     public void ConfigurationLoader_RejectsUnknownNavigationMetadata()
     {
         string path = Path.Combine(Path.GetTempPath(), $"portico-dashboard-{Guid.NewGuid():N}.toml");

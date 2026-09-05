@@ -493,7 +493,7 @@ public static class TomlConfigurationLoader
 
         return value switch
         {
-            string text when !string.IsNullOrWhiteSpace(text) => text,
+            string text => text,
             bool boolean => boolean.ToString().ToLowerInvariant(),
             _ when TryDecimal(value, out decimal number) => number.ToString(CultureInfo.InvariantCulture),
             _ => AddAndReturn(errors, $"{prefix}.{key}", "must be a string, number, or true/false value.", (string?)null)
@@ -689,7 +689,9 @@ public static class TomlConfigurationLoader
             ["tab_choice"] = DashboardControlKind.TabChoice,
             ["action_reset"] = DashboardControlKind.ActionReset,
             ["text_multi_select"] = DashboardControlKind.TextMultiSelect,
-            ["popover"] = DashboardControlKind.Popover
+            ["popover"] = DashboardControlKind.Popover,
+            ["collapsible"] = DashboardControlKind.Collapsible,
+            ["text_input"] = DashboardControlKind.TextInput
         });
 
     private static DashboardControlSource ParseControlSource(string value, string path, List<ConfigurationError> errors)
@@ -735,7 +737,39 @@ public static class TomlConfigurationLoader
             ["spending_expense_limit"] = DashboardControlSource.SpendingExpenseLimit,
             ["spending_detail_month"] = DashboardControlSource.SpendingDetailMonth,
             ["spending_adjust_view"] = DashboardControlSource.SpendingAdjustView,
-            ["spending_reset"] = DashboardControlSource.SpendingReset
+            ["spending_reset"] = DashboardControlSource.SpendingReset,
+            ["subscription_categories"] = DashboardControlSource.SubscriptionCategories,
+            ["subscription_discovery_exclusions"] = DashboardControlSource.SubscriptionDiscoveryExclusions,
+            ["subscription_minimum_confidence"] = DashboardControlSource.SubscriptionMinimumConfidence,
+            ["subscription_settings_open"] = DashboardControlSource.SubscriptionSettingsOpen,
+            ["subscription_history_lookback"] = DashboardControlSource.SubscriptionHistoryLookback,
+            ["subscription_timeline_scope"] = DashboardControlSource.SubscriptionTimelineScope,
+            ["merchant_lookback"] = DashboardControlSource.MerchantLookback,
+            ["merchant_spending"] = DashboardControlSource.MerchantSpending,
+            ["merchant_comparison"] = DashboardControlSource.MerchantComparison,
+            ["merchant_excluded_groups"] = DashboardControlSource.MerchantExcludedGroups,
+            ["merchant_excluded_categories"] = DashboardControlSource.MerchantExcludedCategories,
+            ["merchant_included_descriptions"] = DashboardControlSource.MerchantIncludedDescriptions,
+            ["merchant_excluded_descriptions"] = DashboardControlSource.MerchantExcludedDescriptions,
+            ["merchant_exclude_large_expenses"] = DashboardControlSource.MerchantExcludeLargeExpenses,
+            ["merchant_expense_limit"] = DashboardControlSource.MerchantExpenseLimit,
+            ["merchant_adjust_view"] = DashboardControlSource.MerchantAdjustView,
+            ["merchant_reset"] = DashboardControlSource.MerchantReset,
+            ["merchant_search"] = DashboardControlSource.MerchantSearch,
+            ["merchant_detail_month"] = DashboardControlSource.MerchantDetailMonth,
+            ["merchant_detail_tab"] = DashboardControlSource.MerchantDetailTab,
+            ["transactions_lookback"] = DashboardControlSource.TransactionsLookback,
+            ["transactions_type"] = DashboardControlSource.TransactionsType,
+            ["transactions_focus"] = DashboardControlSource.TransactionsFocus,
+            ["transactions_search"] = DashboardControlSource.TransactionsSearch,
+            ["transactions_groups"] = DashboardControlSource.TransactionsGroups,
+            ["transactions_categories"] = DashboardControlSource.TransactionsCategories,
+            ["transactions_accounts"] = DashboardControlSource.TransactionsAccounts,
+            ["transactions_minimum_amount"] = DashboardControlSource.TransactionsMinimumAmount,
+            ["transactions_maximum_amount"] = DashboardControlSource.TransactionsMaximumAmount,
+            ["transactions_largest_count"] = DashboardControlSource.TransactionsLargestCount,
+            ["transactions_breakdown"] = DashboardControlSource.TransactionsBreakdown,
+            ["transactions_more_filters"] = DashboardControlSource.TransactionsMoreFilters
         });
 
     private static DashboardControlOptionSource ParseControlOptionSource(string value, string path, List<ConfigurationError> errors)
@@ -751,7 +785,12 @@ public static class TomlConfigurationLoader
             ["income_months"] = DashboardControlOptionSource.IncomeMonths,
             ["year_over_year_preset_categories"] = DashboardControlOptionSource.YearOverYearPresetCategories,
             ["year_over_year_categories"] = DashboardControlOptionSource.YearOverYearCategories,
-            ["year_over_year_groups"] = DashboardControlOptionSource.YearOverYearGroups
+            ["year_over_year_groups"] = DashboardControlOptionSource.YearOverYearGroups,
+            ["all_categories"] = DashboardControlOptionSource.AllCategories,
+            ["all_groups"] = DashboardControlOptionSource.AllGroups,
+            ["all_accounts"] = DashboardControlOptionSource.AllAccounts,
+            ["subscription_discovery_categories"] = DashboardControlOptionSource.SubscriptionDiscoveryCategories,
+            ["merchant_months"] = DashboardControlOptionSource.MerchantMonths
         });
 
     private static DashboardControlWidth ParseControlWidth(string value, string path, List<ConfigurationError> errors)

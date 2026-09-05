@@ -17,7 +17,7 @@ public sealed class PorticoCaptureCatalogTests
     {
         IReadOnlyList<CaptureCase> cases = PorticoCaptureCatalog.CaptureCatalog.CaptureCases;
 
-        Assert.Equal(36, cases.Count);
+        Assert.Equal(42, cases.Count);
         Assert.Equal(
         [
             "budget",
@@ -31,11 +31,14 @@ public sealed class PorticoCaptureCatalogTests
             "income-adjusted",
             "income-savings",
             "merchants",
+            "merchants-adjusted",
             "spending",
             "spending-adjusted",
             "spending-loading",
             "subscriptions",
+            "subscriptions-settings",
             "top-transactions",
+            "top-transactions-more-filters",
             "year-over-year",
             "year-over-year-single-category"
         ],
@@ -51,10 +54,10 @@ public sealed class PorticoCaptureCatalogTests
         }
 
         Assert.Equal(
-            18,
+            21,
             cases.Count(capture => capture.CaptureSize == new CaptureSize(1500, 1000)));
         Assert.Equal(
-            18,
+            21,
             cases.Count(capture => capture.CaptureSize == new CaptureSize(1024, 720)));
 
         DashboardPageId[] configuredPages = PorticoDemoSessionFactory.Create()
@@ -109,9 +112,9 @@ public sealed class PorticoCaptureCatalogTests
     [InlineData("year-over-year", DashboardPageId.YearOverYear, 12, "discretionary", "utilities", true)]
     [InlineData("year-over-year-single-category", DashboardPageId.YearOverYear, 12, "discretionary", "utilities", true)]
     [InlineData("subscriptions", DashboardPageId.Subscriptions, 12, "discretionary", "utilities", true)]
-    [InlineData("merchants", DashboardPageId.Merchants, 3, "all", "utilities", true)]
+    [InlineData("merchants", DashboardPageId.Merchants, 12, "discretionary", "utilities", true)]
     [InlineData("budget", DashboardPageId.Budget, 3, "discretionary", "utilities", true)]
-    [InlineData("top-transactions", DashboardPageId.TopTransactions, 3, "discretionary", "utilities", true)]
+    [InlineData("top-transactions", DashboardPageId.TopTransactions, 12, "discretionary", "utilities", true)]
     [InlineData("financial-independence", DashboardPageId.FinancialIndependence, 12, "discretionary", "utilities", true)]
     [InlineData("data-health", DashboardPageId.DataHealth, 12, "discretionary", "utilities", true)]
     public void CreateSession_NamedScenarioSelectsTheExpectedPageAndControlState(
@@ -170,6 +173,21 @@ public sealed class PorticoCaptureCatalogTests
         Assert.Equal(
             ["Interest", "Salary"],
             session.Presentation.IncomeSavings.Adjustments(regular: false).ExcludedIncomeCategories.Order());
+    }
+
+    [Fact]
+    public void CreateSession_AnalyzePageScenariosUseTheirOwnTypedControls()
+    {
+        DashboardSession merchants = CreateSession("merchants-adjusted");
+        DashboardSession transactions = CreateSession("top-transactions-more-filters");
+
+        Assert.Equal(3, merchants.Filters.EffectiveMerchantLookbackMonths);
+        Assert.Equal(SpendingComparison.LastYear, merchants.Filters.MerchantComparison);
+        Assert.True(merchants.Filters.MerchantAdjustments!.IsModified);
+        Assert.True(merchants.Presentation.Merchants.AdjustViewOpen);
+        Assert.Equal(90, transactions.Filters.TransactionExplorer!.LookbackDays);
+        Assert.Equal(TransactionExplorerType.Expenses, transactions.Filters.TransactionExplorer.Type);
+        Assert.True(transactions.Presentation.Transactions.MoreFiltersOpen);
     }
 
     [Theory]
@@ -271,6 +289,16 @@ public sealed class PorticoCaptureCatalogTests
             ScenarioId = captureCase.ScenarioId
         });
         return PorticoCaptureCatalog.CreateSession(context).CurrentPage;
+    }
+
+    private static DashboardSession CreateSession(string scenario)
+    {
+        GameRunContext context = PorticoCaptureCatalog.RunCatalog.CreateContext(new GameRunOptions
+        {
+            StartStateId = PorticoCaptureCatalog.DemoLaunchState,
+            ScenarioId = scenario
+        });
+        return PorticoCaptureCatalog.CreateSession(context);
     }
 
     private static string NormalScenarioFor(DashboardPageId page)

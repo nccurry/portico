@@ -29,6 +29,9 @@ public sealed class PorticoDashboardScene
     private readonly PorticoIncomeSavingsPageRenderer _incomeSavingsPageRenderer;
     private readonly PorticoSpendingPageRenderer _spendingPageRenderer;
     private readonly PorticoYearOverYearPageRenderer _yearOverYearPageRenderer;
+    private readonly PorticoSubscriptionsPageRenderer _subscriptionsPageRenderer;
+    private readonly PorticoMerchantsPageRenderer _merchantsPageRenderer;
+    private readonly PorticoTransactionsPageRenderer _transactionsPageRenderer;
     private bool _rebuildRequired;
     private Task<PorticoRefreshResult>? _refreshTask;
 
@@ -49,6 +52,9 @@ public sealed class PorticoDashboardScene
         _incomeSavingsPageRenderer = new PorticoIncomeSavingsPageRenderer(_session, () => _rebuildRequired = true);
         _spendingPageRenderer = new PorticoSpendingPageRenderer(_session, () => _rebuildRequired = true);
         _yearOverYearPageRenderer = new PorticoYearOverYearPageRenderer(_session, () => _rebuildRequired = true);
+        _subscriptionsPageRenderer = new PorticoSubscriptionsPageRenderer(_session, () => _rebuildRequired = true);
+        _merchantsPageRenderer = new PorticoMerchantsPageRenderer(_session, () => _rebuildRequired = true);
+        _transactionsPageRenderer = new PorticoTransactionsPageRenderer(_session, () => _rebuildRequired = true);
         Stage = new UiStage(viewportSize, PorticoSkin.Create());
         Stage.ViewportChanged += _ => _rebuildRequired = true;
         Build();
@@ -67,6 +73,9 @@ public sealed class PorticoDashboardScene
             DashboardPageId.IncomeSavings => _incomeSavingsPageRenderer.MultiSelectState(controlId),
             DashboardPageId.Spending => _spendingPageRenderer.MultiSelectState(controlId),
             DashboardPageId.YearOverYear => _yearOverYearPageRenderer.MultiSelectState(controlId),
+            DashboardPageId.Subscriptions => _subscriptionsPageRenderer.MultiSelectState(controlId),
+            DashboardPageId.Merchants => _merchantsPageRenderer.MultiSelectState(controlId),
+            DashboardPageId.TopTransactions => _transactionsPageRenderer.MultiSelectState(controlId),
             _ => _pageRenderer.MultiSelectState(pageId, controlId)
         };
 
@@ -167,6 +176,12 @@ public sealed class PorticoDashboardScene
             _spendingPageRenderer.BuildHeader(Ui, page, headerReport);
         else if (_yearOverYearPageRenderer.CanRender(page))
             _yearOverYearPageRenderer.BuildHeader(Ui, page, headerReport);
+        else if (_subscriptionsPageRenderer.CanRender(page))
+            _subscriptionsPageRenderer.BuildHeader(Ui, page, headerReport);
+        else if (_merchantsPageRenderer.CanRender(page))
+            _merchantsPageRenderer.BuildHeader(Ui, page, headerReport);
+        else if (_transactionsPageRenderer.CanRender(page))
+            _transactionsPageRenderer.BuildHeader(Ui, page, headerReport);
         else
             _pageRenderer.BuildHeader(Ui, page);
         BuildContent(page);
@@ -400,6 +415,33 @@ public sealed class PorticoDashboardScene
                 Ui,
                 page,
                 report,
+                value => DisplayPrivateText(value));
+        }
+        else if (_subscriptionsPageRenderer.CanRender(page))
+        {
+            _subscriptionsPageRenderer.Build(
+                Ui,
+                page,
+                report,
+                (widget, item, expand) => BuildWidget(widget, item, expand),
+                value => DisplayPrivateText(value));
+        }
+        else if (_merchantsPageRenderer.CanRender(page))
+        {
+            _merchantsPageRenderer.Build(
+                Ui,
+                page,
+                report,
+                (widget, item, expand) => BuildWidget(widget, item, expand),
+                value => DisplayPrivateText(value));
+        }
+        else if (_transactionsPageRenderer.CanRender(page))
+        {
+            _transactionsPageRenderer.Build(
+                Ui,
+                page,
+                report,
+                (widget, item, expand) => BuildWidget(widget, item, expand),
                 value => DisplayPrivateText(value));
         }
         else

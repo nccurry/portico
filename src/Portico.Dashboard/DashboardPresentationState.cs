@@ -203,6 +203,157 @@ public static class DashboardControlMappings
                 DashboardControlSource.YearOverYear,
                 DashboardControlBehavior.ReportInput,
                 "year_over_year"),
+            [(DashboardPageId.Subscriptions, "subscription_settings")] = new(
+                DashboardControlKind.Collapsible,
+                DashboardControlSource.SubscriptionSettingsOpen,
+                DashboardControlBehavior.DisplayState),
+            [(DashboardPageId.Subscriptions, "subscription_categories")] = new(
+                DashboardControlKind.MultiSelect,
+                DashboardControlSource.SubscriptionCategories,
+                DashboardControlBehavior.ReportInput,
+                "subscription_categories"),
+            [(DashboardPageId.Subscriptions, "discovery_exclusions")] = new(
+                DashboardControlKind.MultiSelect,
+                DashboardControlSource.SubscriptionDiscoveryExclusions,
+                DashboardControlBehavior.ReportInput,
+                "subscription_discovery_exclusions"),
+            [(DashboardPageId.Subscriptions, "minimum_confidence")] = new(
+                DashboardControlKind.Slider,
+                DashboardControlSource.SubscriptionMinimumConfidence,
+                DashboardControlBehavior.ReportInput,
+                "subscription_minimum_confidence"),
+            [(DashboardPageId.Subscriptions, "history_lookback")] = new(
+                DashboardControlKind.Select,
+                DashboardControlSource.SubscriptionHistoryLookback,
+                DashboardControlBehavior.DisplayState),
+            [(DashboardPageId.Subscriptions, "timeline_scope")] = new(
+                DashboardControlKind.SegmentedChoice,
+                DashboardControlSource.SubscriptionTimelineScope,
+                DashboardControlBehavior.DisplayState),
+            [(DashboardPageId.Merchants, "lookback")] = new(
+                DashboardControlKind.SegmentedChoice,
+                DashboardControlSource.MerchantLookback,
+                DashboardControlBehavior.ReportInput,
+                "merchant_lookback"),
+            [(DashboardPageId.Merchants, "spending_view")] = new(
+                DashboardControlKind.Select,
+                DashboardControlSource.MerchantSpending,
+                DashboardControlBehavior.ReportInput,
+                "merchant_spending"),
+            [(DashboardPageId.Merchants, "comparison")] = new(
+                DashboardControlKind.SegmentedChoice,
+                DashboardControlSource.MerchantComparison,
+                DashboardControlBehavior.ReportInput,
+                "merchant_comparison"),
+            [(DashboardPageId.Merchants, "adjust_view")] = new(
+                DashboardControlKind.Popover,
+                DashboardControlSource.MerchantAdjustView,
+                DashboardControlBehavior.DisplayState),
+            [(DashboardPageId.Merchants, "reset_adjustments")] = new(
+                DashboardControlKind.ActionReset,
+                DashboardControlSource.MerchantReset,
+                DashboardControlBehavior.Action),
+            [(DashboardPageId.Merchants, "exclude_groups")] = new(
+                DashboardControlKind.MultiSelect,
+                DashboardControlSource.MerchantExcludedGroups,
+                DashboardControlBehavior.ReportInput,
+                "merchant_excluded_groups"),
+            [(DashboardPageId.Merchants, "exclude_categories")] = new(
+                DashboardControlKind.MultiSelect,
+                DashboardControlSource.MerchantExcludedCategories,
+                DashboardControlBehavior.ReportInput,
+                "merchant_excluded_categories"),
+            [(DashboardPageId.Merchants, "include_transaction_names")] = new(
+                DashboardControlKind.TextMultiSelect,
+                DashboardControlSource.MerchantIncludedDescriptions,
+                DashboardControlBehavior.ReportInput,
+                "merchant_included_descriptions"),
+            [(DashboardPageId.Merchants, "exclude_transaction_names")] = new(
+                DashboardControlKind.TextMultiSelect,
+                DashboardControlSource.MerchantExcludedDescriptions,
+                DashboardControlBehavior.ReportInput,
+                "merchant_excluded_descriptions"),
+            [(DashboardPageId.Merchants, "exclude_large_expenses")] = new(
+                DashboardControlKind.Toggle,
+                DashboardControlSource.MerchantExcludeLargeExpenses,
+                DashboardControlBehavior.ReportInput,
+                "merchant_exclude_large_expenses"),
+            [(DashboardPageId.Merchants, "expense_limit")] = new(
+                DashboardControlKind.NumberInput,
+                DashboardControlSource.MerchantExpenseLimit,
+                DashboardControlBehavior.ReportInput,
+                "merchant_expense_limit"),
+            [(DashboardPageId.Merchants, "search")] = new(
+                DashboardControlKind.TextInput,
+                DashboardControlSource.MerchantSearch,
+                DashboardControlBehavior.DisplayState),
+            [(DashboardPageId.Merchants, "detail_month")] = new(
+                DashboardControlKind.Select,
+                DashboardControlSource.MerchantDetailMonth,
+                DashboardControlBehavior.DisplayState),
+            [(DashboardPageId.Merchants, "detail_tab")] = new(
+                DashboardControlKind.TabChoice,
+                DashboardControlSource.MerchantDetailTab,
+                DashboardControlBehavior.DisplayState),
+            [(DashboardPageId.TopTransactions, "lookback")] = new(
+                DashboardControlKind.SegmentedChoice,
+                DashboardControlSource.TransactionsLookback,
+                DashboardControlBehavior.ReportInput,
+                "transactions_lookback"),
+            [(DashboardPageId.TopTransactions, "type")] = new(
+                DashboardControlKind.SegmentedChoice,
+                DashboardControlSource.TransactionsType,
+                DashboardControlBehavior.ReportInput,
+                "transactions_type"),
+            [(DashboardPageId.TopTransactions, "focus")] = new(
+                DashboardControlKind.SegmentedChoice,
+                DashboardControlSource.TransactionsFocus,
+                DashboardControlBehavior.ReportInput,
+                "transactions_focus"),
+            [(DashboardPageId.TopTransactions, "search")] = new(
+                DashboardControlKind.TextInput,
+                DashboardControlSource.TransactionsSearch,
+                DashboardControlBehavior.ReportInput,
+                "transactions_search"),
+            [(DashboardPageId.TopTransactions, "more_filters")] = new(
+                DashboardControlKind.Popover,
+                DashboardControlSource.TransactionsMoreFilters,
+                DashboardControlBehavior.DisplayState),
+            [(DashboardPageId.TopTransactions, "groups")] = new(
+                DashboardControlKind.MultiSelect,
+                DashboardControlSource.TransactionsGroups,
+                DashboardControlBehavior.ReportInput,
+                "transactions_groups"),
+            [(DashboardPageId.TopTransactions, "categories")] = new(
+                DashboardControlKind.MultiSelect,
+                DashboardControlSource.TransactionsCategories,
+                DashboardControlBehavior.ReportInput,
+                "transactions_categories"),
+            [(DashboardPageId.TopTransactions, "accounts")] = new(
+                DashboardControlKind.MultiSelect,
+                DashboardControlSource.TransactionsAccounts,
+                DashboardControlBehavior.ReportInput,
+                "transactions_accounts"),
+            [(DashboardPageId.TopTransactions, "minimum_amount")] = new(
+                DashboardControlKind.NumberInput,
+                DashboardControlSource.TransactionsMinimumAmount,
+                DashboardControlBehavior.ReportInput,
+                "transactions_minimum_amount"),
+            [(DashboardPageId.TopTransactions, "maximum_amount")] = new(
+                DashboardControlKind.NumberInput,
+                DashboardControlSource.TransactionsMaximumAmount,
+                DashboardControlBehavior.ReportInput,
+                "transactions_maximum_amount"),
+            [(DashboardPageId.TopTransactions, "largest_count")] = new(
+                DashboardControlKind.NumberInput,
+                DashboardControlSource.TransactionsLargestCount,
+                DashboardControlBehavior.ReportInput,
+                "transactions_largest_count"),
+            [(DashboardPageId.TopTransactions, "breakdown")] = new(
+                DashboardControlKind.SegmentedChoice,
+                DashboardControlSource.TransactionsBreakdown,
+                DashboardControlBehavior.ReportInput,
+                "transactions_breakdown"),
             [(DashboardPageId.FinancialIndependence, "target_amount")] = new(
                 DashboardControlKind.NumberInput,
                 DashboardControlSource.FinancialIndependenceTargetAmount,
@@ -265,7 +416,8 @@ public static class DashboardControlMappings
                 if (mapping.Kind != DashboardControlKind.ActionReset
                     || mapping.Source is not (DashboardControlSource.FinancialIndependenceReset
                         or DashboardControlSource.SpendingReset
-                        or DashboardControlSource.IncomeReset))
+                        or DashboardControlSource.IncomeReset
+                        or DashboardControlSource.MerchantReset))
                 {
                     problem = "needs a named action handler";
                     return false;
@@ -328,6 +480,56 @@ public static class DashboardControlMappings
             }
         }
 
+        if (mapping.Source == DashboardControlSource.MerchantComparison)
+        {
+            string? unsupported = options.FirstOrDefault(option => !TryParseSpendingComparison(option, out _));
+            if (unsupported is not null)
+            {
+                problem = $"has unsupported Merchant comparison option '{unsupported}'";
+                return false;
+            }
+        }
+
+        if (mapping.Source == DashboardControlSource.TransactionsLookback)
+        {
+            string? unsupported = options.FirstOrDefault(option => option is not ("3m" or "6m" or "1y" or "2y" or "all"));
+            if (unsupported is not null)
+            {
+                problem = $"has unsupported Transactions lookback option '{unsupported}'";
+                return false;
+            }
+        }
+
+        if (mapping.Source == DashboardControlSource.TransactionsType)
+        {
+            string? unsupported = options.FirstOrDefault(option => option is not ("all" or "expenses" or "income" or "transfers"));
+            if (unsupported is not null)
+            {
+                problem = $"has unsupported Transactions type option '{unsupported}'";
+                return false;
+            }
+        }
+
+        if (mapping.Source == DashboardControlSource.TransactionsFocus)
+        {
+            string? unsupported = options.FirstOrDefault(option => option is not ("all" or "largest" or "one_off" or "unusual" or "reversals"));
+            if (unsupported is not null)
+            {
+                problem = $"has unsupported Transactions focus option '{unsupported}'";
+                return false;
+            }
+        }
+
+        if (mapping.Source == DashboardControlSource.TransactionsBreakdown)
+        {
+            string? unsupported = options.FirstOrDefault(option => option is not ("group" or "category" or "merchant" or "account" or "type"));
+            if (unsupported is not null)
+            {
+                problem = $"has unsupported Transactions breakdown option '{unsupported}'";
+                return false;
+            }
+        }
+
         problem = null;
         return true;
     }
@@ -341,6 +543,14 @@ public static class DashboardControlMappings
             (DashboardControlSource.IncomeAdjustCalculation, DashboardControlKind.Popover) => true,
             (DashboardControlSource.SpendingDetailMonth, DashboardControlKind.Select) => true,
             (DashboardControlSource.SpendingAdjustView, DashboardControlKind.Popover) => true,
+            (DashboardControlSource.SubscriptionSettingsOpen, DashboardControlKind.Collapsible) => true,
+            (DashboardControlSource.SubscriptionHistoryLookback, DashboardControlKind.Select) => true,
+            (DashboardControlSource.SubscriptionTimelineScope, DashboardControlKind.SegmentedChoice) => true,
+            (DashboardControlSource.MerchantAdjustView, DashboardControlKind.Popover) => true,
+            (DashboardControlSource.MerchantSearch, DashboardControlKind.TextInput) => true,
+            (DashboardControlSource.MerchantDetailMonth, DashboardControlKind.Select) => true,
+            (DashboardControlSource.MerchantDetailTab, DashboardControlKind.TabChoice) => true,
+            (DashboardControlSource.TransactionsMoreFilters, DashboardControlKind.Popover) => true,
             (DashboardControlSource.FinancialIndependenceTargetAmount, DashboardControlKind.NumberInput) => true,
             (DashboardControlSource.DataHealthStaleThreshold, DashboardControlKind.Slider) => true,
             (DashboardControlSource.DataHealthIncludeInactive, DashboardControlKind.Toggle) => true,
@@ -378,6 +588,29 @@ public static class DashboardControlMappings
             DashboardControlSource.IncomeExcludeLargeExpenses => "income_exclude_large_expenses",
             DashboardControlSource.IncomeExpenseLimit => "income_expense_limit",
             DashboardControlSource.IncomeTargetRate => "income_target_rate",
+            DashboardControlSource.SubscriptionCategories => "subscription_categories",
+            DashboardControlSource.SubscriptionDiscoveryExclusions => "subscription_discovery_exclusions",
+            DashboardControlSource.SubscriptionMinimumConfidence => "subscription_minimum_confidence",
+            DashboardControlSource.MerchantLookback => "merchant_lookback",
+            DashboardControlSource.MerchantSpending => "merchant_spending",
+            DashboardControlSource.MerchantComparison => "merchant_comparison",
+            DashboardControlSource.MerchantExcludedGroups => "merchant_excluded_groups",
+            DashboardControlSource.MerchantExcludedCategories => "merchant_excluded_categories",
+            DashboardControlSource.MerchantIncludedDescriptions => "merchant_included_descriptions",
+            DashboardControlSource.MerchantExcludedDescriptions => "merchant_excluded_descriptions",
+            DashboardControlSource.MerchantExcludeLargeExpenses => "merchant_exclude_large_expenses",
+            DashboardControlSource.MerchantExpenseLimit => "merchant_expense_limit",
+            DashboardControlSource.TransactionsLookback => "transactions_lookback",
+            DashboardControlSource.TransactionsType => "transactions_type",
+            DashboardControlSource.TransactionsFocus => "transactions_focus",
+            DashboardControlSource.TransactionsSearch => "transactions_search",
+            DashboardControlSource.TransactionsGroups => "transactions_groups",
+            DashboardControlSource.TransactionsCategories => "transactions_categories",
+            DashboardControlSource.TransactionsAccounts => "transactions_accounts",
+            DashboardControlSource.TransactionsMinimumAmount => "transactions_minimum_amount",
+            DashboardControlSource.TransactionsMaximumAmount => "transactions_maximum_amount",
+            DashboardControlSource.TransactionsLargestCount => "transactions_largest_count",
+            DashboardControlSource.TransactionsBreakdown => "transactions_breakdown",
             DashboardControlSource.HomeTimeFrame => "home_time_frame",
             _ => null
         };
@@ -503,6 +736,38 @@ public sealed record YearOverYearPresentationState(
         new HashSet<string>(StringComparer.Ordinal));
 }
 
+/// <summary>Holds Subscriptions display state that does not change its financial rules.</summary>
+public sealed record SubscriptionsPresentationState(
+    string? SelectedMerchant,
+    string HistoryLookback,
+    string TimelineScope,
+    bool SettingsOpen,
+    bool MonthlyTotalsExpanded,
+    bool IndividualChargesExpanded)
+{
+    /// <summary>Creates the source page's initially closed detail state.</summary>
+    public static SubscriptionsPresentationState Default { get; } = new(null, "12m", "active_recent", false, false, false);
+}
+
+/// <summary>Holds Spending by merchant detail state without mixing it into report inputs.</summary>
+public sealed record MerchantsPresentationState(
+    string? SelectedMerchant,
+    string DetailMonth,
+    string DetailTab,
+    bool AdjustViewOpen,
+    string Search)
+{
+    /// <summary>Creates the source page's initial detail state.</summary>
+    public static MerchantsPresentationState Default { get; } = new(null, "all", "Breakdown", false, string.Empty);
+}
+
+/// <summary>Holds Transactions display state without mixing it into report inputs.</summary>
+public sealed record TransactionsPresentationState(bool MoreFiltersOpen)
+{
+    /// <summary>Creates the source page's initially closed More filters popover.</summary>
+    public static TransactionsPresentationState Default { get; } = new(false);
+}
+
 /// <summary>Holds Financial independence scenario presentation inputs until Phase 6 connects the report request.</summary>
 public sealed record FinancialIndependencePresentationState(decimal TargetAmount)
 {
@@ -531,6 +796,15 @@ public sealed class DashboardPresentationState
 
     /// <summary>Gets the retained Year over year controls and card details.</summary>
     public YearOverYearPresentationState YearOverYear { get; private set; } = YearOverYearPresentationState.Default;
+
+    /// <summary>Gets the retained Subscriptions page display state.</summary>
+    public SubscriptionsPresentationState Subscriptions { get; private set; } = SubscriptionsPresentationState.Default;
+
+    /// <summary>Gets the retained Spending by merchant display state.</summary>
+    public MerchantsPresentationState Merchants { get; private set; } = MerchantsPresentationState.Default;
+
+    /// <summary>Gets the retained Transactions page display state.</summary>
+    public TransactionsPresentationState Transactions { get; private set; } = TransactionsPresentationState.Default;
 
     /// <summary>Gets the Financial independence page's retained state.</summary>
     public FinancialIndependencePresentationState FinancialIndependence { get; private set; } = FinancialIndependencePresentationState.Default;
@@ -694,6 +968,77 @@ public sealed class DashboardPresentationState
         YearOverYear = YearOverYear with { ExpandedDetails = details };
     }
 
+    /// <summary>Sets the selected Subscriptions inventory merchant.</summary>
+    public void SetSubscriptionSelectedMerchant(string? merchant)
+    {
+        if (merchant is not null)
+            ArgumentException.ThrowIfNullOrWhiteSpace(merchant);
+        Subscriptions = Subscriptions with { SelectedMerchant = merchant };
+    }
+
+    /// <summary>Sets the visible Subscriptions history range.</summary>
+    public void SetSubscriptionHistoryLookback(string value)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(value);
+        Subscriptions = Subscriptions with { HistoryLookback = value };
+    }
+
+    /// <summary>Sets the visible Subscriptions lifecycle scope.</summary>
+    public void SetSubscriptionTimelineScope(string value)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(value);
+        Subscriptions = Subscriptions with { TimelineScope = value };
+    }
+
+    /// <summary>Sets whether the source-style Subscription settings expander is open.</summary>
+    public void SetSubscriptionSettingsOpen(bool open)
+        => Subscriptions = Subscriptions with { SettingsOpen = open };
+
+    /// <summary>Sets whether selected subscription monthly totals are visible.</summary>
+    public void SetSubscriptionMonthlyTotalsExpanded(bool expanded)
+        => Subscriptions = Subscriptions with { MonthlyTotalsExpanded = expanded };
+
+    /// <summary>Sets whether selected subscription charge rows are visible.</summary>
+    public void SetSubscriptionIndividualChargesExpanded(bool expanded)
+        => Subscriptions = Subscriptions with { IndividualChargesExpanded = expanded };
+
+    /// <summary>Sets the selected Spending by merchant detail entity.</summary>
+    public void SetMerchantSelectedMerchant(string? merchant)
+    {
+        if (merchant is not null)
+            ArgumentException.ThrowIfNullOrWhiteSpace(merchant);
+        Merchants = Merchants with { SelectedMerchant = merchant };
+    }
+
+    /// <summary>Sets the Spending by merchant detail month or all-months value.</summary>
+    public void SetMerchantDetailMonth(string value)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(value);
+        Merchants = Merchants with { DetailMonth = value };
+    }
+
+    /// <summary>Sets the selected Spending by merchant detail tab.</summary>
+    public void SetMerchantDetailTab(string value)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(value);
+        Merchants = Merchants with { DetailTab = value };
+    }
+
+    /// <summary>Sets whether the source-style Spending by merchant Adjust view popover is open.</summary>
+    public void SetMerchantAdjustViewOpen(bool open)
+        => Merchants = Merchants with { AdjustViewOpen = open };
+
+    /// <summary>Sets the source Spending by merchant search text.</summary>
+    public void SetMerchantSearch(string value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        Merchants = Merchants with { Search = value };
+    }
+
+    /// <summary>Sets whether the source-style Transactions More filters popover is open.</summary>
+    public void SetTransactionsMoreFiltersOpen(bool open)
+        => Transactions = Transactions with { MoreFiltersOpen = open };
+
     /// <summary>Sets the Financial independence target shown by the scenario control.</summary>
     public void SetFinancialIndependenceTargetAmount(decimal value)
         => FinancialIndependence = FinancialIndependence with { TargetAmount = value };
@@ -719,6 +1064,14 @@ public sealed class DashboardPresentationState
             DashboardControlSource.IncomeAdjustCalculation => IncomeSavings.AdjustCalculationOpen.ToString(CultureInfo.InvariantCulture).ToLowerInvariant(),
             DashboardControlSource.SpendingDetailMonth => Spending.DetailMonth,
             DashboardControlSource.SpendingAdjustView => Spending.AdjustViewOpen.ToString(CultureInfo.InvariantCulture).ToLowerInvariant(),
+            DashboardControlSource.SubscriptionSettingsOpen => Subscriptions.SettingsOpen.ToString(CultureInfo.InvariantCulture).ToLowerInvariant(),
+            DashboardControlSource.SubscriptionHistoryLookback => Subscriptions.HistoryLookback,
+            DashboardControlSource.SubscriptionTimelineScope => Subscriptions.TimelineScope,
+            DashboardControlSource.MerchantAdjustView => Merchants.AdjustViewOpen.ToString(CultureInfo.InvariantCulture).ToLowerInvariant(),
+            DashboardControlSource.MerchantSearch => Merchants.Search,
+            DashboardControlSource.MerchantDetailMonth => Merchants.DetailMonth,
+            DashboardControlSource.MerchantDetailTab => Merchants.DetailTab,
+            DashboardControlSource.TransactionsMoreFilters => Transactions.MoreFiltersOpen.ToString(CultureInfo.InvariantCulture).ToLowerInvariant(),
             DashboardControlSource.FinancialIndependenceTargetAmount => FinancialIndependence.TargetAmount.ToString(CultureInfo.InvariantCulture),
             DashboardControlSource.DataHealthStaleThreshold => DataHealth.StaleThreshold.ToString(CultureInfo.InvariantCulture),
             DashboardControlSource.DataHealthIncludeInactive => DataHealth.IncludeInactive.ToString(CultureInfo.InvariantCulture).ToLowerInvariant(),

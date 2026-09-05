@@ -68,6 +68,8 @@ public sealed class DashboardPresentationTests
         Assert.Equal("all", session.Filters.SpendingSet);
         session.SetControlValue(DashboardPageId.YearOverYear, "spending_view", "utilities");
         Assert.Equal("utilities", session.Filters.YearOverYearSet);
+        session.SetControlText(DashboardPageId.Merchants, "search", "coffee");
+        Assert.Equal("coffee", session.Presentation.Merchants.Search);
     }
 
     [Fact]
@@ -437,6 +439,27 @@ public sealed class DashboardPresentationTests
                             DashboardControlSource.YearOverYear,
                             Options: ["all", "utilities"],
                             DefaultValue: "utilities")
+                    ]),
+                Page(
+                    DashboardPageId.Subscriptions,
+                    "subscriptions.active",
+                    [
+                        new DashboardControlDefinition(
+                            "subscription_settings",
+                            "Subscription settings",
+                            DashboardControlKind.Collapsible,
+                            DashboardControlSource.SubscriptionSettingsOpen)
+                    ]),
+                Page(
+                    DashboardPageId.Merchants,
+                    "merchants.ranking",
+                    [
+                        new DashboardControlDefinition(
+                            "search",
+                            "Find a merchant",
+                            DashboardControlKind.TextInput,
+                            DashboardControlSource.MerchantSearch,
+                            DefaultValue: "")
                     ]),
                 Page(
                     DashboardPageId.FinancialIndependence,
