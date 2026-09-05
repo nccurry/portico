@@ -177,7 +177,7 @@ public sealed class PorticoPresentationComponentsTests
     }
 
     [Fact]
-    public void IncomeControls_WrapAtNarrowDesktopWidthAndKeepNativeTabSelectionAfterRebuild()
+    public void IncomeControls_UseTheSourceControlsAndKeepDetailSelectionAfterRebuild()
     {
         DashboardSession session = PorticoDemoSessionFactory.Create();
         session.SelectPage(DashboardPageId.IncomeSavings);
@@ -185,26 +185,26 @@ public sealed class PorticoPresentationComponentsTests
         var input = new UiInput { DeltaSeconds = 1f / 60f };
         scene.Stage.Update(new MockTextMeasurer(), ref input);
 
-        LayoutNode view = FindNode(scene, "Control:IncomeSavings:income_view:Group");
-        LayoutNode categories = FindNode(scene, "Control:IncomeSavings:exclude_income_categories:Group");
-        LayoutNode detail = FindNode(scene, "Control:IncomeSavings:detail_tab:Group");
-        LayoutNode detailLabel = FindNode(scene, "Control:IncomeSavings:detail_tab:Label");
-        LayoutNode tabPanelNode = FindNode(scene, "Control:IncomeSavings:detail_tab");
-        LayoutNode controlBar = FindNode(scene, "ControlBar");
-        Assert.True(categories.ComputedPosition.X > view.ComputedPosition.X);
-        Assert.True(detail.ComputedPosition.Y > categories.ComputedPosition.Y);
-        Assert.True(detail.ComputedPosition.Y + detail.BoxModel.ComputedSize.Y <= controlBar.ComputedPosition.Y + controlBar.BoxModel.ComputedSize.Y);
-        Assert.True(detailLabel.ComputedPosition.Y < tabPanelNode.ComputedPosition.Y);
-        Assert.Single(scene.Stage.Root.GetSelfAndDescendants(), node => node.Name == "Control:IncomeSavings:exclude_income_categories:Label");
+        LayoutNode timeFrame = FindNode(scene, "Control:IncomeSavings:lookback:Group");
+        LayoutNode calculation = FindNode(scene, "Control:IncomeSavings:calculation:Group");
+        LayoutNode adjust = FindNode(scene, "Control:IncomeSavings:adjust_calculation:Group");
+        LayoutNode detailTabs = FindNode(scene, "IncomeSavingsDetailTabs");
+        LayoutNode controlBar = FindNode(scene, "IncomeSavingsControlBar");
+        LayoutNode body = FindNode(scene, "PageBody");
+        Assert.True(calculation.ComputedPosition.Y >= timeFrame.ComputedPosition.Y);
+        Assert.InRange(adjust.BoxModel.ComputedSize.X, 1f, 280f);
+        Assert.True(detailTabs.ComputedPosition.Y > controlBar.ComputedPosition.Y);
+        AssertWithinScrollContent(body, controlBar);
+        AssertWithinScrollContent(body, detailTabs);
 
-        TabPanelState tabs = State<TabPanelState>(scene, "Control:IncomeSavings:detail_tab");
-        Assert.Equal(["Included", "Excluded"], tabs.Tabs.Select(tab => tab.Label));
-        Assert.Equal(0, tabs.ActiveIndex);
-        Assert.True(InvokeAccept(tabs.Tabs[1].HeaderNode));
+        SegmentedControlState tabs = State<SegmentedControlState>(scene, "IncomeSavingsDetailTabs");
+        Assert.Equal(["Included", "Excluded"], tabs.Segments.Select(segment => segment.GetStateOrDefault<SegmentState>()!.Label.Split(' ')[0]));
+        Assert.Equal(0, tabs.SelectedIndex);
+        Assert.True(InvokeAccept(tabs.Segments[1]));
         scene.Refresh();
 
         Assert.Equal("Excluded", session.Presentation.IncomeSavings.DetailTab);
-        Assert.Equal(1, State<TabPanelState>(scene, "Control:IncomeSavings:detail_tab").ActiveIndex);
+        Assert.Equal(1, State<SegmentedControlState>(scene, "IncomeSavingsDetailTabs").SelectedIndex);
     }
 
     [Fact]

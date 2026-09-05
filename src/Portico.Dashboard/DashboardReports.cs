@@ -55,7 +55,56 @@ public sealed record DashboardWidgetReport(
 /// <summary>Represents every configured widget report for one page selection.</summary>
 public sealed record DashboardPageReport(
     DashboardPageId PageId,
-    IReadOnlyDictionary<string, DashboardWidgetReport> Widgets);
+    IReadOnlyDictionary<string, DashboardWidgetReport> Widgets)
+{
+    /// <summary>Gets the optional source-shaped Income and savings report view.</summary>
+    public IncomeSavingsPageView? IncomeSavingsView { get; init; }
+
+    /// <summary>Gets the optional source-shaped Year over year report view.</summary>
+    public YearOverYearPageView? YearOverYearView { get; init; }
+}
+
+/// <summary>Contains the source-shaped data regions shown by the Income and savings page.</summary>
+public sealed record IncomeSavingsPageView(
+    IReadOnlyList<ReportMetric> SummaryMetrics,
+    IReadOnlyList<ReportSeries> CashFlowSeries,
+    IReadOnlyList<ReportSeries> SavingsRateSeries,
+    int PositiveSurplusMonths,
+    int MonthCount,
+    int ExcludedCount,
+    decimal ExcludedIncome,
+    decimal ExcludedSpending,
+    IReadOnlyList<string> DetailMonths,
+    string DetailMonth,
+    IReadOnlyList<ReportMetric> DetailMetrics,
+    IReadOnlyList<ReportTableRow> IncludedCategories,
+    IReadOnlyList<ReportTableRow> IncludedTransactions,
+    IReadOnlyList<ReportTableRow> ExcludedTransactions,
+    IReadOnlyList<ReportTableRow> MonthlyTotals,
+    decimal TargetRate,
+    bool HasLedgerRows,
+    bool HasIncludedRows,
+    string? EmptyMessage = null);
+
+/// <summary>Contains one expandable source-style Year over year comparison card.</summary>
+public sealed record YearOverYearComparisonView(
+    string Entity,
+    string ThroughMonthLabel,
+    IReadOnlyList<ReportMetric> Metrics,
+    IReadOnlyList<ReportSeries> Series,
+    IReadOnlyList<string> TotalColumns,
+    IReadOnlyList<ReportTableRow> TotalRows,
+    IReadOnlyList<string> TransactionColumns,
+    IReadOnlyList<ReportTableRow> TransactionRows);
+
+/// <summary>Contains the dynamic choices and comparison cards shown by the Year over year page.</summary>
+public sealed record YearOverYearPageView(
+    string? LatestDataCaption,
+    IReadOnlyList<string> PresetCategories,
+    IReadOnlyList<string> Categories,
+    IReadOnlyList<string> Groups,
+    IReadOnlyList<YearOverYearComparisonView> Comparisons,
+    string? EmptyMessage = null);
 
 /// <summary>Represents the complete report snapshot consumed by the desktop renderer.</summary>
 public sealed record DashboardReport(IReadOnlyDictionary<DashboardPageId, DashboardPageReport> Pages)
@@ -76,8 +125,12 @@ public sealed record DashboardFilters(
     HomeTimeFrame HomeTimeFrame = HomeTimeFrame.OneYear,
     SpendingComparison SpendingComparison = SpendingComparison.PreviousPeriod,
     SpendingBreakdown SpendingBreakdown = SpendingBreakdown.Category,
-    SpendingAdjustments? SpendingAdjustments = null)
+    SpendingAdjustments? SpendingAdjustments = null,
+    int IncomeLookbackMonths = 0)
 {
+    /// <summary>Gets the page-local Income and savings lookback, preserving older direct callers.</summary>
+    public int EffectiveIncomeLookbackMonths => IncomeLookbackMonths > 0 ? IncomeLookbackMonths : LookbackMonths;
+
     /// <summary>Creates the default filter state from finance settings.</summary>
     public static DashboardFilters From(FinanceSettings settings)
     {
@@ -90,6 +143,7 @@ public sealed record DashboardFilters(
             HomeTimeFrame.OneYear,
             SpendingComparison.PreviousPeriod,
             SpendingBreakdown.Category,
-            SpendingAdjustments.Default(settings.Thresholds.Expense));
+            SpendingAdjustments.Default(settings.Thresholds.Expense),
+            settings.Lookback.DefaultMonths);
     }
 }

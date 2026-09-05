@@ -42,10 +42,11 @@ public sealed class DashboardReportBuilderTests
         DashboardReport regular = DashboardReportBuilder.Build(snapshot, settings, new DashboardFilters(1, "all", "all", true));
         DashboardReport actual = DashboardReportBuilder.Build(snapshot, settings, new DashboardFilters(1, "all", "all", false));
 
+        DashboardWidgetReport regularSummary = regular.Page(DashboardPageId.IncomeSavings).Widgets["income.summary"];
+        DashboardWidgetReport actualSummary = actual.Page(DashboardPageId.IncomeSavings).Widgets["income.summary"];
         DashboardWidgetReport regularCashFlow = regular.Page(DashboardPageId.IncomeSavings).Widgets["income.cash_flow"];
-        DashboardWidgetReport actualCashFlow = actual.Page(DashboardPageId.IncomeSavings).Widgets["income.cash_flow"];
-        Assert.Equal(1000m, regularCashFlow.Metrics.Single(metric => metric.Label == "Surplus").Value);
-        Assert.Equal(980m, actualCashFlow.Metrics.Single(metric => metric.Label == "Surplus").Value);
+        Assert.Equal(1000m, regularSummary.Metrics.Single(metric => metric.Label == "Avg monthly surplus").Value);
+        Assert.Equal(980m, actualSummary.Metrics.Single(metric => metric.Label == "Avg monthly surplus").Value);
         Assert.Single(regularCashFlow.Series.Single(series => series.Id == "income").Points);
     }
 

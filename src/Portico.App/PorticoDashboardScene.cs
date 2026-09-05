@@ -26,7 +26,9 @@ public sealed class PorticoDashboardScene
     private readonly IPorticoRefreshBoundary _refreshBoundary;
     private readonly PorticoPageRenderer _pageRenderer;
     private readonly PorticoHomePageRenderer _homePageRenderer;
+    private readonly PorticoIncomeSavingsPageRenderer _incomeSavingsPageRenderer;
     private readonly PorticoSpendingPageRenderer _spendingPageRenderer;
+    private readonly PorticoYearOverYearPageRenderer _yearOverYearPageRenderer;
     private bool _rebuildRequired;
     private Task<PorticoRefreshResult>? _refreshTask;
 
@@ -44,7 +46,9 @@ public sealed class PorticoDashboardScene
         _refreshBoundary = refreshBoundary ?? new UnavailablePorticoRefreshBoundary();
         _pageRenderer = new PorticoPageRenderer(_session, () => _rebuildRequired = true);
         _homePageRenderer = new PorticoHomePageRenderer(_session);
+        _incomeSavingsPageRenderer = new PorticoIncomeSavingsPageRenderer(_session, () => _rebuildRequired = true);
         _spendingPageRenderer = new PorticoSpendingPageRenderer(_session, () => _rebuildRequired = true);
+        _yearOverYearPageRenderer = new PorticoYearOverYearPageRenderer(_session, () => _rebuildRequired = true);
         Stage = new UiStage(viewportSize, PorticoSkin.Create());
         Stage.ViewportChanged += _ => _rebuildRequired = true;
         Build();
@@ -58,9 +62,13 @@ public sealed class PorticoDashboardScene
 
     /// <summary>Gets a local multi-select state for focused interaction tests.</summary>
     public PorticoMultiSelectState<string>? MultiSelectState(DashboardPageId pageId, string controlId)
-        => pageId == DashboardPageId.Spending
-            ? _spendingPageRenderer.MultiSelectState(controlId)
-            : _pageRenderer.MultiSelectState(pageId, controlId);
+        => pageId switch
+        {
+            DashboardPageId.IncomeSavings => _incomeSavingsPageRenderer.MultiSelectState(controlId),
+            DashboardPageId.Spending => _spendingPageRenderer.MultiSelectState(controlId),
+            DashboardPageId.YearOverYear => _yearOverYearPageRenderer.MultiSelectState(controlId),
+            _ => _pageRenderer.MultiSelectState(pageId, controlId)
+        };
 
     /// <summary>Selects a configured page for the main content area.</summary>
     public void SelectPage(DashboardPageId pageId)
@@ -153,8 +161,12 @@ public sealed class PorticoDashboardScene
         if (_displayState.IsDemoData)
             BuildDemoDataBanner();
         DashboardPageReport headerReport = _session.Report.Page(page.Id);
-        if (_spendingPageRenderer.CanRender(page))
+        if (_incomeSavingsPageRenderer.CanRender(page))
+            _incomeSavingsPageRenderer.BuildHeader(Ui, page, headerReport);
+        else if (_spendingPageRenderer.CanRender(page))
             _spendingPageRenderer.BuildHeader(Ui, page, headerReport);
+        else if (_yearOverYearPageRenderer.CanRender(page))
+            _yearOverYearPageRenderer.BuildHeader(Ui, page, headerReport);
         else
             _pageRenderer.BuildHeader(Ui, page);
         BuildContent(page);
@@ -365,6 +377,14 @@ public sealed class PorticoDashboardScene
                 (widget, item, height) => BuildWidget(widget, item, false, height, useFlatMetricBand: true),
                 value => DisplayPrivateText(value));
         }
+        else if (_incomeSavingsPageRenderer.CanRender(page))
+        {
+            _incomeSavingsPageRenderer.Build(
+                Ui,
+                page,
+                report,
+                value => DisplayPrivateText(value));
+        }
         else if (_spendingPageRenderer.CanRender(page))
         {
             _spendingPageRenderer.Build(
@@ -372,6 +392,14 @@ public sealed class PorticoDashboardScene
                 page,
                 report,
                 (widget, item, grow) => BuildWidget(widget, item, true, null, false, grow),
+                value => DisplayPrivateText(value));
+        }
+        else if (_yearOverYearPageRenderer.CanRender(page))
+        {
+            _yearOverYearPageRenderer.Build(
+                Ui,
+                page,
+                report,
                 value => DisplayPrivateText(value));
         }
         else

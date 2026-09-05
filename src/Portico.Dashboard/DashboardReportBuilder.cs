@@ -12,7 +12,11 @@ public static class DashboardReportBuilder
         FinanceSettings settings,
         DashboardFilters filters,
         DateOnly? asOfDate = null)
-        => Build(snapshot, settings, filters, new DashboardPresentationState(), asOfDate);
+    {
+        var presentation = new DashboardPresentationState();
+        presentation.InitializeIncomeSavings(settings);
+        return Build(snapshot, settings, filters, presentation, asOfDate);
+    }
 
     /// <summary>Builds all page reports with the selected page-local presentation state.</summary>
     public static DashboardReport Build(
@@ -32,7 +36,6 @@ public static class DashboardReportBuilder
         YearMonth? latestMonth = LatestMonth(snapshot);
         (YearMonth? start, YearMonth? end) = Period(latestMonth, filters.LookbackMonths);
         IReadOnlyList<FinancialTransaction> spending = FilterExpenseSet(visible, settings, filters.SpendingSet, start, end);
-        IReadOnlyList<FinancialTransaction> yearOverYear = FilterExpenseSet(visible, settings, filters.YearOverYearSet, null, null);
         IncomeExpensePolicy incomePolicy = filters.RegularIncome
             ? IncomeExpensePolicy.From(settings.IncomeSavings)
             : new IncomeExpensePolicy([], []);
@@ -42,9 +45,9 @@ public static class DashboardReportBuilder
         var pages = new Dictionary<DashboardPageId, DashboardPageReport>
         {
             [DashboardPageId.Home] = Home(snapshot, cashFlow, settings, filters.HomeTimeFrame, reportDate),
-            [DashboardPageId.IncomeSavings] = Income(cashFlow, settings.IncomeSavings.TargetRate),
+            [DashboardPageId.IncomeSavings] = Income(visible, filters, presentation.IncomeSavings),
             [DashboardPageId.Spending] = Spending(visible, settings, filters, presentation.Spending),
-            [DashboardPageId.YearOverYear] = YearOverYear(yearOverYear),
+            [DashboardPageId.YearOverYear] = YearOverYear(visible, settings, filters, presentation.YearOverYear),
             [DashboardPageId.Subscriptions] = Subscriptions(
                 visible,
                 settings.Subscriptions,
@@ -64,7 +67,8 @@ public static class DashboardReportBuilder
     public static IReadOnlySet<string> SupportedWidgetReports { get; } = new HashSet<string>(StringComparer.Ordinal)
     {
         "home.net_worth", "home.overview", "home.attribution", "home.accounts", "home.inventory", "home.safety",
-        "income.cash_flow", "income.savings_rate",
+        "income.summary", "income.cash_flow", "income.savings_rate", "income.detail", "income.included_categories",
+        "income.included_transactions", "income.excluded_transactions", "income.monthly_totals",
         "spending.monthly", "spending.categories",
         "spending.summary", "spending.trend", "spending.ranking", "spending.overview", "spending.detail_summary", "spending.detail_history",
         "spending.detail_categories", "spending.detail_merchants", "spending.detail_transactions", "spending.excluded",
@@ -161,29 +165,252 @@ public static class DashboardReportBuilder
         return new DashboardPageReport(DashboardPageId.Home, widgets);
     }
 
-    private static DashboardPageReport Income(IReadOnlyList<MonthlyCashFlow> monthly, decimal targetRate)
+    private static DashboardPageReport Income(
+        IReadOnlyList<FinancialTransaction> transactions,
+        DashboardFilters filters,
+        IncomeSavingsPresentationState presentation)
     {
-        CashFlowSummary summary = CashFlowCalculator.Summarize(monthly);
+        IncomeSavingsAdjustments adjustments = presentation.Adjustments(filters.RegularIncome);
+        IncomeSavingsAnalysisResult analysis = IncomeSavingsAnalysisCalculator.Build(
+            transactions,
+            filters.EffectiveIncomeLookbackMonths,
+            adjustments);
+        IReadOnlyList<ReportMetric> summary = IncomeSummaryMetrics(
+            analysis.CurrentSummary,
+            analysis.PreviousSummary,
+            analysis.HasFullPreviousPeriod,
+            filters.EffectiveIncomeLookbackMonths,
+            adjustments.TargetRate);
+        IReadOnlyList<ReportSeries> cashFlow =
+        [
+            Series("income", "Income", analysis.CurrentMonthly.Select(month => Point(month.Month.Start, month.Income))),
+            Series("spending", "Spending", analysis.CurrentMonthly.Select(month => Point(month.Month.Start, -month.NetExpenses))),
+            Series("surplus", "Surplus", analysis.CurrentMonthly.Select(month => Point(month.Month.Start, month.Surplus)))
+        ];
+        IReadOnlyList<ReportSeries> savingsRate =
+        [
+            Series("savings-rate", "Savings rate", analysis.CurrentMonthly.Select(month => Point(month.Month.Start, month.SavingsRatePercent ?? 0m))),
+            Series("target", "Target", analysis.CurrentMonthly.Select(month => Point(month.Month.Start, adjustments.TargetRate)))
+        ];
+        IReadOnlyList<string> detailMonths = analysis.Period.CurrentMonths
+            .Reverse()
+            .Select(month => month.ToString())
+            .ToArray();
+        string detailMonth = detailMonths.Contains(presentation.DetailMonth, StringComparer.Ordinal)
+            ? presentation.DetailMonth
+            : detailMonths.FirstOrDefault() ?? string.Empty;
+        YearMonth? selectedMonth = analysis.Period.CurrentMonths
+            .Where(month => string.Equals(month.ToString(), detailMonth, StringComparison.Ordinal))
+            .Select(month => (YearMonth?)month)
+            .FirstOrDefault();
+        IReadOnlyList<IncomeSavingsLedgerEntry> selectedEntries = selectedMonth is YearMonth month
+            ? analysis.CurrentLedger.Where(entry => entry.Transaction.Month == month).ToArray()
+            : [];
+        IReadOnlyList<IncomeSavingsLedgerEntry> includedEntries = selectedEntries.Where(entry => entry.Included).ToArray();
+        IReadOnlyList<IncomeSavingsLedgerEntry> excludedEntries = selectedEntries.Where(entry => !entry.Included).ToArray();
+        IncomeSavingsMonth? detail = selectedMonth is YearMonth selected
+            ? analysis.CurrentMonthly.FirstOrDefault(value => value.Month == selected)
+            : null;
+        IReadOnlyList<ReportMetric> detailMetrics = detail is null
+            ? []
+            :
+            [
+                Metric("Income", detail.Income),
+                Metric("Spending", detail.NetExpenses),
+                Metric("Net cash flow", detail.Surplus, tone: detail.Surplus >= 0m ? "positive" : "negative"),
+                new ReportMetric("Savings rate", detail.SavingsRatePercent, FormatPercent(detail.SavingsRatePercent),
+                    detail.SavingsRatePercent >= adjustments.TargetRate ? "positive" : null)
+            ];
+        IReadOnlyList<ReportTableRow> categories = IncomeCategoryRows(includedEntries);
+        IReadOnlyList<ReportTableRow> includedTransactions = IncomeTransactionRows(includedEntries, includeReason: false);
+        IReadOnlyList<ReportTableRow> excludedTransactions = IncomeTransactionRows(excludedEntries, includeReason: true);
+        IReadOnlyList<ReportTableRow> totals = analysis.CurrentMonthly.Select(month => new ReportTableRow(
+        [
+            month.Month.ToString(),
+            FormatMoney(month.Income),
+            FormatMoney(month.NetExpenses),
+            FormatMoney(month.Surplus),
+            FormatPercent(month.SavingsRatePercent)
+        ],
+        month.Surplus > 0m ? "positive" : month.Surplus < 0m ? "negative" : null)).ToArray();
+        int excludedCount = analysis.CurrentLedger.Count(entry => !entry.Included);
+        decimal excludedIncome = analysis.CurrentLedger
+            .Where(entry => !entry.Included && entry.Transaction.Kind == TransactionKind.Income)
+            .Sum(entry => entry.Transaction.Amount);
+        decimal excludedSpending = analysis.CurrentLedger
+            .Where(entry => !entry.Included && entry.Transaction.Kind == TransactionKind.Expense)
+            .Sum(entry => -entry.Transaction.Amount);
+        bool hasIncludedRows = analysis.CurrentLedger.Any(entry => entry.Included);
+        string? emptyMessage = analysis.Period.HasMonths
+            ? hasIncludedRows
+                ? null
+                : analysis.CurrentLedger.Count == 0
+                    ? "No categorized income or expense transactions fall in this period."
+                    : "All transactions in this period are excluded from this calculation."
+            : "No categorized income or expense transactions are available.";
+        var view = new IncomeSavingsPageView(
+            summary,
+            cashFlow,
+            savingsRate,
+            analysis.CurrentSummary.PositiveSurplusMonths,
+            analysis.CurrentSummary.Months,
+            excludedCount,
+            excludedIncome,
+            excludedSpending,
+            detailMonths,
+            detailMonth,
+            detailMetrics,
+            categories,
+            includedTransactions,
+            excludedTransactions,
+            totals,
+            adjustments.TargetRate,
+            analysis.CurrentLedger.Count > 0,
+            hasIncludedRows,
+            emptyMessage);
         var widgets = new Dictionary<string, DashboardWidgetReport>(StringComparer.Ordinal)
         {
-            ["income.cash_flow"] = Chart(
-                Series("income", "Income", monthly.Select(value => Point(value.Month.Start, value.Income))),
-                Series("spending", "Spending", monthly.Select(value => Point(value.Month.Start, value.NetExpenses))),
-                Series("surplus", "Surplus", monthly.Select(value => Point(value.Month.Start, value.Surplus)))),
-            ["income.savings_rate"] = Chart(
-                Series("savings-rate", "Savings rate", monthly.Select(value => Point(value.Month.Start, value.SavingsRatePercent ?? 0m))),
-                Series("target", "Target", monthly.Select(value => Point(value.Month.Start, targetRate))))
+            ["income.summary"] = Metrics(summary.ToArray()),
+            ["income.cash_flow"] = new DashboardWidgetReport([], cashFlow, [], [], emptyMessage),
+            ["income.savings_rate"] = new DashboardWidgetReport([], savingsRate, [], [], emptyMessage),
+            ["income.detail"] = Metrics(detailMetrics.ToArray()),
+            ["income.included_categories"] = new DashboardWidgetReport(
+                [], [], ["Type", "Category", "Amount"], categories,
+                categories.Count == 0 ? "No included transactions for this month." : null),
+            ["income.included_transactions"] = new DashboardWidgetReport(
+                [], [], ["Date", "Transaction", "Group", "Category", "Amount"], includedTransactions,
+                includedTransactions.Count == 0 ? "No included transactions for this month." : null),
+            ["income.excluded_transactions"] = new DashboardWidgetReport(
+                [], [], ["Date", "Transaction", "Group", "Category", "Amount", "Reason"], excludedTransactions,
+                excludedTransactions.Count == 0 ? "No excluded transactions for this month." : null),
+            ["income.monthly_totals"] = new DashboardWidgetReport(
+                [], [], ["Month", "Income", "Spending", "Surplus", "Savings rate"], totals,
+                totals.Count == 0 ? "No monthly totals are available." : null)
         };
-        widgets["income.cash_flow"] = widgets["income.cash_flow"] with
-        {
-            Metrics = [
-                Metric("Income", summary.Income),
-                Metric("Spending", summary.NetExpenses),
-                Metric("Surplus", summary.Surplus, summary.Surplus >= 0m ? "positive" : "negative")
-            ]
-        };
-        return new DashboardPageReport(DashboardPageId.IncomeSavings, widgets);
+        return new DashboardPageReport(DashboardPageId.IncomeSavings, widgets) { IncomeSavingsView = view };
     }
+
+    private static IReadOnlyList<ReportMetric> IncomeSummaryMetrics(
+        CashFlowSummary current,
+        CashFlowSummary previous,
+        bool hasPrevious,
+        int months,
+        decimal targetRate)
+    {
+        decimal currentIncome = Average(current.Income, current.Months);
+        decimal currentSpending = Average(current.NetExpenses, current.Months);
+        decimal currentSurplus = Average(current.Surplus, current.Months);
+        decimal previousIncome = Average(previous.Income, previous.Months);
+        decimal previousSpending = Average(previous.NetExpenses, previous.Months);
+        decimal previousSurplus = Average(previous.Surplus, previous.Months);
+        return
+        [
+            IncomeMetric("Avg monthly income", currentIncome, previousIncome, hasPrevious, months, false),
+            IncomeMetric("Avg monthly spending", currentSpending, previousSpending, hasPrevious, months, true),
+            IncomeMetric("Avg monthly surplus", currentSurplus, previousSurplus, hasPrevious, months, false),
+            IncomeRateMetric(current.SavingsRatePercent, previous.SavingsRatePercent, hasPrevious, months, targetRate)
+        ];
+    }
+
+    private static ReportMetric IncomeMetric(
+        string label,
+        decimal current,
+        decimal previous,
+        bool hasPrevious,
+        int months,
+        bool inverseTone)
+    {
+        decimal? change = hasPrevious ? current - previous : null;
+        string? tone = change is null || change == 0m
+            ? null
+            : inverseTone
+                ? change < 0m ? "positive" : "negative"
+                : change > 0m ? "positive" : "negative";
+        return new ReportMetric(
+            label,
+            current,
+            FormatMoney(current),
+            tone,
+            change is null ? null : $"{FormatSignedMoney(change.Value)} vs previous {months} months",
+            change);
+    }
+
+    private static ReportMetric IncomeRateMetric(
+        decimal? current,
+        decimal? previous,
+        bool hasPrevious,
+        int months,
+        decimal targetRate)
+    {
+        decimal? change = hasPrevious && current is not null && previous is not null
+            ? current.Value - previous.Value
+            : null;
+        string? tone = change is not null
+            ? change > 0m ? "positive" : change < 0m ? "negative" : null
+            : current >= targetRate ? "positive" : null;
+        return new ReportMetric(
+            "Savings rate",
+            current,
+            FormatPercent(current),
+            tone,
+            change is null ? null : $"{change.Value:+0.0;-0.0;0.0} pts vs previous {months} months",
+            change);
+    }
+
+    private static IReadOnlyList<ReportTableRow> IncomeCategoryRows(IEnumerable<IncomeSavingsLedgerEntry> entries)
+        => entries
+            .GroupBy(entry => new
+            {
+                Type = entry.Transaction.Kind == TransactionKind.Income ? "Income" : "Expense",
+                Category = string.IsNullOrWhiteSpace(entry.Transaction.Category) ? "Unknown" : entry.Transaction.Category
+            })
+            .OrderBy(group => group.Key.Type, StringComparer.Ordinal)
+            .ThenByDescending(group => decimal.Abs(group.Sum(entry => entry.Transaction.Amount)))
+            .ThenBy(group => group.Key.Category, StringComparer.Ordinal)
+            .Select(group => new ReportTableRow(
+            [
+                group.Key.Type,
+                group.Key.Category,
+                FormatMoney(group.Key.Type == "Income"
+                    ? group.Sum(entry => entry.Transaction.Amount)
+                    : -group.Sum(entry => entry.Transaction.Amount))
+            ]))
+            .ToArray();
+
+    private static IReadOnlyList<ReportTableRow> IncomeTransactionRows(
+        IEnumerable<IncomeSavingsLedgerEntry> entries,
+        bool includeReason)
+        => entries
+            .OrderByDescending(entry => entry.Transaction.Date)
+            .ThenBy(entry => entry.Transaction.Id, StringComparer.Ordinal)
+            .Select(entry => new ReportTableRow(includeReason
+                ?
+                [
+                    FormatDate(entry.Transaction.Date),
+                    entry.Transaction.Description,
+                    IncomeGroup(entry.Transaction),
+                    IncomeCategory(entry.Transaction),
+                    FormatMoney(entry.Transaction.Amount),
+                    entry.ExclusionReason
+                ]
+                :
+                [
+                    FormatDate(entry.Transaction.Date),
+                    entry.Transaction.Description,
+                    IncomeGroup(entry.Transaction),
+                    IncomeCategory(entry.Transaction),
+                    FormatMoney(entry.Transaction.Amount)
+                ]))
+            .ToArray();
+
+    private static decimal Average(decimal value, int months)
+        => months == 0 ? 0m : value / months;
+
+    private static string IncomeGroup(FinancialTransaction transaction)
+        => string.IsNullOrWhiteSpace(transaction.Group) ? "Unknown" : transaction.Group;
+
+    private static string IncomeCategory(FinancialTransaction transaction)
+        => string.IsNullOrWhiteSpace(transaction.Category) ? "Unknown" : transaction.Category;
 
     private static DashboardPageReport Spending(
         IReadOnlyList<FinancialTransaction> transactions,
@@ -567,29 +794,160 @@ public static class DashboardReportBuilder
     private static string SpendingCategory(FinancialTransaction transaction)
         => string.IsNullOrWhiteSpace(transaction.Category) ? "Unknown" : transaction.Category;
 
-    private static DashboardPageReport YearOverYear(IReadOnlyList<FinancialTransaction> transactions)
+    private static DashboardPageReport YearOverYear(
+        IReadOnlyList<FinancialTransaction> transactions,
+        FinanceSettings settings,
+        DashboardFilters filters,
+        YearOverYearPresentationState presentation)
     {
-        IReadOnlyList<ReportSeries> comparison = transactions
-            .GroupBy(transaction => transaction.Date.Year)
-            .OrderBy(group => group.Key)
+        IReadOnlyList<string> presetCategories = YearOverYearAnalysisCalculator.PresetCategories(
+            transactions,
+            settings,
+            filters.YearOverYearSet);
+        IReadOnlyList<string> categories = YearOverYearAnalysisCalculator.Entities(
+            transactions,
+            YearOverYearDimension.Category);
+        IReadOnlyList<string> groups = YearOverYearAnalysisCalculator.Entities(
+            transactions,
+            YearOverYearDimension.Group);
+        IReadOnlyList<YearOverYearComparisonView> comparisons = BuildYearOverYearComparisons(
+            transactions,
+            settings,
+            filters.YearOverYearSet,
+            presentation,
+            presetCategories);
+        string? emptyMessage = YearOverYearEmptyMessage(presentation, presetCategories, categories, groups, comparisons);
+        string? latestCaption = transactions.Count == 0
+            ? null
+            : $"Latest data {transactions.Max(transaction => transaction.Date).ToString("MMM dd, yyyy", CultureInfo.InvariantCulture)} · includes {transactions.Max(transaction => transaction.Date).ToString("MMM yyyy", CultureInfo.InvariantCulture)} to date";
+        var view = new YearOverYearPageView(
+            latestCaption,
+            presetCategories,
+            categories,
+            groups,
+            comparisons,
+            emptyMessage);
+        YearOverYearComparisonView? first = comparisons.FirstOrDefault();
+        var widgets = new Dictionary<string, DashboardWidgetReport>(StringComparer.Ordinal)
+        {
+            ["yoy.comparison"] = first is null
+                ? Chart([])
+                : new DashboardWidgetReport(first.Metrics, first.Series, [], [], emptyMessage),
+            ["yoy.totals"] = first is null
+                ? Chart([])
+                : new DashboardWidgetReport([], [], first.TotalColumns, first.TotalRows, emptyMessage)
+        };
+        return new DashboardPageReport(DashboardPageId.YearOverYear, widgets) { YearOverYearView = view };
+    }
+
+    private static IReadOnlyList<YearOverYearComparisonView> BuildYearOverYearComparisons(
+        IReadOnlyList<FinancialTransaction> transactions,
+        FinanceSettings settings,
+        string presetSetKey,
+        YearOverYearPresentationState presentation,
+        IReadOnlyList<string> presetCategories)
+    {
+        IEnumerable<(YearOverYearDimension Dimension, string Entity, string? SetKey)> requested = presentation.ViewMode switch
+        {
+            YearOverYearViewMode.Preset => presetCategories
+                .Where(presentation.PresetCategories.Contains)
+                .Select(category => (YearOverYearDimension.Category, category, (string?)presetSetKey)),
+            YearOverYearViewMode.SingleCategory when !string.IsNullOrWhiteSpace(presentation.SingleCategory) =>
+                [(YearOverYearDimension.Category, presentation.SingleCategory!, null)],
+            YearOverYearViewMode.SingleGroup when !string.IsNullOrWhiteSpace(presentation.SingleGroup) =>
+                [(YearOverYearDimension.Group, presentation.SingleGroup!, null)],
+            _ => []
+        };
+        return requested
+            .Select(request => YearOverYearAnalysisCalculator.Build(
+                transactions,
+                settings,
+                request.SetKey,
+                request.Dimension,
+                request.Entity))
+            .Where(comparison => comparison is not null)
+            .Select(comparison => YearOverYearComparisonViewFor(comparison!))
+            .ToArray();
+    }
+
+    private static YearOverYearComparisonView YearOverYearComparisonViewFor(YearOverYearComparison comparison)
+    {
+        YearOverYearSummary summary = comparison.Summary;
+        IReadOnlyList<ReportMetric> metrics =
+        [
+            Metric(summary.CurrentYear.ToString(CultureInfo.InvariantCulture), summary.CurrentTotal),
+            new ReportMetric(
+                summary.PreviousYear?.ToString(CultureInfo.InvariantCulture) ?? "Previous year",
+                summary.PreviousTotal,
+                summary.PreviousTotal is null ? "Not available" : FormatMoney(summary.PreviousTotal.Value)),
+            new ReportMetric(
+                "Change",
+                summary.Change,
+                summary.Change is null ? "Not available" : FormatSignedMoney(summary.Change.Value),
+                summary.Change is null ? null : summary.Change.Value < 0m ? "positive" : summary.Change.Value > 0m ? "negative" : null,
+                summary.ChangePercent is null ? null : FormatSignedPercent(summary.ChangePercent.Value),
+                summary.Change)
+        ];
+        IReadOnlyList<ReportSeries> series = comparison.History
+            .GroupBy(point => point.Year)
+            .OrderByDescending(group => group.Key)
             .Select(group => Series(
                 group.Key.ToString(CultureInfo.InvariantCulture),
                 group.Key.ToString(CultureInfo.InvariantCulture),
-                Enumerable.Range(1, 12).Select(month => Point(
-                    new DateOnly(group.Key, month, 1),
-                    -group.Where(transaction => transaction.Date.Month == month).Sum(transaction => transaction.Amount)))))
+                group.Select(point => Point(new DateOnly(point.Year, point.Month, 1), point.Spending))))
             .ToArray();
-        IReadOnlyList<ReportPoint> totals = transactions
-            .GroupBy(transaction => transaction.Date.Year)
-            .OrderBy(group => group.Key)
-            .Select(group => Point(group.Key.ToString(CultureInfo.InvariantCulture), -group.Sum(transaction => transaction.Amount)))
+        IReadOnlyList<ReportTableRow> totals = comparison.Totals
+            .OrderByDescending(total => total.Year)
+            .Select(total => new ReportTableRow(
+            [
+                total.Year.ToString(CultureInfo.InvariantCulture),
+                FormatMoney(total.SpendingThroughMonth),
+                total.Change is null ? "Not available" : FormatSignedMoney(total.Change.Value),
+                total.ChangePercent is null ? "Not available" : FormatSignedPercent(total.ChangePercent.Value)
+            ],
+            total.Change is null ? null : total.Change.Value < 0m ? "positive" : total.Change.Value > 0m ? "negative" : null))
             .ToArray();
-        var widgets = new Dictionary<string, DashboardWidgetReport>(StringComparer.Ordinal)
+        IReadOnlyList<ReportTableRow> transactions = comparison.Transactions
+            .Select(transaction => new ReportTableRow(
+            [
+                FormatDate(transaction.Date),
+                transaction.Description,
+                SpendingGroup(transaction),
+                SpendingCategory(transaction),
+                transaction.Account,
+                FormatMoney(-transaction.Amount)
+            ]))
+            .ToArray();
+        return new YearOverYearComparisonView(
+            comparison.Entity,
+            comparison.Summary.ThroughMonth is > 0 and <= 12
+                ? new DateOnly(2000, comparison.Summary.ThroughMonth, 1).ToString("MMMM", CultureInfo.InvariantCulture)
+                : string.Empty,
+            metrics,
+            series,
+            ["Year", $"Spending through {new DateOnly(2000, comparison.Summary.ThroughMonth, 1).ToString("MMMM", CultureInfo.InvariantCulture)}", "Change from prior year", "Change %"],
+            totals,
+            ["Date", "Description", "Group", "Category", "Account", "Spending"],
+            transactions);
+    }
+
+    private static string? YearOverYearEmptyMessage(
+        YearOverYearPresentationState presentation,
+        IReadOnlyList<string> presetCategories,
+        IReadOnlyList<string> categories,
+        IReadOnlyList<string> groups,
+        IReadOnlyList<YearOverYearComparisonView> comparisons)
+    {
+        if (comparisons.Count > 0)
+            return null;
+        return presentation.ViewMode switch
         {
-            ["yoy.comparison"] = Chart(comparison),
-            ["yoy.totals"] = Chart(Series("year-totals", "Spending", totals))
+            YearOverYearViewMode.Preset when presetCategories.Count == 0 => "No expense transactions are available.",
+            YearOverYearViewMode.Preset => "Choose at least one category to compare.",
+            YearOverYearViewMode.SingleCategory when categories.Count == 0 => "No expense category data is available.",
+            YearOverYearViewMode.SingleGroup when groups.Count == 0 => "No expense group data is available.",
+            _ => "No spending history is available for this selection."
         };
-        return new DashboardPageReport(DashboardPageId.YearOverYear, widgets);
     }
 
     private static DashboardPageReport Subscriptions(
@@ -1334,6 +1692,9 @@ public static class DashboardReportBuilder
 
     private static string FormatPercent(decimal? value)
         => value is null ? "—" : $"{value:0.0}%";
+
+    private static string FormatSignedPercent(decimal value)
+        => $"{value:+0.0;-0.0;0.0}%";
 
     private static string FormatCoverage(decimal? months, int targetMonths)
         => months is null ? "No expense baseline" : $"{months:0.0} / {targetMonths} months";

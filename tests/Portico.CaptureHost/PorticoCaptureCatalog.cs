@@ -29,16 +29,15 @@ public static class PorticoCaptureCatalog
         new("income-savings", static session =>
         {
             session.SelectPage(DashboardPageId.IncomeSavings);
-            session.SetControlValue(DashboardPageId.IncomeSavings, "income_view", "actual");
         }),
-        new("income-categories-wrapped", static session =>
+        new("income-adjusted", static session =>
         {
             session.SelectPage(DashboardPageId.IncomeSavings);
-            session.SetControlValue(DashboardPageId.IncomeSavings, "income_view", "actual");
+            session.SetControlValue(DashboardPageId.IncomeSavings, "calculation", "actual");
             session.SetControlValues(
                 DashboardPageId.IncomeSavings,
                 "exclude_income_categories",
-                ["Annual bonus", "Salary", "Tax refund", "Investment transfer", "RSU", "Interest", "Dividend"]);
+                ["Salary", "Interest"]);
             session.SetControlValue(DashboardPageId.IncomeSavings, "detail_tab", "Excluded");
         }),
         new("spending", static session =>
@@ -66,7 +65,11 @@ public static class PorticoCaptureCatalog
         new("year-over-year", static session =>
         {
             session.SelectPage(DashboardPageId.YearOverYear);
-            session.SetFilter("year_over_year", "all");
+        }),
+        new("year-over-year-single-category", static session =>
+        {
+            session.SelectPage(DashboardPageId.YearOverYear);
+            session.SetControlValue(DashboardPageId.YearOverYear, "view", "single_category");
         }),
         new("subscriptions", static session => session.SelectPage(DashboardPageId.Subscriptions)),
         new("merchants", static session =>

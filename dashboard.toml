@@ -97,23 +97,146 @@ rail_label = "Income and savings"
 page_heading = "Income and savings"
 icon = "savings"
 
+[[pages.sections]]
+id = "monthly_cash_flow"
+title = "Monthly cash flow"
+description = "Compare income, spending, and surplus across the selected months."
+layout = "flow"
+order = 1
+
+[[pages.sections]]
+id = "month_detail"
+title = "Month detail"
+description = "Inspect the included and excluded transactions for one month."
+layout = "flow"
+order = 2
+
+[[pages.sections]]
+id = "monthly_totals"
+title = "Monthly totals"
+description = "Review the complete month-by-month calculation."
+layout = "flow"
+order = 3
+
 [[pages.controls]]
-id = "income_view"
-label = "View"
-kind = "select"
-source = "income_view"
+id = "lookback"
+label = "Time frame"
+kind = "segmented_choice"
+source = "income_lookback"
+default = "12"
+options = ["3", "6", "12", "24"]
+
+[[pages.controls]]
+id = "calculation"
+label = "Calculation"
+kind = "segmented_choice"
+source = "income_calculation"
 default = "regular"
 options = ["regular", "actual"]
+
+[[pages.controls]]
+id = "adjust_calculation"
+label = "Adjust calculation"
+kind = "popover"
+source = "income_adjust_calculation"
+
+[[pages.controls]]
+id = "reset_adjustments"
+label = "Reset defaults"
+kind = "action_reset"
+source = "income_reset"
 
 [[pages.controls]]
 id = "exclude_income_categories"
 label = "Exclude income categories"
 kind = "multi_select"
-source = "income_excluded_categories"
-option_source = "static"
+source = "income_excluded_income_categories"
+option_source = "income_income_categories"
 defaults = []
-options = ["Annual bonus", "Salary", "Tax refund", "Investment transfer", "RSU", "Interest", "Dividend"]
 width = "full"
+
+[[pages.controls]]
+id = "exclude_expense_groups"
+label = "Exclude expense groups"
+kind = "multi_select"
+source = "income_excluded_expense_groups"
+option_source = "income_expense_groups"
+defaults = []
+width = "full"
+
+[[pages.controls]]
+id = "exclude_expense_categories"
+label = "Exclude expense categories"
+kind = "multi_select"
+source = "income_excluded_expense_categories"
+option_source = "income_expense_categories"
+defaults = []
+width = "full"
+
+[[pages.controls]]
+id = "include_transaction_names"
+label = "Include transaction names containing"
+kind = "text_multi_select"
+source = "income_included_descriptions"
+width = "full"
+
+[[pages.controls]]
+id = "exclude_transaction_names"
+label = "Exclude transaction names containing"
+kind = "text_multi_select"
+source = "income_excluded_descriptions"
+width = "full"
+
+[[pages.controls]]
+id = "exclude_large_income"
+label = "Exclude individual income over a limit"
+kind = "toggle"
+source = "income_exclude_large_income"
+default = "false"
+
+[[pages.controls]]
+id = "income_limit"
+label = "Income limit"
+kind = "number_input"
+source = "income_income_limit"
+default = "20000"
+minimum = 5000
+maximum = 100000
+step = 1000
+
+[[pages.controls]]
+id = "exclude_large_expenses"
+label = "Exclude individual expenses over a limit"
+kind = "toggle"
+source = "income_exclude_large_expenses"
+default = "false"
+
+[[pages.controls]]
+id = "expense_limit"
+label = "Expense limit"
+kind = "number_input"
+source = "income_expense_limit"
+default = "3000"
+minimum = 1000
+maximum = 100000
+step = 500
+
+[[pages.controls]]
+id = "savings_rate_target"
+label = "Savings rate target"
+kind = "number_input"
+source = "income_target_rate"
+default = "20"
+minimum = 0
+maximum = 100
+step = 5
+
+[[pages.controls]]
+id = "detail_month"
+label = "Month"
+kind = "select"
+source = "income_detail_month"
+option_source = "income_months"
 
 [[pages.controls]]
 id = "detail_tab"
@@ -126,12 +249,22 @@ options = ["Included", "Excluded"]
 width = "full"
 
 [[pages.widgets]]
+id = "summary"
+title = "Summary"
+kind = "metric"
+report = "income.summary"
+span = 2
+section = "monthly_cash_flow"
+
+[[pages.widgets]]
 id = "cash-flow"
 title = "Monthly cash flow"
 kind = "combo_chart"
 report = "income.cash_flow"
 span = 2
 bar_series = ["income", "spending"]
+section = "monthly_cash_flow"
+y_axis_title = "Monthly cash flow ($)"
 
 [[pages.widgets]]
 id = "savings-rate"
@@ -139,6 +272,48 @@ title = "Savings rate"
 kind = "line_chart"
 report = "income.savings_rate"
 span = 2
+section = "monthly_cash_flow"
+y_axis_title = "Savings rate (%)"
+
+[[pages.widgets]]
+id = "detail"
+title = "Month detail"
+kind = "metric"
+report = "income.detail"
+span = 2
+section = "month_detail"
+
+[[pages.widgets]]
+id = "included-categories"
+title = "By category"
+kind = "table"
+report = "income.included_categories"
+span = 2
+section = "month_detail"
+
+[[pages.widgets]]
+id = "included-transactions"
+title = "Included transactions"
+kind = "table"
+report = "income.included_transactions"
+span = 2
+section = "month_detail"
+
+[[pages.widgets]]
+id = "excluded-transactions"
+title = "Excluded transactions"
+kind = "table"
+report = "income.excluded_transactions"
+span = 2
+section = "month_detail"
+
+[[pages.widgets]]
+id = "monthly-totals"
+title = "Monthly totals"
+kind = "table"
+report = "income.monthly_totals"
+span = 2
+section = "monthly_totals"
 
 [[pages]]
 id = "spending"
@@ -366,13 +541,36 @@ rail_label = "Year over year"
 page_heading = "Year over year"
 icon = "compare_arrows"
 
-[[pages.filters]]
-id = "transaction_set"
-label = "Spending view"
-kind = "select"
-source = "year_over_year"
+[[pages.controls]]
+id = "view"
+label = "View"
+kind = "segmented_choice"
+source = "year_over_year_view"
 default = "utilities"
-options = ["all", "utilities", "discretionary"]
+options = ["all", "utilities", "discretionary", "single_category", "single_group"]
+width = "full"
+
+[[pages.controls]]
+id = "preset_categories"
+label = "Choose categories"
+kind = "multi_select"
+source = "year_over_year_preset_categories"
+option_source = "year_over_year_preset_categories"
+defaults = []
+
+[[pages.controls]]
+id = "single_category"
+label = "Category"
+kind = "select"
+source = "year_over_year_single_category"
+option_source = "year_over_year_categories"
+
+[[pages.controls]]
+id = "single_group"
+label = "Group"
+kind = "select"
+source = "year_over_year_single_group"
+option_source = "year_over_year_groups"
 
 [[pages.widgets]]
 id = "comparison"

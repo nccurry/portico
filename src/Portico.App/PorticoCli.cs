@@ -227,6 +227,10 @@ public static class PorticoCli
             "spending" => settings.FilterSet("spending").Options.Contains(value, StringComparer.Ordinal),
             "year_over_year" => settings.FilterSet("year_over_year").Options.Contains(value, StringComparer.Ordinal),
             "income_view" => value is "regular" or "actual",
+            "income_lookback" => int.TryParse(value, out int incomeMonths) && settings.Lookback.Months.Contains(incomeMonths),
+            "income_calculation" => value is "regular" or "actual",
+            "year_over_year_view" => value is "single_category" or "single_group"
+                || settings.FilterSet("year_over_year").Options.Contains(value, StringComparer.Ordinal),
             "home_time_frame" => HomeReportRange.TryParse(value, out _),
             "spending_comparison" => DashboardControlMappings.TryParseSpendingComparison(value, out _),
             "spending_breakdown" => DashboardControlMappings.TryParseSpendingBreakdown(value, out _),

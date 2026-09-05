@@ -98,6 +98,26 @@ public sealed class PorticoDashboardSceneTests
                 continue;
             }
 
+            if (page.Id == DashboardPageId.IncomeSavings)
+            {
+                Assert.True(HasNode(scene, "IncomeSavingsControlBar"));
+                Assert.True(HasNode(scene, "IncomeSavingsMetricDeck"));
+                Assert.True(HasNode(scene, "Section:monthly_cash_flow"));
+                Assert.True(HasNode(scene, "Section:month_detail"));
+                Assert.True(HasNode(scene, "IncomeSavingsDetailTabs"));
+                continue;
+            }
+
+            if (page.Id == DashboardPageId.YearOverYear)
+            {
+                Assert.True(HasNode(scene, "YearOverYearControlBar"));
+                Assert.True(HasNode(scene, "Control:YearOverYear:View"));
+                Assert.Contains(
+                    scene.Stage.Root.GetSelfAndDescendants(),
+                    node => node.Name?.StartsWith("YearOverYearComparison:", StringComparison.Ordinal) == true);
+                continue;
+            }
+
             Assert.All(page.Widgets, widget => Assert.True(HasNode(scene, $"Widget:{widget.Id}")));
         }
 

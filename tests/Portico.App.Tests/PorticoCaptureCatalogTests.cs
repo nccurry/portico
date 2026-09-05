@@ -17,7 +17,7 @@ public sealed class PorticoCaptureCatalogTests
     {
         IReadOnlyList<CaptureCase> cases = PorticoCaptureCatalog.CaptureCatalog.CaptureCases;
 
-        Assert.Equal(34, cases.Count);
+        Assert.Equal(36, cases.Count);
         Assert.Equal(
         [
             "budget",
@@ -28,7 +28,7 @@ public sealed class PorticoCaptureCatalogTests
             "home",
             "home-all",
             "home-hidden",
-            "income-categories-wrapped",
+            "income-adjusted",
             "income-savings",
             "merchants",
             "spending",
@@ -36,7 +36,8 @@ public sealed class PorticoCaptureCatalogTests
             "spending-loading",
             "subscriptions",
             "top-transactions",
-            "year-over-year"
+            "year-over-year",
+            "year-over-year-single-category"
         ],
         cases.Select(capture => capture.ScenarioId).Distinct().Order(StringComparer.Ordinal));
 
@@ -50,10 +51,10 @@ public sealed class PorticoCaptureCatalogTests
         }
 
         Assert.Equal(
-            17,
+            18,
             cases.Count(capture => capture.CaptureSize == new CaptureSize(1500, 1000)));
         Assert.Equal(
-            17,
+            18,
             cases.Count(capture => capture.CaptureSize == new CaptureSize(1024, 720)));
 
         DashboardPageId[] configuredPages = PorticoDemoSessionFactory.Create()
@@ -103,9 +104,10 @@ public sealed class PorticoCaptureCatalogTests
     [InlineData("home", DashboardPageId.Home, 12, "discretionary", "utilities", true)]
     [InlineData("spending", DashboardPageId.Spending, 3, "all", "utilities", true)]
     [InlineData("spending-adjusted", DashboardPageId.Spending, 3, "all", "utilities", true)]
-    [InlineData("income-savings", DashboardPageId.IncomeSavings, 12, "discretionary", "utilities", false)]
-    [InlineData("income-categories-wrapped", DashboardPageId.IncomeSavings, 12, "discretionary", "utilities", false)]
-    [InlineData("year-over-year", DashboardPageId.YearOverYear, 12, "discretionary", "all", true)]
+    [InlineData("income-savings", DashboardPageId.IncomeSavings, 12, "discretionary", "utilities", true)]
+    [InlineData("income-adjusted", DashboardPageId.IncomeSavings, 12, "discretionary", "utilities", false)]
+    [InlineData("year-over-year", DashboardPageId.YearOverYear, 12, "discretionary", "utilities", true)]
+    [InlineData("year-over-year-single-category", DashboardPageId.YearOverYear, 12, "discretionary", "utilities", true)]
     [InlineData("subscriptions", DashboardPageId.Subscriptions, 12, "discretionary", "utilities", true)]
     [InlineData("merchants", DashboardPageId.Merchants, 3, "all", "utilities", true)]
     [InlineData("budget", DashboardPageId.Budget, 3, "discretionary", "utilities", true)]
@@ -154,18 +156,20 @@ public sealed class PorticoCaptureCatalogTests
     }
 
     [Fact]
-    public void CreateSession_WrappedIncomeScenarioIncludesTheConfiguredMultiSelectState()
+    public void CreateSession_AdjustedIncomeScenarioIncludesTheConfiguredMultiSelectState()
     {
         GameRunContext context = PorticoCaptureCatalog.RunCatalog.CreateContext(new GameRunOptions
         {
             StartStateId = PorticoCaptureCatalog.DemoLaunchState,
-            ScenarioId = "income-categories-wrapped"
+            ScenarioId = "income-adjusted"
         });
 
         DashboardSession session = PorticoCaptureCatalog.CreateSession(context);
 
         Assert.Equal("Excluded", session.Presentation.IncomeSavings.DetailTab);
-        Assert.Equal(7, session.Presentation.IncomeSavings.ExcludedIncomeCategories.Count);
+        Assert.Equal(
+            ["Interest", "Salary"],
+            session.Presentation.IncomeSavings.Adjustments(regular: false).ExcludedIncomeCategories.Order());
     }
 
     [Theory]

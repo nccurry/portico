@@ -35,7 +35,7 @@ public sealed class DashboardPresentationTests
 
         Assert.Equal(HomeTimeFrame.FiveYears, session.Filters.HomeTimeFrame);
         Assert.False(session.Filters.RegularIncome);
-        Assert.Contains("Salary", session.Presentation.IncomeSavings.ExcludedIncomeCategories);
+        Assert.Contains("Salary", session.Presentation.IncomeSavings.Adjustments(regular: false).ExcludedIncomeCategories);
         Assert.Equal("Excluded", session.Presentation.IncomeSavings.DetailTab);
         Assert.Equal(1_250_000m, session.Presentation.FinancialIndependence.TargetAmount);
         Assert.Equal(45m, session.Presentation.DataHealth.StaleThreshold);
@@ -43,7 +43,7 @@ public sealed class DashboardPresentationTests
 
         string originalSpendingSet = session.Filters.SpendingSet;
         DashboardReport initialReport = session.Report;
-        session.SetControlValue(DashboardPageId.IncomeSavings, "income_view", "regular");
+        session.SetControlValue(DashboardPageId.IncomeSavings, "calculation", "regular");
         Assert.True(session.Filters.RegularIncome);
         Assert.NotSame(initialReport, session.Report);
 
@@ -79,7 +79,7 @@ public sealed class DashboardPresentationTests
         Assert.Throws<ArgumentException>(() => session.SetControlValues(DashboardPageId.IncomeSavings, "exclude_income_categories", ["Unknown"]));
         Assert.Throws<ArgumentOutOfRangeException>(() => session.SetControlNumber(DashboardPageId.FinancialIndependence, "target_amount", 3_000_000m));
         Assert.Throws<ArgumentOutOfRangeException>(() => session.SetControlNumber(DashboardPageId.FinancialIndependence, "target_amount", 1_425_000m));
-        Assert.Throws<ArgumentException>(() => session.SetControlToggle(DashboardPageId.IncomeSavings, "income_view", true));
+        Assert.Throws<ArgumentException>(() => session.SetControlToggle(DashboardPageId.IncomeSavings, "calculation", true));
         Assert.Throws<ArgumentException>(() => session.InvokeControlAction(DashboardPageId.FinancialIndependence, "target_amount"));
         Assert.Throws<ArgumentException>(() => session.ControlValue(DashboardPageId.DataHealth, "not_configured"));
     }
@@ -213,10 +213,10 @@ public sealed class DashboardPresentationTests
             Filters =
             [
                 new DashboardFilterDefinition(
-                    "legacy_income_view",
-                    "Legacy income view",
+                    "legacy_income_calculation",
+                    "Legacy income calculation",
                     DashboardFilterKind.Select,
-                    "income_view",
+                    "income_calculation",
                     "regular",
                     ["regular", "actual"])
             ]
@@ -228,7 +228,7 @@ public sealed class DashboardPresentationTests
 
         Assert.Contains(
             invalid.Validate(),
-            problem => problem.Contains("report input 'income_view' has conflicting defaults", StringComparison.Ordinal));
+            problem => problem.Contains("report input 'income_calculation' has conflicting defaults", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -278,17 +278,17 @@ public sealed class DashboardPresentationTests
                     "income.cash_flow",
                     [
                         new DashboardControlDefinition(
-                            "income_view",
-                            "View",
-                            DashboardControlKind.Select,
-                            DashboardControlSource.IncomeView,
+                            "calculation",
+                            "Calculation",
+                            DashboardControlKind.SegmentedChoice,
+                            DashboardControlSource.IncomeCalculation,
                             Options: ["regular", "actual"],
                             DefaultValue: "actual"),
                         new DashboardControlDefinition(
                             "exclude_income_categories",
                             "Exclude income categories",
                             DashboardControlKind.MultiSelect,
-                            DashboardControlSource.IncomeExcludedCategories,
+                            DashboardControlSource.IncomeExcludedIncomeCategories,
                             Options: ["Salary", "Bonus"],
                             DefaultValues: ["Salary"]),
                         new DashboardControlDefinition(

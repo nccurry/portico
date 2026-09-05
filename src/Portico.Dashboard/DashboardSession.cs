@@ -29,6 +29,7 @@ public sealed class DashboardSession
         CurrentPage = definition.FirstVisiblePage().Id;
         Filters = DashboardFilters.From(settings);
         Presentation = new DashboardPresentationState();
+        Presentation.InitializeIncomeSavings(settings);
         foreach (DashboardFilterDefinition filter in definition.Pages
                      .SelectMany(page => page.Filters)
                      .GroupBy(filter => filter.Source, StringComparer.Ordinal)
@@ -73,6 +74,11 @@ public sealed class DashboardSession
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(source);
         ArgumentNullException.ThrowIfNull(value);
+        if (string.Equals(source, "year_over_year_view", StringComparison.Ordinal))
+        {
+            SetYearOverYearView(value);
+            return;
+        }
 
         DashboardFilters updated = ApplyFilter(Filters, source, value);
         if (updated == Filters)
@@ -119,6 +125,25 @@ public sealed class DashboardSession
             case DashboardControlSource.IncomeExcludedCategories:
                 Presentation.SetIncomeExcludedCategories(selected);
                 return;
+            case DashboardControlSource.IncomeExcludedIncomeCategories:
+                SetIncomeSavingsAdjustments(CurrentIncomeAdjustments with { ExcludedIncomeCategories = selected });
+                return;
+            case DashboardControlSource.IncomeExcludedExpenseGroups:
+                SetIncomeSavingsAdjustments(CurrentIncomeAdjustments with { ExcludedExpenseGroups = selected });
+                return;
+            case DashboardControlSource.IncomeExcludedExpenseCategories:
+                SetIncomeSavingsAdjustments(CurrentIncomeAdjustments with { ExcludedExpenseCategories = selected });
+                return;
+            case DashboardControlSource.IncomeIncludedDescriptions:
+                SetIncomeSavingsAdjustments(CurrentIncomeAdjustments with { IncludedDescriptions = selected });
+                return;
+            case DashboardControlSource.IncomeExcludedDescriptions:
+                SetIncomeSavingsAdjustments(CurrentIncomeAdjustments with { ExcludedDescriptions = selected });
+                return;
+            case DashboardControlSource.YearOverYearPresetCategories:
+                Presentation.SetYearOverYearPresetCategories(Filters.YearOverYearSet, selected);
+                RebuildReport();
+                return;
             case DashboardControlSource.SpendingExcludedGroups:
                 SetSpendingAdjustments(CurrentSpendingAdjustments with { ExcludedGroups = selected });
                 return;
@@ -164,6 +189,15 @@ public sealed class DashboardSession
             case DashboardControlSource.SpendingExpenseLimit:
                 SetSpendingAdjustments(CurrentSpendingAdjustments with { ExpenseLimit = value });
                 return;
+            case DashboardControlSource.IncomeIncomeLimit:
+                SetIncomeSavingsAdjustments(CurrentIncomeAdjustments with { IncomeLimit = value });
+                return;
+            case DashboardControlSource.IncomeExpenseLimit:
+                SetIncomeSavingsAdjustments(CurrentIncomeAdjustments with { ExpenseLimit = value });
+                return;
+            case DashboardControlSource.IncomeTargetRate:
+                SetIncomeSavingsAdjustments(CurrentIncomeAdjustments with { TargetRate = value });
+                return;
             default:
                 throw new ArgumentException($"Dashboard control '{pageId}.{controlId}' does not accept a number.", nameof(controlId));
         }
@@ -184,6 +218,12 @@ public sealed class DashboardSession
                 return;
             case DashboardControlSource.SpendingExcludeLargeExpenses:
                 SetSpendingAdjustments(CurrentSpendingAdjustments with { ExcludeLargeExpenses = value });
+                return;
+            case DashboardControlSource.IncomeExcludeLargeIncome:
+                SetIncomeSavingsAdjustments(CurrentIncomeAdjustments with { ExcludeLargeIncome = value });
+                return;
+            case DashboardControlSource.IncomeExcludeLargeExpenses:
+                SetIncomeSavingsAdjustments(CurrentIncomeAdjustments with { ExcludeLargeExpenses = value });
                 return;
             default:
                 throw new ArgumentException($"Dashboard control '{pageId}.{controlId}' does not accept a toggle value.", nameof(controlId));
@@ -214,6 +254,9 @@ public sealed class DashboardSession
                 };
                 RebuildReport();
                 return;
+            case DashboardControlSource.IncomeReset:
+                SetIncomeSavingsAdjustments(IncomeSavingsAdjustments.Default(_settings, Filters.RegularIncome));
+                return;
             default:
                 throw new ArgumentException($"Dashboard control '{pageId}.{controlId}' does not have a reset action.", nameof(controlId));
         }
@@ -239,6 +282,13 @@ public sealed class DashboardSession
             DashboardControlOptionSource.SpendingGroups => SpendingAdjustmentOptions(transaction => transaction.Group),
             DashboardControlOptionSource.SpendingCategories => SpendingAdjustmentOptions(transaction => transaction.Category),
             DashboardControlOptionSource.SpendingMonths => SpendingMonthOptions(),
+            DashboardControlOptionSource.IncomeIncomeCategories => IncomeCategoryOptions(TransactionKind.Income),
+            DashboardControlOptionSource.IncomeExpenseGroups => IncomeExpenseGroupOptions(),
+            DashboardControlOptionSource.IncomeExpenseCategories => IncomeCategoryOptions(TransactionKind.Expense),
+            DashboardControlOptionSource.IncomeMonths => IncomeMonthOptions(),
+            DashboardControlOptionSource.YearOverYearPresetCategories => YearOverYearPresetCategoryOptions(),
+            DashboardControlOptionSource.YearOverYearCategories => YearOverYearEntityOptions(YearOverYearDimension.Category),
+            DashboardControlOptionSource.YearOverYearGroups => YearOverYearEntityOptions(YearOverYearDimension.Group),
             _ => throw new ArgumentOutOfRangeException(nameof(control.OptionSource))
         };
     }
@@ -254,12 +304,25 @@ public sealed class DashboardSession
             DashboardControlSource.SpendingExcludedCategories => CurrentSpendingAdjustments.ExcludedCategories.ToHashSet(StringComparer.Ordinal),
             DashboardControlSource.SpendingIncludedDescriptions => CurrentSpendingAdjustments.IncludedDescriptions.ToHashSet(StringComparer.Ordinal),
             DashboardControlSource.SpendingExcludedDescriptions => CurrentSpendingAdjustments.ExcludedDescriptions.ToHashSet(StringComparer.Ordinal),
+            DashboardControlSource.IncomeExcludedIncomeCategories => CurrentIncomeAdjustments.ExcludedIncomeCategories.ToHashSet(StringComparer.Ordinal),
+            DashboardControlSource.IncomeExcludedExpenseGroups => CurrentIncomeAdjustments.ExcludedExpenseGroups.ToHashSet(StringComparer.Ordinal),
+            DashboardControlSource.IncomeExcludedExpenseCategories => CurrentIncomeAdjustments.ExcludedExpenseCategories.ToHashSet(StringComparer.Ordinal),
+            DashboardControlSource.IncomeIncludedDescriptions => CurrentIncomeAdjustments.IncludedDescriptions.ToHashSet(StringComparer.Ordinal),
+            DashboardControlSource.IncomeExcludedDescriptions => CurrentIncomeAdjustments.ExcludedDescriptions.ToHashSet(StringComparer.Ordinal),
+            DashboardControlSource.YearOverYearPresetCategories => Presentation.YearOverYear.PresetCategories,
             _ => Presentation.ValuesFor(mapping.Source)
         };
     }
 
     /// <summary>Gets a source-shaped label for the active named spending view.</summary>
     public string SpendingSetLabel(string key) => _settings.TransactionSet(key).Label;
+
+    /// <summary>Gets the source-shaped label for one configured Year over year preset.</summary>
+    public string YearOverYearSetLabel(string key) => _settings.TransactionSet(key).Label;
+
+    /// <summary>Gets the configured defaults for the selected Income calculation view.</summary>
+    public IncomeSavingsAdjustments IncomeSavingsDefaultAdjustments(bool regular)
+        => IncomeSavingsAdjustments.Default(_settings, regular);
 
     /// <summary>Sets the selected Spending entity and rebuilds selected detail reports.</summary>
     public void SetSpendingSelectedEntity(SpendingBreakdown breakdown, string? entity)
@@ -276,6 +339,10 @@ public sealed class DashboardSession
 
     /// <summary>Sets whether excluded Spending rows are expanded.</summary>
     public void SetSpendingExcludedRowsExpanded(bool expanded) => Presentation.SetSpendingExcludedRowsExpanded(expanded);
+
+    /// <summary>Sets whether one Year over year card's details are visible.</summary>
+    public void SetYearOverYearDetailsExpanded(string entity, bool expanded)
+        => Presentation.SetYearOverYearDetailsExpanded(entity, expanded);
 
     private int ParseLookback(string value)
     {
@@ -304,6 +371,7 @@ public sealed class DashboardSession
         => source switch
         {
             "lookback" => filters with { LookbackMonths = ParseLookback(value) },
+            "income_lookback" => filters with { IncomeLookbackMonths = ParseLookback(value) },
             "home_time_frame" => filters with { HomeTimeFrame = HomeReportRange.Parse(value) },
             "spending" => filters with { SpendingSet = ValidateFilterSet("spending", value) },
             "spending_comparison" => DashboardControlMappings.TryParseSpendingComparison(value, out SpendingComparison comparison)
@@ -314,6 +382,7 @@ public sealed class DashboardSession
                 : throw new ArgumentException("Spending breakdown must be 'group' or 'category'.", nameof(value)),
             "year_over_year" => filters with { YearOverYearSet = ValidateFilterSet("year_over_year", value) },
             "income_view" => filters with { RegularIncome = ParseIncomeView(value) },
+            "income_calculation" => filters with { RegularIncome = ParseIncomeView(value) },
             _ => throw new ArgumentException($"Unsupported dashboard filter source '{source}'.", nameof(source))
         };
 
@@ -324,10 +393,15 @@ public sealed class DashboardSession
             case DashboardControlKind.Select:
             case DashboardControlKind.SegmentedChoice:
             case DashboardControlKind.TabChoice:
-                SetControlValue(pageId, control.Id, control.DefaultValue!);
+                if (control.DefaultValue is not null)
+                    SetControlValue(pageId, control.Id, control.DefaultValue);
                 break;
             case DashboardControlKind.MultiSelect:
             case DashboardControlKind.TextMultiSelect:
+                if (control.MultiSelectDefaults.Count == 0)
+                {
+                    break;
+                }
                 SetControlValues(pageId, control.Id, control.MultiSelectDefaults);
                 break;
             case DashboardControlKind.NumberInput:
@@ -350,6 +424,23 @@ public sealed class DashboardSession
 
     private void ApplySingleValue(DashboardControlMapping mapping, string value)
     {
+        if (mapping.Source == DashboardControlSource.YearOverYearView)
+        {
+            SetYearOverYearView(value);
+            return;
+        }
+        if (mapping.Source == DashboardControlSource.YearOverYearSingleCategory)
+        {
+            Presentation.SetYearOverYearSingleCategory(value);
+            RebuildReport();
+            return;
+        }
+        if (mapping.Source == DashboardControlSource.YearOverYearSingleGroup)
+        {
+            Presentation.SetYearOverYearSingleGroup(value);
+            RebuildReport();
+            return;
+        }
         if (mapping.Behavior == DashboardControlBehavior.ReportInput)
         {
             SetFilter(mapping.ReportFilterSource!, value);
@@ -360,6 +451,10 @@ public sealed class DashboardSession
         {
             case DashboardControlSource.IncomeDetailTab:
                 Presentation.SetIncomeDetailTab(value);
+                return;
+            case DashboardControlSource.IncomeDetailMonth:
+                Presentation.SetIncomeDetailMonth(value);
+                RebuildReport();
                 return;
             case DashboardControlSource.SpendingDetailMonth:
                 Presentation.SetSpendingDetailMonth(value);
@@ -373,9 +468,18 @@ public sealed class DashboardSession
     private SpendingAdjustments CurrentSpendingAdjustments
         => Filters.SpendingAdjustments ?? SpendingAdjustments.Default(ConfiguredSpendingExpenseLimit());
 
+    private IncomeSavingsAdjustments CurrentIncomeAdjustments
+        => Presentation.IncomeSavingsAdjustments(Filters.RegularIncome);
+
     private void SetSpendingAdjustments(SpendingAdjustments adjustments)
     {
         Filters = Filters with { SpendingAdjustments = adjustments };
+        RebuildReport();
+    }
+
+    private void SetIncomeSavingsAdjustments(IncomeSavingsAdjustments adjustments)
+    {
+        Presentation.SetIncomeSavingsAdjustments(Filters.RegularIncome, adjustments);
         RebuildReport();
     }
 
@@ -397,6 +501,57 @@ public sealed class DashboardSession
         return ["all", .. months.Reverse().Select(month => month.ToString())];
     }
 
+    private IReadOnlyList<string> IncomeCategoryOptions(TransactionKind kind)
+        => IncomeSavingsAnalysisCalculator.Categories(
+            _snapshot.Transactions.Where(transaction => !transaction.IsHidden),
+            kind);
+
+    private IReadOnlyList<string> IncomeExpenseGroupOptions()
+        => IncomeSavingsAnalysisCalculator.ExpenseGroups(
+            _snapshot.Transactions.Where(transaction => !transaction.IsHidden));
+
+    private IReadOnlyList<string> IncomeMonthOptions()
+    {
+        IncomeSavingsAnalysisResult analysis = IncomeSavingsAnalysisCalculator.Build(
+            _snapshot.Transactions.Where(transaction => !transaction.IsHidden),
+            Filters.EffectiveIncomeLookbackMonths,
+            CurrentIncomeAdjustments);
+        return analysis.Period.CurrentMonths
+            .Reverse()
+            .Select(month => month.ToString())
+            .ToArray();
+    }
+
+    private IReadOnlyList<string> YearOverYearPresetCategoryOptions()
+        => YearOverYearAnalysisCalculator.PresetCategories(
+            _snapshot.Transactions.Where(transaction => !transaction.IsHidden),
+            _settings,
+            Filters.YearOverYearSet);
+
+    private IReadOnlyList<string> YearOverYearEntityOptions(YearOverYearDimension dimension)
+        => YearOverYearAnalysisCalculator.Entities(
+            _snapshot.Transactions.Where(transaction => !transaction.IsHidden),
+            dimension);
+
+    private void SetYearOverYearView(string value)
+    {
+        if (string.Equals(value, "single_category", StringComparison.Ordinal))
+        {
+            Presentation.SetYearOverYearViewMode(YearOverYearViewMode.SingleCategory);
+        }
+        else if (string.Equals(value, "single_group", StringComparison.Ordinal))
+        {
+            Presentation.SetYearOverYearViewMode(YearOverYearViewMode.SingleGroup);
+        }
+        else
+        {
+            Filters = Filters with { YearOverYearSet = ValidateFilterSet("year_over_year", value) };
+            Presentation.SetYearOverYearViewMode(YearOverYearViewMode.Preset);
+        }
+
+        RebuildReport();
+    }
+
     private decimal ConfiguredSpendingExpenseLimit()
     {
         DashboardPageDefinition? spending = Definition.Pages.FirstOrDefault(page => page.Id == DashboardPageId.Spending);
@@ -409,7 +564,30 @@ public sealed class DashboardSession
     private void RebuildReport()
     {
         Report = DashboardReportBuilder.Build(_snapshot, _settings, Filters, Presentation, _asOfDate);
+        NormalizeIncomePresentation();
         NormalizeSpendingPresentation();
+        NormalizeYearOverYearPresentation();
+    }
+
+    private void NormalizeIncomePresentation()
+    {
+        IncomeSavingsPageView? income = Report.Page(DashboardPageId.IncomeSavings).IncomeSavingsView;
+        if (income is null)
+            return;
+
+        bool needsRebuild = false;
+        if (income.DetailMonths.Count > 0
+            && !income.DetailMonths.Contains(Presentation.IncomeSavings.DetailMonth, StringComparer.Ordinal))
+        {
+            Presentation.SetIncomeDetailMonth(income.DetailMonths[0]);
+            needsRebuild = true;
+        }
+
+        if (Presentation.IncomeSavings.DetailTab is not ("Included" or "Excluded"))
+            Presentation.SetIncomeDetailTab("Included");
+
+        if (needsRebuild)
+            Report = DashboardReportBuilder.Build(_snapshot, _settings, Filters, Presentation, _asOfDate);
     }
 
     private void NormalizeSpendingPresentation()
@@ -440,6 +618,82 @@ public sealed class DashboardSession
             Report = DashboardReportBuilder.Build(_snapshot, _settings, Filters, Presentation, _asOfDate);
     }
 
+    private void NormalizeYearOverYearPresentation()
+    {
+        YearOverYearPageView? yearOverYear = Report.Page(DashboardPageId.YearOverYear).YearOverYearView;
+        if (yearOverYear is null)
+            return;
+
+        bool needsRebuild = false;
+        if (Presentation.YearOverYear.ViewMode == YearOverYearViewMode.Preset)
+        {
+            IReadOnlyList<string> available = yearOverYear.PresetCategories;
+            if (!string.Equals(Presentation.YearOverYear.PresetSetKey, Filters.YearOverYearSet, StringComparison.Ordinal))
+            {
+                Presentation.SetYearOverYearPresetCategories(Filters.YearOverYearSet, available.Take(8));
+                needsRebuild = true;
+            }
+            else
+            {
+                string[] retained = Presentation.YearOverYear.PresetCategories
+                    .Where(available.Contains)
+                    .ToArray();
+                if (retained.Length != Presentation.YearOverYear.PresetCategories.Count)
+                {
+                    Presentation.SetYearOverYearPresetCategories(Filters.YearOverYearSet, retained);
+                    needsRebuild = true;
+                }
+            }
+        }
+        else
+        {
+            YearOverYearDimension dimension = Presentation.YearOverYear.ViewMode == YearOverYearViewMode.SingleCategory
+                ? YearOverYearDimension.Category
+                : YearOverYearDimension.Group;
+            IReadOnlyList<string> values = dimension == YearOverYearDimension.Category
+                ? yearOverYear.Categories
+                : yearOverYear.Groups;
+            string? selected = dimension == YearOverYearDimension.Category
+                ? Presentation.YearOverYear.SingleCategory
+                : Presentation.YearOverYear.SingleGroup;
+            if (!values.Contains(selected, StringComparer.Ordinal))
+            {
+                string? preferred = PreferredYearOverYearEntity(values, dimension);
+                if (dimension == YearOverYearDimension.Category)
+                    Presentation.SetYearOverYearSingleCategory(preferred);
+                else
+                    Presentation.SetYearOverYearSingleGroup(preferred);
+                needsRebuild = true;
+            }
+        }
+
+        if (needsRebuild)
+            Report = DashboardReportBuilder.Build(_snapshot, _settings, Filters, Presentation, _asOfDate);
+    }
+
+    private static string? PreferredYearOverYearEntity(
+        IReadOnlyList<string> values,
+        YearOverYearDimension dimension)
+    {
+        if (values.Count == 0)
+            return null;
+        if (dimension == YearOverYearDimension.Group
+            && values.Contains("Bills", StringComparer.Ordinal))
+        {
+            return "Bills";
+        }
+
+        string[] priorities = ["electric", "electricity", "utilities", "water", "natural gas", "internet", "phone"];
+        foreach (string priority in priorities)
+        {
+            string? match = values.FirstOrDefault(value => value.Contains(priority, StringComparison.OrdinalIgnoreCase));
+            if (match is not null)
+                return match;
+        }
+
+        return values[0];
+    }
+
     private DashboardControlDefinition Control(DashboardPageId pageId, string controlId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(controlId);
@@ -459,7 +713,23 @@ public sealed class DashboardSession
             "spending_exclude_large_expenses" => CurrentSpendingAdjustments.ExcludeLargeExpenses.ToString(CultureInfo.InvariantCulture).ToLowerInvariant(),
             "spending_expense_limit" => CurrentSpendingAdjustments.ExpenseLimit.ToString(CultureInfo.InvariantCulture),
             "year_over_year" => Filters.YearOverYearSet,
+            "year_over_year_view" => Presentation.YearOverYear.ViewMode switch
+            {
+                YearOverYearViewMode.Preset => Filters.YearOverYearSet,
+                YearOverYearViewMode.SingleCategory => "single_category",
+                YearOverYearViewMode.SingleGroup => "single_group",
+                _ => throw new ArgumentOutOfRangeException()
+            },
+            "year_over_year_single_category" => Presentation.YearOverYear.SingleCategory ?? string.Empty,
+            "year_over_year_single_group" => Presentation.YearOverYear.SingleGroup ?? string.Empty,
             "income_view" => Filters.RegularIncome ? "regular" : "actual",
+            "income_lookback" => Filters.EffectiveIncomeLookbackMonths.ToString(CultureInfo.InvariantCulture),
+            "income_calculation" => Filters.RegularIncome ? "regular" : "actual",
+            "income_exclude_large_income" => CurrentIncomeAdjustments.ExcludeLargeIncome.ToString(CultureInfo.InvariantCulture).ToLowerInvariant(),
+            "income_income_limit" => CurrentIncomeAdjustments.IncomeLimit.ToString(CultureInfo.InvariantCulture),
+            "income_exclude_large_expenses" => CurrentIncomeAdjustments.ExcludeLargeExpenses.ToString(CultureInfo.InvariantCulture).ToLowerInvariant(),
+            "income_expense_limit" => CurrentIncomeAdjustments.ExpenseLimit.ToString(CultureInfo.InvariantCulture),
+            "income_target_rate" => CurrentIncomeAdjustments.TargetRate.ToString(CultureInfo.InvariantCulture),
             _ => throw new ArgumentException($"Unsupported report filter source '{source}'.", nameof(source))
         };
 

@@ -183,6 +183,51 @@ public enum DashboardControlSource
     /// <summary>Uses the shared income-view setting.</summary>
     IncomeView,
 
+    /// <summary>Uses the Income and savings page's own time-frame input.</summary>
+    IncomeLookback,
+
+    /// <summary>Uses the Income and savings Regular or Actual calculation input.</summary>
+    IncomeCalculation,
+
+    /// <summary>Uses whether the Income and savings Adjust calculation popover is open.</summary>
+    IncomeAdjustCalculation,
+
+    /// <summary>Runs the Income and savings adjustment reset.</summary>
+    IncomeReset,
+
+    /// <summary>Uses the Income and savings excluded-income-category report input.</summary>
+    IncomeExcludedIncomeCategories,
+
+    /// <summary>Uses the Income and savings excluded-expense-group report input.</summary>
+    IncomeExcludedExpenseGroups,
+
+    /// <summary>Uses the Income and savings excluded-expense-category report input.</summary>
+    IncomeExcludedExpenseCategories,
+
+    /// <summary>Uses the Income and savings included description terms.</summary>
+    IncomeIncludedDescriptions,
+
+    /// <summary>Uses the Income and savings excluded description terms.</summary>
+    IncomeExcludedDescriptions,
+
+    /// <summary>Uses the Income and savings large-income switch.</summary>
+    IncomeExcludeLargeIncome,
+
+    /// <summary>Uses the Income and savings large-income limit.</summary>
+    IncomeIncomeLimit,
+
+    /// <summary>Uses the Income and savings large-expense switch.</summary>
+    IncomeExcludeLargeExpenses,
+
+    /// <summary>Uses the Income and savings large-expense limit.</summary>
+    IncomeExpenseLimit,
+
+    /// <summary>Uses the Income and savings savings-rate target.</summary>
+    IncomeTargetRate,
+
+    /// <summary>Uses the selected Income and savings detail month.</summary>
+    IncomeDetailMonth,
+
     /// <summary>Uses the Home page balance-history report range.</summary>
     HomeTimeFrame,
 
@@ -235,7 +280,19 @@ public enum DashboardControlSource
     SpendingAdjustView,
 
     /// <summary>Runs the Spending by category adjustment reset.</summary>
-    SpendingReset
+    SpendingReset,
+
+    /// <summary>Uses the source Year over year preset or single-entity view.</summary>
+    YearOverYearView,
+
+    /// <summary>Uses the Year over year preset category selection.</summary>
+    YearOverYearPresetCategories,
+
+    /// <summary>Uses the Year over year selected single category.</summary>
+    YearOverYearSingleCategory,
+
+    /// <summary>Uses the Year over year selected single group.</summary>
+    YearOverYearSingleGroup
 }
 
 /// <summary>Identifies how a control gets its finite set of visible choices.</summary>
@@ -251,7 +308,28 @@ public enum DashboardControlOptionSource
     SpendingCategories,
 
     /// <summary>Reads the current source-style spending months from the loaded data.</summary>
-    SpendingMonths
+    SpendingMonths,
+
+    /// <summary>Reads income categories from the loaded income and expense data.</summary>
+    IncomeIncomeCategories,
+
+    /// <summary>Reads expense groups from the loaded income and expense data.</summary>
+    IncomeExpenseGroups,
+
+    /// <summary>Reads expense categories from the loaded income and expense data.</summary>
+    IncomeExpenseCategories,
+
+    /// <summary>Reads the current source-style income detail months.</summary>
+    IncomeMonths,
+
+    /// <summary>Reads preset-eligible categories for Year over year.</summary>
+    YearOverYearPresetCategories,
+
+    /// <summary>Reads single-category choices for Year over year.</summary>
+    YearOverYearCategories,
+
+    /// <summary>Reads single-group choices for Year over year.</summary>
+    YearOverYearGroups
 }
 
 /// <summary>Describes the requested horizontal footprint of a control in a wrapping control bar.</summary>
@@ -606,8 +684,10 @@ public sealed record DashboardDefinition(
         }
         else if (control.Kind is DashboardControlKind.Select or DashboardControlKind.SegmentedChoice or DashboardControlKind.TabChoice)
         {
-            if (string.IsNullOrWhiteSpace(control.DefaultValue)
-                || (hasStaticOptions && !control.ChoiceOptions.Contains(control.DefaultValue, StringComparer.Ordinal)))
+            bool needsConfiguredDefault = hasStaticOptions;
+            if ((needsConfiguredDefault && string.IsNullOrWhiteSpace(control.DefaultValue))
+                || (hasStaticOptions && control.DefaultValue is not null
+                    && !control.ChoiceOptions.Contains(control.DefaultValue, StringComparer.Ordinal)))
             {
                 problems.Add($"dashboard control '{page.Id}.{control.Id}' default must be one of its options.");
             }
