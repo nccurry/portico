@@ -3,8 +3,9 @@ using Portico.Adapters;
 using Portico.App;
 using Portico.Dashboard;
 using Portico.Finance;
+using Roci.Core;
+using Roci.TestUtilities;
 using Roci.Ui;
-using Roci.Ui.Processors;
 
 namespace Portico.App.Tests;
 
@@ -22,31 +23,22 @@ public sealed class PorticoDashboardSceneTests
 
         Assert.True(HasNode(scene, "Widget:net-worth"));
         Assert.True(HasNode(scene, "Chart:net-worth"));
-        Assert.False(scene.IsDrawerOpen);
-
-        scene.ToggleDrawer();
-        scene.Refresh();
-
-        Assert.True(scene.IsDrawerOpen);
-        Assert.True(HasNode(scene, "PorticoDrawerOverlay"));
-        Assert.True(HasNode(scene, "DrawerPage:Spending"));
-        Assert.True(HasNode(scene, "DrawerCurrentPage:Home"));
+        Assert.True(HasNode(scene, "PorticoShell"));
+        Assert.True(HasNode(scene, "NavigationRail"));
+        Assert.True(HasNode(scene, "MainColumn"));
+        Assert.True(HasNode(scene, "PageHeader"));
+        Assert.True(HasNode(scene, "PageBody"));
+        Assert.False(HasNode(scene, "TopBar"));
+        Assert.False(HasNode(scene, "PorticoDrawerOverlay"));
 
         scene.SelectPage(DashboardPageId.Spending);
         scene.SetFilter("lookback", "6");
         scene.Refresh();
 
-        Assert.False(scene.IsDrawerOpen);
         Assert.Equal(DashboardPageId.Spending, session.CurrentPage);
         Assert.Equal(6, session.Filters.LookbackMonths);
         Assert.True(HasNode(scene, "Widget:categories"));
         Assert.True(HasNode(scene, "Chart:categories"));
-
-        scene.ToggleDrawer();
-        scene.Refresh();
-
-        Assert.True(HasNode(scene, "DrawerCurrentPage:Spending"));
-        Assert.False(HasNode(scene, "DrawerCurrentPage:Home"));
     }
 
     [Fact]
@@ -90,7 +82,7 @@ public sealed class PorticoDashboardSceneTests
     }
 
     [Fact]
-    public async Task Scene_DismissesTheDrawerWhenTheMenuReceivesCancel()
+    public async Task Scene_UsesTheAppOwnedDarkSkinAndNamedShellStyles()
     {
         string root = FindRepositoryRoot();
         FinanceSettings settings = TomlConfigurationLoader.LoadFinance(Path.Combine(root, "portico-demo.toml"));
@@ -98,13 +90,90 @@ public sealed class PorticoDashboardSceneTests
             .LoadAsync(TestContext.Current.CancellationToken);
         var scene = new PorticoDashboardScene(new Vector2(1280f, 820f), new DashboardSession(snapshot, settings, Definition()));
 
-        scene.ToggleDrawer();
-        scene.Refresh();
-        LayoutNode firstPage = scene.Stage.Root.GetSelfAndDescendants().Single(node => node.Name == "DrawerPage:Home");
-        SelectionProcessor.UpdateDetailed(scene.Stage.Root, new SelectionInput { FocusedNode = firstPage });
-        SelectionProcessor.UpdateDetailed(scene.Stage.Root, new SelectionInput { CancelPressed = true });
+        UiSkin skin = scene.Stage.Root.GetSkinOrDefault()
+            ?? throw new Xunit.Sdk.XunitException("Expected the Portico scene to own a skin.");
 
-        Assert.False(scene.IsDrawerOpen);
+        Assert.Equal("Portico Dark", skin.Name);
+        Assert.Contains("portico-rail", skin.Panel.Styles.Keys);
+        Assert.Contains("portico-main", skin.Panel.Styles.Keys);
+        Assert.Contains("portico-raised", skin.Panel.Styles.Keys);
+        Assert.Contains("portico-navigation-group", skin.Panel.Styles.Keys);
+        Assert.Contains("portico-positive", skin.Panel.Styles.Keys);
+        Assert.Contains("portico-negative", skin.Panel.Styles.Keys);
+        Assert.Contains("portico-neutral", skin.Panel.Styles.Keys);
+        Assert.Contains("portico-warning", skin.Panel.Styles.Keys);
+        Assert.Contains("portico-loading", skin.Panel.Styles.Keys);
+        Assert.Contains("portico-hidden", skin.Panel.Styles.Keys);
+        Assert.Contains("portico-primary", skin.Button.Styles.Keys);
+        Assert.Contains("portico-secondary", skin.Button.Styles.Keys);
+        Assert.Contains("portico-quiet", skin.Button.Styles.Keys);
+        Assert.Contains("portico-danger", skin.Button.Styles.Keys);
+        Assert.Contains("portico-selected", skin.Button.Styles.Keys);
+        Assert.Contains("portico-navigation", skin.Button.Styles.Keys);
+        Assert.Contains("portico-navigation-selected", skin.Button.Styles.Keys);
+        Assert.True(skin.Button.Styles["portico-navigation"].States.ContainsKey(UiSkinState.Hovered));
+        Assert.True(skin.Button.Styles["portico-navigation"].States.ContainsKey(UiSkinState.Focused));
+        Assert.Equal(new Color(16, 22, 30), FindNode(scene, "PorticoShell").VisualStyle.BackgroundColor);
+        Assert.Equal(new Color(20, 30, 40), FindNode(scene, "NavigationRail").VisualStyle.BackgroundColor);
+        Assert.Equal(new Color(31, 44, 57), FindNode(scene, "Widget:net-worth").VisualStyle.BackgroundColor);
+        Assert.Equal(5, skin.Chart.Palette.Count);
+    }
+
+    [Theory]
+    [InlineData(1500, 1000)]
+    [InlineData(1024, 720)]
+    public async Task Scene_ShellKeepsTheRailHeaderAndBodyInsideTheViewport(int width, int height)
+    {
+        string root = FindRepositoryRoot();
+        FinanceSettings settings = TomlConfigurationLoader.LoadFinance(Path.Combine(root, "portico-demo.toml"));
+        PortfolioSnapshot snapshot = await new LocalCsvSnapshotSource(Path.Combine(root, "demo", "data"))
+            .LoadAsync(TestContext.Current.CancellationToken);
+        var scene = new PorticoDashboardScene(new Vector2(width, height), new DashboardSession(snapshot, settings, Definition()));
+        scene.Stage.RefreshLayout(new MockTextMeasurer());
+
+        LayoutNode shell = FindNode(scene, "PorticoShell");
+        LayoutNode rail = FindNode(scene, "NavigationRail");
+        LayoutNode main = FindNode(scene, "MainColumn");
+        LayoutNode header = FindNode(scene, "PageHeader");
+        LayoutNode body = FindNode(scene, "PageBody");
+
+        Assert.Equal(new Vector2(width, height), shell.BoxModel.ComputedSize);
+        Assert.Equal(232f, rail.BoxModel.ComputedSize.X);
+        Assert.Equal((float)height, rail.BoxModel.ComputedSize.Y);
+        Assert.Equal(0f, rail.ComputedPosition.X);
+        Assert.Equal(0f, rail.ComputedPosition.Y);
+        Assert.Equal(rail.ComputedPosition.X + rail.BoxModel.ComputedSize.X, main.ComputedPosition.X);
+        Assert.Equal((float)height, main.BoxModel.ComputedSize.Y);
+        AssertWithin(shell, rail);
+        AssertWithin(shell, main);
+        AssertWithin(main, header);
+        AssertWithin(main, body);
+        Assert.True(header.ComputedPosition.Y + header.BoxModel.ComputedSize.Y <= body.ComputedPosition.Y);
+        Assert.NotNull(body.ScrollConfig);
+        Assert.True(body.ScrollConfig!.Value.EnableVertical);
+        Assert.False(body.ScrollConfig!.Value.EnableHorizontal);
+        Assert.Null(rail.ScrollConfig);
+    }
+
+    [Fact]
+    public async Task Scene_NarrowDesktopWrapsTwoCardRowInsteadOfClippingIt()
+    {
+        string root = FindRepositoryRoot();
+        FinanceSettings settings = TomlConfigurationLoader.LoadFinance(Path.Combine(root, "portico-demo.toml"));
+        PortfolioSnapshot snapshot = await new LocalCsvSnapshotSource(Path.Combine(root, "demo", "data"))
+            .LoadAsync(TestContext.Current.CancellationToken);
+        var scene = new PorticoDashboardScene(new Vector2(1024f, 720f), new DashboardSession(snapshot, settings, Definition()));
+        scene.Stage.RefreshLayout(new MockTextMeasurer());
+
+        LayoutNode overview = FindNode(scene, "Widget:overview");
+        LayoutNode safety = FindNode(scene, "Widget:safety");
+        LayoutNode body = FindNode(scene, "PageBody");
+
+        Assert.True(safety.ComputedPosition.Y > overview.ComputedPosition.Y);
+        Assert.Equal(155f, overview.BoxModel.ComputedSize.Y);
+        Assert.Equal(155f, safety.BoxModel.ComputedSize.Y);
+        AssertWithinScrollContent(body, overview);
+        AssertWithinScrollContent(body, safety);
     }
 
     private static DashboardDefinition Definition()
@@ -119,7 +188,8 @@ public sealed class PorticoDashboardSceneTests
                     [new DashboardFilterDefinition("lookback", "Lookback", DashboardFilterKind.Select, "lookback", "3", ["3", "6", "12", "24"])],
                     [
                         new DashboardWidgetDefinition("net-worth", "Net worth", DashboardWidgetKind.AreaChart, "home.net_worth", 2),
-                        new DashboardWidgetDefinition("overview", "Overview", DashboardWidgetKind.Metric, "home.overview")
+                        new DashboardWidgetDefinition("overview", "Overview", DashboardWidgetKind.Metric, "home.overview"),
+                        new DashboardWidgetDefinition("safety", "Safety", DashboardWidgetKind.Metric, "home.safety")
                     ]),
                 new DashboardPageDefinition(
                     DashboardPageId.Spending,
@@ -135,12 +205,48 @@ public sealed class PorticoDashboardSceneTests
     private static bool HasNode(PorticoDashboardScene scene, string name)
         => scene.Stage.Root.GetSelfAndDescendants().Any(node => node.Name == name);
 
+    private static LayoutNode FindNode(PorticoDashboardScene scene, string name)
+    {
+        return scene.Stage.Root.GetSelfAndDescendants().Single(node => node.Name == name);
+    }
+
     private static ChartState GetChartState(PorticoDashboardScene scene, string name)
     {
         return scene.Stage.Root.GetSelfAndDescendants()
             .Single(node => node.Name == name)
             .GetStateOrDefault<ChartState>()
             ?? throw new Xunit.Sdk.XunitException($"Expected chart state for '{name}'.");
+    }
+
+    private static void AssertWithin(LayoutNode parent, LayoutNode child)
+    {
+        float parentRight = parent.ComputedPosition.X + parent.BoxModel.ComputedSize.X;
+        float parentBottom = parent.ComputedPosition.Y + parent.BoxModel.ComputedSize.Y;
+        float childRight = child.ComputedPosition.X + child.BoxModel.ComputedSize.X;
+        float childBottom = child.ComputedPosition.Y + child.BoxModel.ComputedSize.Y;
+
+        string bounds = $"Parent '{parent.Name}' at {parent.ComputedPosition} size {parent.BoxModel.ComputedSize}; child '{child.Name}' at {child.ComputedPosition} size {child.BoxModel.ComputedSize}.";
+        Assert.True(child.ComputedPosition.X >= parent.ComputedPosition.X, bounds);
+        Assert.True(child.ComputedPosition.Y >= parent.ComputedPosition.Y, bounds);
+        Assert.True(childRight <= parentRight, bounds);
+        Assert.True(childBottom <= parentBottom, bounds);
+    }
+
+    private static void AssertWithinScrollContent(LayoutNode scrollContainer, LayoutNode child)
+    {
+        ScrollState scroll = scrollContainer.ScrollState
+            ?? throw new Xunit.Sdk.XunitException($"Expected '{scrollContainer.Name}' to have scroll state.");
+        Rectangle content = scrollContainer.BoxModel.ContentBounds(scrollContainer.ComputedPosition);
+        float contentRight = content.X + scroll.ContentSize.X;
+        float contentBottom = content.Y + scroll.ContentSize.Y;
+        float childRight = child.ComputedPosition.X + child.BoxModel.ComputedSize.X;
+        float childBottom = child.ComputedPosition.Y + child.BoxModel.ComputedSize.Y;
+        string bounds = $"Scroll container '{scrollContainer.Name}' content begins at {content.Position} with size {scroll.ContentSize}; child '{child.Name}' at {child.ComputedPosition} size {child.BoxModel.ComputedSize}.";
+
+        Assert.True(child.ComputedPosition.X >= content.X, bounds);
+        Assert.True(child.ComputedPosition.Y >= content.Y, bounds);
+        Assert.True(childRight <= contentRight, bounds);
+        Assert.True(childBottom <= contentBottom, bounds);
     }
 
     private static string FindRepositoryRoot()

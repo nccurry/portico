@@ -151,17 +151,19 @@ public sealed class PorticoCaptureCatalogTests
         var scene = new PorticoDashboardScene(new Vector2(width, height), session);
         scene.Stage.RefreshLayout(new MockTextMeasurer());
 
-        LayoutNode root = FindNode(scene, "PorticoRoot");
-        LayoutNode topBar = FindNode(scene, "TopBar");
-        LayoutNode heading = FindNode(scene, "PageHeading");
-        LayoutNode content = FindNode(scene, "PageContent");
+        LayoutNode shell = FindNode(scene, "PorticoShell");
+        LayoutNode rail = FindNode(scene, "NavigationRail");
+        LayoutNode main = FindNode(scene, "MainColumn");
+        LayoutNode header = FindNode(scene, "PageHeader");
+        LayoutNode body = FindNode(scene, "PageBody");
 
-        Assert.Equal(new Vector2(width, height), root.BoxModel.ComputedSize);
-        AssertWithin(root, topBar);
-        AssertWithin(root, heading);
-        AssertWithin(root, content);
-        Assert.True(topBar.ComputedPosition.Y + topBar.BoxModel.ComputedSize.Y <= heading.ComputedPosition.Y);
-        Assert.True(heading.ComputedPosition.Y + heading.BoxModel.ComputedSize.Y <= content.ComputedPosition.Y);
+        Assert.Equal(new Vector2(width, height), shell.BoxModel.ComputedSize);
+        Assert.Equal(232f, rail.BoxModel.ComputedSize.X);
+        AssertWithin(shell, rail);
+        AssertWithin(shell, main);
+        AssertWithin(main, header);
+        AssertWithin(main, body);
+        Assert.True(header.ComputedPosition.Y + header.BoxModel.ComputedSize.Y <= body.ComputedPosition.Y);
     }
 
     private static LayoutNode FindNode(PorticoDashboardScene scene, string name)
