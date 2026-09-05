@@ -31,7 +31,8 @@ public static class DashboardControlMappings
             [(DashboardPageId.Home, "time_frame")] = new(
                 DashboardControlKind.SegmentedChoice,
                 DashboardControlSource.HomeTimeFrame,
-                DashboardControlBehavior.DisplayState),
+                DashboardControlBehavior.ReportInput,
+                "home_time_frame"),
             [(DashboardPageId.IncomeSavings, "income_view")] = new(
                 DashboardControlKind.Select,
                 DashboardControlSource.IncomeView,
@@ -129,10 +130,32 @@ public static class DashboardControlMappings
         }
     }
 
+    /// <summary>Checks the finite options owned by a typed control route.</summary>
+    public static bool TryValidateConfiguredOptions(
+        DashboardControlMapping mapping,
+        IReadOnlyList<string> options,
+        out string? problem)
+    {
+        ArgumentNullException.ThrowIfNull(mapping);
+        ArgumentNullException.ThrowIfNull(options);
+
+        if (mapping.Source == DashboardControlSource.HomeTimeFrame)
+        {
+            string? unsupported = options.FirstOrDefault(option => !HomeReportRange.TryParse(option, out _));
+            if (unsupported is not null)
+            {
+                problem = $"has unsupported Home time-frame option '{unsupported}'";
+                return false;
+            }
+        }
+
+        problem = null;
+        return true;
+    }
+
     private static bool HasDisplaySetter(DashboardControlSource source, DashboardControlKind kind)
         => (source, kind) switch
         {
-            (DashboardControlSource.HomeTimeFrame, DashboardControlKind.SegmentedChoice) => true,
             (DashboardControlSource.IncomeExcludedCategories, DashboardControlKind.MultiSelect) => true,
             (DashboardControlSource.IncomeDetailTab, DashboardControlKind.TabChoice) => true,
             (DashboardControlSource.FinancialIndependenceTargetAmount, DashboardControlKind.NumberInput) => true,
@@ -147,37 +170,16 @@ public static class DashboardControlMappings
             DashboardControlSource.Spending => "spending",
             DashboardControlSource.YearOverYear => "year_over_year",
             DashboardControlSource.IncomeView => "income_view",
+            DashboardControlSource.HomeTimeFrame => "home_time_frame",
             _ => null
         };
 }
 
-/// <summary>Represents the finite Home time-frame choices from the reference dashboard.</summary>
-public enum HomeTimeFrame
+/// <summary>Holds Home-only detail state without leaking it into finance calculations.</summary>
+public sealed record HomePresentationState(IReadOnlySet<string> ExpandedAccountGroups)
 {
-    /// <summary>Shows three months.</summary>
-    ThreeMonths,
-
-    /// <summary>Shows six months.</summary>
-    SixMonths,
-
-    /// <summary>Shows one year.</summary>
-    OneYear,
-
-    /// <summary>Shows two years.</summary>
-    TwoYears,
-
-    /// <summary>Shows five years.</summary>
-    FiveYears,
-
-    /// <summary>Shows every available period.</summary>
-    All
-}
-
-/// <summary>Holds Home-only controls without leaking them into finance calculations.</summary>
-public sealed record HomePresentationState(HomeTimeFrame TimeFrame)
-{
-    /// <summary>Creates the source page's normal one-year selection.</summary>
-    public static HomePresentationState Default { get; } = new(HomeTimeFrame.OneYear);
+    /// <summary>Creates the source page's initially collapsed account details.</summary>
+    public static HomePresentationState Default { get; } = new(new HashSet<string>(StringComparer.Ordinal));
 }
 
 /// <summary>Holds Income and savings presentation controls.</summary>
@@ -220,22 +222,23 @@ public sealed class DashboardPresentationState
     /// <summary>Gets the Data health page's retained state.</summary>
     public DataHealthPresentationState DataHealth { get; private set; } = DataHealthPresentationState.Default;
 
-    /// <summary>Sets the Home page's time frame.</summary>
-    public void SetHomeTimeFrame(string value)
+    /// <summary>Gets whether one Home account group's details are expanded.</summary>
+    public bool IsHomeAccountGroupExpanded(string group)
     {
-        Home = Home with
-        {
-            TimeFrame = value switch
-            {
-                "3m" => HomeTimeFrame.ThreeMonths,
-                "6m" => HomeTimeFrame.SixMonths,
-                "1y" => HomeTimeFrame.OneYear,
-                "2y" => HomeTimeFrame.TwoYears,
-                "5y" => HomeTimeFrame.FiveYears,
-                "all" => HomeTimeFrame.All,
-                _ => throw new ArgumentException($"Unsupported Home time frame '{value}'.", nameof(value))
-            }
-        };
+        ArgumentException.ThrowIfNullOrWhiteSpace(group);
+        return Home.ExpandedAccountGroups.Contains(group);
+    }
+
+    /// <summary>Sets whether one Home account group's details are expanded.</summary>
+    public void SetHomeAccountGroupExpanded(string group, bool expanded)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(group);
+        var groups = new HashSet<string>(Home.ExpandedAccountGroups, StringComparer.Ordinal);
+        if (expanded)
+            groups.Add(group);
+        else
+            groups.Remove(group);
+        Home = Home with { ExpandedAccountGroups = groups };
     }
 
     /// <summary>Sets the excluded Income and savings categories.</summary>
@@ -275,16 +278,6 @@ public sealed class DashboardPresentationState
     public string ValueFor(DashboardControlSource source)
         => source switch
         {
-            DashboardControlSource.HomeTimeFrame => Home.TimeFrame switch
-            {
-                HomeTimeFrame.ThreeMonths => "3m",
-                HomeTimeFrame.SixMonths => "6m",
-                HomeTimeFrame.OneYear => "1y",
-                HomeTimeFrame.TwoYears => "2y",
-                HomeTimeFrame.FiveYears => "5y",
-                HomeTimeFrame.All => "all",
-                _ => throw new ArgumentOutOfRangeException()
-            },
             DashboardControlSource.IncomeDetailTab => IncomeSavings.DetailTab,
             DashboardControlSource.FinancialIndependenceTargetAmount => FinancialIndependence.TargetAmount.ToString(CultureInfo.InvariantCulture),
             DashboardControlSource.DataHealthStaleThreshold => DataHealth.StaleThreshold.ToString(CultureInfo.InvariantCulture),

@@ -9,7 +9,13 @@ public sealed record ReportPoint(DateOnly? Date, string? Category, decimal X, de
 public sealed record ReportSeries(string Id, string Label, IReadOnlyList<ReportPoint> Points);
 
 /// <summary>Represents one value displayed in a metric strip or card.</summary>
-public sealed record ReportMetric(string Label, decimal? Value, string Display, string? Tone = null);
+public sealed record ReportMetric(
+    string Label,
+    decimal? Value,
+    string Display,
+    string? Tone = null,
+    string? Detail = null,
+    decimal? Change = null);
 
 /// <summary>Represents one visible row in a dashboard table.</summary>
 public sealed record ReportTableRow(IReadOnlyList<string> Values, string? Tone = null);
@@ -62,7 +68,12 @@ public sealed record DashboardReport(IReadOnlyDictionary<DashboardPageId, Dashbo
 }
 
 /// <summary>Captures the page filter state used by report construction.</summary>
-public sealed record DashboardFilters(int LookbackMonths, string SpendingSet, string YearOverYearSet, bool RegularIncome)
+public sealed record DashboardFilters(
+    int LookbackMonths,
+    string SpendingSet,
+    string YearOverYearSet,
+    bool RegularIncome,
+    HomeTimeFrame HomeTimeFrame = HomeTimeFrame.OneYear)
 {
     /// <summary>Creates the default filter state from finance settings.</summary>
     public static DashboardFilters From(FinanceSettings settings)
@@ -72,6 +83,7 @@ public sealed record DashboardFilters(int LookbackMonths, string SpendingSet, st
             settings.Lookback.DefaultMonths,
             settings.FilterSet("spending").Default,
             settings.FilterSet("year_over_year").Default,
-            string.Equals(settings.IncomeSavings.DefaultView, "regular", StringComparison.OrdinalIgnoreCase));
+            string.Equals(settings.IncomeSavings.DefaultView, "regular", StringComparison.OrdinalIgnoreCase),
+            HomeTimeFrame.OneYear);
     }
 }

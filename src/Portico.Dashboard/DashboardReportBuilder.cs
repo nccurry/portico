@@ -31,7 +31,7 @@ public static class DashboardReportBuilder
 
         var pages = new Dictionary<DashboardPageId, DashboardPageReport>
         {
-            [DashboardPageId.Home] = Home(snapshot, cashFlow, accounts, settings, reportDate),
+            [DashboardPageId.Home] = Home(snapshot, cashFlow, settings, filters.HomeTimeFrame, reportDate),
             [DashboardPageId.IncomeSavings] = Income(cashFlow, settings.IncomeSavings.TargetRate),
             [DashboardPageId.Spending] = Spending(spending),
             [DashboardPageId.YearOverYear] = YearOverYear(yearOverYear),
@@ -53,7 +53,7 @@ public static class DashboardReportBuilder
     /// <summary>Gets the report ids that a dashboard TOML file can refer to.</summary>
     public static IReadOnlySet<string> SupportedWidgetReports { get; } = new HashSet<string>(StringComparer.Ordinal)
     {
-        "home.net_worth", "home.overview", "home.accounts", "home.inventory", "home.safety",
+        "home.net_worth", "home.overview", "home.attribution", "home.accounts", "home.inventory", "home.safety",
         "income.cash_flow", "income.savings_rate",
         "spending.monthly", "spending.categories",
         "yoy.comparison", "yoy.totals",
@@ -68,12 +68,22 @@ public static class DashboardReportBuilder
     private static DashboardPageReport Home(
         PortfolioSnapshot snapshot,
         IReadOnlyList<MonthlyCashFlow> cashFlow,
-        IReadOnlyList<AccountBalance> accounts,
         FinanceSettings settings,
+        HomeTimeFrame timeFrame,
         DateOnly reportDate)
     {
-        IReadOnlyList<NetWorthPoint> history = PortfolioCalculator.BuildNetWorthHistory(snapshot.Balances);
-        decimal netWorth = accounts.Sum(account => account.SignedBalance);
+        HomeReportRange? range = HomeReportRange.Create(snapshot.Balances, timeFrame);
+        IReadOnlyList<NetWorthPoint> history = BuildHomeHistory(snapshot.Balances, range);
+        IReadOnlyList<AccountBalance> accounts = range is null
+            ? []
+            : PortfolioCalculator.LatestBalances(snapshot.Balances, range.End);
+        IReadOnlyList<AccountBalance> openingAccounts = range is null
+            ? []
+            : PortfolioCalculator.LatestBalances(snapshot.Balances, range.Start);
+        IReadOnlyList<ReportMetric> accountGroups = BuildHomeAccountGroups(accounts, openingAccounts, range);
+        IReadOnlyList<ReportTableRow> inventory = BuildHomeAccountInventory(accounts, openingAccounts, range);
+        NetWorthPoint? opening = history.FirstOrDefault();
+        NetWorthPoint? current = history.LastOrDefault();
         CashFlowSummary flow = CashFlowCalculator.Summarize(cashFlow);
         FinancialSafetySummary safety = FinancialSafetyCalculator.Summarize(
             snapshot.Transactions,
@@ -83,29 +93,41 @@ public static class DashboardReportBuilder
             reportDate);
         var widgets = new Dictionary<string, DashboardWidgetReport>(StringComparer.Ordinal)
         {
-            ["home.net_worth"] = Chart(
-                Series("net-worth", "Net worth", history.Select(point => Point(point.Date, point.NetWorth))),
-                Series("assets", "Assets", history.Select(point => Point(point.Date, point.Assets))),
-                Series("liabilities", "Liabilities", history.Select(point => Point(point.Date, point.Liabilities)))),
+            ["home.net_worth"] = history.Count == 0
+                ? EmptyHomeReport()
+                : Chart(
+                    Series("net-worth", "Net worth", history.Select(point => Point(point.Date, point.NetWorth))),
+                    Series("assets", "Assets", history.Select(point => Point(point.Date, point.Assets))),
+                    Series("liabilities", "Liabilities", history.Select(point => Point(point.Date, point.Liabilities)))) with
+                {
+                    Metrics = HomeNetWorthMetrics(opening, current, range)
+                },
             ["home.overview"] = Metrics(
-                Metric("Net worth", netWorth),
+                Metric("Net worth", accounts.Sum(account => account.SignedBalance)),
                 Metric("Cash flow", flow.Surplus, flow.Surplus >= 0m ? "positive" : "negative"),
                 Metric("Savings rate", flow.SavingsRatePercent, FormatPercent(flow.SavingsRatePercent)),
                 Metric("Accounts", accounts.Count, accounts.Count.ToString(CultureInfo.InvariantCulture))),
-            ["home.accounts"] = Chart(
-                Series("accounts", "Latest balance", accounts
-                    .GroupBy(account => account.Group, StringComparer.Ordinal)
-                    .OrderBy(group => group.Key, StringComparer.Ordinal)
-                    .Select(group => Point(group.Key, group.Sum(account => account.SignedBalance))))),
+            ["home.attribution"] = accountGroups.Count == 0
+                ? EmptyHomeReport()
+                : Chart(
+                    Series(
+                        "groups",
+                        "Net-worth movement",
+                        accountGroups
+                            .OrderBy(group => group.Change ?? 0m)
+                            .ThenBy(group => group.Label, StringComparer.Ordinal)
+                            .Select(group => Point(group.Label, group.Change ?? 0m)))),
+            ["home.accounts"] = new DashboardWidgetReport(
+                accountGroups,
+                [],
+                [],
+                [],
+                accountGroups.Count == 0 ? "No mapped balance groups are available." : null),
             ["home.inventory"] = new DashboardWidgetReport(
                 [],
                 [],
-                ["Group", "Account", "Balance"],
-                accounts.Select(account => new ReportTableRow([
-                    account.Group,
-                    account.Account,
-                    FormatMoney(account.SignedBalance)
-                ], account.SignedBalance < 0m ? "negative" : null)).ToArray(),
+                ["Group", "Account", "Balance", "Change"],
+                inventory,
                 accounts.Count == 0 ? "No visible account balances are available." : null),
             ["home.safety"] = Metrics(
                 Metric(
@@ -698,6 +720,193 @@ public static class DashboardReportBuilder
         return pairs;
     }
 
+    private static IReadOnlyList<NetWorthPoint> BuildHomeHistory(
+        IReadOnlyList<BalanceObservation> observations,
+        HomeReportRange? range)
+    {
+        if (range is null)
+            return [];
+
+        var dates = new SortedSet<DateOnly>
+        {
+            range.Start,
+            range.End
+        };
+        int daysUntilSunday = ((int)DayOfWeek.Sunday - (int)range.Start.DayOfWeek + 7) % 7;
+        for (DateOnly date = range.Start.AddDays(daysUntilSunday); date <= range.End; date = date.AddDays(7))
+            dates.Add(date);
+
+        return dates.Select(date => NetWorthAt(observations, date)).ToArray();
+    }
+
+    private static NetWorthPoint NetWorthAt(
+        IReadOnlyList<BalanceObservation> observations,
+        DateOnly date)
+    {
+        IReadOnlyList<AccountBalance> accounts = PortfolioCalculator.LatestBalances(observations, date);
+        decimal assets = accounts
+            .Where(account => account.AccountClass == AccountClass.Asset)
+            .Sum(account => account.SignedBalance);
+        decimal liabilities = accounts
+            .Where(account => account.AccountClass == AccountClass.Liability)
+            .Sum(account => account.SignedBalance);
+        return new NetWorthPoint(date, assets, liabilities, assets + liabilities);
+    }
+
+    private static IReadOnlyList<ReportMetric> HomeNetWorthMetrics(
+        NetWorthPoint? opening,
+        NetWorthPoint? current,
+        HomeReportRange? range)
+    {
+        if (opening is null || current is null || range is null)
+            return [];
+
+        string period = HomePeriodLabel(range);
+        return
+        [
+            ChangeMetric("Net worth", current.NetWorth, opening.NetWorth, period),
+            ChangeMetric("Assets", current.Assets, opening.Assets, period),
+            LiabilityMetric(current.Liabilities, opening.Liabilities, period)
+        ];
+    }
+
+    private static IReadOnlyList<ReportMetric> BuildHomeAccountGroups(
+        IReadOnlyList<AccountBalance> accounts,
+        IReadOnlyList<AccountBalance> openingAccounts,
+        HomeReportRange? range)
+    {
+        if (range is null)
+            return [];
+
+        var opening = openingAccounts.ToDictionary(
+            account => AccountKey(account),
+            account => account,
+            StringComparer.Ordinal);
+        string period = HomePeriodLabel(range);
+        return accounts
+            .Where(account => !string.IsNullOrWhiteSpace(account.Group))
+            .GroupBy(account => account.Group, StringComparer.Ordinal)
+            .OrderByDescending(group => decimal.Abs(group.Sum(account => account.SignedBalance)))
+            .ThenBy(group => group.Key, StringComparer.Ordinal)
+            .Select(group =>
+            {
+                AccountBalance[] current = group.ToArray();
+                decimal currentBalance = current.Sum(account => account.SignedBalance);
+                decimal openingBalance = current
+                    .Where(account => opening.TryGetValue(AccountKey(account), out _))
+                    .Sum(account => opening[AccountKey(account)].SignedBalance);
+                bool liabilityOnly = current.All(account => account.AccountClass == AccountClass.Liability);
+                decimal displayBalance = liabilityOnly ? decimal.Abs(currentBalance) : currentBalance;
+                decimal displayChange = liabilityOnly
+                    ? -(currentBalance - openingBalance)
+                    : currentBalance - openingBalance;
+                decimal netWorthContribution = currentBalance - openingBalance;
+                string? tone = displayChange == 0m
+                    ? null
+                    : liabilityOnly
+                        ? displayChange < 0m ? "positive" : "negative"
+                        : displayChange > 0m ? "positive" : "negative";
+                return new ReportMetric(
+                    group.Key,
+                    displayBalance,
+                    FormatMoney(displayBalance),
+                    tone,
+                    $"{FormatSignedMoney(displayChange)} {period}",
+                    netWorthContribution);
+            })
+            .ToArray();
+    }
+
+    private static IReadOnlyList<ReportTableRow> BuildHomeAccountInventory(
+        IReadOnlyList<AccountBalance> accounts,
+        IReadOnlyList<AccountBalance> openingAccounts,
+        HomeReportRange? range)
+    {
+        if (range is null)
+            return [];
+
+        var opening = openingAccounts.ToDictionary(
+            account => AccountKey(account),
+            account => account,
+            StringComparer.Ordinal);
+        AccountBalance[] groupedAccounts = accounts
+            .Where(account => !string.IsNullOrWhiteSpace(account.Group))
+            .ToArray();
+        var liabilityGroups = groupedAccounts
+            .GroupBy(account => account.Group, StringComparer.Ordinal)
+            .Where(group => group.All(account => account.AccountClass == AccountClass.Liability))
+            .Select(group => group.Key)
+            .ToHashSet(StringComparer.Ordinal);
+        return groupedAccounts
+            .OrderBy(account => account.Group, StringComparer.Ordinal)
+            .ThenByDescending(account => decimal.Abs(account.SignedBalance))
+            .ThenBy(account => account.Account, StringComparer.Ordinal)
+            .ThenBy(account => account.AccountId, StringComparer.Ordinal)
+            .Select(account =>
+            {
+                decimal openingBalance = opening.TryGetValue(AccountKey(account), out AccountBalance? value)
+                    ? value.SignedBalance
+                    : 0m;
+                bool liability = liabilityGroups.Contains(account.Group);
+                decimal displayBalance = liability ? decimal.Abs(account.SignedBalance) : account.SignedBalance;
+                decimal displayChange = liability
+                    ? -(account.SignedBalance - openingBalance)
+                    : account.SignedBalance - openingBalance;
+                string? tone = displayChange == 0m
+                    ? null
+                    : liability
+                        ? displayChange < 0m ? "positive" : "negative"
+                        : displayChange > 0m ? "positive" : "negative";
+                return new ReportTableRow(
+                    [
+                        account.Group,
+                        account.Account,
+                        FormatMoney(displayBalance),
+                        FormatSignedMoney(displayChange)
+                    ],
+                    tone);
+            })
+            .ToArray();
+    }
+
+    private static ReportMetric ChangeMetric(
+        string label,
+        decimal current,
+        decimal opening,
+        string period)
+    {
+        decimal change = current - opening;
+        return new ReportMetric(
+            label,
+            current,
+            FormatMoney(current),
+            change > 0m ? "positive" : change < 0m ? "negative" : null,
+            $"{FormatSignedMoney(change)} {period}",
+            change);
+    }
+
+    private static ReportMetric LiabilityMetric(decimal current, decimal opening, string period)
+    {
+        decimal magnitude = decimal.Abs(current);
+        decimal change = magnitude - decimal.Abs(opening);
+        return new ReportMetric(
+            "Liabilities",
+            magnitude,
+            FormatMoney(magnitude),
+            change < 0m ? "positive" : change > 0m ? "negative" : null,
+            $"{FormatSignedMoney(change)} {period}",
+            change);
+    }
+
+    private static string HomePeriodLabel(HomeReportRange range)
+        // Home.py keeps the configured label when weekly sampling moves the first point by at most one week.
+        => range.TimeFrame == HomeTimeFrame.All || range.Start > range.RequestedStart.AddDays(7)
+            ? $"since {range.Start:MMM yyyy}"
+            : $"over {HomeReportRange.Label(range.TimeFrame)}";
+
+    private static string AccountKey(AccountBalance account)
+        => account.AccountId;
+
     private static (YearMonth? Start, YearMonth? End) Period(YearMonth? latest, int months)
     {
         if (latest is null || months <= 0)
@@ -726,6 +935,9 @@ public static class DashboardReportBuilder
     private static DashboardWidgetReport Chart(IReadOnlyList<ReportSeries> series)
         => new([], series, [], [], series.Count == 0 ? "No data is available for this selection." : null);
 
+    private static DashboardWidgetReport EmptyHomeReport()
+        => new([], [], [], [], "No visible account balances are available.");
+
     private static ReportSeries Series(string id, string label, IEnumerable<ReportPoint> points)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
@@ -745,6 +957,11 @@ public static class DashboardReportBuilder
 
     private static string FormatMoney(decimal value)
         => value.ToString("C0", CultureInfo.GetCultureInfo("en-US"));
+
+    private static string FormatSignedMoney(decimal value)
+        => value == 0m
+            ? FormatMoney(value)
+            : $"{(value > 0m ? "+" : "-")}{FormatMoney(decimal.Abs(value))}";
 
     private static string FormatPercent(decimal? value)
         => value is null ? "—" : $"{value:0.0}%";

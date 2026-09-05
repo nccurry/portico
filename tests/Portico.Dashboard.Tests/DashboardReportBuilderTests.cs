@@ -249,6 +249,265 @@ public sealed class DashboardReportBuilderTests
         Assert.Contains(permissiveReport.Rows, row => row.Values[0] == "COFFEE CLUB" && row.Values[1] == "Detected (85%)");
     }
 
+    [Theory]
+    [InlineData(HomeTimeFrame.ThreeMonths, 2025, 12, 1)]
+    [InlineData(HomeTimeFrame.SixMonths, 2025, 9, 2)]
+    [InlineData(HomeTimeFrame.OneYear, 2025, 3, 1)]
+    [InlineData(HomeTimeFrame.TwoYears, 2024, 3, 1)]
+    [InlineData(HomeTimeFrame.FiveYears, 2021, 3, 2)]
+    [InlineData(HomeTimeFrame.All, 2020, 1, 1)]
+    public void HomeReportRange_UsesTheSourceDayCountsAndVisibleBalanceBounds(
+        HomeTimeFrame timeFrame,
+        int expectedYear,
+        int expectedMonth,
+        int expectedDay)
+    {
+        BalanceObservation[] balances =
+        [
+            Balance("checking", "Checking", "Cash", 2020, 1, 1, 100m),
+            Balance("checking", "Checking", "Cash", 2026, 3, 1, 500m)
+        ];
+
+        HomeReportRange range = Assert.IsType<HomeReportRange>(HomeReportRange.Create(balances, timeFrame));
+
+        Assert.Equal(new DateOnly(expectedYear, expectedMonth, expectedDay), range.Start);
+        Assert.Equal(new DateOnly(2026, 3, 1), range.End);
+        Assert.Equal(timeFrame, range.TimeFrame);
+    }
+
+    [Fact]
+    public void HomeReportRange_ClampsShortHistoryAndReturnsNullForNoVisibleBalances()
+    {
+        BalanceObservation[] shortHistory =
+        [
+            Balance("checking", "Checking", "Cash", 2026, 2, 15, 100m),
+            Balance("checking", "Checking", "Cash", 2026, 3, 1, 150m)
+        ];
+
+        HomeReportRange shortRange = Assert.IsType<HomeReportRange>(
+            HomeReportRange.Create(shortHistory, HomeTimeFrame.FiveYears));
+
+        Assert.Equal(new DateOnly(2021, 3, 2), shortRange.RequestedStart);
+        Assert.Equal(new DateOnly(2026, 2, 15), shortRange.Start);
+        Assert.Equal(new DateOnly(2026, 3, 1), shortRange.End);
+
+        HomeReportRange oneObservation = Assert.IsType<HomeReportRange>(HomeReportRange.Create(
+            [Balance("checking", "Checking", "Cash", 2026, 3, 1, 150m)],
+            HomeTimeFrame.OneYear));
+        Assert.Equal(new DateOnly(2025, 3, 1), oneObservation.RequestedStart);
+        Assert.Equal(new DateOnly(2026, 3, 1), oneObservation.Start);
+        Assert.Equal(oneObservation.Start, oneObservation.End);
+
+        Assert.Null(HomeReportRange.Create([Balance("hidden", "Hidden", "Cash", 2026, 3, 1, 1m, true)], HomeTimeFrame.All));
+    }
+
+    [Fact]
+    public void HomeReportRange_OnlyAcceptsTheConfiguredSourceChoices()
+    {
+        Assert.True(HomeReportRange.TryParse("5y", out HomeTimeFrame timeFrame));
+        Assert.Equal(HomeTimeFrame.FiveYears, timeFrame);
+        Assert.False(HomeReportRange.TryParse("10y", out _));
+        Assert.False(HomeReportRange.TryParse(null, out _));
+        Assert.Throws<ArgumentException>(() => HomeReportRange.Parse("10y"));
+    }
+
+    [Fact]
+    public void Build_HomeUsesTheSelectedRangeForHistoryMetricsGroupsAndInventory()
+    {
+        PortfolioSnapshot snapshot = new(
+            [],
+            [
+                Balance("checking", "Checking", "Cash", 2025, 11, 1, 300m),
+                Balance("card", "Card", "Debt", 2025, 11, 1, 150m, accountClass: AccountClass.Liability),
+                Balance("checking", "Checking", "Cash", 2025, 12, 20, 400m),
+                Balance("card", "Card", "Debt", 2025, 12, 20, 140m, accountClass: AccountClass.Liability),
+                Balance("checking", "Checking", "Cash", 2026, 3, 1, 500m),
+                Balance("card", "Card", "Debt", 2026, 3, 1, 100m, accountClass: AccountClass.Liability)
+            ],
+            []);
+
+        DashboardPageReport home = DashboardReportBuilder.Build(
+            snapshot,
+            Settings(),
+            new DashboardFilters(3, "all", "all", true, HomeTimeFrame.ThreeMonths))
+            .Page(DashboardPageId.Home);
+
+        DashboardWidgetReport netWorth = home.Widgets["home.net_worth"];
+        Assert.Equal(new DateOnly(2025, 12, 1), netWorth.Series[0].Points.First().Date);
+        Assert.Equal(new DateOnly(2026, 3, 1), netWorth.Series[0].Points.Last().Date);
+        Assert.All(netWorth.Series.SelectMany(series => series.Points), point =>
+            Assert.InRange(point.Date!.Value, new DateOnly(2025, 12, 1), new DateOnly(2026, 3, 1)));
+        Assert.All(
+            netWorth.Series.Single(series => series.Id == "net-worth").Points.Skip(1),
+            point => Assert.Equal(DayOfWeek.Sunday, point.Date!.Value.DayOfWeek));
+        Assert.Equal(150m, netWorth.Series.Single(series => series.Id == "net-worth").Points.First().Y);
+        Assert.Equal(400m, netWorth.Series.Single(series => series.Id == "net-worth").Points.Last().Y);
+        Assert.Equal("$400", netWorth.Metrics.Single(metric => metric.Label == "Net worth").Display);
+        Assert.Equal("+$250 over 3M", netWorth.Metrics.Single(metric => metric.Label == "Net worth").Detail);
+        Assert.Equal("-$50 over 3M", netWorth.Metrics.Single(metric => metric.Label == "Liabilities").Detail);
+
+        DashboardWidgetReport groups = home.Widgets["home.accounts"];
+        ReportMetric cash = groups.Metrics.Single(metric => metric.Label == "Cash");
+        ReportMetric debt = groups.Metrics.Single(metric => metric.Label == "Debt");
+        Assert.Equal("+$200 over 3M", cash.Detail);
+        Assert.Equal("-$50 over 3M", debt.Detail);
+        Assert.Equal("positive", debt.Tone);
+        Assert.Equal(
+            ["Debt", "Cash"],
+            home.Widgets["home.attribution"].Series.Single().Points.Select(point => point.Category));
+        Assert.Equal(200m, home.Widgets["home.attribution"].Series.Single().Points.Single(point => point.Category == "Cash").Y);
+        Assert.Equal(50m, home.Widgets["home.attribution"].Series.Single().Points.Single(point => point.Category == "Debt").Y);
+
+        ReportTableRow card = home.Widgets["home.inventory"].Rows.Single(row => row.Values[1] == "Card");
+        Assert.Equal(["Debt", "Card", "$100", "-$50"], card.Values);
+        Assert.Equal("positive", card.Tone);
+    }
+
+    [Fact]
+    public void Build_HomeClipsMetricsToTheEarliestBalanceAndUsesEmptyReportsWithoutBalances()
+    {
+        PortfolioSnapshot shortHistory = new(
+            [],
+            [
+                Balance("checking", "Checking", "Cash", 2026, 2, 15, 100m),
+                Balance("checking", "Checking", "Cash", 2026, 3, 1, 150m)
+            ],
+            []);
+
+        DashboardPageReport clipped = DashboardReportBuilder.Build(
+            shortHistory,
+            Settings(),
+            new DashboardFilters(3, "all", "all", true, HomeTimeFrame.FiveYears))
+            .Page(DashboardPageId.Home);
+
+        ReportMetric netWorth = clipped.Widgets["home.net_worth"].Metrics.Single(metric => metric.Label == "Net worth");
+        Assert.Equal("+$50 since Feb 2026", netWorth.Detail);
+        Assert.Equal(new DateOnly(2026, 2, 15), clipped.Widgets["home.net_worth"].Series[0].Points.First().Date);
+
+        DashboardPageReport empty = DashboardReportBuilder.Build(
+            new PortfolioSnapshot([], [], []),
+            Settings(),
+            new DashboardFilters(3, "all", "all", true, HomeTimeFrame.All))
+            .Page(DashboardPageId.Home);
+
+        Assert.Empty(empty.Widgets["home.net_worth"].Series);
+        Assert.Empty(empty.Widgets["home.attribution"].Series);
+        Assert.Equal("No visible account balances are available.", empty.Widgets["home.net_worth"].EmptyMessage);
+        Assert.Equal("No visible account balances are available.", empty.Widgets["home.attribution"].EmptyMessage);
+    }
+
+    [Fact]
+    public void Build_HomeKeepsTheConfiguredLabelWhenTheEarliestObservationIsWithinOneWeek()
+    {
+        PortfolioSnapshot snapshot = new(
+            [],
+            [
+                Balance("checking", "Checking", "Cash", 2025, 12, 5, 100m),
+                Balance("checking", "Checking", "Cash", 2026, 3, 1, 150m)
+            ],
+            []);
+
+        ReportMetric netWorth = DashboardReportBuilder.Build(
+            snapshot,
+            Settings(),
+            new DashboardFilters(3, "all", "all", true, HomeTimeFrame.ThreeMonths))
+            .Page(DashboardPageId.Home)
+            .Widgets["home.net_worth"]
+            .Metrics
+            .Single(metric => metric.Label == "Net worth");
+
+        Assert.Equal("+$50 over 3M", netWorth.Detail);
+    }
+
+    [Fact]
+    public void Build_HomeUsesNetContributionForAccountsInsideAMixedGroup()
+    {
+        PortfolioSnapshot snapshot = new(
+            [],
+            [
+                Balance("cash", "Cash", "Mixed", 2025, 12, 1, 100m),
+                Balance("card", "Card", "Mixed", 2025, 12, 1, 100m, accountClass: AccountClass.Liability),
+                Balance("cash", "Cash", "Mixed", 2026, 3, 1, 150m),
+                Balance("card", "Card", "Mixed", 2026, 3, 1, 75m, accountClass: AccountClass.Liability)
+            ],
+            []);
+
+        DashboardPageReport home = DashboardReportBuilder.Build(
+            snapshot,
+            Settings(),
+            new DashboardFilters(3, "all", "all", true, HomeTimeFrame.ThreeMonths))
+            .Page(DashboardPageId.Home);
+
+        Assert.Equal("$75", home.Widgets["home.accounts"].Metrics.Single().Display);
+        Assert.Equal(
+            ["Mixed", "Card", "-$75", "+$25"],
+            home.Widgets["home.inventory"].Rows.Single(row => row.Values[1] == "Card").Values);
+    }
+
+    [Fact]
+    public void Build_HomeKeepsUnmappedBalancesInNetWorthButOmitsThemFromAccountViews()
+    {
+        PortfolioSnapshot snapshot = new(
+            [],
+            [
+                Balance("checking", "Checking", "Cash", 2025, 12, 1, 100m),
+                Balance("unmapped", "Unmapped", " ", 2025, 12, 1, 80m),
+                Balance("checking", "Checking", "Cash", 2026, 3, 1, 150m),
+                Balance("unmapped", "Unmapped", " ", 2026, 3, 1, 90m)
+            ],
+            []);
+
+        DashboardPageReport home = DashboardReportBuilder.Build(
+            snapshot,
+            Settings(),
+            new DashboardFilters(3, "all", "all", true, HomeTimeFrame.ThreeMonths))
+            .Page(DashboardPageId.Home);
+
+        Assert.Equal(240m, home.Widgets["home.net_worth"].Series.Single(series => series.Id == "net-worth").Points.Last().Y);
+        Assert.Equal(["Cash"], home.Widgets["home.accounts"].Metrics.Select(metric => metric.Label));
+        Assert.Equal(["Checking"], home.Widgets["home.inventory"].Rows.Select(row => row.Values[1]));
+
+        DashboardPageReport unmappedOnly = DashboardReportBuilder.Build(
+            new PortfolioSnapshot([], [Balance("unmapped", "Unmapped", " ", 2026, 3, 1, 90m)], []),
+            Settings(),
+            new DashboardFilters(3, "all", "all", true, HomeTimeFrame.ThreeMonths))
+            .Page(DashboardPageId.Home);
+
+        Assert.Equal("No mapped balance groups are available.", unmappedOnly.Widgets["home.accounts"].EmptyMessage);
+    }
+
+    [Fact]
+    public void Build_HomeMatchesDuplicateAccountNamesByStableAccountId()
+    {
+        PortfolioSnapshot snapshot = new(
+            [],
+            [
+                Balance("brokerage-one", "Brokerage", "Investments", 2025, 12, 1, 100m),
+                Balance("brokerage-two", "Brokerage", "Investments", 2025, 12, 1, 300m),
+                Balance("brokerage-one", "Brokerage", "Investments", 2026, 3, 1, 150m),
+                Balance("brokerage-two", "Brokerage", "Investments", 2026, 3, 1, 200m)
+            ],
+            []);
+
+        DashboardPageReport home = DashboardReportBuilder.Build(
+            snapshot,
+            Settings(),
+            new DashboardFilters(3, "all", "all", true, HomeTimeFrame.ThreeMonths))
+            .Page(DashboardPageId.Home);
+
+        ReportMetric group = Assert.Single(home.Widgets["home.accounts"].Metrics);
+        Assert.Equal("Investments", group.Label);
+        Assert.Equal(350m, group.Value);
+        Assert.Equal("-$50 over 3M", group.Detail);
+        Assert.Equal(-50m, home.Widgets["home.attribution"].Series.Single().Points.Single().Y);
+        Assert.Equal(
+            [
+                ["Investments", "Brokerage", "$200", "-$100"],
+                ["Investments", "Brokerage", "$150", "+$50"]
+            ],
+            home.Widgets["home.inventory"].Rows.Select(row => row.Values).ToArray());
+    }
+
     [Fact]
     public void SupportedWidgetReports_CoversTheCheckedInDashboardGrammar()
     {
@@ -380,6 +639,26 @@ public sealed class DashboardReportBuilderTests
                 new BudgetEntry(new YearMonth(2024, 2), "Food", "Living", TransactionKind.Expense, 250m, false),
                 new BudgetEntry(new YearMonth(2024, 2), "Streaming", "Fun", TransactionKind.Expense, 25m, false)
             ]);
+
+    private static BalanceObservation Balance(
+        string accountId,
+        string account,
+        string group,
+        int year,
+        int month,
+        int day,
+        decimal amount,
+        bool hidden = false,
+        AccountClass accountClass = AccountClass.Asset)
+        => new(
+            accountId,
+            account,
+            group,
+            new DateOnly(year, month, day),
+            new TimeOnly(8, 0),
+            amount,
+            accountClass,
+            hidden);
 
     private static FinancialTransaction Row(
         string id,

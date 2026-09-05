@@ -8,7 +8,7 @@ app_title = "Portico"
 [[pages]]
 id = "home"
 title = "Home"
-description = "Net worth, cash flow, and financial safety at a glance."
+description = "Balance history, account groups, and financial safety at a glance."
 visible = true
 group = "standalone"
 order = 1
@@ -18,10 +18,31 @@ icon = "home"
 
 [[pages.sections]]
 id = "net_worth"
-title = "Net worth"
-description = "Track account balances and the change over time."
+title = "Net worth history"
+description = "Track account balances and the change over the selected time frame."
 layout = "flow"
 order = 1
+
+[[pages.sections]]
+id = "what_changed"
+title = "What changed"
+description = "See each account group's contribution to net-worth movement."
+layout = "flow"
+order = 2
+
+[[pages.sections]]
+id = "account_groups"
+title = "Account groups"
+description = "Review balances, changes, and account details by group."
+layout = "flow"
+order = 3
+
+[[pages.sections]]
+id = "financial_safety"
+title = "Financial safety"
+description = "Check emergency coverage, debt progress, and FI funding."
+layout = "flow"
+order = 4
 
 [[pages.controls]]
 id = "time_frame"
@@ -35,23 +56,27 @@ width = "full"
 
 [[pages.widgets]]
 id = "net-worth"
-title = "Net worth"
+title = "Net worth history"
 kind = "area_chart"
 report = "home.net_worth"
 span = 2
 section = "net_worth"
 
 [[pages.widgets]]
-id = "overview"
-title = "Overview"
-kind = "metric"
-report = "home.overview"
+id = "what-changed"
+title = "What changed"
+kind = "bar_chart"
+report = "home.attribution"
+span = 2
+section = "what_changed"
 
 [[pages.widgets]]
 id = "accounts"
 title = "Account groups"
-kind = "bar_chart"
+kind = "metric"
 report = "home.accounts"
+span = 2
+section = "account_groups"
 
 [[pages.widgets]]
 id = "safety"
@@ -59,13 +84,7 @@ title = "Financial safety"
 kind = "metric"
 report = "home.safety"
 span = 2
-
-[[pages.widgets]]
-id = "account-inventory"
-title = "Account inventory"
-kind = "table"
-report = "home.inventory"
-span = 2
+section = "financial_safety"
 
 [[pages]]
 id = "income_savings"

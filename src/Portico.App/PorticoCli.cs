@@ -226,6 +226,7 @@ public static class PorticoCli
             "spending" => settings.FilterSet("spending").Options.Contains(value, StringComparer.Ordinal),
             "year_over_year" => settings.FilterSet("year_over_year").Options.Contains(value, StringComparer.Ordinal),
             "income_view" => value is "regular" or "actual",
+            "home_time_frame" => HomeReportRange.TryParse(value, out _),
             _ => false
         };
 

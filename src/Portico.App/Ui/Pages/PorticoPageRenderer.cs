@@ -38,7 +38,7 @@ internal sealed class PorticoPageRenderer
         Action<DashboardWidgetDefinition, DashboardWidgetReport, bool> buildWidget)
     {
         ArgumentNullException.ThrowIfNull(buildWidget);
-        BuildControlBar(ui, page);
+        BuildControls(ui, page);
 
         foreach (DashboardSectionDefinition section in page.Sections.OrderBy(section => section.Order))
         {
@@ -68,7 +68,8 @@ internal sealed class PorticoPageRenderer
     public PorticoMultiSelectState<string>? MultiSelectState(DashboardPageId pageId, string controlId)
         => _multiSelectStates.GetValueOrDefault(Key(pageId, controlId));
 
-    private void BuildControlBar(UiBuilder ui, DashboardPageDefinition page)
+    /// <summary>Builds the configured page controls before its report content.</summary>
+    public void BuildControls(UiBuilder ui, DashboardPageDefinition page)
     {
         DashboardControlDefinition[] headerControls = page.Controls.Where(control => control.Section is null).ToArray();
         if (page.Filters.Count == 0 && headerControls.Length == 0)
@@ -179,8 +180,11 @@ internal sealed class PorticoPageRenderer
     private void BuildSegmentedChoice(UiBuilder ui, DashboardPageId pageId, DashboardControlDefinition control, string name)
     {
         string selected = _session.ControlValue(pageId, control.Id);
-        ui.SegmentedControl(name)
-            .SetFlexGrow(1f);
+        ui.SegmentedControl(name);
+        if (control.Width == DashboardControlWidth.Full)
+            ui.SetWidth(UiLength.ParentPercent(100));
+        else
+            ui.SetFlexGrow(1f);
         foreach (string option in control.ChoiceOptions)
             ui.Segment(DisplayValue(option));
         ui.SetSelectedSegment(IndexOf(control.ChoiceOptions, selected))
@@ -189,7 +193,11 @@ internal sealed class PorticoPageRenderer
                 _session.SetControlValue(pageId, control.Id, control.ChoiceOptions[index]);
                 _requestRebuild();
             })
+            .AsWidget(out WidgetRef<SegmentedControlState> segmented)
         .EndSegmentedControl();
+
+        if (control.Width == DashboardControlWidth.Full)
+            segmented.SetEqualSegmentWidths();
     }
 
     private void BuildMultiSelect(UiBuilder ui, DashboardPageId pageId, DashboardControlDefinition control, string name)

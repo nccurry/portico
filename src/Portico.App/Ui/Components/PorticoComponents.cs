@@ -8,6 +8,22 @@ namespace Portico.App.Ui.Components;
 /// <summary>Builds the small app-owned presentation pieces shared by Portico pages.</summary>
 public static class PorticoComponents
 {
+    /// <summary>Makes a native segmented control divide its available width evenly between its segments.</summary>
+    public static WidgetRef<SegmentedControlState> SetEqualSegmentWidths(
+        this WidgetRef<SegmentedControlState> control)
+    {
+        foreach (LayoutNode segment in control.State.Segments)
+        {
+            FlexItem item = segment.FlexItem ?? new FlexItem();
+            item.Basis = UiLength.Px(0f);
+            item.Grow = 1f;
+            item.Shrink = 1f;
+            segment.FlexItem = item;
+        }
+
+        return control;
+    }
+
     /// <summary>Starts a page header.</summary>
     public static UiBuilder PageHeader(this UiBuilder ui, string name = "PageHeader")
         => ui.VStack(PorticoSkin.CompactGap, name)
@@ -113,8 +129,67 @@ public static class PorticoComponents
         return ui;
     }
 
+    /// <summary>Adds an optional supporting value beneath a metric.</summary>
+    public static UiBuilder SetMetricDetail(
+        this UiBuilder ui,
+        string? detail,
+        string? tone = null,
+        string? namePrefix = null)
+    {
+        if (string.IsNullOrWhiteSpace(detail))
+            return ui;
+
+        string metricName = namePrefix ?? detail;
+        ui.Text(detail, $"MetricDetail:{metricName}")
+            .SetTextStyle(PorticoSkin.HelperText.Overlay(PorticoSkin.ToneTextStyle(tone)))
+        .End();
+        return ui;
+    }
+
     /// <summary>Ends the current metric card.</summary>
     public static UiBuilder EndMetricCard(this UiBuilder ui) => ui.End();
+
+    /// <summary>Starts a flat metric band for a report that already owns its outer panel.</summary>
+    public static UiBuilder MetricBand(this UiBuilder ui, string name)
+        => ui.HStack(PorticoSkin.CompactGap, name)
+            .SetFlexWrap()
+            .SetCrossGap(PorticoSkin.CompactGap)
+            .SetCrossAlign(CrossAlignment.Stretch)
+            .SetFlexGrow(1f);
+
+    /// <summary>Starts one plain metric column inside a metric band.</summary>
+    public static UiBuilder MetricBandItem(this UiBuilder ui, string name)
+        => ui.VStack(PorticoSkin.MetricGap, name)
+            .SetFlexBasis(PorticoSkin.MetricMinimumWidth)
+            .SetFlexGrow(1f)
+            .SetFlexShrink(1f);
+
+    /// <summary>Ends one metric band column.</summary>
+    public static UiBuilder EndMetricBandItem(this UiBuilder ui) => ui.End();
+
+    /// <summary>Adds a plain title and optional description before a report group.</summary>
+    public static UiBuilder SectionHeading(
+        this UiBuilder ui,
+        string name,
+        string title,
+        string? description = null)
+    {
+        ui.VStack(PorticoSkin.HeadingGap, name)
+            .SetCrossAlign(CrossAlignment.Stretch);
+        ui.Text(title, $"{name}:Title")
+            .SetTextStyle(PorticoSkin.SectionTitleText)
+            .SetFontStyle(FontStyle.Bold)
+        .End();
+        if (!string.IsNullOrWhiteSpace(description))
+        {
+            ui.Text(description, $"{name}:Description")
+                .SetTextStyle(PorticoSkin.HelperText)
+                .SetTextWrap()
+            .End();
+        }
+
+        return ui.End();
+    }
 
     /// <summary>Starts a section panel with a title, optional helper text, and optional header actions.</summary>
     public static UiBuilder SectionPanel(

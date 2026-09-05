@@ -19,7 +19,12 @@ public static class PorticoCaptureCatalog
         new("home", static session =>
         {
             session.SelectPage(DashboardPageId.Home);
-            session.SetFilter("lookback", "12");
+            session.SetControlValue(DashboardPageId.Home, "time_frame", "1y");
+        }),
+        new("home-all", static session =>
+        {
+            session.SelectPage(DashboardPageId.Home);
+            session.SetControlValue(DashboardPageId.Home, "time_frame", "all");
         }),
         new("income-savings", static session =>
         {

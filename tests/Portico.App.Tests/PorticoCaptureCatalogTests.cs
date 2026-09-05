@@ -16,7 +16,7 @@ public sealed class PorticoCaptureCatalogTests
     {
         IReadOnlyList<CaptureCase> cases = PorticoCaptureCatalog.CaptureCatalog.CaptureCases;
 
-        Assert.Equal(30, cases.Count);
+        Assert.Equal(32, cases.Count);
         Assert.Equal(
         [
             "budget",
@@ -25,6 +25,7 @@ public sealed class PorticoCaptureCatalogTests
             "data-health-refresh-unavailable",
             "financial-independence",
             "home",
+            "home-all",
             "home-hidden",
             "income-categories-wrapped",
             "income-savings",
@@ -47,10 +48,10 @@ public sealed class PorticoCaptureCatalogTests
         }
 
         Assert.Equal(
-            15,
+            16,
             cases.Count(capture => capture.CaptureSize == new CaptureSize(1500, 1000)));
         Assert.Equal(
-            15,
+            16,
             cases.Count(capture => capture.CaptureSize == new CaptureSize(1024, 720)));
 
         DashboardPageId[] configuredPages = PorticoDemoSessionFactory.Create()
@@ -144,6 +145,23 @@ public sealed class PorticoCaptureCatalogTests
 
         Assert.Equal("Excluded", session.Presentation.IncomeSavings.DetailTab);
         Assert.Equal(7, session.Presentation.IncomeSavings.ExcludedIncomeCategories.Count);
+    }
+
+    [Theory]
+    [InlineData("home", HomeTimeFrame.OneYear)]
+    [InlineData("home-all", HomeTimeFrame.All)]
+    public void CreateSession_HomeRangeScenariosUseTheConfiguredReportRange(string scenario, HomeTimeFrame expected)
+    {
+        GameRunContext context = PorticoCaptureCatalog.RunCatalog.CreateContext(new GameRunOptions
+        {
+            StartStateId = PorticoCaptureCatalog.DemoLaunchState,
+            ScenarioId = scenario
+        });
+
+        DashboardSession session = PorticoCaptureCatalog.CreateSession(context);
+
+        Assert.Equal(DashboardPageId.Home, session.CurrentPage);
+        Assert.Equal(expected, session.Filters.HomeTimeFrame);
     }
 
     [Theory]

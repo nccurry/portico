@@ -217,6 +217,7 @@ public sealed class DashboardSession
         => source switch
         {
             "lookback" => filters with { LookbackMonths = ParseLookback(value) },
+            "home_time_frame" => filters with { HomeTimeFrame = HomeReportRange.Parse(value) },
             "spending" => filters with { SpendingSet = ValidateFilterSet("spending", value) },
             "year_over_year" => filters with { YearOverYearSet = ValidateFilterSet("year_over_year", value) },
             "income_view" => filters with { RegularIncome = ParseIncomeView(value) },
@@ -262,9 +263,6 @@ public sealed class DashboardSession
 
         switch (mapping.Source)
         {
-            case DashboardControlSource.HomeTimeFrame:
-                Presentation.SetHomeTimeFrame(value);
-                return;
             case DashboardControlSource.IncomeDetailTab:
                 Presentation.SetIncomeDetailTab(value);
                 return;
@@ -285,6 +283,7 @@ public sealed class DashboardSession
         => source switch
         {
             "lookback" => Filters.LookbackMonths.ToString(CultureInfo.InvariantCulture),
+            "home_time_frame" => HomeReportRange.Format(Filters.HomeTimeFrame),
             "spending" => Filters.SpendingSet,
             "year_over_year" => Filters.YearOverYearSet,
             "income_view" => Filters.RegularIncome ? "regular" : "actual",

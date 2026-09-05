@@ -83,6 +83,7 @@ internal static class PorticoSkin
     internal const float TableWidgetHeight = 310f;
     internal const float SparklineWidgetHeight = 200f;
     internal const float ChartWidgetHeight = 290f;
+    internal const float HomeNetWorthWidgetHeight = 470f;
 
     internal const int BodyTextSize = 14;
     internal const int HelperTextSize = 12;

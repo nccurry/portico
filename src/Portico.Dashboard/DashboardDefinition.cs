@@ -171,7 +171,7 @@ public enum DashboardControlSource
     /// <summary>Uses the shared income-view setting.</summary>
     IncomeView,
 
-    /// <summary>Uses the Home page time-frame display state.</summary>
+    /// <summary>Uses the Home page balance-history report range.</summary>
     HomeTimeFrame,
 
     /// <summary>Uses the Income and savings excluded-income-category display state.</summary>
@@ -479,6 +479,13 @@ public sealed record DashboardDefinition(
             else if (!DashboardControlMappings.TryValidate(mapping, out string? mappingProblem))
             {
                 problems.Add($"dashboard control '{page.Id}.{control.Id}' {mappingProblem}.");
+            }
+            else if (!DashboardControlMappings.TryValidateConfiguredOptions(
+                mapping,
+                control.ChoiceOptions,
+                out string? optionProblem))
+            {
+                problems.Add($"dashboard control '{page.Id}.{control.Id}' {optionProblem}.");
             }
         }
 

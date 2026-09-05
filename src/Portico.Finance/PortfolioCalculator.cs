@@ -1,7 +1,12 @@
 ﻿namespace Portico.Finance;
 
 /// <summary>Represents an account's latest signed balance.</summary>
-public sealed record AccountBalance(string Account, string Group, decimal SignedBalance, AccountClass AccountClass);
+public sealed record AccountBalance(
+    string AccountId,
+    string Account,
+    string Group,
+    decimal SignedBalance,
+    AccountClass AccountClass);
 
 /// <summary>Represents a net-worth total for one date.</summary>
 public sealed record NetWorthPoint(DateOnly Date, decimal Assets, decimal Liabilities, decimal NetWorth);
@@ -38,6 +43,7 @@ public static class PortfolioCalculator
 
         return latest.Values
             .Select(value => new AccountBalance(
+                value.AccountId,
                 value.Account,
                 value.Group,
                 value.AccountClass == AccountClass.Liability ? -value.Balance : value.Balance,

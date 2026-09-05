@@ -33,7 +33,7 @@ public sealed class DashboardPresentationTests
     {
         var session = new DashboardSession(new PortfolioSnapshot([], [], []), Settings(), Definition());
 
-        Assert.Equal(HomeTimeFrame.FiveYears, session.Presentation.Home.TimeFrame);
+        Assert.Equal(HomeTimeFrame.FiveYears, session.Filters.HomeTimeFrame);
         Assert.False(session.Filters.RegularIncome);
         Assert.Contains("Salary", session.Presentation.IncomeSavings.ExcludedIncomeCategories);
         Assert.Equal("Excluded", session.Presentation.IncomeSavings.DetailTab);
@@ -41,13 +41,17 @@ public sealed class DashboardPresentationTests
         Assert.Equal(45m, session.Presentation.DataHealth.StaleThreshold);
         Assert.True(session.Presentation.DataHealth.IncludeInactive);
 
+        string originalSpendingSet = session.Filters.SpendingSet;
         DashboardReport initialReport = session.Report;
         session.SetControlValue(DashboardPageId.IncomeSavings, "income_view", "regular");
         Assert.True(session.Filters.RegularIncome);
         Assert.NotSame(initialReport, session.Report);
 
         session.SetControlValue(DashboardPageId.Home, "time_frame", "all");
-        Assert.Equal(HomeTimeFrame.All, session.Presentation.Home.TimeFrame);
+        Assert.Equal(HomeTimeFrame.All, session.Filters.HomeTimeFrame);
+        Assert.NotSame(initialReport, session.Report);
+        Assert.True(session.Filters.RegularIncome);
+        Assert.Equal(originalSpendingSet, session.Filters.SpendingSet);
         session.SetControlValues(DashboardPageId.IncomeSavings, "exclude_income_categories", ["Bonus", "Salary"]);
         Assert.Equal(["Bonus", "Salary"], session.Presentation.IncomeSavings.ExcludedIncomeCategories.Order());
         session.SetControlValue(DashboardPageId.IncomeSavings, "detail_tab", "Included");
@@ -170,6 +174,34 @@ public sealed class DashboardPresentationTests
         Assert.Contains(problems, problem => problem.Contains("unsupported option source", StringComparison.Ordinal));
         Assert.Contains(problems, problem => problem.Contains("blank or duplicate options", StringComparison.Ordinal));
         Assert.Contains(problems, problem => problem.Contains("default must be one of its options", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Definition_RejectsUnsupportedHomeTimeFrameOptions()
+    {
+        DashboardDefinition definition = Definition();
+        DashboardPageDefinition home = definition.Pages.Single(page => page.Id == DashboardPageId.Home) with
+        {
+            Controls =
+            [
+                new DashboardControlDefinition(
+                    "time_frame",
+                    "Time frame",
+                    DashboardControlKind.SegmentedChoice,
+                    DashboardControlSource.HomeTimeFrame,
+                    Options: ["3m", "10y"],
+                    DefaultValue: "10y",
+                    Width: DashboardControlWidth.Full)
+            ]
+        };
+        DashboardDefinition invalid = definition with
+        {
+            Pages = definition.Pages.Select(page => page.Id == home.Id ? home : page).ToArray()
+        };
+
+        Assert.Contains(
+            invalid.Validate(),
+            problem => problem.Contains("unsupported Home time-frame option '10y'", StringComparison.Ordinal));
     }
 
     [Fact]

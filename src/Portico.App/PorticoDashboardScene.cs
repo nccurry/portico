@@ -25,6 +25,7 @@ public sealed class PorticoDashboardScene
     private readonly PorticoDashboardDisplayState _displayState;
     private readonly IPorticoRefreshBoundary _refreshBoundary;
     private readonly PorticoPageRenderer _pageRenderer;
+    private readonly PorticoHomePageRenderer _homePageRenderer;
     private bool _rebuildRequired;
     private Task<PorticoRefreshResult>? _refreshTask;
 
@@ -41,6 +42,7 @@ public sealed class PorticoDashboardScene
         _displayState = displayState ?? new PorticoDashboardDisplayState();
         _refreshBoundary = refreshBoundary ?? new UnavailablePorticoRefreshBoundary();
         _pageRenderer = new PorticoPageRenderer(_session, () => _rebuildRequired = true);
+        _homePageRenderer = new PorticoHomePageRenderer(_session);
         Stage = new UiStage(viewportSize, PorticoSkin.Create());
         Stage.ViewportChanged += _ => _rebuildRequired = true;
         Build();
@@ -343,7 +345,22 @@ public sealed class PorticoDashboardScene
         if (_displayState.LoadStatus != PorticoDataLoadStatus.Loaded)
             BuildLoadStatePanel();
 
-        _pageRenderer.BuildContent(Ui, page, _session.Report.Page(page.Id), BuildWidget);
+        DashboardPageReport report = _session.Report.Page(page.Id);
+        if (_homePageRenderer.CanRender(page))
+        {
+            _pageRenderer.BuildControls(Ui, page);
+            _homePageRenderer.Build(
+                Ui,
+                page,
+                report,
+                (widget, item, expand, height) => BuildWidget(widget, item, expand, height),
+                (widget, item, height) => BuildWidget(widget, item, false, height, useFlatMetricBand: true),
+                value => DisplayPrivateText(value));
+        }
+        else
+        {
+            _pageRenderer.BuildContent(Ui, page, report, BuildWidget);
+        }
 
         Ui.End();
     }
@@ -389,10 +406,18 @@ public sealed class PorticoDashboardScene
         Ui.End();
     }
 
-    private void BuildWidget(DashboardWidgetDefinition widget, DashboardWidgetReport report, bool expand = false)
+    private void BuildWidget(DashboardWidgetDefinition widget, DashboardWidgetReport report, bool expand)
+        => BuildWidget(widget, report, expand, null);
+
+    private void BuildWidget(
+        DashboardWidgetDefinition widget,
+        DashboardWidgetReport report,
+        bool expand,
+        float? heightOverride,
+        bool useFlatMetricBand = false)
     {
         Ui.VStack(PorticoSkin.CompactGap, $"Widget:{widget.Id}")
-            .SetHeight(WidgetHeight(widget.Kind))
+            .SetHeight(heightOverride ?? WidgetHeight(widget.Kind))
             .SetFlexGrow(expand ? 1f : 0f)
             .SetFlexShrink(expand ? 1f : 0f)
             .SetPadding(PorticoSkin.WidgetPadding)
@@ -414,7 +439,12 @@ public sealed class PorticoDashboardScene
         }
 
         if (report.Metrics.Count > 0)
-            BuildMetrics(widget.Id, report.Metrics);
+        {
+            if (useFlatMetricBand)
+                BuildMetricBand(widget.Id, report.Metrics);
+            else
+                BuildMetrics(widget.Id, report.Metrics);
+        }
 
         if (report.Series.Count == 0
             && report.Rows.Count == 0
@@ -467,7 +497,32 @@ public sealed class PorticoDashboardScene
                     DisplayPrivateText(metric.Display),
                     metric.Tone,
                     widgetId)
+                .SetMetricDetail(
+                    DisplayPrivateText(metric.Detail),
+                    metric.Tone,
+                    $"{widgetId}:{metric.Label}")
             .EndMetricCard();
+        }
+
+        Ui.End();
+    }
+
+    private void BuildMetricBand(string widgetId, IReadOnlyList<ReportMetric> metrics)
+    {
+        Ui.MetricBand($"Metrics:{widgetId}");
+        foreach (ReportMetric metric in metrics)
+        {
+            Ui.MetricBandItem($"Metric:{widgetId}:{metric.Label}")
+                .SetMetric(
+                    metric.Label,
+                    DisplayPrivateText(metric.Display),
+                    metric.Tone,
+                    widgetId)
+                .SetMetricDetail(
+                    DisplayPrivateText(metric.Detail),
+                    metric.Tone,
+                    $"{widgetId}:{metric.Label}")
+            .EndMetricBandItem();
         }
 
         Ui.End();
@@ -773,16 +828,7 @@ public sealed class PorticoDashboardScene
             return;
         }
 
-        Ui.VStack(PorticoSkin.TableGap, $"Table:{widgetId}")
-            .SetFlexGrow(1f)
-            .SetScrollable(vertical: true, horizontal: false);
-        BuildTableRow($"TableHeader:{widgetId}", report.Columns, true, null);
-        for (int index = 0; index < Math.Min(report.Rows.Count, 30); index++)
-        {
-            ReportTableRow row = report.Rows[index];
-            BuildTableRow($"TableRow:{widgetId}:{index}", row.Values, false, row.Tone);
-        }
-        Ui.End();
+        PorticoTableRenderer.Build(Ui, widgetId, report.Columns, report.Rows, value => DisplayPrivateText(value));
     }
 
     private void BuildTimeline(string widgetId, DashboardWidgetReport report)
@@ -850,26 +896,6 @@ public sealed class PorticoDashboardScene
                     CellFillRatio = PorticoSkin.HeatmapCellFillRatio
                 });
         EndChartWithDetails();
-    }
-
-    private void BuildTableRow(string name, IReadOnlyList<string> values, bool header, string? tone)
-    {
-        Ui.HStack(PorticoSkin.TableRowGap, name)
-            .SetPadding(PorticoSkin.TableRowHorizontalPadding, PorticoSkin.TableRowVerticalPadding)
-            .SetCornerRadius(PorticoSkin.TableCornerRadius)
-            .SetCrossAlign(CrossAlignment.Center)
-            .SetStyle(header ? PorticoSkin.MutedPanelStyle : PorticoSkin.TablePanelStyle);
-        foreach (string value in values)
-        {
-            Ui.Text(TrimCell(header ? value : DisplayPrivateText(value)), $"{name}:{value}")
-                .SetFlexGrow(1f)
-                .SetTextStyle(header
-                    ? PorticoSkin.NavigationGroupLabelText
-                    : PorticoSkin.HelperText.Overlay(PorticoSkin.ToneTextStyle(tone)))
-                .SetFontStyle(header ? FontStyle.Bold : FontStyle.Regular)
-            .End();
-        }
-        Ui.End();
     }
 
     private void BuildEmpty(string? message)
@@ -1068,6 +1094,4 @@ public sealed class PorticoDashboardScene
         Ui.SetFlexGrow(1f).EndChart();
     }
 
-    private static string TrimCell(string value)
-        => value.Length <= 28 ? value : $"{value[..25]}...";
 }
