@@ -168,9 +168,10 @@ task roci:publish:linux-x64
 
 `roci:visual` first builds the matching configuration, then runs the
 test-only `Portico.CaptureHost` cases serially with Roci automation and
-capture. The command writes the twenty current-dashboard PNG files to
+capture. The command currently writes 32 PNG files to
 `artifacts/visual/portico-current`: every configured page at 1500 by 1000 and
-1024 by 720. A direct host run accepts normal Roci arguments such as
+1024 by 720, plus Home All, hidden-value, wrapped-control, loading, failed,
+and unavailable states. A direct host run accepts normal Roci arguments such as
 `--start-state`, `--scenario`, `--capture-size`, `--capture-frame`, and
 `--capture`.
 

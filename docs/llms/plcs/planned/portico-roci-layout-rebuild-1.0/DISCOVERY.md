@@ -210,6 +210,24 @@ Roci.
 | Any chart gap | A named Streamlit chart and the smallest attempted Roci composition. | Pending. |
 | Page configuration fields | Current TOML types plus one representative page loaded through them. | Completed in Phase 3: validated sections, typed controls, C# mapping routes, and Home/Income configurations. |
 
+### Phase 4 Home Findings
+
+- The six Home choices are report inputs, not display state. Their source day
+  counts are 90, 180, 365, 730, and 1,825. `All` starts at the first visible
+  balance. A requested start before that balance is clipped to it.
+- Home history contains the effective start, every Sunday through the effective
+  end, and the end. Each point uses the latest visible balance for each account
+  at that date.
+- Overall net worth keeps accounts with a blank group. Group cards, What
+  changed, and account details omit them because the source does not display a
+  blank group.
+- Liability cards show debt magnitude and treat a lower debt balance as a
+  positive change. What changed keeps the signed net-worth contribution so debt
+  paydown remains a positive contribution.
+- The native Roci category chart is vertical. The source What changed chart is
+  horizontal. The Portico implementation keeps the same values and order and
+  records the orientation difference for the final comparison.
+
 ## Phase 0 Exit Check
 
 - The inventory lists all ten current pages and exact source navigation text:

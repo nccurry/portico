@@ -92,7 +92,7 @@ task roci:run
 
 The default command reads the synthetic CSV files in `demo/data`.
 It opens the ten pages in `dashboard.toml`.
-Use Menu to open the left page drawer.
+Use the permanent left rail to move between pages.
 Page controls rebuild the report without changing the workbook.
 
 Run this check without opening a window:
@@ -114,9 +114,10 @@ It also accepts repeatable `--sheet NAME=URL` values.
 The app reads sheet URLs only. It does not print them in diagnostics.
 
 `dashboard.toml` controls the desktop presentation. It defines page order,
-titles, filters, widgets, spans, and chart kinds. The finance TOML keeps the
-calculation rules. `combo_chart` combines category bars with connected lines;
-its `bar_series` list names the report series that render as bars. Other series
+rail labels, page headings, sections, controls, widgets, spans, and chart
+kinds. The finance TOML keeps the calculation rules. `combo_chart` combines
+category bars with connected lines; its `bar_series` list names the report
+series that render as bars. Other series
 render as lines. The app rejects an invalid widget or filter before it opens a
 window.
 

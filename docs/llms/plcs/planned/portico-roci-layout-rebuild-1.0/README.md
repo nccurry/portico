@@ -4,7 +4,7 @@
 
 - Status: In progress
 - Created: 2026-09-04
-- Current phase: Phase 4 — rebuild Home
+- Current phase: Phase 5.1 — rebuild Spending by category
 - Owner: Portico maintainers
 - Target worktree: `../portico-roci-rebuild`
 - Target branch: `nccurry/roci-portico-plc`
@@ -78,8 +78,25 @@ Phase 3 completed on 2026-09-04.
   (30 captures), `roci:doctor`, and `git diff --check`. Code and design audits
   found no remaining P1 or P2 issue.
 
-Phase 4 now connects Home's time frame to correct dashboard report ranges and
-rebuilds the rest of the page from the shared pieces.
+Phase 4 completed on 2026-09-05.
+
+- Home now has the source reading order: Time frame, net-worth history, What
+  changed, account groups with expandable details, and financial safety.
+- The TOML-backed 3M, 6M, 1Y, 2Y, 5Y, and All choices update the Home report.
+  They use the same 90, 180, 365, 730, and 1,825-day windows as `Home.py`,
+  clamp to the first visible balance, and do not use the transaction lookback.
+- Report and interaction tests cover normal, short-history, empty, hidden,
+  unmapped-group, mixed-group, duplicate-account-name, range-selection, and
+  detail-retention cases. The full suite now has 129 passing tests.
+- `task roci:visual` now writes 32 current captures. Home is covered at both
+  desktop sizes for the normal, All, and hidden-value states.
+- The source uses horizontal Altair bars for What changed. The local Roci page
+  uses a vertical category bar chart because that is the available native chart
+  form; its values, signed ordering, and interaction state match the source.
+- The merged phase passed `task roci:format`, `task roci:lint`,
+  `task roci:build:strict`, `task roci:test`, `task roci:visual`, and
+  `git diff --check`. The combined code audit found no blocking or deferred
+  issue.
 
 ## Purpose
 
