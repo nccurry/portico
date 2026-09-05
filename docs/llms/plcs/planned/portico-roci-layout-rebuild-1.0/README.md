@@ -4,7 +4,7 @@
 
 - Status: In progress
 - Created: 2026-09-04
-- Current phase: Phase 1 — build the skin and flex foundation
+- Current phase: Phase 2 — add navigation rail and global state
 - Owner: Portico maintainers
 - Target worktree: `../portico-roci-rebuild`
 - Target branch: `nccurry/roci-portico-plc`
@@ -26,8 +26,24 @@ Phase 0 completed on 2026-09-04.
   reviews also passed `$audit-codebase`; the capture review passed
   `$frontend-design-review` for its narrow Phase 0 scope.
 
-The next phase changes only the app shell and presentation styles. Typed page
-controls, configuration extensions, and report mappings remain Phase 3 work.
+Phase 1 completed on 2026-09-04.
+
+- The old light top bar and overlay drawer were replaced with a dark flex shell:
+  fixed rail, growing main column, fixed page header, and vertically scrolling
+  page body.
+- [PorticoSkin.cs](../../../../../src/Portico.App/Ui/PorticoSkin.cs) now owns
+  the Portico colors, spacing, text styles, action styles, semantic states, and
+  chart palette.
+- Wide and narrow layout tests prove the 232-pixel rail, full-height shell,
+  scroll boundary, and deliberate card wrapping at 1024 by 720.
+- The merged phase passed `task roci:format`, `task roci:lint`,
+  `task roci:build:strict`, `task roci:test:desktop`, `task roci:visual`, and
+  `git diff --check`. Its code and design audits found no P1 or P2 issue.
+
+The rail intentionally contains only a Phase 1 placeholder. Phase 2 replaces
+it with exact source navigation, selection, privacy, load status, and refresh
+state. Typed page controls, configuration extensions, and report mappings
+remain Phase 3 work.
 
 ## Purpose
 
