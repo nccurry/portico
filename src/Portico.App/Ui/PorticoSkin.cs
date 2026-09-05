@@ -36,6 +36,15 @@ internal static class PorticoSkin
     internal const float CompactGap = 8f;
     internal const float HeadingGap = 4f;
     internal const float FilterGap = 5f;
+    internal const float ControlBarPadding = 10f;
+    internal const float ControlMinimumWidth = 188f;
+    internal const float FullControlMinimumWidth = 440f;
+    internal const float SectionPadding = 14f;
+    internal const float SectionHeaderGap = 10f;
+    internal const float MultiSelectMinimumWidth = 220f;
+    internal const float MultiSelectPopoverWidth = 300f;
+    internal const float MultiSelectPopoverMaximumHeight = 310f;
+    internal const int MultiSelectSearchThreshold = 7;
     internal const float RailPadding = 20f;
     internal const float HeaderTopPadding = 24f;
     internal const float DividerHeight = 1f;

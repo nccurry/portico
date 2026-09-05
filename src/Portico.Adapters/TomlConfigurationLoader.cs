@@ -179,6 +179,8 @@ public static class TomlConfigurationLoader
         string pageHeading = String(table, "page_heading", path, errors);
         string icon = String(table, "icon", path, errors);
         IReadOnlyList<TomlTable> filters = OptionalTables(table, "filters", path, errors);
+        IReadOnlyList<TomlTable> sections = OptionalTables(table, "sections", path, errors);
+        IReadOnlyList<TomlTable> controls = OptionalTables(table, "controls", path, errors);
         IReadOnlyList<TomlTable> widgets = Tables(table, "widgets", path, errors);
         var parsedFilters = new List<DashboardFilterDefinition>(filters.Count);
         for (int filterIndex = 0; filterIndex < filters.Count; filterIndex++)
@@ -195,6 +197,41 @@ public static class TomlConfigurationLoader
                 Strings(filter, "options", filterPath, errors)));
         }
 
+        var parsedSections = new List<DashboardSectionDefinition>(sections.Count);
+        for (int sectionIndex = 0; sectionIndex < sections.Count; sectionIndex++)
+        {
+            TomlTable section = sections[sectionIndex];
+            string sectionPath = $"{path}.sections[{sectionIndex}]";
+            parsedSections.Add(new DashboardSectionDefinition(
+                String(section, "id", sectionPath, errors),
+                String(section, "title", sectionPath, errors),
+                ParseSectionLayout(String(section, "layout", sectionPath, errors), $"{sectionPath}.layout", errors),
+                Integer(section, "order", sectionPath, errors),
+                OptionalString(section, "description", sectionPath, errors)));
+        }
+
+        var parsedControls = new List<DashboardControlDefinition>(controls.Count);
+        for (int controlIndex = 0; controlIndex < controls.Count; controlIndex++)
+        {
+            TomlTable control = controls[controlIndex];
+            string controlPath = $"{path}.controls[{controlIndex}]";
+            string kind = String(control, "kind", controlPath, errors);
+            parsedControls.Add(new DashboardControlDefinition(
+                String(control, "id", controlPath, errors),
+                String(control, "label", controlPath, errors),
+                ParseControlKind(kind, $"{controlPath}.kind", errors),
+                ParseControlSource(String(control, "source", controlPath, errors), $"{controlPath}.source", errors),
+                ParseControlOptionSource(OptionalString(control, "option_source", controlPath, errors) ?? "static", $"{controlPath}.option_source", errors),
+                OptionalStrings(control, "options", controlPath, errors),
+                OptionalScalarString(control, "default", controlPath, errors),
+                OptionalStrings(control, "defaults", controlPath, errors),
+                OptionalDecimal(control, "minimum", controlPath, errors),
+                OptionalDecimal(control, "maximum", controlPath, errors),
+                OptionalDecimal(control, "step", controlPath, errors),
+                ParseControlWidth(OptionalString(control, "width", controlPath, errors) ?? "compact", $"{controlPath}.width", errors),
+                OptionalString(control, "section", controlPath, errors)));
+        }
+
         var parsedWidgets = new List<DashboardWidgetDefinition>(widgets.Count);
         for (int widgetIndex = 0; widgetIndex < widgets.Count; widgetIndex++)
         {
@@ -208,7 +245,8 @@ public static class TomlConfigurationLoader
                 String(widget, "report", widgetPath, errors),
                 OptionalInteger(widget, "span", 1, widgetPath, errors),
                 OptionalString(widget, "description", widgetPath, errors),
-                OptionalStrings(widget, "bar_series", widgetPath, errors)));
+                OptionalStrings(widget, "bar_series", widgetPath, errors),
+                OptionalString(widget, "section", widgetPath, errors)));
         }
 
         return new DashboardPageDefinition(
@@ -222,7 +260,11 @@ public static class TomlConfigurationLoader
             order,
             railLabel,
             pageHeading,
-            ParseNavigationIcon(icon, $"{path}.icon", errors));
+            ParseNavigationIcon(icon, $"{path}.icon", errors))
+        {
+            Sections = parsedSections,
+            Controls = parsedControls
+        };
     }
 
     private static IReadOnlyDictionary<string, IReadOnlyList<string>> ParseAliases(TomlTable root, List<ConfigurationError> errors)
@@ -432,6 +474,20 @@ public static class TomlConfigurationLoader
         return null;
     }
 
+    private static string? OptionalScalarString(TomlTable table, string key, string prefix, List<ConfigurationError> errors)
+    {
+        if (!table.TryGetValue(key, out object? value))
+            return null;
+
+        return value switch
+        {
+            string text when !string.IsNullOrWhiteSpace(text) => text,
+            bool boolean => boolean.ToString().ToLowerInvariant(),
+            _ when TryDecimal(value, out decimal number) => number.ToString(CultureInfo.InvariantCulture),
+            _ => AddAndReturn(errors, $"{prefix}.{key}", "must be a string, number, or true/false value.", (string?)null)
+        };
+    }
+
     private static int Integer(TomlTable table, string key, string prefix, List<ConfigurationError> errors)
     {
         if (table.TryGetValue(key, out object? value) && TryInteger(value, out int result))
@@ -456,6 +512,16 @@ public static class TomlConfigurationLoader
             return result;
         errors.Add(new ConfigurationError($"{prefix}.{key}", "is required and must be a number."));
         return 0m;
+    }
+
+    private static decimal? OptionalDecimal(TomlTable table, string key, string prefix, List<ConfigurationError> errors)
+    {
+        if (!table.TryGetValue(key, out object? value))
+            return null;
+        if (TryDecimal(value, out decimal result))
+            return result;
+        errors.Add(new ConfigurationError($"{prefix}.{key}", "must be a number."));
+        return null;
     }
 
     private static bool Boolean(TomlTable table, string key, string prefix, List<ConfigurationError> errors)
@@ -597,6 +663,53 @@ public static class TomlConfigurationLoader
         => ParseEnum(value, path, errors, new Dictionary<string, DashboardFilterKind>(StringComparer.OrdinalIgnoreCase)
         {
             ["select"] = DashboardFilterKind.Select
+        });
+
+    private static DashboardControlKind ParseControlKind(string value, string path, List<ConfigurationError> errors)
+        => ParseEnum(value, path, errors, new Dictionary<string, DashboardControlKind>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["select"] = DashboardControlKind.Select,
+            ["segmented_choice"] = DashboardControlKind.SegmentedChoice,
+            ["multi_select"] = DashboardControlKind.MultiSelect,
+            ["number_input"] = DashboardControlKind.NumberInput,
+            ["slider"] = DashboardControlKind.Slider,
+            ["toggle"] = DashboardControlKind.Toggle,
+            ["tab_choice"] = DashboardControlKind.TabChoice,
+            ["action_reset"] = DashboardControlKind.ActionReset
+        });
+
+    private static DashboardControlSource ParseControlSource(string value, string path, List<ConfigurationError> errors)
+        => ParseEnum(value, path, errors, new Dictionary<string, DashboardControlSource>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["spending"] = DashboardControlSource.Spending,
+            ["year_over_year"] = DashboardControlSource.YearOverYear,
+            ["income_view"] = DashboardControlSource.IncomeView,
+            ["home_time_frame"] = DashboardControlSource.HomeTimeFrame,
+            ["income_excluded_categories"] = DashboardControlSource.IncomeExcludedCategories,
+            ["financial_independence_target_amount"] = DashboardControlSource.FinancialIndependenceTargetAmount,
+            ["data_health_stale_threshold"] = DashboardControlSource.DataHealthStaleThreshold,
+            ["data_health_include_inactive"] = DashboardControlSource.DataHealthIncludeInactive,
+            ["income_detail_tab"] = DashboardControlSource.IncomeDetailTab,
+            ["financial_independence_reset"] = DashboardControlSource.FinancialIndependenceReset
+        });
+
+    private static DashboardControlOptionSource ParseControlOptionSource(string value, string path, List<ConfigurationError> errors)
+        => ParseEnum(value, path, errors, new Dictionary<string, DashboardControlOptionSource>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["static"] = DashboardControlOptionSource.Static
+        });
+
+    private static DashboardControlWidth ParseControlWidth(string value, string path, List<ConfigurationError> errors)
+        => ParseEnum(value, path, errors, new Dictionary<string, DashboardControlWidth>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["compact"] = DashboardControlWidth.Compact,
+            ["full"] = DashboardControlWidth.Full
+        });
+
+    private static DashboardSectionLayout ParseSectionLayout(string value, string path, List<ConfigurationError> errors)
+        => ParseEnum(value, path, errors, new Dictionary<string, DashboardSectionLayout>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["flow"] = DashboardSectionLayout.Flow
         });
 
     private static DashboardNavigationGroup ParseNavigationGroup(string value, string path, List<ConfigurationError> errors)

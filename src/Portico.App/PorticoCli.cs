@@ -196,6 +196,23 @@ public static class PorticoCli
                         $"value '{option}' is not configured for filter source '{filter.Source}'."));
                 }
             }
+
+            foreach (DashboardControlDefinition control in page.Controls)
+            {
+                DashboardControlMapping mapping = DashboardControlMappings.Resolve(page.Id, control.Id);
+                if (mapping.Behavior != DashboardControlBehavior.ReportInput)
+                    continue;
+
+                foreach (string option in control.ChoiceOptions)
+                {
+                    if (IsConfiguredFilterOption(mapping.ReportFilterSource!, option, settings))
+                        continue;
+
+                    errors.Add(new ConfigurationError(
+                        $"dashboard.pages.{page.Id}.controls.{control.Id}.options",
+                        $"value '{option}' is not configured for report filter '{mapping.ReportFilterSource}'."));
+                }
+            }
         }
 
         if (errors.Count > 0)

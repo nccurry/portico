@@ -1,6 +1,8 @@
 ﻿using System.Globalization;
 using System.Numerics;
 using Portico.App.Ui;
+using Portico.App.Ui.Components;
+using Portico.App.Ui.Pages;
 using Portico.Dashboard;
 using Roci.Core;
 using Roci.Input;
@@ -22,6 +24,7 @@ public sealed class PorticoDashboardScene
     private readonly DashboardSession _session;
     private readonly PorticoDashboardDisplayState _displayState;
     private readonly IPorticoRefreshBoundary _refreshBoundary;
+    private readonly PorticoPageRenderer _pageRenderer;
     private bool _rebuildRequired;
     private Task<PorticoRefreshResult>? _refreshTask;
 
@@ -37,6 +40,7 @@ public sealed class PorticoDashboardScene
         _session = session;
         _displayState = displayState ?? new PorticoDashboardDisplayState();
         _refreshBoundary = refreshBoundary ?? new UnavailablePorticoRefreshBoundary();
+        _pageRenderer = new PorticoPageRenderer(_session, () => _rebuildRequired = true);
         Stage = new UiStage(viewportSize, PorticoSkin.Create());
         Stage.ViewportChanged += _ => _rebuildRequired = true;
         Build();
@@ -47,6 +51,10 @@ public sealed class PorticoDashboardScene
 
     /// <summary>Gets the small display state shared by the rail and visible page.</summary>
     public PorticoDashboardDisplayState DisplayState => _displayState;
+
+    /// <summary>Gets a local multi-select state for focused interaction tests.</summary>
+    public PorticoMultiSelectState<string>? MultiSelectState(DashboardPageId pageId, string controlId)
+        => _pageRenderer.MultiSelectState(pageId, controlId);
 
     /// <summary>Selects a configured page for the main content area.</summary>
     public void SelectPage(DashboardPageId pageId)
@@ -138,7 +146,7 @@ public sealed class PorticoDashboardScene
         DashboardPageDefinition page = CurrentPage();
         if (_displayState.IsDemoData)
             BuildDemoDataBanner();
-        BuildPageHeader(page);
+        _pageRenderer.BuildHeader(Ui, page);
         BuildContent(page);
 
         Ui.End();
@@ -323,70 +331,6 @@ public sealed class PorticoDashboardScene
         Ui.End();
     }
 
-    private void BuildPageHeader(DashboardPageDefinition page)
-    {
-        Ui.VStack(PorticoSkin.CompactGap, "PageHeader")
-            .SetPadding(PorticoSkin.MainPadding, PorticoSkin.HeaderTopPadding, PorticoSkin.MainPadding, PorticoSkin.ShellPadding)
-            .SetFlexShrink(0f)
-            .SetCrossAlign(CrossAlignment.Stretch)
-            .SetStyle(PorticoSkin.HeaderPanelStyle);
-
-        Ui.VStack(PorticoSkin.HeadingGap, "PageHeading");
-
-        Ui.Text(PageHeading(page), "PageTitle")
-            .SetTextStyle(PorticoSkin.PageTitleText)
-            .SetFontStyle(FontStyle.Bold)
-        .End();
-        Ui.Text(page.Description, "PageDescription")
-            .SetTextStyle(PorticoSkin.HelperText)
-            .SetTextWrap()
-        .End();
-        Ui.End();
-
-        if (page.Filters.Count > 0)
-        {
-            Ui.HStack(PorticoSkin.CompactGap, "FilterGroups")
-                .SetFlexWrap()
-                .SetCrossGap(PorticoSkin.CompactGap)
-                .SetCrossAlign(CrossAlignment.Center);
-            foreach (DashboardFilterDefinition filter in page.Filters)
-                BuildFilter(filter);
-            Ui.End();
-        }
-
-        Ui.End();
-    }
-
-    private void BuildFilter(DashboardFilterDefinition filter)
-    {
-        Ui.HStack(PorticoSkin.FilterGap, $"Filter:{filter.Id}")
-            .SetFlexShrink(0f)
-            .SetCrossAlign(CrossAlignment.Center);
-
-        Ui.Text(filter.Label, $"FilterLabel:{filter.Id}")
-            .SetTextStyle(PorticoSkin.HelperText)
-            .SetAlignSelf(CrossAlignment.Center)
-        .End();
-
-        string selected = CurrentFilterValue(filter.Source);
-        foreach (string option in filter.Options)
-        {
-            string capturedOption = option;
-            bool isSelected = string.Equals(selected, capturedOption, StringComparison.Ordinal);
-            AddButton(
-                $"Filter:{filter.Id}:{capturedOption}",
-                DisplayFilterValue(capturedOption),
-                () =>
-                {
-                    SetFilter(filter.Source, capturedOption);
-                },
-                isSelected ? PorticoSkin.SelectedActionStyle : PorticoSkin.QuietActionStyle,
-                compact: true);
-        }
-
-        Ui.End();
-    }
-
     private void BuildContent(DashboardPageDefinition page)
     {
         Ui.VStack(PorticoSkin.SectionGap, "PageBody")
@@ -399,37 +343,7 @@ public sealed class PorticoDashboardScene
         if (_displayState.LoadStatus != PorticoDataLoadStatus.Loaded)
             BuildLoadStatePanel();
 
-        DashboardPageReport report = _session.Report.Page(page.Id);
-        for (int index = 0; index < page.Widgets.Count;)
-        {
-            DashboardWidgetDefinition widget = page.Widgets[index];
-            if (widget.Span == 2)
-            {
-                BuildWidget(widget, report.Widgets[widget.Report]);
-                index++;
-                continue;
-            }
-
-            Ui.HStack(PorticoSkin.SectionGap, $"WidgetRow:{index}")
-                .SetFlexWrap()
-                .SetCrossGap(PorticoSkin.SectionGap)
-                .SetCrossAlign(CrossAlignment.Start);
-            BuildWidget(widget, report.Widgets[widget.Report], expand: true);
-            index++;
-            if (index < page.Widgets.Count && page.Widgets[index].Span == 1)
-            {
-                DashboardWidgetDefinition next = page.Widgets[index];
-                BuildWidget(next, report.Widgets[next.Report], expand: true);
-                index++;
-            }
-            else
-            {
-                Ui.Panel($"WidgetRowSpacer:{index}")
-                    .SetFlexGrow(1f)
-                .End();
-            }
-            Ui.End();
-        }
+        _pageRenderer.BuildContent(Ui, page, _session.Report.Page(page.Id), BuildWidget);
 
         Ui.End();
     }
@@ -452,6 +366,12 @@ public sealed class PorticoDashboardScene
 
     private void BuildLoadStatePanel()
     {
+        if (_displayState.LoadStatus is PorticoDataLoadStatus.Failed or PorticoDataLoadStatus.Unavailable)
+        {
+            Ui.ErrorPanel(LoadStatusLabel(), _displayState.StatusMessage, "LoadStatePanel");
+            return;
+        }
+
         Ui.HStack(PorticoSkin.FilterGap, "LoadStatePanel")
             .SetPadding(PorticoSkin.StatusPadding)
             .SetCornerRadius(PorticoSkin.SmallCornerRadius)
@@ -541,21 +461,13 @@ public sealed class PorticoDashboardScene
 
         foreach (ReportMetric metric in metrics)
         {
-            Ui.VStack(PorticoSkin.MetricGap, $"Metric:{widgetId}:{metric.Label}")
-                .SetFlexBasis(PorticoSkin.MetricMinimumWidth)
-                .SetFlexGrow(1f)
-                .SetFlexShrink(1f)
-                .SetPadding(PorticoSkin.MetricPadding)
-                .SetCornerRadius(PorticoSkin.SmallCornerRadius)
-                .SetStyle(PorticoSkin.MutedPanelStyle);
-            Ui.Text(metric.Label, $"MetricLabel:{widgetId}:{metric.Label}")
-                .SetTextStyle(PorticoSkin.MetricLabelText)
-            .End();
-            Ui.Text(DisplayPrivateText(metric.Display), $"MetricValue:{widgetId}:{metric.Label}")
-                .SetTextStyle(PorticoSkin.MetricToneTextStyle(metric.Tone))
-                .SetFontStyle(FontStyle.Bold)
-            .End();
-            Ui.End();
+            Ui.MetricCard($"Metric:{widgetId}:{metric.Label}")
+                .SetMetric(
+                    metric.Label,
+                    DisplayPrivateText(metric.Display),
+                    metric.Tone,
+                    widgetId)
+            .EndMetricCard();
         }
 
         Ui.End();
@@ -962,11 +874,10 @@ public sealed class PorticoDashboardScene
 
     private void BuildEmpty(string? message)
     {
-        Ui.Text(message ?? "No data is available for this selection.", "EmptyState")
-            .SetFlexGrow(1f)
-            .SetTextStyle(PorticoSkin.HelperText)
-            .CenterSelf()
-        .End();
+        Ui.EmptyPanel(
+            "No data for this selection",
+            message ?? "No data is available for this selection.",
+            "EmptyState");
     }
 
     private void AddButton(
@@ -1055,9 +966,6 @@ public sealed class PorticoDashboardScene
     private static string RailLabel(DashboardPageDefinition page)
         => page.RailLabel ?? page.Title;
 
-    private static string PageHeading(DashboardPageDefinition page)
-        => page.PageHeading ?? page.Title;
-
     private string LoadStatusPanelStyle()
         => _displayState.LoadStatus switch
         {
@@ -1086,16 +994,6 @@ public sealed class PorticoDashboardScene
             PorticoDataLoadStatus.Failed => "Refresh failed",
             PorticoDataLoadStatus.Unavailable => "Refresh unavailable",
             _ => throw new ArgumentOutOfRangeException()
-        };
-
-    private string CurrentFilterValue(string source)
-        => source switch
-        {
-            "lookback" => _session.Filters.LookbackMonths.ToString(CultureInfo.InvariantCulture),
-            "spending" => _session.Filters.SpendingSet,
-            "year_over_year" => _session.Filters.YearOverYearSet,
-            "income_view" => _session.Filters.RegularIncome ? "regular" : "actual",
-            _ => string.Empty
         };
 
     private static float WidgetHeight(DashboardWidgetKind kind)
@@ -1140,15 +1038,6 @@ public sealed class PorticoDashboardScene
 
         return barSeries;
     }
-
-    private static string DisplayFilterValue(string value)
-        => value switch
-        {
-            "regular" => "Regular income",
-            "actual" => "All income",
-            _ when int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int months) => $"{months} mo",
-            _ => value.Replace('_', ' ')
-        };
 
     private string FormatDateAxis(DateOnly value)
         => _displayState.HideValues ? "Hidden" : value.ToString("MMM yy", CultureInfo.InvariantCulture);

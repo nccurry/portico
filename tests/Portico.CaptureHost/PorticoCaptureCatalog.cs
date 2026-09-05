@@ -24,7 +24,17 @@ public static class PorticoCaptureCatalog
         new("income-savings", static session =>
         {
             session.SelectPage(DashboardPageId.IncomeSavings);
-            session.SetFilter("income_view", "actual");
+            session.SetControlValue(DashboardPageId.IncomeSavings, "income_view", "actual");
+        }),
+        new("income-categories-wrapped", static session =>
+        {
+            session.SelectPage(DashboardPageId.IncomeSavings);
+            session.SetControlValue(DashboardPageId.IncomeSavings, "income_view", "actual");
+            session.SetControlValues(
+                DashboardPageId.IncomeSavings,
+                "exclude_income_categories",
+                ["Annual bonus", "Salary", "Tax refund", "Investment transfer", "RSU", "Interest", "Dividend"]);
+            session.SetControlValue(DashboardPageId.IncomeSavings, "detail_tab", "Excluded");
         }),
         new("spending", static session =>
         {

@@ -131,6 +131,92 @@ public enum DashboardFilterKind
     Select
 }
 
+/// <summary>Specifies the finite set of controls that a configured page can show.</summary>
+public enum DashboardControlKind
+{
+    /// <summary>Selects one value from a list.</summary>
+    Select,
+
+    /// <summary>Selects one value from adjacent segments.</summary>
+    SegmentedChoice,
+
+    /// <summary>Selects zero or more values from a popover list.</summary>
+    MultiSelect,
+
+    /// <summary>Edits a bounded numeric value.</summary>
+    NumberInput,
+
+    /// <summary>Edits a bounded numeric value with a slider.</summary>
+    Slider,
+
+    /// <summary>Turns a display or report setting on or off.</summary>
+    Toggle,
+
+    /// <summary>Selects one visible tab.</summary>
+    TabChoice,
+
+    /// <summary>Runs one named reset action.</summary>
+    ActionReset
+}
+
+/// <summary>Identifies the fixed C# state or report input used by a configured control.</summary>
+public enum DashboardControlSource
+{
+    /// <summary>Uses the shared spending transaction-set setting.</summary>
+    Spending,
+
+    /// <summary>Uses the shared year-over-year transaction-set setting.</summary>
+    YearOverYear,
+
+    /// <summary>Uses the shared income-view setting.</summary>
+    IncomeView,
+
+    /// <summary>Uses the Home page time-frame display state.</summary>
+    HomeTimeFrame,
+
+    /// <summary>Uses the Income and savings excluded-income-category display state.</summary>
+    IncomeExcludedCategories,
+
+    /// <summary>Uses the Financial independence target display state.</summary>
+    FinancialIndependenceTargetAmount,
+
+    /// <summary>Uses the Data health stale-account threshold display state.</summary>
+    DataHealthStaleThreshold,
+
+    /// <summary>Uses the Data health inactive-item display state.</summary>
+    DataHealthIncludeInactive,
+
+    /// <summary>Uses the Income and savings selected-detail-tab state.</summary>
+    IncomeDetailTab,
+
+    /// <summary>Runs the Financial independence scenario reset.</summary>
+    FinancialIndependenceReset
+}
+
+/// <summary>Identifies how a control gets its finite set of visible choices.</summary>
+public enum DashboardControlOptionSource
+{
+    /// <summary>Reads fixed strings from the dashboard TOML file.</summary>
+    Static
+}
+
+/// <summary>Describes the requested horizontal footprint of a control in a wrapping control bar.</summary>
+public enum DashboardControlWidth
+{
+    /// <summary>Uses a compact control group.</summary>
+    Compact,
+
+    /// <summary>Uses a full control-bar row when space permits.</summary>
+    Full
+}
+
+/// <summary>Specifies the fixed visual arrangement of a configured section.</summary>
+public enum DashboardSectionLayout
+{
+    /// <summary>Places the section body in normal document order.</summary>
+    Flow
+}
+
 /// <summary>Defines one filter displayed on a dashboard page.</summary>
 public sealed record DashboardFilterDefinition(
     string Id,
@@ -140,6 +226,37 @@ public sealed record DashboardFilterDefinition(
     string DefaultValue,
     IReadOnlyList<string> Options);
 
+/// <summary>Defines one configured page section.</summary>
+public sealed record DashboardSectionDefinition(
+    string Id,
+    string Title,
+    DashboardSectionLayout Layout,
+    int Order,
+    string? Description = null);
+
+/// <summary>Defines one typed control shown by a configured page.</summary>
+public sealed record DashboardControlDefinition(
+    string Id,
+    string Label,
+    DashboardControlKind Kind,
+    DashboardControlSource Source,
+    DashboardControlOptionSource OptionSource = DashboardControlOptionSource.Static,
+    IReadOnlyList<string>? Options = null,
+    string? DefaultValue = null,
+    IReadOnlyList<string>? DefaultValues = null,
+    decimal? Minimum = null,
+    decimal? Maximum = null,
+    decimal? Step = null,
+    DashboardControlWidth Width = DashboardControlWidth.Compact,
+    string? Section = null)
+{
+    /// <summary>Gets the configured single-choice values without exposing a null collection.</summary>
+    public IReadOnlyList<string> ChoiceOptions => Options ?? [];
+
+    /// <summary>Gets the configured multi-choice defaults without exposing a null collection.</summary>
+    public IReadOnlyList<string> MultiSelectDefaults => DefaultValues ?? [];
+}
+
 /// <summary>Defines one chart, metric, or grid displayed on a dashboard page.</summary>
 public sealed record DashboardWidgetDefinition(
     string Id,
@@ -148,7 +265,8 @@ public sealed record DashboardWidgetDefinition(
     string Report,
     int Span = 1,
     string? Description = null,
-    IReadOnlyList<string>? BarSeries = null);
+    IReadOnlyList<string>? BarSeries = null,
+    string? Section = null);
 
 /// <summary>Defines one drawer destination and its configuration-driven content.</summary>
 public sealed record DashboardPageDefinition(
@@ -164,6 +282,12 @@ public sealed record DashboardPageDefinition(
     string? PageHeading = null,
     DashboardNavigationIcon Icon = DashboardNavigationIcon.None)
 {
+    /// <summary>Gets the configured section panels in display order.</summary>
+    public IReadOnlyList<DashboardSectionDefinition> Sections { get; init; } = [];
+
+    /// <summary>Gets the typed controls drawn before this page's report sections.</summary>
+    public IReadOnlyList<DashboardControlDefinition> Controls { get; init; } = [];
+
     /// <summary>Gets whether this page supplies any navigation metadata that needs validation.</summary>
     public bool HasNavigationMetadata => NavigationGroup != DashboardNavigationGroup.Unspecified
         || NavigationOrder != 0
@@ -203,7 +327,7 @@ public sealed record DashboardDefinition(
         var pageIds = new HashSet<DashboardPageId>();
         var navigationOrders = new HashSet<int>();
         bool requireNavigationMetadata = Pages.Any(page => page.HasNavigationMetadata);
-        var filterDefaults = new Dictionary<string, string>(StringComparer.Ordinal);
+        var reportInputDefaults = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (DashboardPageDefinition page in Pages)
         {
             if (!pageIds.Add(page.Id))
@@ -217,14 +341,16 @@ public sealed record DashboardDefinition(
             ValidateNavigation(page, navigationOrders, problems, requireNavigationMetadata);
             foreach (DashboardFilterDefinition filter in page.Filters)
             {
-                if (filterDefaults.TryGetValue(filter.Source, out string? current)
-                    && !string.Equals(current, filter.DefaultValue, StringComparison.Ordinal))
+                TrackReportInputDefault(reportInputDefaults, filter.Source, filter.DefaultValue, problems);
+            }
+
+            foreach (DashboardControlDefinition control in page.Controls)
+            {
+                if (DashboardControlMappings.TryResolve(page.Id, control.Id, out DashboardControlMapping? mapping)
+                    && mapping is { Behavior: DashboardControlBehavior.ReportInput, ReportFilterSource: not null }
+                    && control.DefaultValue is not null)
                 {
-                    problems.Add($"dashboard filter source '{filter.Source}' has conflicting defaults.");
-                }
-                else
-                {
-                    filterDefaults[filter.Source] = filter.DefaultValue;
+                    TrackReportInputDefault(reportInputDefaults, mapping.ReportFilterSource, control.DefaultValue, problems);
                 }
             }
         }
@@ -290,6 +416,187 @@ public sealed record DashboardDefinition(
                 }
             }
         }
+
+        ValidateSectionsAndControls(page, filterIds, problems);
+    }
+
+    private static void ValidateSectionsAndControls(
+        DashboardPageDefinition page,
+        IReadOnlySet<string> filterIds,
+        List<string> problems)
+    {
+        var sectionIds = new HashSet<string>(StringComparer.Ordinal);
+        var sectionOrders = new HashSet<int>();
+        foreach (DashboardSectionDefinition section in page.Sections)
+        {
+            if (string.IsNullOrWhiteSpace(section.Id) || string.IsNullOrWhiteSpace(section.Title))
+                problems.Add($"dashboard page '{page.Id}' has a section without an id or title.");
+            if (!Enum.IsDefined(section.Layout))
+                problems.Add($"dashboard section '{page.Id}.{section.Id}' has unsupported layout '{section.Layout}'.");
+            if (!sectionIds.Add(section.Id))
+                problems.Add($"dashboard page '{page.Id}' has duplicate section '{section.Id}'.");
+            if (section.Order < 1)
+                problems.Add($"dashboard section '{page.Id}.{section.Id}' order must be positive.");
+            else if (!sectionOrders.Add(section.Order))
+                problems.Add($"dashboard page '{page.Id}' has duplicate section order '{section.Order}'.");
+        }
+
+        foreach (DashboardWidgetDefinition widget in page.Widgets)
+        {
+            if (widget.Section is not null && !sectionIds.Contains(widget.Section))
+                problems.Add($"dashboard widget '{page.Id}.{widget.Id}' refers to unknown section '{widget.Section}'.");
+        }
+
+        var controlIds = new HashSet<string>(StringComparer.Ordinal);
+        foreach (DashboardControlDefinition control in page.Controls)
+        {
+            if (string.IsNullOrWhiteSpace(control.Id) || string.IsNullOrWhiteSpace(control.Label))
+                problems.Add($"dashboard page '{page.Id}' has a control without an id or label.");
+            if (!Enum.IsDefined(control.Kind))
+                problems.Add($"dashboard control '{page.Id}.{control.Id}' has unsupported kind '{control.Kind}'.");
+            if (!Enum.IsDefined(control.Source))
+                problems.Add($"dashboard control '{page.Id}.{control.Id}' has unsupported source '{control.Source}'.");
+            if (!Enum.IsDefined(control.Width))
+                problems.Add($"dashboard control '{page.Id}.{control.Id}' has unsupported width '{control.Width}'.");
+            if (!controlIds.Add(control.Id) || filterIds.Contains(control.Id))
+                problems.Add($"dashboard page '{page.Id}' has duplicate control '{control.Id}'.");
+            if (control.Section is not null && !sectionIds.Contains(control.Section))
+                problems.Add($"dashboard control '{page.Id}.{control.Id}' refers to unknown section '{control.Section}'.");
+
+            ValidateControlShape(page, control, problems);
+            if (!DashboardControlMappings.TryResolve(page.Id, control.Id, out DashboardControlMapping? mapping))
+            {
+                problems.Add($"dashboard control '{page.Id}.{control.Id}' does not have a C# mapping.");
+            }
+            else if (mapping is null)
+            {
+                problems.Add($"dashboard control '{page.Id}.{control.Id}' has an invalid C# mapping.");
+            }
+            else if (mapping.Kind != control.Kind || mapping.Source != control.Source)
+            {
+                problems.Add($"dashboard control '{page.Id}.{control.Id}' does not match its C# mapping.");
+            }
+            else if (!DashboardControlMappings.TryValidate(mapping, out string? mappingProblem))
+            {
+                problems.Add($"dashboard control '{page.Id}.{control.Id}' {mappingProblem}.");
+            }
+        }
+
+        foreach (DashboardControlDefinition reset in page.Controls.Where(control => control.Kind == DashboardControlKind.ActionReset))
+        {
+            if (reset.Source == DashboardControlSource.FinancialIndependenceReset
+                && !page.Controls.Any(control => control.Id == "target_amount"
+                    && control.Kind == DashboardControlKind.NumberInput
+                    && control.Source == DashboardControlSource.FinancialIndependenceTargetAmount))
+            {
+                problems.Add($"dashboard reset action '{page.Id}.{reset.Id}' needs the configured target_amount number input.");
+            }
+        }
+    }
+
+    private static void ValidateControlShape(
+        DashboardPageDefinition page,
+        DashboardControlDefinition control,
+        List<string> problems)
+    {
+        bool needsOptions = control.Kind is DashboardControlKind.Select
+            or DashboardControlKind.SegmentedChoice
+            or DashboardControlKind.MultiSelect
+            or DashboardControlKind.TabChoice;
+        bool isNumeric = control.Kind is DashboardControlKind.NumberInput or DashboardControlKind.Slider;
+
+        if (control.OptionSource != DashboardControlOptionSource.Static)
+            problems.Add($"dashboard control '{page.Id}.{control.Id}' has unsupported option source '{control.OptionSource}'.");
+
+        if (needsOptions)
+        {
+            if (control.ChoiceOptions.Count == 0)
+                problems.Add($"dashboard control '{page.Id}.{control.Id}' needs at least one option.");
+            if (control.ChoiceOptions.Any(string.IsNullOrWhiteSpace)
+                || control.ChoiceOptions.Distinct(StringComparer.Ordinal).Count() != control.ChoiceOptions.Count)
+            {
+                problems.Add($"dashboard control '{page.Id}.{control.Id}' has blank or duplicate options.");
+            }
+        }
+        else if (control.ChoiceOptions.Count > 0)
+        {
+            problems.Add($"dashboard control '{page.Id}.{control.Id}' cannot define options for kind '{control.Kind}'.");
+        }
+
+        if (control.Kind == DashboardControlKind.MultiSelect)
+        {
+            if (control.DefaultValue is not null)
+                problems.Add($"dashboard multi-select '{page.Id}.{control.Id}' must use defaults instead of default.");
+            if (control.MultiSelectDefaults.Any(value => !control.ChoiceOptions.Contains(value, StringComparer.Ordinal)))
+                problems.Add($"dashboard multi-select '{page.Id}.{control.Id}' defaults must be configured options.");
+            if (control.MultiSelectDefaults.Distinct(StringComparer.Ordinal).Count() != control.MultiSelectDefaults.Count)
+                problems.Add($"dashboard multi-select '{page.Id}.{control.Id}' has duplicate defaults.");
+        }
+        else if (control.Kind is DashboardControlKind.Select or DashboardControlKind.SegmentedChoice or DashboardControlKind.TabChoice)
+        {
+            if (string.IsNullOrWhiteSpace(control.DefaultValue)
+                || !control.ChoiceOptions.Contains(control.DefaultValue, StringComparer.Ordinal))
+            {
+                problems.Add($"dashboard control '{page.Id}.{control.Id}' default must be one of its options.");
+            }
+            if (control.MultiSelectDefaults.Count > 0)
+                problems.Add($"dashboard control '{page.Id}.{control.Id}' cannot define multi-select defaults.");
+        }
+        else if (isNumeric)
+        {
+            if (!TryParseDecimal(control.DefaultValue, out decimal value)
+                || control.Minimum is null
+                || control.Maximum is null
+                || control.Step is null
+                || control.Minimum > control.Maximum
+                || control.Step <= 0m
+                || value < control.Minimum
+                || value > control.Maximum
+                || !IsStepAligned(value, control.Minimum!.Value, control.Step!.Value)
+                || !IsStepAligned(control.Maximum!.Value, control.Minimum.Value, control.Step.Value))
+            {
+                problems.Add($"dashboard numeric control '{page.Id}.{control.Id}' needs an in-range default, aligned minimum/maximum, and positive step.");
+            }
+            if (control.MultiSelectDefaults.Count > 0)
+                problems.Add($"dashboard numeric control '{page.Id}.{control.Id}' cannot define multi-select defaults.");
+        }
+        else if (control.Kind == DashboardControlKind.Toggle)
+        {
+            if (!bool.TryParse(control.DefaultValue, out _))
+                problems.Add($"dashboard toggle '{page.Id}.{control.Id}' default must be true or false.");
+            if (control.MultiSelectDefaults.Count > 0)
+                problems.Add($"dashboard toggle '{page.Id}.{control.Id}' cannot define multi-select defaults.");
+        }
+        else if (control.Kind == DashboardControlKind.ActionReset)
+        {
+            if (control.DefaultValue is not null || control.MultiSelectDefaults.Count > 0
+                || control.Minimum is not null || control.Maximum is not null || control.Step is not null)
+            {
+                problems.Add($"dashboard reset action '{page.Id}.{control.Id}' cannot define a value or range.");
+            }
+        }
+    }
+
+    private static bool TryParseDecimal(string? value, out decimal result)
+        => decimal.TryParse(value, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out result);
+
+    private static bool IsStepAligned(decimal value, decimal minimum, decimal step)
+        => decimal.Remainder(value - minimum, step) == 0m;
+
+    private static void TrackReportInputDefault(
+        Dictionary<string, string> defaults,
+        string source,
+        string value,
+        List<string> problems)
+    {
+        if (defaults.TryGetValue(source, out string? current)
+            && !string.Equals(current, value, StringComparison.Ordinal))
+        {
+            problems.Add($"dashboard report input '{source}' has conflicting defaults.");
+            return;
+        }
+
+        defaults[source] = value;
     }
 
     private static void ValidateNavigation(

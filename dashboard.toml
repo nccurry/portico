@@ -16,13 +16,22 @@ rail_label = "Home"
 page_heading = "Accounts and net worth"
 icon = "home"
 
-[[pages.filters]]
-id = "lookback"
-label = "Lookback"
-kind = "select"
-source = "lookback"
-default = "12"
-options = ["3", "6", "12", "24"]
+[[pages.sections]]
+id = "net_worth"
+title = "Net worth"
+description = "Track account balances and the change over time."
+layout = "flow"
+order = 1
+
+[[pages.controls]]
+id = "time_frame"
+label = "Time frame"
+kind = "segmented_choice"
+source = "home_time_frame"
+option_source = "static"
+default = "1y"
+options = ["3m", "6m", "1y", "2y", "5y", "all"]
+width = "full"
 
 [[pages.widgets]]
 id = "net-worth"
@@ -30,6 +39,7 @@ title = "Net worth"
 kind = "area_chart"
 report = "home.net_worth"
 span = 2
+section = "net_worth"
 
 [[pages.widgets]]
 id = "overview"
@@ -68,13 +78,33 @@ rail_label = "Income and savings"
 page_heading = "Income and savings"
 icon = "savings"
 
-[[pages.filters]]
+[[pages.controls]]
 id = "income_view"
 label = "View"
 kind = "select"
 source = "income_view"
 default = "regular"
 options = ["regular", "actual"]
+
+[[pages.controls]]
+id = "exclude_income_categories"
+label = "Exclude income categories"
+kind = "multi_select"
+source = "income_excluded_categories"
+option_source = "static"
+defaults = []
+options = ["Annual bonus", "Salary", "Tax refund", "Investment transfer", "RSU", "Interest", "Dividend"]
+width = "full"
+
+[[pages.controls]]
+id = "detail_tab"
+label = "Month detail"
+kind = "tab_choice"
+source = "income_detail_tab"
+option_source = "static"
+default = "Included"
+options = ["Included", "Excluded"]
+width = "full"
 
 [[pages.widgets]]
 id = "cash-flow"

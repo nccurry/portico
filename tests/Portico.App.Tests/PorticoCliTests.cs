@@ -134,6 +134,49 @@ public sealed class PorticoCliTests
     }
 
     [Fact]
+    public async Task Doctor_RejectsReportInputControlValuesMissingFromFinanceConfiguration()
+    {
+        string root = FindRepositoryRoot();
+        string dashboard = Path.Combine(Path.GetTempPath(), $"portico-dashboard-{Guid.NewGuid():N}.toml");
+        await File.WriteAllTextAsync(dashboard, """
+            schema_version = 1
+            app_title = "Portico"
+            [[pages]]
+            id = "income_savings"
+            title = "Income and savings"
+            icon = "savings"
+            description = "Overview"
+            group = "analyze"
+            order = 1
+            rail_label = "Income and savings"
+            page_heading = "Income and savings"
+            [[pages.controls]]
+            id = "income_view"
+            label = "View"
+            kind = "select"
+            source = "income_view"
+            default = "impossible"
+            options = ["impossible"]
+            [[pages.widgets]]
+            id = "cash-flow"
+            title = "Monthly cash flow"
+            kind = "combo_chart"
+            report = "income.cash_flow"
+            bar_series = ["income", "spending"]
+            """, TestContext.Current.CancellationToken);
+        var output = new StringWriter();
+        var error = new StringWriter();
+
+        int exitCode = await PorticoCli.RunAsync(
+            ["doctor", "--config", Path.Combine(root, "portico-demo.toml"), "--dashboard", dashboard],
+            output,
+            error);
+
+        Assert.Equal(2, exitCode);
+        Assert.Contains("report filter 'income_view'", error.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Doctor_RejectsUnsupportedDashboardReports()
     {
         string root = FindRepositoryRoot();

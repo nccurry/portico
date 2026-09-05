@@ -126,6 +126,13 @@ public sealed class AdapterTests
         Assert.Equal("Home", dashboard.Pages[0].RailLabel);
         Assert.Equal("Accounts and net worth", dashboard.Pages[0].PageHeading);
         Assert.Equal(DashboardNavigationIcon.Home, dashboard.Pages[0].Icon);
+        DashboardSectionDefinition section = Assert.Single(dashboard.Pages[0].Sections);
+        Assert.Equal("net-worth", section.Id);
+        DashboardControlDefinition control = Assert.Single(dashboard.Pages[0].Controls);
+        Assert.Equal("time_frame", control.Id);
+        Assert.Equal(DashboardControlKind.SegmentedChoice, control.Kind);
+        Assert.Equal(DashboardControlSource.HomeTimeFrame, control.Source);
+        Assert.Equal(["3m", "6m", "1y", "2y", "5y", "all"], control.ChoiceOptions);
     }
 
     [Fact]
@@ -164,6 +171,75 @@ public sealed class AdapterTests
         ConfigurationException error = Assert.Throws<ConfigurationException>(() => TomlConfigurationLoader.LoadDashboard(path));
 
         Assert.Contains(error.Errors, item => item.Message.Contains("bar_series", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ConfigurationLoader_RejectsInvalidTypedControlGrammar()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"portico-dashboard-{Guid.NewGuid():N}.toml");
+        File.WriteAllText(path, """
+            schema_version = 1
+            app_title = "Portico"
+            [[pages]]
+            id = "home"
+            title = "Home"
+            description = "Overview"
+            group = "standalone"
+            order = 1
+            rail_label = "Home"
+            page_heading = "Accounts and net worth"
+            icon = "home"
+            [[pages.sections]]
+            id = "net-worth"
+            title = "Net worth"
+            layout = "flow"
+            order = 1
+            [[pages.sections]]
+            id = "net-worth"
+            title = "Duplicate"
+            layout = "flow"
+            order = 2
+            [[pages.controls]]
+            id = "time_frame"
+            label = "Time frame"
+            kind = "impossible"
+            source = "home_time_frame"
+            option_source = "calculated"
+            default = "1y"
+            options = ["1y"]
+            section = "missing"
+            [[pages.controls]]
+            id = "time_frame"
+            label = "Time frame"
+            kind = "segmented_choice"
+            source = "home_time_frame"
+            default = "1y"
+            options = ["1y"]
+            [[pages.controls]]
+            id = "not_mapped"
+            label = "Unmapped"
+            kind = "select"
+            source = "income_view"
+            default = "regular"
+            options = ["regular"]
+            [[pages.widgets]]
+            id = "net-worth"
+            title = "Net worth"
+            kind = "area_chart"
+            report = "home.net_worth"
+            section = "missing"
+            """);
+
+        ConfigurationException error = Assert.Throws<ConfigurationException>(() => TomlConfigurationLoader.LoadDashboard(path));
+
+        Assert.Contains(error.Errors, item => item.Path.EndsWith(".kind", StringComparison.Ordinal)
+            && item.Message.Contains("unknown", StringComparison.Ordinal));
+        Assert.Contains(error.Errors, item => item.Path.EndsWith(".option_source", StringComparison.Ordinal)
+            && item.Message.Contains("unknown", StringComparison.Ordinal));
+        Assert.Contains(error.Errors, item => item.Message.Contains("duplicate section", StringComparison.Ordinal));
+        Assert.Contains(error.Errors, item => item.Message.Contains("duplicate control", StringComparison.Ordinal));
+        Assert.Contains(error.Errors, item => item.Message.Contains("unknown section", StringComparison.Ordinal));
+        Assert.Contains(error.Errors, item => item.Message.Contains("does not have a C# mapping", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -276,11 +352,25 @@ public sealed class AdapterTests
         rail_label = "Home"
         page_heading = "Accounts and net worth"
         icon = "home"
+        [[pages.sections]]
+        id = "net-worth"
+        title = "Net worth"
+        layout = "flow"
+        order = 1
+        [[pages.controls]]
+        id = "time_frame"
+        label = "Time frame"
+        kind = "segmented_choice"
+        source = "home_time_frame"
+        option_source = "static"
+        default = "1y"
+        options = ["3m", "6m", "1y", "2y", "5y", "all"]
         [[pages.widgets]]
         id = "net-worth"
         title = "Net worth"
         kind = "area_chart"
         report = "home.net_worth"
+        section = "net-worth"
         """;
 
     private sealed class StaticResponseHandler : HttpMessageHandler
