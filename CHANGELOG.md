@@ -5,7 +5,21 @@ This file records notable changes to Portico.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Portico uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.3.0] - 2026-09-06
+
+### Changed
+
+- The weekly Discord summary now follows named transaction sets configured in
+  `[weekly_summary]`, defaults to a 48-week usual-spending baseline, shows
+  current-week active categories, and includes the combined absolute amount of
+  outstanding uncategorized transactions.
+- Production deployment now uses the tracked Docker Compose manifest with a
+  pinned image tag and the existing persistent delivery-state volume.
+
+### Removed
+
+- `notifications.discord.categories` is no longer supported. Configure
+  `weekly_summary.watched_transaction_sets` instead.
 
 ## [1.2.3] - 2026-09-03
 
@@ -79,7 +93,8 @@ Portico uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - A configurable weekly Discord expense summary with an optional built-in schedule.
 - A shared development container, native bootstrap scripts, tests, and release checks.
 
-[Unreleased]: https://github.com/nccurry/portico/compare/v1.2.3...HEAD
+[Unreleased]: https://github.com/nccurry/portico/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/nccurry/portico/compare/v1.2.3...v1.3.0
 [1.2.3]: https://github.com/nccurry/portico/compare/v1.2.2...v1.2.3
 [1.2.2]: https://github.com/nccurry/portico/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/nccurry/portico/compare/v1.2.0...v1.2.1

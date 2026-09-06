@@ -115,6 +115,7 @@ included_account_patterns = []
 included_groups = ["Savings", "Investments", "Retirement"]
 
 [weekly_summary]
-average_weeks = 8
+watched_transaction_sets = ["discretionary"]
+average_weeks = 48
 rolling_weeks = 4
 top_merchant_count = 3

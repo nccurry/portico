@@ -15,9 +15,6 @@ vars:
   LINT_PATHS: src/ app_pages/ demo/ tests/ scripts/ Home.py
   ADDRESS: '{{default "127.0.0.1" .ADDRESS}}'
   PORT: '{{default "8501" .PORT}}'
-  TIMEZONE: '{{default "Etc/UTC" .TZ}}'
-  DISCORD_ENABLED: '{{default "false" .PORTICO_DISCORD_ENABLED}}'
-  DISCORD_CRON: '{{default "0 9 * * 0" .PORTICO_DISCORD_CRON}}'
   PERIOD_END: '{{default "" .PERIOD_END}}'
   FORCE: '{{default "false" .FORCE}}'
   OUTPUT: '{{default "text" .OUTPUT}}'
@@ -322,31 +319,19 @@ tasks:
         portico:local
 
   container:live:
-    desc: "Build and run the default live container on localhost"
+    desc: "Start the configured Compose deployment"
     cmds:
-      - task: container:build
-      - >-
-        docker run --rm --init --name portico
-        --read-only --tmpfs /tmp:size=64m,mode=1777
-        --cap-drop ALL --security-opt no-new-privileges:true
-        --env TZ={{.TIMEZONE | quote}}
-        --env PORTICO_DISCORD_ENABLED={{.DISCORD_ENABLED | quote}}
-        --env PORTICO_DISCORD_CRON={{.DISCORD_CRON | quote}}
-        --mount "type=bind,source={{.ROOT_DIR}}/config.toml,target=/app/config.toml,readonly"
-        --mount "type=bind,source={{.ROOT_DIR}}/.streamlit/secrets.toml,target=/app/.streamlit/secrets.toml,readonly"
-        --mount "type=volume,source=portico-state,target=/app/.local"
-        --publish {{.ADDRESS}}:{{.PORT}}:8501
-        portico:local
+      - docker compose up --detach
 
   container:down:
-    desc: "Stop the Portico container"
+    desc: "Stop the Compose deployment"
     cmds:
-      - docker stop portico
+      - docker compose down
 
   container:notifier:
-    desc: "Run one notifier command in the Portico container"
+    desc: "Run one notifier command in the Compose service"
     cmds:
-      - docker exec portico python -m src.discord_notifier {{.CLI_ARGS}}
+      - docker compose exec app python -m src.discord_notifier {{.CLI_ARGS}}
 
   # ========================================
   # Weekly Discord Summary

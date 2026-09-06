@@ -3,15 +3,17 @@
 from __future__ import annotations
 
 import datetime as dt
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
 import pandas as pd
 
 from src.analysis.data_health import find_uncategorized_transactions
 from src.analysis.merchants import normalize_merchant_name
+from src.config import TransactionSetSettings
+from src.transaction_sets import transaction_set_mask
 
-AVERAGE_WEEKS = 8
+AVERAGE_WEEKS = 48
 ROLLING_WEEKS = 4
 TOP_VENDOR_COUNT = 3
 
@@ -89,6 +91,7 @@ class WeeklyExpenseReport:
     previous_rolling_selected_total: float
     all_expenses_total: float
     uncategorized_count: int
+    uncategorized_total: float
 
     @property
     def selected_change(self) -> float:
@@ -127,51 +130,53 @@ def completed_week(
     return ReportPeriod(start, end, comparison_start, comparison_end, average_weeks, rolling_weeks)
 
 
-def validate_selected_categories(categories: tuple[str, ...], metadata: pd.DataFrame) -> None:
-    """Check that configured categories are unique expense categories."""
-    if not categories:
-        raise WeeklyExpenseError("Configure at least one Discord expense category.")
-
-    if len(set(categories)) != len(categories):
-        raise WeeklyExpenseError("Discord expense categories must not contain duplicates.")
-
-    metadata_names = metadata["Category"]
-    if metadata_names.duplicated().any():
-        raise WeeklyExpenseError("The Categories sheet contains duplicate Category values.")
-
-    category_types = metadata.set_index("Category")["Type"]
-    for position, category in enumerate(categories, start=1):
-        if not category or category != category.strip():
-            raise WeeklyExpenseError(f"Discord expense category {position} must be a non-empty exact Category value.")
-        if category not in category_types.index:
-            raise WeeklyExpenseError(f"Discord expense category {position} was not found in the Categories sheet.")
-        if category_types.loc[category] != "Expense":
-            raise WeeklyExpenseError(f"Discord expense category {position} must have Type set to Expense.")
-
-
 def calculate_weekly_report(
     transactions: pd.DataFrame,
-    metadata: pd.DataFrame,
-    categories: tuple[str, ...],
+    transaction_sets: Sequence[TransactionSetSettings],
+    watched_transaction_sets: Sequence[str],
     period: ReportPeriod,
     *,
     top_merchant_count: int = TOP_VENDOR_COUNT,
     merchant_aliases: Mapping[str, str] | None = None,
 ) -> WeeklyExpenseReport:
     """Calculate weekly spending, averages, and rolling comparisons."""
-    validate_selected_categories(categories, metadata)
+    if not watched_transaction_sets:
+        raise WeeklyExpenseError("Configure at least one watched transaction set.")
 
     expense_rows = transactions[transactions["Type"] == "Expense"].copy()
-    transaction_dates = expense_rows["Date"].dt.date
-    current = expense_rows[transaction_dates.between(period.start, period.end)]
-    comparison = expense_rows[transaction_dates.between(period.comparison_start, period.comparison_end)]
-    rolling = expense_rows[transaction_dates.between(period.rolling_start, period.end)]
-    previous_rolling = expense_rows[
-        transaction_dates.between(period.previous_rolling_start, period.previous_rolling_end)
-    ]
+    watched_mask = pd.Series(False, index=expense_rows.index, dtype="bool")
+    try:
+        for transaction_set_key in watched_transaction_sets:
+            watched_mask |= transaction_set_mask(
+                expense_rows,
+                transaction_set_key=transaction_set_key,
+                transaction_sets=transaction_sets,
+                aliases=merchant_aliases,
+            )
+    except ValueError as error:
+        raise WeeklyExpenseError(str(error)) from error
 
+    uncategorized_rows = find_uncategorized_transactions(transactions)
+    uncategorized_mask = pd.Series(
+        expense_rows.index.isin(uncategorized_rows.index),
+        index=expense_rows.index,
+        dtype="bool",
+    )
+    watched_rows = expense_rows[watched_mask & ~uncategorized_mask].copy()
+    watched_dates = watched_rows["Date"].dt.date
+    current = watched_rows[watched_dates.between(period.start, period.end)]
+    comparison = watched_rows[watched_dates.between(period.comparison_start, period.comparison_end)]
+    rolling = watched_rows[watched_dates.between(period.rolling_start, period.end)]
+    previous_rolling = watched_rows[watched_dates.between(period.previous_rolling_start, period.previous_rolling_end)]
+
+    category_amounts = [
+        (str(category), _money(-float(amount)))
+        for category, amount in current.groupby("Category")["Amount"].sum().items()
+    ]
+    category_amounts = [(category, amount) for category, amount in category_amounts if amount != 0]
+    category_amounts.sort(key=lambda item: (-item[1], item[0]))
     category_totals = []
-    for category in categories:
+    for category, _ in category_amounts:
         current_rows = current[current["Category"] == category]
         comparison_rows = comparison[comparison["Category"] == category]
         rolling_rows = rolling[rolling["Category"] == category]
@@ -187,21 +192,19 @@ def calculate_weekly_report(
             )
         )
     category_totals_tuple = tuple(category_totals)
-    selected_total = _money(sum(item.amount for item in category_totals_tuple))
-    selected_comparison = comparison[comparison["Category"].isin(categories)]
-    average_selected_total = _average_weekly_spending(selected_comparison, period.average_weeks)
-    rolling_selected_total = _spending(rolling[rolling["Category"].isin(categories)])
-    previous_rolling_selected_total = _spending(previous_rolling[previous_rolling["Category"].isin(categories)])
+    expense_dates = expense_rows["Date"].dt.date
+    current_expenses = expense_rows[expense_dates.between(period.start, period.end)]
 
     return WeeklyExpenseReport(
         period=period,
         categories=category_totals_tuple,
-        selected_total=selected_total,
-        average_selected_total=average_selected_total,
-        rolling_selected_total=rolling_selected_total,
-        previous_rolling_selected_total=previous_rolling_selected_total,
-        all_expenses_total=_spending(current),
-        uncategorized_count=len(find_uncategorized_transactions(transactions)),
+        selected_total=_spending(current),
+        average_selected_total=_average_weekly_spending(comparison, period.average_weeks),
+        rolling_selected_total=_spending(rolling),
+        previous_rolling_selected_total=_spending(previous_rolling),
+        all_expenses_total=_spending(current_expenses),
+        uncategorized_count=len(uncategorized_rows),
+        uncategorized_total=_money(float(uncategorized_rows["Amount"].abs().sum())),
     )
 
 

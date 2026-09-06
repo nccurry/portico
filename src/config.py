@@ -142,6 +142,7 @@ class FinancialSafetySettings:
 class WeeklySummarySettings:
     """Defaults for the scheduled Discord summary."""
 
+    watched_transaction_sets: tuple[str, ...]
     average_weeks: int
     rolling_weeks: int
     top_merchant_count: int
@@ -227,7 +228,7 @@ _SECTION_KEYS = {
         "debt_included_account_patterns",
         "debt_baseline_date",
     },
-    "weekly_summary": {"average_weeks", "rolling_weeks", "top_merchant_count"},
+    "weekly_summary": {"watched_transaction_sets", "average_weeks", "rolling_weeks", "top_merchant_count"},
     "merchants": {"aliases"},
 }
 _TRANSACTION_SET_KEYS = {
@@ -570,6 +571,14 @@ def _build_settings(document: Mapping[str, Any], directory_base: Path, *, is_dem
     if default_lookback_months not in lookback_months:
         raise ConfigError("default_lookback_months must be included in lookback_months")
     transaction_sets = _transaction_sets(document)
+    watched_transaction_sets = _references(weekly_summary, "watched_transaction_sets")
+    if not watched_transaction_sets:
+        raise ConfigError("watched_transaction_sets must contain at least one transaction set key")
+    known_transaction_sets = {transaction_set.key for transaction_set in transaction_sets}
+    unknown_watched_sets = set(watched_transaction_sets) - known_transaction_sets
+    if unknown_watched_sets:
+        names = ", ".join(sorted(unknown_watched_sets))
+        raise ConfigError(f"watched_transaction_sets references unknown transaction set(s): {names}")
 
     return Settings(
         is_demo=is_demo,
@@ -630,6 +639,7 @@ def _build_settings(document: Mapping[str, Any], directory_base: Path, *, is_dem
             debt_baseline_date=_optional_date(financial_safety, "debt_baseline_date"),
         ),
         weekly_summary=WeeklySummarySettings(
+            watched_transaction_sets=watched_transaction_sets,
             average_weeks=_integer(weekly_summary, "average_weeks", 1, 52),
             rolling_weeks=_integer(weekly_summary, "rolling_weeks", 1, 52),
             top_merchant_count=_integer(weekly_summary, "top_merchant_count", 1, 20),

@@ -105,9 +105,10 @@ Container and CI use the same project files.
 
 ### Container-first deployment
 
-The production artifact is a Linux container image. The image runs as a
-non-root user and uses a read-only root filesystem. One container runs the
-dashboard and, when enabled, the Discord schedule.
+The production artifact is a Linux container image deployed through the tracked
+Compose manifest. The image runs as a non-root user and uses a read-only root
+filesystem. One container runs the dashboard and, when enabled, the Discord
+schedule.
 
 The application publishes on `127.0.0.1` by default. A user can opt into trusted
 LAN access. Public access requires authentication and TLS outside Portico.
@@ -232,8 +233,9 @@ Configuration owns initial control values and named transaction selections. This
 includes shared lookback choices, named transaction sets, page filter sets,
 discretionary and regular-report exclusions, budget history, subscription
 discovery, data-health thresholds, emergency-fund and debt policy, FI funding
-goals and assumptions, weekly summary windows, and merchant aliases. The same
-named transaction set must mean the same thing on every page. In particular, the
+goals and assumptions, weekly summary transaction-set selection and windows,
+and merchant aliases. The same named transaction set must mean the same thing
+on every page. In particular, the
 spending, merchant, and year-over-year Discretionary views resolve the same
 `[transaction_sets.discretionary]` policy.
 
