@@ -200,11 +200,13 @@ included_account_patterns = []
 included_groups = []
 
 # Weekly Discord summary
-# These values control the comparison windows and merchant list in the scheduled summary.
+# These values choose the reusable transaction sets and comparison windows for the scheduled summary.
 [weekly_summary]
+# One or more transaction-set keys whose union is summarized by Discord.
+watched_transaction_sets = ["all"]
 # Number of earlier weeks used for the average comparison.
-average_weeks = 8
+average_weeks = 48
 # Trailing spending window compared with the preceding window of the same length.
 rolling_weeks = 4
-# Number of merchants shown for each watched category.
+# Number of merchants shown for each current-week category.
 top_merchant_count = 3

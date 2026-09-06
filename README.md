@@ -73,16 +73,16 @@ financial records.
 
 ### Run the demo locally
 
-Install Docker Engine. Then pull the latest release and start the demo:
+Install Docker Engine. Then pull the current release and start the demo:
 
 ```console
-docker pull ghcr.io/nccurry/portico:latest
+docker pull ghcr.io/nccurry/portico:1.3.0
 docker run --rm --init --name portico \
   --read-only --tmpfs /tmp:size=64m,mode=1777 \
   --cap-drop ALL --security-opt no-new-privileges:true \
   --env PORTICO_CONFIG_PATH=/app/portico-demo.toml \
   --publish 127.0.0.1:8501:8501 \
-  ghcr.io/nccurry/portico:latest
+  ghcr.io/nccurry/portico:1.3.0
 ```
 
 Open <http://127.0.0.1:8501>. The local demo accepts connections only from the
@@ -148,14 +148,13 @@ nano config.toml
 
 ### Check and start Portico
 
-Pull the latest image and check the workbook:
+Set the exact image release in `.env`, then check the workbook:
 
 ```console
-docker pull ghcr.io/nccurry/portico:latest
-docker run --rm \
-  --mount "type=bind,source=$(pwd)/config.toml,target=/app/config.toml,readonly" \
-  --mount "type=bind,source=$(pwd)/.streamlit/secrets.toml,target=/app/.streamlit/secrets.toml,readonly" \
-  ghcr.io/nccurry/portico:latest python -m scripts.doctor
+docker volume create portico-state
+cp .env.example .env
+docker compose pull
+docker compose run --rm app python -m scripts.doctor
 ```
 
 The check reads each sheet and validates its basic structure. It does not print
@@ -164,20 +163,28 @@ sheet URLs or financial rows.
 Start Portico:
 
 ```console
-cp .env.example .env
-docker volume create portico-state
-docker run --detach --init --name portico --restart unless-stopped \
-  --read-only --tmpfs /tmp:size=64m,mode=1777 \
-  --cap-drop ALL --security-opt no-new-privileges:true \
-  --env-file .env \
-  --mount "type=bind,source=$(pwd)/config.toml,target=/app/config.toml,readonly" \
-  --mount "type=bind,source=$(pwd)/.streamlit/secrets.toml,target=/app/.streamlit/secrets.toml,readonly" \
-  --mount "type=volume,source=portico-state,target=/app/.local" \
-  --publish 127.0.0.1:8501:8501 \
-  ghcr.io/nccurry/portico:latest
+docker compose up --detach
 ```
 
 Open <http://127.0.0.1:8501>.
+
+### Upgrade from Portico 1.2
+
+Portico 1.3 removes Discord's private category list. Before upgrading, back up
+`config.toml` and `.streamlit/secrets.toml`, then move the selection into the
+existing named transaction sets:
+
+```toml
+[weekly_summary]
+watched_transaction_sets = ["discretionary"]
+average_weeks = 48
+rolling_weeks = 4
+top_merchant_count = 3
+```
+
+Remove `notifications.discord.categories` from `.streamlit/secrets.toml`. Keep
+the `portico-state` volume: it preserves delivered-period records and prevents
+the new Compose service from sending a duplicate summary.
 
 ## Spreadsheet schema
 
@@ -226,34 +233,30 @@ uses a read-only filesystem, and includes a health check.
 Show service and health status:
 
 ```console
-docker ps --filter name=^/portico$
-docker inspect portico --format '{{.State.Health.Status}}'
+docker compose ps
 ```
 
 Follow the logs:
 
 ```console
-docker logs --follow portico
+docker compose logs --follow app
 ```
 
 Stop and remove the container:
 
 ```console
-docker stop portico
-docker rm portico
+docker compose down
 ```
 
 Update Portico:
 
 ```console
-docker pull ghcr.io/nccurry/portico:latest
-docker stop portico
-docker rm portico
-# Run the same docker run command from the setup section.
+docker compose pull
+docker compose up --detach
 ```
 
-Use `ghcr.io/nccurry/portico:1.2.3` instead of `latest` when you want to pin an
-exact release.
+Set `PORTICO_IMAGE` in `.env` to the exact release you want to run. Compose
+never relies on a mutable `latest` image tag.
 
 Portico stores configuration and secrets on the host. The `portico-state`
 volume records successful Discord delivery periods so an update does not send a
@@ -264,24 +267,23 @@ duplicate report.
 The default address is `127.0.0.1:8501`. Only the Linux host can connect to this
 address.
 
-To use a different host port, change the left side of `--publish`:
+To use a different host port, set this in `.env`:
 
-```console
---publish 127.0.0.1:8601:8501
+```dotenv
+PORTICO_PUBLISH_PORT=8601
 ```
 
-To accept connections from a trusted local network, change the address:
+To accept connections from a trusted local network, set this in `.env`:
 
-```console
---publish 0.0.0.0:8501:8501
+```dotenv
+PORTICO_PUBLISH_ADDRESS=0.0.0.0
 ```
 
 Portico has no login screen. Do not forward its port to the public internet. A
 public deployment requires an authenticated TLS reverse proxy.
 
-Copy `.env.example` to `.env` to keep the application timezone and Discord
-schedule between container runs. The host address and port stay in the
-`--publish` argument.
+Copy `.env.example` to `.env` to keep the image tag, network address, timezone,
+and Discord schedule in one deployment file.
 
 ## Configuration
 
@@ -324,7 +326,7 @@ settings you may want to change:
 | `data_health` | `duplicate_require_same_*` | Initial duplicate-detection matching rules. |
 | `financial_independence` | FI funding target, return, withdrawal, history, projection, account, and group settings | Home-page FI funding progress and FI scenario assumptions. |
 | `financial_safety` | Emergency-fund target, expense baseline, liquid-account scope, and debt baseline | Home-page safety progress. Emergency spending uses complete months only; leave `debt_baseline_date` empty to use the first recorded balance. |
-| `weekly_summary` | `average_weeks`, `rolling_weeks`, `top_merchant_count` | Discord comparison windows and merchant detail. |
+| `weekly_summary` | `watched_transaction_sets`, `average_weeks`, `rolling_weeks`, `top_merchant_count` | Named transaction sets, comparison windows, and merchant detail for Discord. |
 | `merchants.aliases` | Merchant name and description fragments | Combine several transaction descriptions under one merchant name. |
 
 The View controls choose among the configured transaction sets. Other page
@@ -348,29 +350,27 @@ latest date in the local files, just as they do for a remote spreadsheet.
 [`portico-demo.toml`](portico-demo.toml) is the complete configuration for
 `demo/data`.
 
-In Docker, bind-mount `config.toml` and the CSV directory separately:
+For a Compose deployment, add the CSV directory in an ignored
+`compose.override.yaml` next to `compose.yaml`:
 
-```console
-docker run --rm --init --name portico \
-  --read-only --tmpfs /tmp:size=64m,mode=1777 \
-  --cap-drop ALL --security-opt no-new-privileges:true \
-  --mount "type=bind,source=$(pwd)/config.toml,target=/app/config.toml,readonly" \
-  --mount "type=bind,source=$(pwd)/data,target=/data,readonly" \
-  --publish 127.0.0.1:8501:8501 \
-  ghcr.io/nccurry/portico:latest
+```yaml
+services:
+  app:
+    volumes:
+      - ./data:/data:ro
 ```
 
 ### Configure a Docker deployment
 
-The image includes `/app/config.toml`. Mount your complete `config.toml` over
-that file when you deploy. Do not mount a whole configuration directory.
-Environment variables are fixed when Docker creates the container, so remove the
-existing container and run the start command again after changing the config:
+`compose.yaml` is the supported deployment manifest. It mounts your complete
+`config.toml` and `.streamlit/secrets.toml` as individual read-only files. Do
+not mount a configuration directory over `/app`.
+
+Compose recreates the service when the image or environment changes. After
+changing either TOML file, recreate it explicitly:
 
 ```console
-docker stop portico
-docker rm portico
-# Run the docker run command from "Start Portico" again.
+docker compose up --detach --force-recreate
 ```
 
 The named `portico-state` volume remains available.
@@ -388,20 +388,22 @@ Keep remote spreadsheet URLs and Discord URLs in `.streamlit/secrets.toml`.
 ## Optional Discord summary
 
 Portico can send a weekly expense summary to a Discord channel. It reads the
-Transactions and Categories tabs. You select which expense categories the
-message follows.
+Transactions and Categories tabs, then follows the named transaction sets in
+`[weekly_summary].watched_transaction_sets`. This keeps the notifier aligned
+with the Discretionary and other configured dashboard views.
 
 The report includes:
 
-- Spending for each selected category
+- Current-week categories with activity in the selected transaction sets
 - The change from its trailing weekly average
 - The largest vendors in each category
 - A comparison between the latest group of weeks and the prior group
-- Total expenses and the number of uncategorized transactions
+- Total expenses plus the count and combined absolute amount of all outstanding
+  uncategorized transactions, so refunds do not offset charges
 
-Public defaults use an eight-week average, a four-week comparison, and three
-merchants per category. Change those values under `[weekly_summary]` in
-`config.toml` when needed.
+Public defaults use a 48-week average, a four-week comparison, and three
+merchants per category. Choose one or more transaction sets and change those
+values under `[weekly_summary]` in `config.toml` when needed.
 
 ### Create the Discord webhook
 
@@ -414,42 +416,41 @@ merchants per category. Change those values under `[weekly_summary]` in
 Discord recommends an incoming webhook for a service that only sends messages.
 Portico does not require a Discord bot or Discord application.
 
-Add the URL and exact category names to `.streamlit/secrets.toml`:
+Add only the URL to `.streamlit/secrets.toml`:
 
 ```toml
 [notifications.discord]
 webhook_url = "https://discord.com/api/webhooks/<webhook-id>/<webhook-token>"
-categories = ["Everyday Food", "Local Dining"]
 ```
 
-Each category must exist in the Categories tab and use the `Expense` type.
-Treat the webhook URL as a password.
+Choose the report selection in `config.toml`, not in secrets. Treat the
+webhook URL as a password.
 
 ### Preview and test the message
 
 The notifier runs inside the same container as the dashboard. Check its
-configuration, remote spreadsheet access, selected categories, webhook, and timezone:
+configuration, remote spreadsheet access, watched transaction sets, webhook, and timezone:
 
 ```console
-docker exec portico python -m src.discord_notifier check
+docker compose exec app python -m src.discord_notifier check
 ```
 
 Preview the report without contacting Discord:
 
 ```console
-docker exec portico python -m src.discord_notifier preview
+docker compose exec app python -m src.discord_notifier preview
 ```
 
 Send a test message that contains no financial data:
 
 ```console
-docker exec portico python -m src.discord_notifier test
+docker compose exec app python -m src.discord_notifier test
 ```
 
 Send the latest completed weekly report:
 
 ```console
-docker exec portico python -m src.discord_notifier send
+docker compose exec app python -m src.discord_notifier send
 ```
 
 The notifier stores sent periods in the `portico-state` Docker volume. It skips
@@ -464,16 +465,16 @@ looks like this:
 Weekly spending
 Jul 26 - Aug 1, 2026
 
-Watched categories
-Everyday Food — $120.00 · $20.00 above usual
+📊 Watched categories
+Everyday Food — $120.00 · 🔴 ▲ $20.00 above usual
 Top vendors: KROGER $80.00 · ALDI $40.00
-Local Dining — $40.00 · $20.00 below usual
+Local Dining — $40.00 · 🟢 ▼ $20.00 below usual
 Top vendors: CAFE $40.00
 
-Watched total: $160.00
-4-week watched total: $680.00 · $20.00 less than prior 4 weeks
-All expenses: $900.00
-Needs categorization: 4 transactions
+💳 Watched total: $160.00 · ⚪ — right at usual
+📅 4-week watched total: $680.00 · 🟢 ▼ $20.00 less than prior 4 weeks
+💵 All expenses: $900.00
+🧾 Needs categorization: 4 transactions · $125.00
 ```
 
 ### Enable the schedule
@@ -489,15 +490,16 @@ PORTICO_DISCORD_CRON=0 9 * * 0
 The cron value has five fields: minute, hour, day of month, month, and day of
 week. The example sends each Sunday at 9:00 AM in the `TZ` timezone.
 
-Restart the Portico container after changing `.env`. The container log shows
-the next scheduled delivery time:
+Recreate the Compose service after changing `.env`. The container log shows the
+next scheduled delivery time:
 
 ```console
-docker logs portico
+docker compose up --detach --force-recreate
+docker compose logs app
 ```
 
 If the container is stopped at the scheduled time, that delivery is not run
-later. You can send it manually with the `docker exec` command above. Successful
+later. You can send it manually with the `docker compose exec` command above. Successful
 deliveries are recorded, so Portico does not send the same weekly period twice.
 
 ## Development

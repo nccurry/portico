@@ -22,7 +22,7 @@ from urllib.request import Request, urlopen
 import pandas as pd
 
 from src.analysis.merchants import configured_merchant_aliases
-from src.config import get_settings
+from src.config import ConfigError, get_settings
 from src.scrubbing import SpreadsheetSchemaError, scrub_categories, scrub_transactions
 from src.sheet_config import SheetConfigError, parse_sheet_location
 from src.weekly_expenses import (
@@ -31,13 +31,25 @@ from src.weekly_expenses import (
     WeeklyExpenseReport,
     calculate_weekly_report,
     completed_week,
-    validate_selected_categories,
 )
 
 DEFAULT_SECRETS_PATH = Path(".streamlit/secrets.toml")
 DEFAULT_STATE_PATH = Path(".local/discord-weekly-state.json")
 HTTP_TIMEOUT_SECONDS = 30
 USER_AGENT = "portico-weekly-summary/1.0"
+MAX_EMBED_FIELDS = 25
+MAX_EMBED_FIELD_VALUE_LENGTH = 1024
+MAX_EMBED_TEXT_LENGTH = 6000
+CHART_ICON = "\N{BAR CHART}"
+CARD_ICON = "\N{CREDIT CARD}"
+CALENDAR_ICON = "\N{CALENDAR}"
+MONEY_ICON = "\N{BANKNOTE WITH DOLLAR SIGN}"
+RECEIPT_ICON = "\N{RECEIPT}"
+RED_ICON = "\N{LARGE RED CIRCLE}"
+GREEN_ICON = "\N{LARGE GREEN CIRCLE}"
+NEUTRAL_ICON = "\N{MEDIUM WHITE CIRCLE}"
+UP_ARROW = "\N{BLACK UP-POINTING TRIANGLE}"
+DOWN_ARROW = "\N{BLACK DOWN-POINTING TRIANGLE}"
 
 
 class NotifierError(RuntimeError):
@@ -51,7 +63,6 @@ class NotifierConfig:
     transactions_url: str
     categories_url: str
     webhook_url: str
-    categories: tuple[str, ...]
 
 
 def load_config(path: Path = DEFAULT_SECRETS_PATH) -> NotifierConfig:
@@ -70,21 +81,10 @@ def load_config(path: Path = DEFAULT_SECRETS_PATH) -> NotifierConfig:
     notifications = _table(data, "notifications")
     discord = _table(notifications, "discord")
 
-    category_values = discord.get("categories")
-    if not isinstance(category_values, list) or not all(isinstance(item, str) for item in category_values):
-        raise NotifierError("notifications.discord.categories must be a TOML array of strings.")
-    if not category_values:
-        raise NotifierError("notifications.discord.categories must contain at least one Category value.")
-    if len(set(category_values)) != len(category_values):
-        raise NotifierError("notifications.discord.categories must not contain duplicates.")
-    if any(not item or item != item.strip() for item in category_values):
-        raise NotifierError("Each notifications.discord.categories item must be a non-empty exact Category value.")
-
     config = NotifierConfig(
         transactions_url=_string(transactions, "spreadsheet", "connections.transactions"),
         categories_url=_string(categories_connection, "spreadsheet", "connections.categories"),
         webhook_url=_string(discord, "webhook_url", "notifications.discord"),
-        categories=tuple(category_values),
     )
     google_export_url(config.transactions_url)
     google_export_url(config.categories_url)
@@ -110,8 +110,8 @@ def read_google_sheet(sheet_url: str, label: str) -> pd.DataFrame:
         raise NotifierError(f"Failed to read the {label} sheet. Check link access and the configured gid.") from error
 
 
-def load_report_data(config: NotifierConfig) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Load and scrub the category metadata and transactions."""
+def load_report_data(config: NotifierConfig) -> pd.DataFrame:
+    """Load and scrub the transaction rows required by the report."""
     try:
         raw_categories = read_google_sheet(config.categories_url, "Categories")
         metadata, _ = scrub_categories(raw_categories)
@@ -121,7 +121,7 @@ def load_report_data(config: NotifierConfig) -> tuple[pd.DataFrame, pd.DataFrame
         raise NotifierError(str(error)) from error
     except (TypeError, ValueError) as error:
         raise NotifierError("A configured sheet contains invalid spreadsheet data.") from error
-    return transactions, metadata
+    return transactions
 
 
 def check_webhook(webhook_url: str) -> None:
@@ -159,7 +159,7 @@ def test_payload() -> dict[str, Any]:
 def report_payload(report: WeeklyExpenseReport) -> dict[str, Any]:
     """Return the Discord embed for a weekly expense report."""
     rolling_weeks = report.period.rolling_weeks
-    category_lines = []
+    category_blocks = []
     for item in report.categories:
         summary = (
             f"**{_escape_markdown(item.name)}** — **{_currency(item.amount)}** · {_usual_change_text(item.change)}"
@@ -169,10 +169,9 @@ def report_payload(report: WeeklyExpenseReport) -> dict[str, Any]:
                 f"{_escape_markdown(vendor.name)} {_currency(vendor.amount)}" for vendor in item.top_vendors
             )
             summary = f"{summary}\nTop vendors: {vendors}"
-        category_lines.append(summary)
-    category_value = "\n".join(category_lines)
-    if len(category_value) > 1024:
-        raise NotifierError("The configured category list is too long for one Discord message.")
+        category_blocks.append(summary)
+    if not category_blocks:
+        category_blocks.append("No watched spending in the selected set this week.")
 
     rolling_lines = [
         (
@@ -185,58 +184,55 @@ def report_payload(report: WeeklyExpenseReport) -> dict[str, Any]:
         f"**Watched total** — **{_currency(report.rolling_selected_total)}** · "
         f"{_rolling_change_text(report.rolling_selected_change, rolling_weeks)}"
     )
-    rolling_value = "\n".join(rolling_lines)
-    if len(rolling_value) > 1024:
-        raise NotifierError("The configured category list is too long for one Discord message.")
 
     period = report.period
     color = 0xE74C3C if report.selected_change > 0 else 0x2ECC71
     if report.selected_change == 0:
         color = 0x95A5A6
 
+    fields = [
+        *_section_fields(f"{CHART_ICON} Watched categories", category_blocks),
+        {
+            "name": f"{CARD_ICON} Watched total",
+            "value": f"**{_currency(report.selected_total)}** · {_usual_change_text(report.selected_change)}",
+            "inline": True,
+        },
+        *_section_fields(f"{CALENDAR_ICON} {rolling_weeks}-week watched spending", rolling_lines),
+        {
+            "name": f"{MONEY_ICON} All expenses",
+            "value": f"**{_currency(report.all_expenses_total)}**",
+            "inline": True,
+        },
+        {
+            "name": f"{RECEIPT_ICON} Needs categorization",
+            "value": _uncategorized_text(report.uncategorized_count, report.uncategorized_total),
+            "inline": False,
+        },
+    ]
+    if len(fields) > MAX_EMBED_FIELDS:
+        raise NotifierError("The weekly summary is too long for one Discord embed.")
+
+    embed: dict[str, Any] = {
+        "title": "Weekly spending",
+        "description": f"{_date(period.start)} - {_date(period.end, include_year=True)}",
+        "color": color,
+        "fields": fields,
+        "footer": {
+            "text": (
+                f"Usual = {period.average_weeks}-week average · "
+                f"{_date(period.comparison_start, include_year=True)} - "
+                f"{_date(period.comparison_end, include_year=True)} · "
+                f"{rolling_weeks}-week view = {_date(period.rolling_start)} - {_date(period.end)} vs "
+                f"{_date(period.previous_rolling_start)} - "
+                f"{_date(period.previous_rolling_end, include_year=True)}"
+            )
+        },
+    }
+    if _embed_text_length(embed) > MAX_EMBED_TEXT_LENGTH:
+        raise NotifierError("The weekly summary is too long for one Discord embed.")
+
     return {
-        "embeds": [
-            {
-                "title": "Weekly spending",
-                "description": f"{_date(period.start)} - {_date(period.end, include_year=True)}",
-                "color": color,
-                "fields": [
-                    {"name": "Watched categories", "value": category_value, "inline": False},
-                    {
-                        "name": "Watched total",
-                        "value": (
-                            f"**{_currency(report.selected_total)}** · {_usual_change_text(report.selected_change)}"
-                        ),
-                        "inline": True,
-                    },
-                    {
-                        "name": f"{rolling_weeks}-week watched spending",
-                        "value": rolling_value,
-                        "inline": False,
-                    },
-                    {
-                        "name": "All expenses",
-                        "value": f"**{_currency(report.all_expenses_total)}**",
-                        "inline": True,
-                    },
-                    {
-                        "name": "Needs categorization",
-                        "value": _uncategorized_text(report.uncategorized_count),
-                        "inline": False,
-                    },
-                ],
-                "footer": {
-                    "text": (
-                        f"Usual = {period.average_weeks}-week average · "
-                        f"{_date(period.comparison_start, include_year=True)} - "
-                        f"{_date(period.comparison_end, include_year=True)} · "
-                        f"{rolling_weeks}-week view = {_date(period.rolling_start)} - {_date(period.end)} vs "
-                        f"{_date(period.previous_rolling_start)} - "
-                        f"{_date(period.previous_rolling_end, include_year=True)}"
-                    )
-                },
-            }
-        ],
+        "embeds": [embed],
         "allowed_mentions": {"parse": []},
     }
 
@@ -279,6 +275,7 @@ def report_as_dict(report: WeeklyExpenseReport) -> dict[str, Any]:
         "rolling_selected_change": report.rolling_selected_change,
         "all_expenses_total": report.all_expenses_total,
         "uncategorized_count": report.uncategorized_count,
+        "uncategorized_total": report.uncategorized_total,
     }
 
 
@@ -340,17 +337,18 @@ def was_sent(period_end: dt.date, path: Path = DEFAULT_STATE_PATH) -> bool:
 
 def build_report(config: NotifierConfig, period: ReportPeriod) -> WeeklyExpenseReport:
     """Load source data and calculate one report."""
-    transactions, metadata = load_report_data(config)
+    transactions = load_report_data(config)
+    settings = get_settings()
     try:
         merchant_aliases = configured_merchant_aliases()
     except ValueError as error:
         raise NotifierError(f"Merchant alias configuration is invalid: {error}") from error
     return calculate_weekly_report(
         transactions,
-        metadata,
-        config.categories,
+        settings.transaction_sets,
+        settings.weekly_summary.watched_transaction_sets,
         period,
-        top_merchant_count=get_settings().weekly_summary.top_merchant_count,
+        top_merchant_count=settings.weekly_summary.top_merchant_count,
         merchant_aliases=merchant_aliases,
     )
 
@@ -392,18 +390,20 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         config = load_config(args.secrets)
         if args.command == "check":
-            transactions, metadata = load_report_data(config)
-            validate_selected_categories(config.categories, metadata)
+            settings = get_settings()
+            transactions = load_report_data(config)
             check_webhook(config.webhook_url)
             local_now = dt.datetime.now().astimezone()
             result = {
                 "status": "ok",
-                "category_count": len(config.categories),
+                "watched_transaction_set_count": len(settings.weekly_summary.watched_transaction_sets),
                 "transaction_count": len(transactions),
                 "local_time": local_now.isoformat(),
                 "timezone": local_now.tzname() or str(local_now.tzinfo),
             }
-            _emit(result, args.output, "Configuration, sheets, categories, webhook, and timezone are valid.")
+            _emit(
+                result, args.output, "Configuration, sheets, watched transaction sets, webhook, and timezone are valid."
+            )
             return 0
 
         if args.command == "test":
@@ -444,7 +444,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             f"Weekly Discord summary sent for the period ending {period.end.isoformat()}.",
         )
         return 0
-    except (NotifierError, WeeklyExpenseError) as error:
+    except (ConfigError, NotifierError, WeeklyExpenseError) as error:
         if args.output == "json":
             print(json.dumps({"status": "error", "error": str(error)}, sort_keys=True))
         print(f"Error: {error}", file=sys.stderr)
@@ -506,28 +506,69 @@ def _currency(value: float) -> str:
     return f"-{absolute}" if value < 0 else absolute
 
 
-def _uncategorized_text(count: int) -> str:
+def _uncategorized_text(count: int, total: float) -> str:
     if count == 0:
         return "All transactions are categorized."
     if count == 1:
-        return "**1 transaction** still needs a category."
-    return f"**{count} transactions** still need a category."
+        return f"**1 transaction · {_currency(total)}** still needs a category."
+    return f"**{count} transactions · {_currency(total)}** still need a category."
 
 
 def _usual_change_text(change: float) -> str:
     if change > 0:
-        return f"▲ {_currency(change)} above usual"
+        return f"{RED_ICON} {UP_ARROW} {_currency(change)} above usual"
     if change < 0:
-        return f"▼ {_currency(abs(change))} below usual"
-    return "— right at usual"
+        return f"{GREEN_ICON} {DOWN_ARROW} {_currency(abs(change))} below usual"
+    return f"{NEUTRAL_ICON} — right at usual"
 
 
 def _rolling_change_text(change: float, weeks: int) -> str:
     if change > 0:
-        return f"▲ {_currency(change)} more than prior {weeks} weeks"
+        return f"{RED_ICON} {UP_ARROW} {_currency(change)} more than prior {weeks} weeks"
     if change < 0:
-        return f"▼ {_currency(abs(change))} less than prior {weeks} weeks"
-    return f"— same as prior {weeks} weeks"
+        return f"{GREEN_ICON} {DOWN_ARROW} {_currency(abs(change))} less than prior {weeks} weeks"
+    return f"{NEUTRAL_ICON} — same as prior {weeks} weeks"
+
+
+def _section_fields(name: str, blocks: Sequence[str]) -> list[dict[str, Any]]:
+    """Return one or more Discord fields without splitting category blocks."""
+    values = _chunk_field_blocks(blocks)
+    return [
+        {"name": name if index == 0 else f"{name} (continued)", "value": value, "inline": False}
+        for index, value in enumerate(values)
+    ]
+
+
+def _chunk_field_blocks(blocks: Sequence[str]) -> tuple[str, ...]:
+    """Fit complete message blocks within Discord's per-field character limit."""
+    chunks: list[str] = []
+    current = ""
+    for block in blocks:
+        if len(block) > MAX_EMBED_FIELD_VALUE_LENGTH:
+            raise NotifierError("A weekly summary entry is too long for Discord.")
+        candidate = block if not current else f"{current}\n{block}"
+        if len(candidate) > MAX_EMBED_FIELD_VALUE_LENGTH:
+            chunks.append(current)
+            current = block
+        else:
+            current = candidate
+    if current:
+        chunks.append(current)
+    return tuple(chunks)
+
+
+def _embed_text_length(embed: Mapping[str, Any]) -> int:
+    """Return the total text length counted by Discord for one embed."""
+    fields = embed["fields"]
+    footer = embed["footer"]
+    assert isinstance(fields, list)
+    assert isinstance(footer, Mapping)
+    return (
+        len(str(embed["title"]))
+        + len(str(embed["description"]))
+        + len(str(footer["text"]))
+        + sum(len(str(field["name"])) + len(str(field["value"])) for field in fields)
+    )
 
 
 def _date(value: dt.date, *, include_year: bool = False) -> str:
@@ -565,7 +606,7 @@ def _preview_text(report: WeeklyExpenseReport) -> str:
             "",
             (f"Watched total: {_currency(report.selected_total)} ({_usual_change_text(report.selected_change)})"),
             f"All expenses: {_currency(report.all_expenses_total)}",
-            f"Needs categorization: {_uncategorized_text(report.uncategorized_count)}",
+            f"Needs categorization: {_uncategorized_text(report.uncategorized_count, report.uncategorized_total)}",
             (
                 f"Usual = {report.period.average_weeks}-week average, "
                 f"{_date(report.period.comparison_start, include_year=True)} - "

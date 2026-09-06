@@ -72,6 +72,7 @@ def sample_report() -> WeeklyExpenseReport:
         previous_rolling_selected_total=700.0,
         all_expenses_total=900.0,
         uncategorized_count=4,
+        uncategorized_total=125.0,
     )
 
 
@@ -80,11 +81,10 @@ def sample_config() -> NotifierConfig:
         transactions_url="https://docs.google.com/spreadsheets/d/example/edit?gid=1",
         categories_url="https://docs.google.com/spreadsheets/d/example/edit?gid=2",
         webhook_url="https://discord.com/api/webhooks/123/test-token",
-        categories=("Everyday Food", "Local Dining"),
     )
 
 
-def test_load_config_preserves_category_order(tmp_path: Path) -> None:
+def test_load_config_requires_only_connection_urls_and_webhook(tmp_path: Path) -> None:
     secrets = tmp_path / "secrets.toml"
     secrets.write_text(
         """
@@ -94,14 +94,13 @@ spreadsheet = "https://docs.google.com/spreadsheets/d/example/edit?gid=1"
 spreadsheet = "https://docs.google.com/spreadsheets/d/example/edit?gid=2"
 [notifications.discord]
 webhook_url = "https://discord.com/api/webhooks/123/test-token"
-categories = ["Everyday Food", "Local Dining"]
 """.strip(),
         encoding="utf-8",
     )
 
     config = load_config(secrets)
 
-    assert config.categories == ("Everyday Food", "Local Dining")
+    assert config.webhook_url == "https://discord.com/api/webhooks/123/test-token"
 
 
 @pytest.mark.parametrize(
@@ -122,31 +121,11 @@ spreadsheet = "https://docs.google.com/spreadsheets/d/example/edit?gid=1"
 spreadsheet = "https://docs.google.com/spreadsheets/d/example/edit?gid=2"
 [notifications.discord]
 webhook_url = "{url}"
-categories = ["Everyday Food"]
 """.strip(),
         encoding="utf-8",
     )
 
     with pytest.raises(NotifierError, match="Discord webhook URL"):
-        load_config(secrets)
-
-
-def test_load_config_rejects_duplicate_categories(tmp_path: Path) -> None:
-    secrets = tmp_path / "secrets.toml"
-    secrets.write_text(
-        """
-[connections.transactions]
-spreadsheet = "https://docs.google.com/spreadsheets/d/example/edit?gid=1"
-[connections.categories]
-spreadsheet = "https://docs.google.com/spreadsheets/d/example/edit?gid=2"
-[notifications.discord]
-webhook_url = "https://discord.com/api/webhooks/123/test-token"
-categories = ["Everyday Food", "Everyday Food"]
-""".strip(),
-        encoding="utf-8",
-    )
-
-    with pytest.raises(NotifierError, match="duplicates"):
         load_config(secrets)
 
 
@@ -177,12 +156,15 @@ def test_read_google_sheet_returns_csv_without_streamlit() -> None:
 
 def test_build_report_passes_configured_merchant_aliases() -> None:
     aliases = {"AMAZON MKTPL": "AMAZON", "AMAZON COM": "AMAZON"}
-    settings = SimpleNamespace(weekly_summary=SimpleNamespace(top_merchant_count=3))
+    transaction_sets = (SimpleNamespace(key="discretionary"),)
+    settings = SimpleNamespace(
+        transaction_sets=transaction_sets,
+        weekly_summary=SimpleNamespace(watched_transaction_sets=("discretionary",), top_merchant_count=3),
+    )
     transactions = pd.DataFrame()
-    metadata = pd.DataFrame()
 
     with (
-        patch("src.discord_notifier.load_report_data", return_value=(transactions, metadata)),
+        patch("src.discord_notifier.load_report_data", return_value=transactions),
         patch("src.discord_notifier.configured_merchant_aliases", return_value=aliases),
         patch("src.discord_notifier.get_settings", return_value=settings),
         patch("src.discord_notifier.calculate_weekly_report", return_value=sample_report()) as calculate,
@@ -190,12 +172,21 @@ def test_build_report_passes_configured_merchant_aliases() -> None:
         report = build_report(sample_config(), sample_report().period)
 
     assert report == sample_report()
+    assert calculate.call_args.args[1] == transaction_sets
+    assert calculate.call_args.args[2] == ("discretionary",)
     assert calculate.call_args.kwargs["merchant_aliases"] == aliases
 
 
 def test_build_report_reports_invalid_merchant_aliases() -> None:
     with (
-        patch("src.discord_notifier.load_report_data", return_value=(pd.DataFrame(), pd.DataFrame())),
+        patch("src.discord_notifier.load_report_data", return_value=pd.DataFrame()),
+        patch(
+            "src.discord_notifier.get_settings",
+            return_value=SimpleNamespace(
+                transaction_sets=(),
+                weekly_summary=SimpleNamespace(watched_transaction_sets=("discretionary",), top_merchant_count=3),
+            ),
+        ),
         patch("src.discord_notifier.configured_merchant_aliases", side_effect=ValueError("conflicting alias")),
         pytest.raises(NotifierError, match="Merchant alias configuration is invalid"),
     ):
@@ -213,18 +204,26 @@ def test_report_payload_has_expected_totals_and_disables_mentions() -> None:
     assert "above usual" in embed["fields"][0]["value"]
     assert "below usual" in embed["fields"][0]["value"]
     assert "Top vendors: KROGER $80.00 · ALDI $40.00" in embed["fields"][0]["value"]
-    assert embed["fields"][1]["name"] == "Watched total"
+    assert embed["fields"][0]["name"] == "\N{BAR CHART} Watched categories"
+    assert embed["fields"][1]["name"] == "\N{CREDIT CARD} Watched total"
     assert "$160.00" in embed["fields"][1]["value"]
-    assert embed["fields"][2]["name"] == "4-week watched spending"
+    assert embed["fields"][2]["name"] == "\N{CALENDAR} 4-week watched spending"
     assert "Everyday Food** — **$440.00" in embed["fields"][2]["value"]
-    assert "$60.00 less than prior 4 weeks" in embed["fields"][2]["value"]
-    assert "$40.00 more than prior 4 weeks" in embed["fields"][2]["value"]
+    assert (
+        "\N{LARGE GREEN CIRCLE} \N{BLACK DOWN-POINTING TRIANGLE} $60.00 less than prior 4 weeks"
+        in embed["fields"][2]["value"]
+    )
+    assert (
+        "\N{LARGE RED CIRCLE} \N{BLACK UP-POINTING TRIANGLE} $40.00 more than prior 4 weeks"
+        in embed["fields"][2]["value"]
+    )
     assert "Watched total** — **$680.00" in embed["fields"][2]["value"]
     assert "$900.00" in embed["fields"][3]["value"]
-    assert embed["fields"][4]["name"] == "Needs categorization"
+    assert embed["fields"][4]["name"] == "\N{RECEIPT} Needs categorization"
     assert "4 transactions" in embed["fields"][4]["value"]
+    assert "$125.00" in embed["fields"][4]["value"]
     assert "still need a category" in embed["fields"][4]["value"]
-    assert "8-week average" in embed["footer"]["text"]
+    assert "48-week average" in embed["footer"]["text"]
     assert "4-week view" in embed["footer"]["text"]
     rendered = json.dumps(embed)
     assert "net inflow" not in rendered
@@ -234,19 +233,48 @@ def test_report_payload_has_expected_totals_and_disables_mentions() -> None:
 
 
 def test_report_payload_reports_when_everything_is_categorized() -> None:
-    report = replace(sample_report(), uncategorized_count=0)
+    report = replace(sample_report(), uncategorized_count=0, uncategorized_total=0.0)
 
     embed = report_payload(report)["embeds"][0]
 
     assert embed["fields"][4]["value"] == "All transactions are categorized."
 
 
+def test_report_payload_explains_when_no_watched_categories_are_active() -> None:
+    embed = report_payload(replace(sample_report(), categories=()))["embeds"][0]
+
+    assert embed["fields"][0]["value"] == "No watched spending in the selected set this week."
+    assert "Watched total" in embed["fields"][2]["value"]
+
+
 def test_report_payload_uses_singular_categorization_wording() -> None:
-    report = replace(sample_report(), uncategorized_count=1)
+    report = replace(sample_report(), uncategorized_count=1, uncategorized_total=12.5)
 
     embed = report_payload(report)["embeds"][0]
 
-    assert embed["fields"][4]["value"] == "**1 transaction** still needs a category."
+    assert embed["fields"][4]["value"] == "**1 transaction · $12.50** still needs a category."
+
+
+def test_report_payload_splits_long_category_sections_without_losing_rows() -> None:
+    categories = tuple(
+        CategoryTotal(
+            name=f"Category {number} " + ("x" * 70),
+            amount=100.0,
+            average_amount=50.0,
+            rolling_amount=200.0,
+            previous_rolling_amount=100.0,
+            top_vendors=(VendorTotal("Merchant " + ("y" * 60), 100.0),),
+        )
+        for number in range(10)
+    )
+    embed = report_payload(replace(sample_report(), categories=categories))["embeds"][0]
+
+    category_fields = [
+        field for field in embed["fields"] if field["name"].startswith("\N{BAR CHART} Watched categories")
+    ]
+    assert len(category_fields) > 1
+    assert all(len(field["value"]) <= 1024 for field in category_fields)
+    assert all(f"Category {number}" in "\n".join(field["value"] for field in category_fields) for number in range(10))
 
 
 def test_test_payload_contains_no_financial_values() -> None:
@@ -308,7 +336,7 @@ def test_preview_json_is_machine_readable(capsys: pytest.CaptureFixture[str]) ->
         "amount": 80.0,
         "name": "KROGER",
     }
-    assert output["average_period"]["weeks"] == 8
+    assert output["average_period"]["weeks"] == 48
     assert output["rolling_period"] == {
         "comparison_end": "2026-07-04",
         "comparison_start": "2026-06-07",
@@ -319,6 +347,25 @@ def test_preview_json_is_machine_readable(capsys: pytest.CaptureFixture[str]) ->
     assert output["categories"][0]["rolling_amount"] == 440.0
     assert output["rolling_selected_change"] == -20.0
     assert output["uncategorized_count"] == 4
+    assert output["uncategorized_total"] == 125.0
+
+
+def test_check_reports_watched_transaction_sets(capsys: pytest.CaptureFixture[str]) -> None:
+    settings = SimpleNamespace(weekly_summary=SimpleNamespace(watched_transaction_sets=("food", "bills")))
+
+    with (
+        patch("src.discord_notifier.load_config", return_value=sample_config()),
+        patch("src.discord_notifier.get_settings", return_value=settings),
+        patch("src.discord_notifier.load_report_data", return_value=pd.DataFrame(index=range(7))),
+        patch("src.discord_notifier.check_webhook") as check_webhook,
+    ):
+        exit_code = main(["check", "--output", "json"])
+
+    output = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert output["watched_transaction_set_count"] == 2
+    assert output["transaction_count"] == 7
+    check_webhook.assert_called_once_with(sample_config().webhook_url)
 
 
 def test_text_preview_matches_discord_title(capsys: pytest.CaptureFixture[str]) -> None:
@@ -332,8 +379,14 @@ def test_text_preview_matches_discord_title(capsys: pytest.CaptureFixture[str]) 
     assert exit_code == 0
     assert output.startswith("Weekly spending\n")
     assert "4-week watched spending\n" in output
-    assert "Everyday Food: $440.00 (▼ $60.00 less than prior 4 weeks)" in output
-    assert "4-week watched total: $680.00 (▼ $20.00 less than prior 4 weeks)" in output
+    assert (
+        "Everyday Food: $440.00 (\N{LARGE GREEN CIRCLE} \N{BLACK DOWN-POINTING TRIANGLE} "
+        "$60.00 less than prior 4 weeks)"
+    ) in output
+    assert (
+        "4-week watched total: $680.00 (\N{LARGE GREEN CIRCLE} \N{BLACK DOWN-POINTING TRIANGLE} "
+        "$20.00 less than prior 4 weeks)"
+    ) in output
 
 
 def test_text_preview_uses_utf8_on_a_legacy_windows_console() -> None:
@@ -349,6 +402,7 @@ def test_text_preview_uses_utf8_on_a_legacy_windows_console() -> None:
     stdout.flush()
     rendered = output.getvalue().decode("utf-8")
     assert exit_code == 0
+    assert "\N{LARGE GREEN CIRCLE}" in rendered
     assert "▼" in rendered
 
 

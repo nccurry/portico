@@ -43,6 +43,8 @@ def test_config_is_generic_complete_and_not_a_demo() -> None:
     assert settings.subscriptions.known_categories == ()
     assert settings.financial_independence.included_groups == ()
     assert settings.merchants.aliases == ()
+    assert settings.weekly_summary.watched_transaction_sets == ("all",)
+    assert settings.weekly_summary.average_weeks == 48
 
 
 def test_config_shows_every_supported_static_setting() -> None:
@@ -78,6 +80,8 @@ def test_demo_config_is_complete_local_data_and_is_detected_by_name() -> None:
     )
     assert settings.filter_set("spending").default == "discretionary"
     assert settings.filter_set("year_over_year").default == "utilities"
+    assert settings.weekly_summary.watched_transaction_sets == ("discretionary",)
+    assert settings.weekly_summary.average_weeks == 48
 
 
 def test_demo_banner_requires_the_exact_demo_filename(tmp_path: Path) -> None:
@@ -173,6 +177,26 @@ def test_unknown_transaction_set_references_are_rejected(tmp_path: Path) -> None
     )
 
     with pytest.raises(ConfigError, match="references unknown set"):
+        _load(config)
+
+
+@pytest.mark.parametrize(
+    ("old", "new", "message"),
+    [
+        ('watched_transaction_sets = ["all"]', "watched_transaction_sets = []", "at least one"),
+        ('watched_transaction_sets = ["all"]', 'watched_transaction_sets = ["missing"]', "unknown transaction set"),
+    ],
+)
+def test_watched_transaction_sets_must_name_existing_sets(
+    tmp_path: Path,
+    old: str,
+    new: str,
+    message: str,
+) -> None:
+    config = _copy_config(tmp_path)
+    _replace(config, old, new)
+
+    with pytest.raises(ConfigError, match=message):
         _load(config)
 
 

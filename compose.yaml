@@ -1,0 +1,36 @@
+name: portico
+
+services:
+  app:
+    image: ${PORTICO_IMAGE:?Set PORTICO_IMAGE in .env}
+    init: true
+    restart: unless-stopped
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    environment:
+      TZ: ${TZ:?Set TZ in .env}
+      PORTICO_DISCORD_ENABLED: ${PORTICO_DISCORD_ENABLED:?Set PORTICO_DISCORD_ENABLED in .env}
+      PORTICO_DISCORD_CRON: ${PORTICO_DISCORD_CRON:?Set PORTICO_DISCORD_CRON in .env}
+    ports:
+      - ${PORTICO_PUBLISH_ADDRESS:?Set PORTICO_PUBLISH_ADDRESS in .env}:${PORTICO_PUBLISH_PORT:?Set PORTICO_PUBLISH_PORT in .env}:8501
+    volumes:
+      - type: bind
+        source: ./config.toml
+        target: /app/config.toml
+        read_only: true
+      - type: bind
+        source: ./.streamlit/secrets.toml
+        target: /app/.streamlit/secrets.toml
+        read_only: true
+      - type: volume
+        source: portico-state
+        target: /app/.local
+
+volumes:
+  portico-state:
+    external: true

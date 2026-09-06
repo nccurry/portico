@@ -16,7 +16,7 @@ interfaces only on a network that you trust. Do not use public port forwarding
 without an authenticated TLS reverse proxy.
 
 The container runs as a non-root user with a read-only root filesystem. The
-documented container command mounts the Streamlit secrets file as read-only.
+documented Compose deployment mounts the Streamlit secrets file as read-only.
 These controls do not add user authentication to the dashboard.
 
 The GitHub Pages demo is public. It contains synthetic data and runs in the
