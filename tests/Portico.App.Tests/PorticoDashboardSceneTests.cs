@@ -197,7 +197,14 @@ public sealed class PorticoDashboardSceneTests
         scene.Refresh();
         Assert.True(HasNode(scene, "Chart:sensitivity"));
         ChartState sensitivity = GetChartState(scene, "Chart:sensitivity");
-        Assert.True(Assert.Single(sensitivity.Series) is ChartHeatmapSeries);
+        ChartHeatmapSeries heatmap = Assert.Single(sensitivity.Series) switch
+        {
+            ChartHeatmapSeries value => value,
+            _ => throw new Xunit.Sdk.XunitException("Expected the sensitivity chart to use a heatmap series.")
+        };
+        Assert.Equal(new Color(214, 105, 104), heatmap.Style.LowColor!.Value);
+        Assert.Equal(new Color(93, 189, 174), heatmap.Style.HighColor!.Value);
+        Assert.Equal(2f, heatmap.Style.CellGap);
     }
 
     [Fact]

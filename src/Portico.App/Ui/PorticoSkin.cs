@@ -78,7 +78,7 @@ internal static class PorticoSkin
     internal const float AreaFillOpacity = 0.18f;
     internal const float TimelineFillOpacity = 0.72f;
     internal const float TimelineBandFillRatio = 0.62f;
-    internal const float HeatmapCellFillRatio = 0.92f;
+    internal const float HeatmapCellGap = 2f;
     internal const float MetricWidgetHeight = 155f;
     internal const float TableWidgetHeight = 310f;
     internal const float SparklineWidgetHeight = 200f;

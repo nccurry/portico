@@ -1048,8 +1048,9 @@ public sealed class PorticoDashboardScene
                 .HeatmapCells(cells)
                 .SeriesStyle(new ChartHeatmapStyleOverrides
                 {
-                    ColorScale = ChartHeatmapColorScale.Automatic(PorticoSkin.HeatmapLow, PorticoSkin.HeatmapHigh),
-                    CellFillRatio = PorticoSkin.HeatmapCellFillRatio
+                    LowColor = PorticoSkin.HeatmapLow,
+                    HighColor = PorticoSkin.HeatmapHigh,
+                    CellGap = PorticoSkin.HeatmapCellGap
                 });
         EndChartWithDetails();
     }

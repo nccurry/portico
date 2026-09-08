@@ -43,7 +43,18 @@ public sealed class PorticoYearOverYearPageTests
 
         YearOverYearComparisonView first = view.Comparisons[0];
         ChartState chart = State<ChartState>(scene, $"YearOverYearChart:{first.Entity}");
-        Assert.True(chart.XAxis is ChartDateAxisConfig);
+        ChartDateAxisConfig axis = chart.XAxis switch
+        {
+            ChartDateAxisConfig value => value,
+            _ => throw new Xunit.Sdk.XunitException("Expected the year-over-year chart to use a date axis.")
+        };
+        ChartFixedDateDomain domain = axis.Domain switch
+        {
+            ChartFixedDateDomain value => value,
+            _ => throw new Xunit.Sdk.XunitException("Expected the year-over-year chart to use a fixed date domain.")
+        };
+        Assert.Equal(new DateOnly(2000, 1, 1), domain.Minimum);
+        Assert.Equal(new DateOnly(2000, 12, 31), domain.Maximum);
         Assert.Equal(ChartLegendPlacement.Top, chart.Legend);
         if (chart.Series[0] is not ChartLineSeries current)
             throw new Xunit.Sdk.XunitException("Expected the current year to render as a line series.");

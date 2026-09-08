@@ -265,7 +265,7 @@ internal sealed class PorticoYearOverYearPageRenderer
     {
         ui.CartesianChart($"YearOverYearChart:{entity}")
             .XAxis(ChartAxisConfig.Date(
-                domain: ChartDateAxisDomain.Fixed(new DateOnly(2000, 1, 1), new DateOnly(2000, 12, 31)),
+                domain: ChartDateDomain.Fixed(new DateOnly(2000, 1, 1), new DateOnly(2000, 12, 31)),
                 formatter: MonthLabel))
             .YAxis(ChartAxisConfig.Linear("Monthly spending ($)"))
             .Legend(series.Count > 1 ? ChartLegendPlacement.Top : ChartLegendPlacement.Hidden)
