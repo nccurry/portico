@@ -1,25 +1,82 @@
-"""Tests for Home.py - net worth calculation and account grouping logic.
-
-These exercise ``src.spreadsheet.calculate_net_worth_summary`` directly, which
-is the function ``Home.configure_page`` delegates to. That keeps the page
-file a thin orchestrator and gives the tests a stable, importable target.
-"""
+"""Tests for Home page chart and account-group helpers."""
 
 import pandas as pd
 import pytest
 
-from Home import _order_account_groups, create_account_group_sparkline
-from src.constants import COLOR_LIABILITY
+import Home
+from Home import _order_account_groups, create_account_group_sparkline, create_account_movement_chart
+from src.constants import COLOR_ASSET, COLOR_LIABILITY
 from src.spreadsheet import calculate_net_worth_summary
 from tests._helpers import _ts
 from tests.custom_types import BalanceSpreadsheetFactory
 from tests.fixtures.dataframes import BALANCE_HISTORY_SCRUBBED_COLUMNS
 
 
+def test_account_movement_chart_uses_signed_net_worth_impact() -> None:
+    chart = create_account_movement_chart(
+        pd.DataFrame(
+            {
+                "Account": ["Brokerage", "Home loan"],
+                "Balance": [10_000.0, 250_000.0],
+                "Net_Worth_Impact": [500.0, -1_000.0],
+            }
+        )
+    )
+    spec = chart.to_dict()
+    bars = spec["layer"][0]
+
+    assert bars["mark"]["type"] == "bar"
+    assert bars["encoding"]["x"]["field"] == "Net_Worth_Impact"
+    assert bars["encoding"]["color"]["condition"]["value"] == COLOR_ASSET
+    assert bars["encoding"]["color"]["value"] == COLOR_LIABILITY
+    assert spec["layer"][1]["mark"]["type"] == "rule"
+
+
 def test_liability_sparkline_uses_liability_color() -> None:
     chart = create_account_group_sparkline([1000.0, 900.0], color=COLOR_LIABILITY)
 
     assert chart.to_dict()["mark"]["color"] == COLOR_LIABILITY
+
+
+def test_balance_analysis_schema_version_refreshes_cached_output(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[int] = []
+
+    def build_history(_: pd.DataFrame, __: pd.Timestamp, ___: pd.Timestamp) -> pd.DataFrame:
+        return pd.DataFrame()
+
+    def build_groups(_: pd.DataFrame, __: pd.Timestamp, ___: pd.Timestamp) -> pd.DataFrame:
+        calls.append(1)
+        return pd.DataFrame({"Trend": [[float(len(calls))]]})
+
+    def build_accounts(_: pd.DataFrame, __: pd.Timestamp, ___: pd.Timestamp) -> pd.DataFrame:
+        return pd.DataFrame()
+
+    monkeypatch.setattr(Home, "build_net_worth_history", build_history)
+    monkeypatch.setattr(Home, "build_balance_group_inventory", build_groups)
+    monkeypatch.setattr(Home, "build_account_inventory", build_accounts)
+    Home._analyze_balances.clear()
+    schema_version = Home.BALANCE_ANALYSIS_SCHEMA_VERSION
+
+    try:
+        first = Home._analyze_balances(
+            pd.DataFrame({"Balance": [1.0]}), pd.Timestamp("2024-01-01"), pd.Timestamp("2024-01-31"), schema_version
+        )
+        cached = Home._analyze_balances(
+            pd.DataFrame({"Balance": [1.0]}), pd.Timestamp("2024-01-01"), pd.Timestamp("2024-01-31"), schema_version
+        )
+        refreshed = Home._analyze_balances(
+            pd.DataFrame({"Balance": [1.0]}),
+            pd.Timestamp("2024-01-01"),
+            pd.Timestamp("2024-01-31"),
+            schema_version + 1,
+        )
+    finally:
+        Home._analyze_balances.clear()
+
+    assert calls == [1, 1]
+    assert first[1].loc[0, "Trend"] == [1.0]
+    assert cached[1].loc[0, "Trend"] == [1.0]
+    assert refreshed[1].loc[0, "Trend"] == [2.0]
 
 
 def test_account_groups_sort_negative_contributions_last() -> None:

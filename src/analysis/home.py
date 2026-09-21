@@ -10,21 +10,16 @@ BALANCE_GROUP_COLUMNS = [
     "Net_Contribution",
     "Period_Change",
     "Period_Change_Pct",
-    "Last_Updated",
-    "Account_Count",
     "Trend",
 ]
 ACCOUNT_INVENTORY_COLUMNS = [
     "Group",
     "Account",
-    "Institution",
-    "Type",
-    "Class",
     "Balance",
     "Net_Contribution",
     "Period_Change",
-    "Last_Updated",
 ]
+ACCOUNT_GROUP_DETAIL_COLUMNS = ["Account", "Balance", "Change", "Net_Worth_Impact"]
 
 
 def build_net_worth_history(
@@ -128,8 +123,6 @@ def build_balance_group_inventory(
                 "Net_Contribution": net_contribution,
                 "Period_Change": period_change,
                 "Period_Change_Pct": period_change_pct,
-                "Last_Updated": group_rows["Date"].max(),
-                "Account_Count": int(group_rows["_Account_Key"].nunique()),
                 "Trend": trend,
             }
         )
@@ -161,17 +154,42 @@ def build_account_inventory(
 
     opening = _latest_accounts_as_of(balances, start).set_index("_Account_Key")
     opening_contributions = opening["_Contribution"]
-    for column in ("Account", "Institution", "Type"):
-        if column not in current:
-            current[column] = ""
-    current["Class"] = current["_Class"]
+    if "Account" not in current:
+        current["Account"] = ""
     current["Balance"] = current["_Magnitude"]
     current["Net_Contribution"] = current["_Contribution"]
     current["Period_Change"] = current["_Contribution"] - current["_Account_Key"].map(opening_contributions).fillna(0.0)
-    current["Last_Updated"] = current["Date"]
     return (
         current.filter(ACCOUNT_INVENTORY_COLUMNS)
         .sort_values(["Group", "Account"], kind="stable")
+        .reset_index(drop=True)
+    )
+
+
+def build_account_group_details(
+    account_inventory_df: pd.DataFrame,
+    group: str,
+    *,
+    is_liability: bool,
+) -> pd.DataFrame:
+    """Return display values and net-worth movement for one account group."""
+    if account_inventory_df.empty:
+        return _empty_account_group_details()
+
+    details = account_inventory_df.loc[
+        account_inventory_df["Group"].eq(group),
+        ["Account", "Balance", "Net_Contribution", "Period_Change"],
+    ].copy()
+    if details.empty:
+        return _empty_account_group_details()
+
+    if not is_liability:
+        details["Balance"] = details["Net_Contribution"]
+    details["Change"] = -details["Period_Change"] if is_liability else details["Period_Change"]
+    details["Net_Worth_Impact"] = details["Period_Change"]
+    return (
+        details[ACCOUNT_GROUP_DETAIL_COLUMNS]
+        .sort_values("Balance", key=lambda values: values.abs(), ascending=False, kind="stable")
         .reset_index(drop=True)
     )
 
@@ -253,8 +271,6 @@ def _empty_balance_group_inventory() -> pd.DataFrame:
             "Net_Contribution": pd.Series(dtype=float),
             "Period_Change": pd.Series(dtype=float),
             "Period_Change_Pct": pd.Series(dtype=float),
-            "Last_Updated": pd.Series(dtype="datetime64[ns, UTC]"),
-            "Account_Count": pd.Series(dtype=int),
             "Trend": pd.Series(dtype=object),
         }
     )
@@ -265,12 +281,19 @@ def _empty_account_inventory() -> pd.DataFrame:
         {
             "Group": pd.Series(dtype=str),
             "Account": pd.Series(dtype=str),
-            "Institution": pd.Series(dtype=str),
-            "Type": pd.Series(dtype=str),
-            "Class": pd.Series(dtype=str),
             "Balance": pd.Series(dtype=float),
             "Net_Contribution": pd.Series(dtype=float),
             "Period_Change": pd.Series(dtype=float),
-            "Last_Updated": pd.Series(dtype="datetime64[ns, UTC]"),
+        }
+    )
+
+
+def _empty_account_group_details() -> pd.DataFrame:
+    return pd.DataFrame(
+        {
+            "Account": pd.Series(dtype=str),
+            "Balance": pd.Series(dtype=float),
+            "Change": pd.Series(dtype=float),
+            "Net_Worth_Impact": pd.Series(dtype=float),
         }
     )

@@ -534,24 +534,6 @@ class TestHomeSmoke:
         assert at.segmented_control[0].label == "Time frame"
         assert at.segmented_control[0].value == "1Y"
         assert at.segmented_control[0].options == ["3M", "6M", "1Y", "2Y", "5Y", "All"]
-        assert _metric_labels(at)[:3] == ["Net worth", "Assets", "Liabilities"]
-        assert all(metric.value.startswith("$") for metric in at.metric[:3])
-        assert all(not metric.proto.chart_data for metric in at.metric[:3])
-        assert [heading.value for heading in at.subheader] == [
-            "Net worth history",
-            "What changed",
-            "Account groups",
-            "Financial safety",
-        ]
-        help_by_heading = {heading.value: heading.proto.help for heading in at.subheader}
-        assert help_by_heading["What changed"] == (
-            "Balance movement by account group across the selected time frame. "
-            "Transfers can offset between groups; this is not an investment-return calculation."
-        )
-        assert help_by_heading["Financial safety"] == (
-            "Emergency-fund and debt settings come from `[financial_safety]`. "
-            "The FI funding target and account scope come from `[financial_independence]`."
-        )
         group_names = {
             "Retirement",
             "Liabilities",
@@ -559,17 +541,47 @@ class TestHomeSmoke:
             "Savings",
             "Credit Cards",
         }
+        assert _metric_labels(at)[:3] == ["Emergency fund", "Debt balance", "FI funding"]
+        assert _metric_labels(at)[3:6] == ["Net worth", "Assets", "Liabilities"]
+        assert all(metric.value.startswith("$") for metric in at.metric[3:6])
+        assert all(not metric.proto.chart_data for metric in at.metric[3:6])
+        assert [heading.value for heading in at.subheader] == [
+            "Financial safety",
+            "Net worth history",
+            "Account groups",
+        ]
+        help_by_heading = {heading.value: heading.proto.help for heading in at.subheader}
+        what_changed_captions = [caption for caption in at.caption if caption.value == "What changed"]
+        assert len(what_changed_captions) == len(group_names) + 1
+        assert what_changed_captions[0].proto.help == (
+            "Balance movement by account group across the selected time frame. "
+            "Transfers can offset between groups; this is not an investment-return calculation."
+        )
+        assert help_by_heading["Financial safety"] == (
+            "Emergency-fund and debt settings come from `[financial_safety]`. "
+            "The FI funding target and account scope come from `[financial_independence]`."
+        )
         charts = at.get("vega_lite_chart")
-        assert len(charts) == 2 + len(group_names)
+        assert len(charts) == 2 + len(group_names) * 2
         assert all(field in charts[0].proto.spec for field in ["Assets", "Liabilities", "Net_Worth"])
         assert '"point"' not in charts[0].proto.spec
-        sparkline_colors = [json.loads(chart.proto.spec)["mark"]["color"] for chart in charts[2:]]
-        assert sparkline_colors.count(COLOR_ASSET) == 3
-        assert sparkline_colors.count(COLOR_LIABILITY) == 2
+        sparkline_specs = [json.loads(chart.proto.spec) for chart in charts[2::2]]
+        assert [spec["mark"]["color"] for spec in sparkline_specs].count(COLOR_ASSET) == 3
+        assert [spec["mark"]["color"] for spec in sparkline_specs].count(COLOR_LIABILITY) == 2
+        account_movement_specs = [json.loads(chart.proto.spec) for chart in charts[3::2]]
+        assert all(spec["layer"][0]["mark"]["type"] == "bar" for spec in account_movement_specs)
+        assert all(spec["layer"][0]["encoding"]["x"]["field"] == "Net_Worth_Impact" for spec in account_movement_specs)
+        assert all(
+            spec["layer"][0]["encoding"]["color"]["condition"]["value"] == COLOR_ASSET
+            for spec in account_movement_specs
+        )
+        assert all(spec["layer"][0]["encoding"]["color"]["value"] == COLOR_LIABILITY for spec in account_movement_specs)
+        assert sum(caption.value.startswith("Account details (") for caption in at.caption) == len(group_names)
+        assert not at.expander
         metric_labels = [metric.label for metric in at.metric]
         assert "Accounts" not in metric_labels
         assert "Net-worth impact" not in metric_labels
-        group_metrics = [metric for metric in at.metric[3:] if metric.label in group_names]
+        group_metrics = [metric for metric in at.metric[6:] if metric.label in group_names]
         assert {metric.label for metric in group_metrics} == group_names
         assert all(not metric.proto.chart_data for metric in group_metrics)
         liabilities = next(metric for metric in group_metrics if metric.label == "Liabilities")
@@ -577,18 +589,15 @@ class TestHomeSmoke:
         assert liabilities.delta == "-$10,320"
         assert len(at.metric) == 11
         assert len(at.columns) == 9
-        assert all(column.weight == pytest.approx(0.5) for column in at.columns[:6])
-        assert all(column.weight == pytest.approx(1 / 3) for column in at.columns[6:])
+        assert all(column.weight == pytest.approx(1 / 3) for column in at.columns[:3])
+        assert all(column.weight == pytest.approx(0.5) for column in at.columns[3:])
         assert len(at.dataframe) == len(group_names)
         assert all(table.key != "home_balance_groups" for table in at.dataframe)
-        assert all(
-            list(table.value.columns) == ["Account", "Institution", "Balance", "Change", "Last_Updated"]
-            for table in at.dataframe
-        )
+        assert all(list(table.value.columns) == ["Account", "Balance", "Change"] for table in at.dataframe)
         assert all(
             forbidden not in table.value.columns
             for table in at.dataframe
-            for forbidden in ["Type", "Class", "Net_Contribution"]
+            for forbidden in ["Institution", "Last_Updated", "Type", "Class", "Net_Contribution", "Net_Worth_Impact"]
         )
         liability_details = next(table.value for table in at.dataframe if "Home Loan" in set(table.value["Account"]))
         assert liability_details["Balance"].gt(0).all()
@@ -620,7 +629,7 @@ class TestHomeSmoke:
         assert investment_details["Change"].abs().sum() > 0
         investment_changes = investment_details.set_index("Account")["Change"]
         assert investment_changes.abs().gt(0).all()
-        assert set(investment_details["Institution"]) == {"Northstar Investments"}
+        assert "Institution" not in investment_details.columns
 
     def test_lookback_control_reruns_group_cards(
         self,
@@ -635,8 +644,8 @@ class TestHomeSmoke:
 
         assert not at.exception
         assert at.segmented_control[0].value == "3M"
-        assert at.metric[0].delta.endswith("over 3M")
-        assert len(at.get("vega_lite_chart")) == 7
+        assert at.metric[3].delta.endswith("over 3M")
+        assert len(at.get("vega_lite_chart")) == 12
         assert "Investments" in _metric_labels(at)
 
     def test_navigation_switches_to_registered_page(

@@ -271,6 +271,13 @@ Each page follows the same general flow:
 4. Render metrics, charts, tables, and transaction details.
 5. Handle empty results with a clear message.
 
+Home renders Financial safety before the net-worth summary. The net-worth trend
+and its What changed chart stay together. Account-group cards keep time-series
+balance context separate from period movement: a sparkline shows the group's
+balance history, while a signed bar chart shows each account's net-worth impact
+in the selected time frame. Account, balance, and change details appear
+directly below the chart.
+
 Pages can cache expensive deterministic calculations with `st.cache_data`.
 Cached functions must return the same result for the same input values.
 

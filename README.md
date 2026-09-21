@@ -42,13 +42,19 @@ but Portico uses the table contract rather than a provider-specific account.
 The repository includes synthetic data, so you can explore every dashboard
 without a remote spreadsheet.
 
+On the Home page, Financial safety comes first. The net-worth trend and its
+What changed chart appear together. Each account group pairs its
+balance-history sparkline with a signed What changed chart, followed by visible
+account, balance, and change details; institution and updated columns are not
+shown.
+
 ## Screenshots
 
 These screenshots use the committed synthetic data. They contain no personal
 financial records.
 
 <p align="center">
-  <img src="assets/screenshots/demo-overview.png" alt="Demo dashboard with net worth metrics, account groups, and a balance history chart" />
+  <img src="assets/screenshots/demo-overview.png" alt="Demo dashboard with financial-safety metrics, net-worth history, a What changed chart, and account groups" />
 </p>
 
 ### Spending analysis
