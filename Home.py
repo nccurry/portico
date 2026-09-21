@@ -13,6 +13,7 @@ from src.analysis.data_health import (
 )
 from src.analysis.financial_safety import build_financial_safety_summary
 from src.analysis.home import (
+    build_account_group_details,
     build_account_inventory,
     build_balance_group_inventory,
     build_net_worth_history,
@@ -58,6 +59,8 @@ ANALYZE_PAGE_SPECS = (
     ("app_pages/5_Subscriptions.py", "Subscriptions", ":material/subscriptions:"),
     ("app_pages/8_Top_Transactions.py", "Transactions", ":material/receipt_long:"),
 )
+# Change this when a cached result DataFrame gains, loses, or renames a column.
+BALANCE_ANALYSIS_SCHEMA_VERSION = 1
 
 
 def create_financial_position_chart(history: pd.DataFrame) -> alt.LayerChart:
@@ -104,8 +107,51 @@ def create_financial_position_chart(history: pd.DataFrame) -> alt.LayerChart:
     return cast(alt.LayerChart, alt.layer(areas, zero, net_worth).properties(height=330))
 
 
+def _create_movement_bar_chart(
+    frame: pd.DataFrame,
+    *,
+    label_column: str,
+    label_title: str,
+    movement_column: str,
+    movement_title: str,
+    current_value_column: str,
+    current_value_title: str,
+    height: int,
+) -> alt.LayerChart:
+    """Create a signed horizontal bar chart for balance movement."""
+    order = frame.sort_values(movement_column, kind="stable")[label_column].tolist()
+    bars = (
+        alt.Chart(frame)
+        .mark_bar(cornerRadiusEnd=3)
+        .encode(
+            x=alt.X(
+                f"{movement_column}:Q",
+                title=f"{movement_title} ($)",
+                axis=alt.Axis(format="$,.2s"),
+            ),
+            y=alt.Y(label_column + ":N", title=None, sort=order),
+            color=alt.condition(
+                f"datum.{movement_column} >= 0",
+                alt.value(COLOR_ASSET),
+                alt.value(COLOR_LIABILITY),
+            ),
+            tooltip=[
+                alt.Tooltip(label_column + ":N", title=label_title),
+                alt.Tooltip(movement_column + ":Q", title=movement_title, format="$,.0f"),
+                alt.Tooltip(current_value_column + ":Q", title=current_value_title, format="$,.0f"),
+            ],
+        )
+    )
+    zero = (
+        alt.Chart(pd.DataFrame({movement_column: [0.0]}))
+        .mark_rule(color="#64748B", opacity=0.55)
+        .encode(x=alt.X(movement_column + ":Q"))
+    )
+    return cast(alt.LayerChart, alt.layer(bars, zero).properties(height=height))
+
+
 def create_account_group_sparkline(trend: list[float], *, color: str) -> alt.Chart:
-    """Show an account-group trend with its semantic balance color."""
+    """Show an account-group balance trend with its semantic color."""
     history = pd.DataFrame({"Position": range(len(trend)), "Balance": trend})
     return cast(
         alt.Chart,
@@ -122,30 +168,31 @@ def create_account_group_sparkline(trend: list[float], *, color: str) -> alt.Cha
     )
 
 
-def create_net_worth_attribution_chart(groups: pd.DataFrame) -> alt.Chart:
+def create_net_worth_attribution_chart(groups: pd.DataFrame) -> alt.LayerChart:
     """Show which account groups contributed to the selected net-worth movement."""
-    order = groups.sort_values("Period_Change")["Group"].tolist()
-    return cast(
-        alt.Chart,
-        (
-            alt.Chart(groups)
-            .mark_bar(cornerRadiusEnd=3)
-            .encode(
-                x=alt.X("Period_Change:Q", title="Net-worth movement ($)", axis=alt.Axis(format="$,.2s")),
-                y=alt.Y("Group:N", title=None, sort=order),
-                color=alt.condition(
-                    "datum.Period_Change >= 0",
-                    alt.value(COLOR_ASSET),
-                    alt.value(COLOR_LIABILITY),
-                ),
-                tooltip=[
-                    alt.Tooltip("Group:N", title="Account group"),
-                    alt.Tooltip("Period_Change:Q", title="Net-worth movement", format="$,.0f"),
-                    alt.Tooltip("Net_Contribution:Q", title="Current contribution", format="$,.0f"),
-                ],
-            )
-            .properties(height=max(180, len(groups) * 42))
-        ),
+    return _create_movement_bar_chart(
+        groups,
+        label_column="Group",
+        label_title="Account group",
+        movement_column="Period_Change",
+        movement_title="Net-worth movement",
+        current_value_column="Net_Contribution",
+        current_value_title="Current contribution",
+        height=max(180, len(groups) * 42),
+    )
+
+
+def create_account_movement_chart(details: pd.DataFrame) -> alt.LayerChart:
+    """Show which accounts drove a group's selected-period movement."""
+    return _create_movement_bar_chart(
+        details,
+        label_column="Account",
+        label_title="Account",
+        movement_column="Net_Worth_Impact",
+        movement_title="Net-worth impact",
+        current_value_column="Balance",
+        current_value_title="Current balance",
+        height=max(120, len(details) * 36),
     )
 
 
@@ -154,6 +201,7 @@ def _analyze_balances(
     balances: pd.DataFrame,
     start_date: pd.Timestamp,
     end_date: pd.Timestamp,
+    analysis_schema_version: int,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Build balance history, group inventory, and current account inventory."""
     return (
@@ -232,6 +280,7 @@ def _format_currency(value: float, *, show_plus: bool = False) -> str:
 
 def _render_financial_position(
     history: pd.DataFrame,
+    groups: pd.DataFrame,
     requested_start: pd.Timestamp,
     lookback: str,
 ) -> None:
@@ -272,21 +321,21 @@ def _render_financial_position(
             mask_chart_values(create_financial_position_chart(history)),
             width="stretch",
         )
+        _render_net_worth_attribution(groups)
 
 
 def _render_net_worth_attribution(groups: pd.DataFrame) -> None:
     """Render a group-level explanation of the selected net-worth movement."""
     if groups.empty:
         return
-    with st.container(border=True):
-        st.subheader(
-            "What changed",
-            help=(
-                "Balance movement by account group across the selected time frame. "
-                "Transfers can offset between groups; this is not an investment-return calculation."
-            ),
-        )
-        st.altair_chart(mask_chart_values(create_net_worth_attribution_chart(groups)), width="stretch")
+    st.caption(
+        "What changed",
+        help=(
+            "Balance movement by account group across the selected time frame. "
+            "Transfers can offset between groups; this is not an investment-return calculation."
+        ),
+    )
+    st.altair_chart(mask_chart_values(create_net_worth_attribution_chart(groups)), width="stretch")
 
 
 def _progress_bar(value: float | None) -> float:
@@ -378,15 +427,7 @@ def _render_account_group(group_row: pd.Series, accounts: pd.DataFrame) -> None:
         if is_liability
         else "Balance change across the selected time frame"
     )
-    selected_accounts = (
-        accounts[accounts["Group"] == group]
-        .sort_values(
-            "Net_Contribution",
-            key=lambda values: values.abs(),
-            ascending=False,
-        )
-        .reset_index(drop=True)
-    )
+    details = build_account_group_details(accounts, group, is_liability=is_liability)
 
     with st.container(border=True):
         st.metric(
@@ -403,48 +444,29 @@ def _render_account_group(group_row: pd.Series, accounts: pd.DataFrame) -> None:
             mask_chart_values(create_account_group_sparkline(trend, color=sparkline_color)),
             width="stretch",
         )
+        st.caption("What changed")
+        st.altair_chart(
+            mask_chart_values(create_account_movement_chart(details)),
+            width="stretch",
+        )
 
-        account_count = len(selected_accounts)
-        with st.expander(
-            f"Account details ({mask_value(str(account_count))})",
-            icon=":material/account_balance:",
-        ):
-            balance_column = "Balance" if is_liability else "Net_Contribution"
-            details = selected_accounts[
-                [
-                    "Account",
-                    "Institution",
-                    balance_column,
-                    "Period_Change",
-                    "Last_Updated",
-                ]
-            ].rename(
-                columns={
-                    balance_column: "Balance",
-                    "Period_Change": "Change",
-                }
-            )
-            if is_liability:
-                details["Change"] = -details["Change"]
-            st.dataframe(
-                details,
-                width="stretch",
-                hide_index=True,
-                column_config=mask_numeric_column_config(
-                    details,
-                    {
-                        "Account": st.column_config.TextColumn("Account", pinned=True),
-                        "Institution": "Institution",
-                        "Balance": st.column_config.NumberColumn(balance_label, format="$%,.2f"),
-                        "Change": st.column_config.NumberColumn("Change", format="$%+,.2f"),
-                        "Last_Updated": st.column_config.DatetimeColumn(
-                            "Updated",
-                            format="MMM D, YYYY",
-                        ),
-                    },
-                ),
-                placeholder="No current accounts are available for this group.",
-            )
+        account_count = len(details)
+        st.caption(f"Account details ({mask_value(str(account_count))})")
+        account_details = details[["Account", "Balance", "Change"]]
+        st.dataframe(
+            account_details,
+            width="stretch",
+            hide_index=True,
+            column_config=mask_numeric_column_config(
+                account_details,
+                {
+                    "Account": st.column_config.TextColumn("Account", pinned=True),
+                    "Balance": st.column_config.NumberColumn(balance_label, format="$%,.2f"),
+                    "Change": st.column_config.NumberColumn("Change", format="$%+,.2f"),
+                },
+            ),
+            placeholder="No current accounts are available for this group.",
+        )
 
 
 def _order_account_groups(groups: pd.DataFrame) -> pd.DataFrame:
@@ -491,14 +513,16 @@ def configure_page(
     start_date = (
         pd.Timestamp(balances["Date"].min()) if lookback_days is None else end_date - timedelta(days=lookback_days)
     )
-    history, groups, accounts = _analyze_balances(balances, start_date, end_date)
+    history, groups, accounts = _analyze_balances(
+        balances,
+        start_date,
+        end_date,
+        analysis_schema_version=BALANCE_ANALYSIS_SCHEMA_VERSION,
+    )
     if history.empty:
         st.info("No balance history is available for this time frame.", icon=":material/info:")
         return
 
-    _render_financial_position(history, start_date, lookback)
-    _render_net_worth_attribution(groups)
-    _render_account_groups(groups, accounts)
     _render_financial_safety(
         build_financial_safety_summary(
             balances,
@@ -508,6 +532,8 @@ def configure_page(
             as_of=reporting_anchor(transactions),
         )
     )
+    _render_financial_position(history, groups, start_date, lookback)
+    _render_account_groups(groups, accounts)
     _render_global_status(balance_as_of, balances)
 
 
