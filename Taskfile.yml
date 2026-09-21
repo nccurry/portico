@@ -2,452 +2,89 @@
 version: '3'
 
 vars:
-  VENV: '{{default ".venv" .PORTICO_VENV}}'
-  PYTHON: '{{if eq OS "windows"}}{{.VENV}}/Scripts/python.exe{{else}}{{.VENV}}/bin/python{{end}}'
-  LOCAL_UV: '{{if eq OS "windows"}}.tools/bin/uv.exe{{else}}.tools/bin/uv{{end}}'
-  LOCAL_TASK: '{{if eq OS "windows"}}.tools/bin/task.exe{{else}}.tools/bin/task{{end}}'
-  UV: '{{default .LOCAL_UV .PORTICO_UV}}'
-  TASK: '{{default .LOCAL_TASK .PORTICO_TASK}}'
-  UV_PYTHON_DIR: '{{default ".tools/python" .UV_PYTHON_INSTALL_DIR}}'
-  UV_CACHE: '{{default ".local/uv-cache" .UV_CACHE_DIR}}'
-  PYTEST_TEMP: '{{default ".local/pytest-tmp" .PYTEST_TEMP}}'
-  COVERAGE_INPUTS: '{{default "." .COVERAGE_INPUTS}}'
-  LINT_PATHS: src/ app_pages/ demo/ tests/ scripts/ Home.py
-  ADDRESS: '{{default "127.0.0.1" .ADDRESS}}'
-  PORT: '{{default "8501" .PORT}}'
-  PERIOD_END: '{{default "" .PERIOD_END}}'
-  FORCE: '{{default "false" .FORCE}}'
-  OUTPUT: '{{default "text" .OUTPUT}}'
-
-env:
-  UV_PROJECT_ENVIRONMENT: '{{.VENV}}'
-  UV_PYTHON_INSTALL_DIR: '{{.UV_PYTHON_DIR}}'
-  UV_CACHE_DIR: '{{.UV_CACHE}}'
+  CONFIGURATION: '{{default "Debug" .CONFIGURATION}}'
+  SOLUTION: Portico.Roci.slnx
 
 tasks:
-  # ========================================
-  # Setup
-  # ========================================
-
-  setup:
-    desc: "Set up the development environment"
+  default:
+    desc: "Restore, lint, build, and test the active .NET solution"
     cmds:
-      - task: deps:python:install
-      - task: deps:sync
-      - task: setup:verify
-      - echo "[OK] Setup complete. Run 'task test' to run tests."
-
-  dev:sync:
-    desc: "Synchronize the locked development environment"
-    cmds:
-      - task: deps:sync
-
-  dev:verify:
-    desc: "Verify the development toolchain and imports"
-    cmds:
-      - task: setup:verify
-
-  deps:
-    desc: "Report project dependency status"
-    cmds:
-      - task: deps:check
-
-  deps:install:runtime:
-    desc: "Install pinned Python and runtime dependencies"
-    cmds:
-      - task: deps:python:install
-      - task: deps:sync:runtime
-      - task: setup:verify:runtime
-
-  deps:python:install:
-    desc: "Install pinned uv and Python locally"
-    cmds:
-      - cmd: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install_python_toolchain.ps1
-        platforms: [windows]
-      - cmd: sh scripts/install_python_toolchain.sh
-        platforms: [linux, darwin]
-
-  deps:sync:
-    desc: "Install locked development dependencies"
-    cmds:
-      - echo "[SETUP] Installing dependencies..."
-      - '{{.UV}} sync --locked --dev'
-
-  deps:sync:runtime:
-    desc: "Install locked runtime dependencies"
-    cmds:
-      - echo "[SETUP] Installing runtime dependencies..."
-      - '{{.UV}} sync --locked --no-dev'
-
-  setup:check:
-    desc: "Check development environment status"
-    cmds:
-      - echo "=== Development Environment Check ==="
-      - '{{.TASK}} --version'
-      - '{{.UV}} --version'
-      - '{{.UV}} run --locked --dev python --version'
-      - echo "=== Check complete ==="
-
-  setup:verify:
-    desc: "Verify setup is working"
-    cmds:
-      - echo "=== Verifying setup ==="
-      - task: setup:check
-      - '{{.UV}} run --locked --dev python -c "import streamlit; import pandas; import altair; print(\"[OK] All imports successful\")"'
-      - '{{.UV}} run --locked --dev pytest --version'
-      - echo "[OK] All verification checks passed."
-
-  setup:verify:runtime:
-    desc: "Verify runtime dependencies"
-    cmds:
-      - '{{.PYTHON}} -c "import streamlit; import pandas; import altair; import streamlit_gsheets; print(\"[OK] Runtime imports successful\")"'
-
-  # ========================================
-  # Package Management
-  # ========================================
-
-  deps:check:
-    desc: "Check dependency metadata and package updates"
-    aliases: [pkg:check]
-    cmds:
-      - task: deps:check-lock
-      - task: deps:outdated
-
-  deps:check-lock:
-    desc: "Check that uv.lock matches pyproject.toml"
-    cmds:
-      - '{{.UV}} lock --check'
-
-  deps:outdated:
-    desc: "Show outdated packages and the dependencies that constrain them"
-    cmds:
-      - '{{.UV}} tree --locked --outdated --depth 4'
-
-  deps:update:
-    desc: "Update every direct Python dependency to its latest exact pin"
-    aliases: [pkg:update]
-    cmds:
-      - '{{.UV}} remove --no-sync altair croniter pandas st-gsheets-connection streamlit'
-      - '{{.UV}} add --no-sync --bounds exact altair croniter pandas st-gsheets-connection streamlit'
-      - '{{.UV}} remove --dev --no-sync freezegun mypy pandas-stubs pytest pytest-cov ruff types-croniter'
-      - '{{.UV}} add --dev --no-sync --bounds exact freezegun mypy pandas-stubs pytest pytest-cov ruff types-croniter'
-      - '{{.UV}} lock --upgrade'
-      - '{{.UV}} sync --dev'
-      - echo "Packages updated. Run 'task check' to verify nothing broke."
-
-  # ========================================
-  # Testing
-  # ========================================
-
-  test:
-    desc: "Run all tests"
-    cmds:
-      - task: test:unit
-      - task: test:integration
-
-  test:unit:
-    desc: "Run unit tests"
-    cmds:
-      - '{{.UV}} run --locked --dev pytest --basetemp={{.PYTEST_TEMP | quote}} tests/unit'
-
-  test:integration:
-    desc: "Run integration tests"
-    cmds:
-      - '{{.UV}} run --locked --dev pytest --basetemp={{.PYTEST_TEMP | quote}} tests/integration'
-
-  test:verbose:
-    desc: "Run all tests with verbose output"
-    cmds:
-      - '{{.UV}} run --locked --dev pytest --basetemp={{.PYTEST_TEMP | quote}} -v'
-
-  test:file:
-    desc: "Run tests for a specific file (usage: task test:file -- test_spreadsheet.py)"
-    cmds:
-      - '{{.UV}} run --locked --dev pytest --basetemp={{.PYTEST_TEMP | quote}} tests/{{.CLI_ARGS}} -v'
-
-  test:match:
-    desc: "Run tests matching a pattern (usage: task test:match -- test_filter)"
-    cmds:
-      - '{{.UV}} run --locked --dev pytest --basetemp={{.PYTEST_TEMP | quote}} -k "{{.CLI_ARGS}}" -v'
-
-  test:coverage:
-    desc: "Run all tests and record coverage"
-    cmds:
-      - '{{.UV}} run --locked --dev pytest --basetemp={{.PYTEST_TEMP | quote}} --cov=src --cov=app_pages --cov-branch --cov-report='
-
-  test:unit:coverage:
-    desc: "Run unit tests and write parallel coverage data"
-    cmds:
-      - '{{.UV}} run --locked --dev coverage run --branch --parallel-mode --source=src,app_pages -m pytest --basetemp={{.PYTEST_TEMP | quote}} tests/unit'
-
-  test:integration:coverage:
-    desc: "Run integration tests and write parallel coverage data"
-    cmds:
-      - '{{.UV}} run --locked --dev coverage run --branch --parallel-mode --source=src,app_pages -m pytest --basetemp={{.PYTEST_TEMP | quote}} tests/integration'
-
-  coverage:combine:
-    desc: "Combine unit and integration coverage data"
-    cmds:
-      - '{{.UV}} run --locked --dev coverage combine {{.COVERAGE_INPUTS}}'
-
-  coverage:check-src:
-    desc: "Enforce at least 90% src coverage"
-    cmds:
-      - '{{.UV}} run --locked --dev coverage report --include="src/*" --show-missing --fail-under=90'
-
-  coverage:check-total:
-    desc: "Enforce at least 80% combined src and app-page coverage"
-    cmds:
-      - '{{.UV}} run --locked --dev coverage report --show-missing --fail-under=80'
-
-  coverage:summary:
-    desc: "Print the combined coverage summary"
-    cmds:
-      - '{{.UV}} run --locked --dev coverage report --show-missing'
-
-  coverage:html:
-    desc: "Build the HTML coverage report"
-    cmds:
-      - '{{.UV}} run --locked --dev coverage html --directory build/coverage'
-
-  coverage:xml:
-    desc: "Build the XML coverage report"
-    cmds:
-      - '{{.UV}} run --locked --dev coverage xml -o build/coverage.xml'
-
-  # ========================================
-  # Linting
-  # ========================================
-
-  lint:
-    desc: "Run all static checks"
-    cmds:
-      - task: lint:shell
-      - task: lint:python
-      - task: lint:format
-      - task: lint:types
-
-  lint:shell:
-    desc: "Check shell script syntax"
-    platforms: [linux, darwin]
-    cmds:
-      - sh -n .devcontainer/install-tools.sh scripts/bootstrap.sh scripts/install_python_toolchain.sh
-
-  lint:python:
-    desc: "Run Ruff lint checks"
-    cmds:
-      - '{{.UV}} run --locked --dev ruff check {{.LINT_PATHS}}'
-
-  lint:format:
-    desc: "Check Python formatting"
-    cmds:
-      - '{{.UV}} run --locked --dev ruff format --check {{.LINT_PATHS}}'
-
-  lint:types:
-    desc: "Run mypy"
-    cmds:
-      - '{{.UV}} run --locked --dev mypy'
-
-  format:
-    desc: "Apply safe Python lint and formatting fixes"
-    aliases: [lint:fix]
-    cmds:
-      - '{{.UV}} run --locked --dev ruff check --fix {{.LINT_PATHS}}'
-      - '{{.UV}} run --locked --dev ruff format {{.LINT_PATHS}}'
-
-  # ========================================
-  # All Checks
-  # ========================================
+      - task: check
 
   check:
-    desc: "Run lint and tests"
+    desc: "Run the normal non-visual .NET validation path"
     cmds:
+      - task: restore
       - task: lint
+      - task: build:strict
       - task: test
 
-  # ========================================
-  # Run
-  # ========================================
-
-  run:
-    desc: "Run the Streamlit app on localhost"
+  restore:
+    aliases: [roci:restore]
+    desc: "Restore the active .NET solution"
     cmds:
-      - '{{.UV}} run --locked --dev streamlit run Home.py --server.address={{.ADDRESS | quote}} --server.port={{.PORT | quote}}'
+      - dotnet restore {{.SOLUTION}} -p:Configuration={{.CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false
 
-  demo:
-    desc: "Run the app with synthetic demo data on localhost"
-    env:
-      PORTICO_CONFIG_PATH: portico-demo.toml
+  format:
+    aliases: [roci:format]
+    desc: "Format the active .NET solution"
     cmds:
-      - '{{.UV}} run --locked --dev streamlit run Home.py --server.address=127.0.0.1 --server.port={{.PORT | quote}}'
+      - dotnet format {{.SOLUTION}} --no-restore
 
-  pages:build:
-    desc: "Build the browser demo for GitHub Pages"
+  lint:
+    aliases: [roci:lint]
+    desc: "Check .NET formatting and analyzers"
     cmds:
-      - '{{.UV}} run --locked --dev python -m scripts.build_pages_demo'
+      - dotnet format {{.SOLUTION}} --verify-no-changes --no-restore --verbosity minimal
 
-  run:lan:
-    desc: "Run the app on all interfaces for a trusted network"
+  build:
+    aliases: [roci:build]
+    desc: "Build the active .NET solution"
     cmds:
-      - '{{.UV}} run --locked --dev streamlit run Home.py --server.address=0.0.0.0 --server.port={{.PORT | quote}}'
+      - dotnet build {{.SOLUTION}} --no-restore -p:Configuration={{.CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false
 
-  doctor:
-    desc: "Validate the configured data source"
+  build:strict:
+    aliases: [roci:build:strict]
+    desc: "Build the active .NET solution with warnings as errors"
     cmds:
-      - '{{.UV}} run --locked --dev python -m scripts.doctor {{.CLI_ARGS}}'
+      - dotnet build {{.SOLUTION}} --no-restore --no-incremental -p:Configuration={{.CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false -p:TreatWarningsAsErrors=true
 
-  container:build:
-    desc: "Build the local Linux container image"
+  test:
+    aliases: [roci:test]
+    desc: "Run non-visual .NET tests"
     cmds:
-      - docker build --tag portico:local .
+      - dotnet test {{.SOLUTION}} --no-restore -p:Configuration={{.CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false --filter "Category!=VisualCapture"
 
-  container:smoke:
-    desc: "Build and health-test the demo container"
-    cmds:
-      - '{{.UV}} run --locked --dev python -m scripts.smoke_container {{.CLI_ARGS}}'
-
-  container:demo:
-    desc: "Build and run the demo container on localhost"
-    cmds:
-      - task: container:build
-      - >-
-        docker run --rm --init --name portico
-        --read-only --tmpfs /tmp:size=64m,mode=1777
-        --cap-drop ALL --security-opt no-new-privileges:true
-        --env PORTICO_CONFIG_PATH=/app/portico-demo.toml
-        --publish {{.ADDRESS}}:{{.PORT}}:8501
-        portico:local
-
-  container:live:
-    desc: "Start the configured Compose deployment"
-    cmds:
-      - docker compose up --detach
-
-  container:down:
-    desc: "Stop the Compose deployment"
-    cmds:
-      - docker compose down
-
-  container:notifier:
-    desc: "Run one notifier command in the Compose service"
-    cmds:
-      - docker compose exec app python -m src.discord_notifier {{.CLI_ARGS}}
-
-  # ========================================
-  # Weekly Discord Summary
-  # ========================================
-
-  discord:check:
-    desc: "Install runtime dependencies and check Discord summary configuration"
-    cmds:
-      - task: deps:install:runtime
-      - task: discord:check:run
-
-  discord:check:run:
-    internal: true
-    cmds:
-      - '{{.PYTHON}} -m src.discord_notifier check --output={{.OUTPUT | quote}}'
-
-  discord:preview:
-    desc: "Print the weekly expense summary without contacting Discord"
-    preconditions:
-      - sh: '{{.PYTHON}} --version'
-        msg: "Runtime dependencies are missing. Run 'task discord:check'."
-    cmds:
-      - '{{.PYTHON}} -m src.discord_notifier preview --output={{.OUTPUT | quote}} {{if .PERIOD_END}}--period-end={{.PERIOD_END | quote}}{{end}}'
-
-  discord:test:
-    desc: "Send a Discord connection test without financial data"
-    preconditions:
-      - sh: '{{.PYTHON}} --version'
-        msg: "Runtime dependencies are missing. Run 'task discord:check'."
-    cmds:
-      - '{{.PYTHON}} -m src.discord_notifier test --output={{.OUTPUT | quote}}'
-
-  discord:send:
-    desc: "Send the weekly expense summary now"
-    preconditions:
-      - sh: '{{.PYTHON}} --version'
-        msg: "Runtime dependencies are missing. Run 'task discord:check'."
-    cmds:
-      - '{{.PYTHON}} -m src.discord_notifier send --output={{.OUTPUT | quote}} {{if .PERIOD_END}}--period-end={{.PERIOD_END | quote}}{{end}} {{if eq .FORCE "true"}}--force{{end}}'
-
-  # ========================================
-  # Roci desktop dashboard
-  # ========================================
-
-  roci:restore:
-    desc: "Restore the C# Roci dashboard dependencies"
-    cmds:
-      - dotnet restore Portico.Roci.slnx
-
-  roci:build:
-    desc: "Build the C# Roci dashboard"
-    cmds:
-      - dotnet build Portico.Roci.slnx --no-restore --configuration {{default "Debug" .ROCI_CONFIGURATION}}
-
-  roci:build:strict:
-    desc: "Build the C# Roci dashboard with warnings as errors"
-    cmds:
-      - dotnet build Portico.Roci.slnx --no-restore --no-incremental --configuration {{default "Debug" .ROCI_CONFIGURATION}} /p:TreatWarningsAsErrors=true
-
-  roci:test:
-    desc: "Run C# Roci dashboard tests"
-    cmds:
-      - dotnet test Portico.Roci.slnx --no-restore --configuration {{default "Debug" .ROCI_CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false --filter "Category!=VisualCapture"
-
-  roci:test:finance:
-    desc: "Run C# financial calculation tests"
-    cmds:
-      - dotnet test tests/Portico.Finance.Tests/Portico.Finance.Tests.csproj --no-restore --configuration {{default "Debug" .ROCI_CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false
-
-  roci:test:adapters:
-    desc: "Run C# source, configuration, and CLI tests"
-    cmds:
-      - dotnet test tests/Portico.Adapters.Tests/Portico.Adapters.Tests.csproj --no-restore --configuration {{default "Debug" .ROCI_CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false
-      - dotnet test tests/Portico.App.Tests/Portico.App.Tests.csproj --no-restore --configuration {{default "Debug" .ROCI_CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false --filter "Category!=VisualCapture"
-
-  roci:test:desktop:
-    desc: "Run C# dashboard session and retained-tree tests"
-    cmds:
-      - dotnet test tests/Portico.Dashboard.Tests/Portico.Dashboard.Tests.csproj --no-restore --configuration {{default "Debug" .ROCI_CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false
-      - dotnet test tests/Portico.App.Tests/Portico.App.Tests.csproj --no-restore --configuration {{default "Debug" .ROCI_CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false --filter "Category!=VisualCapture"
-
-  roci:visual:
-    desc: "Capture every current Roci dashboard page at both reference desktop sizes"
+  visual:
+    aliases: [roci:visual]
+    desc: "Capture the current Roci dashboard pages"
     env:
       PORTICO_CAPTURE_OUTPUT_DIR: artifacts/visual/portico-current
       PORTICO_CAPTURE_RETAIN_OUTPUT: "true"
     cmds:
-      - task: roci:build
-      - dotnet test tests/Portico.App.Tests/Portico.App.Tests.csproj --no-restore --configuration {{default "Debug" .ROCI_CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false --filter "Category=VisualCapture" -m:1 -- xUnit.ParallelizeTestCollections=false
+      - task: build
+      - dotnet test tests/Portico.App.Tests/Portico.App.Tests.csproj --no-restore -p:Configuration={{.CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false --filter "Category=VisualCapture" -m:1 -- xUnit.ParallelizeTestCollections=false
 
-  roci:lint:
-    desc: "Check C# formatting and analyzers"
+  doctor:
+    aliases: [roci:doctor]
+    desc: "Run the active .NET dashboard setup check"
     cmds:
-      - dotnet format Portico.Roci.slnx --verify-no-changes --no-restore --verbosity minimal
+      - dotnet run --project src/Portico.App/Portico.App.csproj -p:Configuration={{.CONFIGURATION}} -- doctor {{.CLI_ARGS}}
 
-  roci:format:
-    desc: "Format C# Roci dashboard code"
+  run:
+    aliases: [roci:run]
+    desc: "Run the active .NET desktop dashboard"
     cmds:
-      - dotnet format Portico.Roci.slnx --no-restore
+      - dotnet run --project src/Portico.App/Portico.App.csproj -p:Configuration={{.CONFIGURATION}} -- run {{.CLI_ARGS}}
 
-  roci:doctor:
-    desc: "Run the C# dashboard setup check"
-    cmds:
-      - dotnet run --project src/Portico.App/Portico.App.csproj -- doctor {{.CLI_ARGS}}
-
-  roci:run:
-    desc: "Run the C# Roci desktop dashboard"
-    cmds:
-      - dotnet run --project src/Portico.App/Portico.App.csproj -- run {{.CLI_ARGS}}
-
-  roci:publish:win-x64:
-    desc: "Publish the C# dashboard for Windows"
+  publish:win-x64:
+    aliases: [roci:publish:win-x64]
+    desc: "Publish the dashboard for Windows x64"
     cmds:
       - dotnet publish src/Portico.App/Portico.App.csproj --configuration Release --runtime win-x64 --self-contained true --property:PublishSingleFile=true --property:IncludeNativeLibrariesForSelfExtract=true --property:DebugType=None --property:DebugSymbols=false --property:GenerateDocumentationFile=false --output artifacts/publish/win-x64
 
-  roci:publish:linux-x64:
-    desc: "Publish the C# dashboard for Linux"
+  publish:linux-x64:
+    aliases: [roci:publish:linux-x64]
+    desc: "Publish the dashboard for Linux x64"
     cmds:
       - dotnet publish src/Portico.App/Portico.App.csproj --configuration Release --runtime linux-x64 --self-contained true --property:PublishSingleFile=true --property:IncludeNativeLibrariesForSelfExtract=true --property:DebugType=None --property:DebugSymbols=false --property:GenerateDocumentationFile=false --output artifacts/publish/linux-x64
