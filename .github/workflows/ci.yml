@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  dotnet:
+    name: .NET
+    runs-on: windows-latest
+    env:
+      RociSourceRoot: ${{ github.workspace }}/roci
+    steps:
+      - name: Check out Portico
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # This is a pinned, read-only source dependency. The workflow assumes
+      # normal read access to pinlight-software/roci.
+      - name: Check out pinned Roci source
+        uses: actions/checkout@v7
+        with:
+          repository: pinlight-software/roci
+          ref: c294e5872a55b197ec16baa13341b5d6665fa924
+          path: roci
+          persist-credentials: false
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: >-
+          dotnet restore Portico.Roci.slnx
+          -p:RociSourceRoot="${{ github.workspace }}/roci"
+          -p:Configuration=Debug
+          -p:ShouldUnsetParentConfigurationAndPlatform=false
+
+      - name: Check formatting and analyzers
+        run: >-
+          dotnet format Portico.Roci.slnx --verify-no-changes --no-restore
+          --verbosity minimal
+
+      - name: Build with warnings as errors
+        run: >-
+          dotnet build Portico.Roci.slnx --no-restore --no-incremental
+          -p:RociSourceRoot="${{ github.workspace }}/roci"
+          -p:Configuration=Debug
+          -p:ShouldUnsetParentConfigurationAndPlatform=false
+          -p:TreatWarningsAsErrors=true
+
+      - name: Run non-visual tests
+        run: >-
+          dotnet test Portico.Roci.slnx --no-restore
+          -p:RociSourceRoot="${{ github.workspace }}/roci"
+          -p:Configuration=Debug
+          -p:ShouldUnsetParentConfigurationAndPlatform=false
+          --filter "Category!=VisualCapture"

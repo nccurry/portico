@@ -12,10 +12,23 @@ is planned, not implemented, in the .NET foundation PLC:
 - [Foundation PLC](docs/llms/plcs/planned/portico-dotnet-foundation-1.0/README.md)
 - [Deferred Desktop and MCP PLC](docs/llms/plcs/planned/portico-desktop-and-mcp-adapters-1.0/README.md)
 
-The current demo can be checked without opening a desktop window:
+Run the normal local .NET gate with:
 
 ```powershell
-dotnet run --no-build --no-restore --project src/Portico.App/Portico.App.csproj -- doctor
+task
+```
+
+It restores, checks formatting and analyzers, builds with warnings as errors,
+and runs the non-visual C# tests. The visual capture lane is opt-in:
+
+```powershell
+task visual
+```
+
+The current demo can also be checked without opening a desktop window:
+
+```powershell
+task doctor
 ```
 
 `portico-demo.toml`, `dashboard.toml`, and `demo/data` are active C# demo
