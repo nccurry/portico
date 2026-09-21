@@ -2,10 +2,10 @@
 
 ## Lifecycle
 
-- Status: Planned
+- Status: In progress
 - Created: 2026-09-21
 - Owner: Portico maintainers
-- Implementation status: Not started
+- Implementation status: Phase 0 baseline and migration inventory recorded; implementation work remains in progress.
 - Depends on: the completed Python archive move in legacy/python
 
 ## Purpose
@@ -67,6 +67,8 @@ construction, and desktop rendering together.
 - [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) gives the phased delivery
   order.
 - [TEST_PLAN.md](TEST_PLAN.md) defines the evidence required for completion.
+- [PHASE_0_BASELINE.md](PHASE_0_BASELINE.md) records the measured C# baseline,
+  setting inventory, target configuration contract, and behavior-test trace.
 
 ## Proposed project graph
 
