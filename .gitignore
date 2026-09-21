@@ -32,3 +32,20 @@ bin/
 obj/
 *.user
 portico.secrets.toml
+
+# Archived Streamlit reference
+legacy/python/.streamlit/*
+!legacy/python/.streamlit/config.toml
+!legacy/python/.streamlit/secrets.example.toml
+legacy/python/config/
+legacy/python/.venv/
+legacy/python/.tools/
+legacy/python/.local/
+legacy/python/.env
+legacy/python/.env.*
+!legacy/python/.env.example
+legacy/python/__pycache__/
+legacy/python/.pytest_cache/
+legacy/python/.pytest-tmp*/
+legacy/python/.mypy_cache/
+legacy/python/.ruff_cache/
