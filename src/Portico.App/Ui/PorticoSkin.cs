@@ -1,5 +1,6 @@
 ﻿using Roci.Core;
 using Roci.Ui;
+using Roci.Ui.Charts;
 
 namespace Portico.App.Ui;
 
@@ -140,7 +141,7 @@ internal static class PorticoSkin
     internal static readonly TextStyle HiddenValueText = new(textColor: Hidden);
 
     /// <summary>Creates the app-owned dark Roci skin used by every Portico scene.</summary>
-    internal static UiSkin Create()
+    internal static UiSkin CreateUiSkin()
     {
         UiSkin skin = UiSkin.Dark();
         skin.Name = "Portico Dark";
@@ -185,22 +186,30 @@ internal static class PorticoSkin
         };
         ConfigureButton(skin.Button.Style(SelectedNavigationActionStyle), AccentMuted, Text);
 
-        skin.Chart.Outer.Background = UiDrawable.Solid(Raised);
-        skin.Chart.Outer.BorderColor = Border;
-        skin.Chart.Outer.BorderWidth = 1f;
-        skin.Chart.Outer.Padding = UiSkinSpacing.All(10f);
-        skin.Chart.Plot.Background = UiDrawable.Solid(Main);
-        skin.Chart.Plot.BorderColor = Border;
-        skin.Chart.Plot.BorderWidth = 1f;
-        skin.Chart.Plot.Padding = UiSkinSpacing.All(6f);
-        skin.Chart.TickTextStyle = HelperText;
-        skin.Chart.AxisTitleTextStyle = HelperText;
-        skin.Chart.LegendTextStyle = ActionText;
-        skin.Chart.AxisColor = Border;
-        skin.Chart.MajorGridColor = MutedSurface;
-        skin.Chart.Palette.Clear();
+        return skin;
+    }
+
+    /// <summary>Creates the chart skin that matches the app-owned desktop skin.</summary>
+    internal static ChartSkin CreateChartSkin()
+    {
+        ChartSkin skin = ChartSkin.Dark();
+        ChartCartesianSkin chart = skin.Cartesian;
+        chart.Outer.Background = UiDrawable.Solid(Raised);
+        chart.Outer.BorderColor = Border;
+        chart.Outer.BorderWidth = 1f;
+        chart.Outer.Padding = UiSkinSpacing.All(10f);
+        chart.Plot.Background = UiDrawable.Solid(Main);
+        chart.Plot.BorderColor = Border;
+        chart.Plot.BorderWidth = 1f;
+        chart.Plot.Padding = UiSkinSpacing.All(6f);
+        chart.TickTextStyle = HelperText;
+        chart.AxisTitleTextStyle = HelperText;
+        chart.LegendTextStyle = ActionText;
+        chart.AxisColor = Border;
+        chart.MajorGridColor = MutedSurface;
+        chart.Palette.Clear();
         foreach (Color color in ChartPalette)
-            skin.Chart.Palette.Add(color);
+            chart.Palette.Add(color);
 
         return skin;
     }

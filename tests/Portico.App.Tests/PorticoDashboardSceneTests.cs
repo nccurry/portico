@@ -6,6 +6,7 @@ using Portico.Finance;
 using Roci.Core;
 using Roci.TestUtilities;
 using Roci.Ui;
+using Roci.Ui.Charts;
 
 namespace Portico.App.Tests;
 
@@ -242,7 +243,7 @@ public sealed class PorticoDashboardSceneTests
         Assert.Equal(new Color(16, 22, 30), FindNode(scene, "PorticoShell").VisualStyle.BackgroundColor);
         Assert.Equal(new Color(20, 30, 40), FindNode(scene, "NavigationRail").VisualStyle.BackgroundColor);
         Assert.Equal(new Color(31, 44, 57), FindNode(scene, "Widget:net-worth").VisualStyle.BackgroundColor);
-        Assert.Equal(5, skin.Chart.Palette.Count);
+        Assert.Equal(new Color(31, 44, 57), FindNode(scene, "Chart:net-worth").VisualStyle.BackgroundColor);
     }
 
     [Theory]

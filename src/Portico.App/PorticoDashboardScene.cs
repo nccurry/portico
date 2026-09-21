@@ -7,12 +7,13 @@ using Portico.Dashboard;
 using Roci.Core;
 using Roci.Input;
 using Roci.Ui;
+using Roci.Ui.Charts;
 using Roci.Ui.Rendering;
 
 namespace Portico.App;
 
 /// <summary>Builds the configuration-driven Portico dashboard from typed reports.</summary>
-public sealed class PorticoDashboardScene
+public sealed class PorticoDashboardScene : IDisposable
 {
     private static readonly DashboardNavigationGroup[] NavigationGroups =
     [
@@ -61,13 +62,17 @@ public sealed class PorticoDashboardScene
         _budgetPageRenderer = new PorticoBudgetPageRenderer(_session, () => _rebuildRequired = true);
         _financialIndependencePageRenderer = new PorticoFinancialIndependencePageRenderer(_session, () => _rebuildRequired = true);
         _dataHealthPageRenderer = new PorticoDataHealthPageRenderer(_session, () => _rebuildRequired = true);
-        Stage = new UiStage(viewportSize, PorticoSkin.Create());
+        Stage = new UiStage(viewportSize, PorticoSkin.CreateUiSkin());
         Stage.ViewportChanged += _ => _rebuildRequired = true;
         Build();
+        ChartInstallation = ChartUi.Install(Stage, PorticoSkin.CreateChartSkin());
     }
 
     /// <summary>Gets the retained Roci stage owned by this scene.</summary>
     public UiStage Stage { get; }
+
+    /// <summary>Chart behavior installed for this scene's retained chart tree.</summary>
+    internal ChartUiInstallation ChartInstallation { get; }
 
     /// <summary>Gets the small display state shared by the rail and visible page.</summary>
     public PorticoDashboardDisplayState DisplayState => _displayState;
@@ -145,6 +150,9 @@ public sealed class PorticoDashboardScene
 
         Stage.Update(textMeasurer, ref input, renderScaleOptions, effectiveUiScale);
     }
+
+    /// <summary>Removes chart behavior from the retained stage.</summary>
+    public void Dispose() => ChartInstallation.Dispose();
 
     private UiBuilder Ui => Stage.Ui;
 

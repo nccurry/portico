@@ -7,6 +7,7 @@ using Roci.Core;
 using Roci.Input;
 using Roci.TestUtilities;
 using Roci.Ui;
+using Roci.Ui.Charts;
 using Roci.Ui.Widgets;
 
 namespace Portico.App.Tests;

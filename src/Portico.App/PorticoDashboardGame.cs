@@ -10,6 +10,8 @@ using Roci.Rendering;
 using Roci.Rendering.FontStashSharp;
 using Roci.Rendering.MonoGame;
 using Roci.Ui;
+using Roci.Ui.Charts;
+using Roci.Ui.Charts.Rendering;
 using Roci.Ui.Input;
 using Roci.Ui.Rendering;
 using LiveInputProvider = Roci.Input.MonoGame.MonoGameInputProvider;
@@ -40,6 +42,7 @@ public sealed class PorticoDashboardGame : HostedMonoGameGame
     private Roci.Core.ITextMeasurer _textMeasurer = null!;
     private PorticoDashboardScene _scene = null!;
     private UiRenderPass _uiRenderPass = null!;
+    private ChartUiRenderPass _chartRenderPass = null!;
     private UiPhysicalViewport _uiViewport;
     private UiRenderScaleOptions _uiScaleOptions;
 
@@ -124,6 +127,7 @@ public sealed class PorticoDashboardGame : HostedMonoGameGame
             _renderer,
             _textMeasurer,
             UiTextureResolvers.Empty);
+        _chartRenderPass = new ChartUiRenderPass(_uiRenderPass, _scene.ChartInstallation);
     }
 
     /// <inheritdoc />
@@ -150,7 +154,7 @@ public sealed class PorticoDashboardGame : HostedMonoGameGame
             _uiViewport,
             UiRenderTargetSpace.CurrentTarget,
             _uiScaleOptions);
-        _uiRenderPass.RenderPreparedBatch(
+        _chartRenderPass.RenderPreparedBatch(
             batchConfig,
             _uiScaleOptions,
             _uiViewport.EffectiveUIScale);
@@ -159,6 +163,8 @@ public sealed class PorticoDashboardGame : HostedMonoGameGame
     /// <inheritdoc />
     protected override void UnloadContent()
     {
+        _chartRenderPass?.Dispose();
+        _scene?.Dispose();
         base.UnloadContent();
         _rendering?.Dispose();
     }

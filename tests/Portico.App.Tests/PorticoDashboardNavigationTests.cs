@@ -5,6 +5,7 @@ using Portico.Dashboard;
 using Roci.Input;
 using Roci.TestUtilities;
 using Roci.Ui;
+using Roci.Ui.Charts;
 using Roci.Ui.Input;
 using Roci.Ui.Rendering;
 
