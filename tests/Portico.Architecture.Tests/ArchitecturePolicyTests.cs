@@ -178,6 +178,41 @@ public sealed class ArchitecturePolicyTests
     }
 
     [Fact]
+    public async Task ProjectEvaluation_QueuesConcurrentCallers()
+    {
+        using TemporaryProjectFixture firstFixture = TemporaryProjectFixture.CreateDirect(
+            CurrentRepository.Value,
+            ActiveTargetFramework);
+        using TemporaryProjectFixture secondFixture = TemporaryProjectFixture.CreateDirect(
+            CurrentRepository.Value,
+            ActiveTargetFramework);
+
+        await ProjectEvaluator.EvaluationGate.WaitAsync(TestContext.Current.CancellationToken);
+        Task<EvaluatedProject>[] queuedProjects = [];
+        try
+        {
+            queuedProjects =
+            [
+                CurrentRepository.Value.Evaluator.EvaluateAsync(
+                    firstFixture.ProjectPath,
+                    TestContext.Current.CancellationToken),
+                CurrentRepository.Value.Evaluator.EvaluateAsync(
+                    secondFixture.ProjectPath,
+                    TestContext.Current.CancellationToken)
+            ];
+
+            Assert.All(queuedProjects, evaluation => Assert.False(evaluation.IsCompleted));
+        }
+        finally
+        {
+            ProjectEvaluator.EvaluationGate.Release();
+        }
+
+        EvaluatedProject[] projects = await Task.WhenAll(queuedProjects);
+        Assert.All(projects, project => Assert.Equal(2, project.ProjectReferences.Count));
+    }
+
+    [Fact]
     public async Task Finance_HasNoForbiddenInfrastructure()
     {
         EvaluatedProject finance = (await ProductionProjects.Value)["Portico.Finance"];
