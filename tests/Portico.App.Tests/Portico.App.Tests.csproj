@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <IsPackable>false</IsPackable>
+    <RequiresRociSource>true</RequiresRociSource>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/Portico.App/Portico.App.csproj" />

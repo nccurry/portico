@@ -5,6 +5,16 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
-    <RociSourceRoot Condition="'$(RociSourceRoot)' == ''">$(MSBuildThisFileDirectory)..\roci</RociSourceRoot>
+    <RociRoot Condition="'$(RociRoot)' == '' And '$(ROCI_ROOT)' != ''">$(ROCI_ROOT)</RociRoot>
+    <RociRoot Condition="'$(RociRoot)' == ''">$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '..', 'roci'))</RociRoot>
+    <RociSourceRoot>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '$(RociRoot)'))</RociSourceRoot>
+    <RociCoreProject>$([MSBuild]::NormalizePath('$(RociSourceRoot)', 'src', 'Roci.Core', 'Roci.Core.csproj'))</RociCoreProject>
+    <RequiresRociSource Condition="'$(RequiresRociSource)' == ''">false</RequiresRociSource>
   </PropertyGroup>
+
+  <Target Name="ValidateLocalRociSource"
+          BeforeTargets="CollectPackageReferences;PrepareForBuild;ResolveProjectReferences;ResolveReferences;Restore"
+          Condition="'$(RequiresRociSource)' == 'true' And !Exists('$(RociCoreProject)')">
+    <Error Text="Roci source checkout not found at $(RociSourceRoot). Clone Roci beside this repository or set ROCI_ROOT." />
+  </Target>
 </Project>

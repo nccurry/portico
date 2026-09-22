@@ -12,6 +12,20 @@ is planned, not implemented, in the .NET foundation PLC:
 - [Foundation PLC](docs/llms/plcs/planned/portico-dotnet-foundation-1.0/README.md)
 - [Deferred Desktop and MCP PLC](docs/llms/plcs/planned/portico-desktop-and-mcp-adapters-1.0/README.md)
 
+## Local Roci checkout
+
+Portico builds directly against a sibling Roci source checkout at `../roci`.
+Clone Roci there before running the .NET tasks. To use another local checkout,
+set `ROCI_ROOT`:
+
+```powershell
+$env:ROCI_ROOT = "C:\worktrees\roci-feature"
+task
+```
+
+Continuous integration is intentionally deferred while Portico consumes Roci
+directly from a local folder.
+
 Run the normal local .NET gate with:
 
 ```powershell

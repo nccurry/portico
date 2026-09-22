@@ -18,42 +18,59 @@ tasks:
       - task: lint
       - task: build:strict
       - task: test
+      - task: test:roci-source
+
+  roci:source:check:
+    internal: true
+    cmds:
+      - dotnet msbuild src/Portico.App/Portico.App.csproj -target:ValidateLocalRociSource -nologo
 
   restore:
     aliases: [roci:restore]
     desc: "Restore the active .NET solution"
+    deps: [roci:source:check]
     cmds:
       - dotnet restore {{.SOLUTION}} -p:Configuration={{.CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false
 
   format:
     aliases: [roci:format]
     desc: "Format the active .NET solution"
+    deps: [roci:source:check]
     cmds:
       - dotnet format {{.SOLUTION}} --no-restore
 
   lint:
     aliases: [roci:lint]
     desc: "Check .NET formatting and analyzers"
+    deps: [roci:source:check]
     cmds:
       - dotnet format {{.SOLUTION}} --verify-no-changes --no-restore --verbosity minimal
 
   build:
     aliases: [roci:build]
     desc: "Build the active .NET solution"
+    deps: [roci:source:check]
     cmds:
       - dotnet build {{.SOLUTION}} --no-restore -p:Configuration={{.CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false
 
   build:strict:
     aliases: [roci:build:strict]
     desc: "Build the active .NET solution with warnings as errors"
+    deps: [roci:source:check]
     cmds:
       - dotnet build {{.SOLUTION}} --no-restore --no-incremental -p:Configuration={{.CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false -p:TreatWarningsAsErrors=true
 
   test:
     aliases: [roci:test]
     desc: "Run non-visual .NET tests"
+    deps: [roci:source:check]
     cmds:
       - dotnet test {{.SOLUTION}} --no-restore -p:Configuration={{.CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false --filter "Category!=VisualCapture"
+
+  test:roci-source:
+    desc: "Verify the local Roci source contract"
+    cmds:
+      - powershell -NoProfile -ExecutionPolicy Bypass -File tests/Portico.BuildContract/Verify-RociSource.ps1
 
   visual:
     aliases: [roci:visual]
@@ -62,29 +79,34 @@ tasks:
       PORTICO_CAPTURE_OUTPUT_DIR: artifacts/visual/portico-current
       PORTICO_CAPTURE_RETAIN_OUTPUT: "true"
     cmds:
+      - task: restore
       - task: build
       - dotnet test tests/Portico.App.Tests/Portico.App.Tests.csproj --no-restore -p:Configuration={{.CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false --filter "Category=VisualCapture" -m:1 -- xUnit.ParallelizeTestCollections=false
 
   doctor:
     aliases: [roci:doctor]
     desc: "Run the active .NET dashboard setup check"
+    deps: [roci:source:check]
     cmds:
       - dotnet run --project src/Portico.App/Portico.App.csproj -p:Configuration={{.CONFIGURATION}} -- doctor {{.CLI_ARGS}}
 
   run:
     aliases: [roci:run]
     desc: "Run the active .NET desktop dashboard"
+    deps: [roci:source:check]
     cmds:
       - dotnet run --project src/Portico.App/Portico.App.csproj -p:Configuration={{.CONFIGURATION}} -- run {{.CLI_ARGS}}
 
   publish:win-x64:
     aliases: [roci:publish:win-x64]
     desc: "Publish the dashboard for Windows x64"
+    deps: [roci:source:check]
     cmds:
       - dotnet publish src/Portico.App/Portico.App.csproj --configuration Release --runtime win-x64 --self-contained true --property:PublishSingleFile=true --property:IncludeNativeLibrariesForSelfExtract=true --property:DebugType=None --property:DebugSymbols=false --property:GenerateDocumentationFile=false --output artifacts/publish/win-x64
 
   publish:linux-x64:
     aliases: [roci:publish:linux-x64]
     desc: "Publish the dashboard for Linux x64"
+    deps: [roci:source:check]
     cmds:
       - dotnet publish src/Portico.App/Portico.App.csproj --configuration Release --runtime linux-x64 --self-contained true --property:PublishSingleFile=true --property:IncludeNativeLibrariesForSelfExtract=true --property:DebugType=None --property:DebugSymbols=false --property:GenerateDocumentationFile=false --output artifacts/publish/linux-x64

@@ -24,11 +24,9 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/nccurry/portico/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/nccurry/portico/actions/workflows/ci.yml/badge.svg" /></a>
   <a href="pyproject.toml"><img alt="Python 3.14" src="https://img.shields.io/badge/python-3.14-3776AB?logo=python&amp;logoColor=white" /></a>
-  <a href="https://github.com/nccurry/portico/actions/workflows/ci.yml"><img alt="Code coverage: 90%" src="https://img.shields.io/badge/coverage-90%25-brightgreen" /></a>
   <a href="https://nccurry.github.io/portico/"><img alt="Synthetic demo included" src="https://img.shields.io/badge/demo-synthetic_data-2DA44E?logo=streamlit&amp;logoColor=white" /></a>
-  <a href="LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/License-Apache--2.0-blue.svg" /></a>
+  <a href="../../LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/License-Apache--2.0-blue.svg" /></a>
   <a href="https://github.com/nccurry/portico/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/nccurry/portico?display_name=tag&amp;sort=semver" /></a>
 </p>
 
@@ -72,83 +70,12 @@ financial records.
 
 ![Demo data health dashboard with quality checks and duplicate review](assets/screenshots/demo-data-health.png)
 
-## Roci desktop dashboard
+## Active .NET application
 
-This worktree contains an experimental C# desktop dashboard built with Roci.
-It keeps finance rules, data loading, configuration, and rendering separate.
-
-The project expects the companion Roci worktree at `../roci-portico-components`.
-Set `RociSourceRoot` if your Roci checkout is in another location.
-
-### Start the dashboard
-
-From PowerShell in this working tree, run:
-
-```powershell
-task roci:restore
-task roci:run
-```
-
-The default command reads the synthetic CSV files in `demo/data`.
-It opens the ten pages in `dashboard.toml`.
-Use the permanent left rail to move between pages.
-Page controls rebuild the report without changing the workbook.
-
-Run this check without opening a window:
-
-```powershell
-task roci:doctor -- --output json
-```
-
-To load public Google Sheets, copy `portico.secrets.example.toml` to
-`portico.secrets.toml`. Replace the four URLs. Then run:
-
-```powershell
-task roci:run -- --config .\config.toml --dashboard .\dashboard.toml --source google-sheets --secrets .\portico.secrets.toml
-```
-
-The CLI provides `run` and `doctor` commands.
-It accepts `--config`, `--dashboard`, `--source`, `--data-dir`, and `--secrets`.
-It also accepts repeatable `--sheet NAME=URL` values.
-The app reads sheet URLs only. It does not print them in diagnostics.
-
-`dashboard.toml` controls the desktop presentation. It defines page order,
-rail labels, page headings, sections, controls, widgets, spans, and chart
-kinds. The finance TOML keeps the calculation rules. `combo_chart` combines
-category bars with connected lines; its `bar_series` list names the report
-series that render as bars. Other series
-render as lines. The app rejects an invalid widget or filter before it opens a
-window.
-
-### Build and test the desktop project
-
-```powershell
-task roci:build:strict
-task roci:test
-task roci:visual
-task roci:publish:win-x64
-task roci:publish:linux-x64
-```
-
-`task roci:visual` writes and validates 48 PNG files in
-`artifacts/visual/portico-current`. It captures 24 named page states at 1500 by
-1000 and 1024 by 720.
-
-The publish tasks create one self-contained executable in each
-`artifacts/publish` folder. They do not use Native AOT. After the Windows task
-finishes, launch the published app from this directory with:
-
-```powershell
-.\artifacts\publish\win-x64\portico.exe doctor --output json
-.\artifacts\publish\win-x64\portico.exe run
-```
-
-On Linux, use:
-
-```console
-./artifacts/publish/linux-x64/portico doctor --output json
-./artifacts/publish/linux-x64/portico run
-```
+The C# application is active at the repository root. Its setup, local Roci
+checkout, commands, and current configuration contract are documented in the
+[root README](../../README.md). This archived document intentionally does not
+repeat those instructions.
 
 ## Try the demo
 
@@ -375,7 +302,7 @@ field reference. It shows every supported setting, including empty selectors.
 Edit it directly and keep it complete. Portico never loads or merges a second
 configuration file during a normal run.
 
-[`portico-demo.toml`](portico-demo.toml) is a separate complete configuration
+[`portico-demo.toml`](../../portico-demo.toml) is a separate complete configuration
 for the committed synthetic data. The demo entry points select it explicitly.
 The app shows the demo banner only when the selected file is named exactly
 `portico-demo.toml`.
@@ -430,7 +357,7 @@ directory = "/data"
 
 `directory` may be absolute or relative to `config.toml`. The reports use the
 latest date in the local files, just as they do for a remote spreadsheet.
-[`portico-demo.toml`](portico-demo.toml) is the complete configuration for
+[`portico-demo.toml`](../../portico-demo.toml) is the complete configuration for
 `demo/data`.
 
 For a Compose deployment, add the CSV directory in an ignored
@@ -635,9 +562,10 @@ Set `PORTICO_CONFIG_PATH=portico-demo.toml` and run
 `uv run --locked streamlit run Home.py` to start the synthetic demo without
 Task. PowerShell uses `$env:PORTICO_CONFIG_PATH = "portico-demo.toml"`.
 
-### Checks
+### Historical checks
 
-Task provides short names for the same local checks that CI runs:
+These are historical Python checks, not the active Portico validation path. See
+the [root README](../../README.md) for current commands.
 
 ```console
 .tools/bin/task check
@@ -647,13 +575,13 @@ Task provides short names for the same local checks that CI runs:
 In PowerShell, replace `.tools/bin/task` with `.\.tools\bin\task.exe`.
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) before you submit a change. Community
-participation follows the [Code of Conduct](CODE_OF_CONDUCT.md).
+participation follows the [Code of Conduct](../../CODE_OF_CONDUCT.md).
 Read the [architecture guide](docs/architecture.md) before you design a feature.
 
 ## Security and scope
 
 Portico is a personal application with no login screen. Source commands and
-container ports use `127.0.0.1` by default. Read [SECURITY.md](SECURITY.md) before
+container ports use `127.0.0.1` by default. Read [SECURITY.md](../../SECURITY.md) before
 you expose the app beyond the local computer.
 
 This project is independent. No spreadsheet provider endorses or maintains it.
@@ -662,4 +590,4 @@ This project is independent. No spreadsheet provider endorses or maintains it.
 
 Copyright 2026 Nick Curry and contributors.
 
-Portico uses the [Apache License 2.0](LICENSE).
+Portico uses the [Apache License 2.0](../../LICENSE).

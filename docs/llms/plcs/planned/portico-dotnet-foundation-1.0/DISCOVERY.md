@@ -62,12 +62,12 @@ demo/data, portico-demo.toml, and dashboard.toml remain at the root because the
 active C# demo uses them. The archive is reference-only and is not an active
 test or deployment target.
 
-The root Taskfile is intentionally transitional: it still contains Python
-targets whose paths now point at the archive, and the archive move left no
-active CI workflow. Phase 0 first restores a working default .NET
-build/test/check path and a minimal non-visual CI gate. Later phases expand
-that into focused lanes. The opt-in visual test must never enter a default
-task or CI lane.
+Phase 0 replaces the old default task path with a working local .NET
+restore/build/test/check path. Portico compiles directly against the sibling
+`../roci` source checkout, with `ROCI_ROOT` available for another local
+checkout. Continuous integration is deferred until that dependency can be
+supplied deliberately. The opt-in visual test must never enter the default
+task.
 
 The completed [Roci layout rebuild PLC](../../completed/portico-roci-layout-rebuild-1.0/README.md)
 is the retained desktop visual baseline. It is historical evidence, not future
@@ -90,7 +90,10 @@ smaller form:
 
 Its useful lesson is structural, not a code template: keep shared runtime code
 separate from concrete hosts, use project boundaries only where ownership is
-real, and keep test folders aligned with the code they test.
+real, and keep test folders aligned with the code they test. It also builds
+against a sibling `../roci` checkout and provides a `ROCI_ROOT` override with a
+clear missing-checkout error. Portico should use that same local-source
+contract.
 
 ## Risks and controls
 
@@ -102,7 +105,8 @@ real, and keep test folders aligned with the code they test.
 | The UI rewire changes desktop behavior. | Preserve existing UI tests and captures; no visual redesign belongs here. |
 | Tests pass while dependency direction decays. | Add architecture tests before moving substantial code. |
 | Google Sheets makes routine tests flaky. | Use fake HTTP and fixed fixtures in normal lanes; keep real-sheet checks opt-in. |
-| The archive leaves default task or CI paths broken. | Restore a non-visual .NET default task and CI gate in Phase 0, before structural work. |
+| The local Roci checkout is missing or unclear. | Default to sibling `../roci`, allow `ROCI_ROOT`, and fail before restore/build with a clear setup error. |
+| The archive leaves the default task path broken. | Restore a non-visual .NET default task in Phase 0, before structural work. |
 | Test count becomes a vanity gate during reorganization. | Trace existing behavior to replacement tests; use scenario coverage rather than a fixed count as the completion proof. |
 
 ## Open implementation questions

@@ -39,7 +39,7 @@ additive rather than forcing another cross-layer rewrite.
 | FND-010 | Existing desktop behavior survives the wiring change. | Existing report, interaction, and visual tests remain green without a UI redesign. |
 | FND-011 | The dependency direction cannot regress silently. | Architecture tests inspect evaluated production project references, fail for imported or direct forbidden references, and reject forbidden Finance dependencies. |
 | FND-012 | Core and Application have strong direct tests. | The agreed coverage gate and scenario matrix pass without real files, network access, or Roci. |
-| FND-013 | The repository becomes .NET-first. | Active docs and task commands name .NET paths first; Python remains clearly archived and is not part of normal CI. |
+| FND-013 | The repository becomes .NET-first. | Active docs and task commands name .NET paths first; Python remains clearly archived, Portico builds from a local Roci checkout, and CI is not required by this PLC. |
 | FND-014 | The configuration cutover is explicit. | Active samples and documentation use portico.toml; the release notes explain the breaking change and no old parser or implicit fallback remains. |
 
 ## 4. Public surfaces

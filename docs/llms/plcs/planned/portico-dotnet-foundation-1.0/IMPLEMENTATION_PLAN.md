@@ -33,16 +33,19 @@ the target architecture already exists.
   migration or fallback parser.
 - Decide the exact solution/test project layout and replace default task paths
   with working .NET build/test/check commands in the implementation branch.
-- Restore a minimal active CI gate for restore, build, and non-visual C# tests.
-  Keep visual capture opt-in.
+- Build directly against the sibling `../roci` checkout, allow `ROCI_ROOT` for
+  another local checkout, and give a clear setup error when Roci is missing.
+- Keep continuous integration deferred. Keep visual capture opt-in.
 - Rebaseline the existing desktop UI test and capture evidence.
 
 ### Exit checks
 
 - The migration inventory has no unclassified active C# setting.
 - The current non-visual test count and doctor output are captured.
-- The root default task and active CI gate run a non-visual .NET path without
-  invoking legacy Python files.
+- The root default task runs a non-visual .NET path without invoking legacy
+  Python files.
+- The local Roci source contract is documented and rejects a missing checkout
+  clearly.
 - The planned project-reference matrix is reviewed.
 - No UI or MCP behavior changed.
 
@@ -166,7 +169,7 @@ Make the target maintainable for the next feature.
 
 ### Work
 
-- Expand the Phase 0 default task and CI gate into focused lanes for core,
+- Expand the Phase 0 default task into focused local lanes for core,
   application, configuration, data, CLI, desktop, architecture, E2E, visual,
   and aggregate verification.
 - Make active documentation .NET-first and retain legacy links only as

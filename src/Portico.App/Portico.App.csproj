@@ -3,6 +3,7 @@
     <AssemblyName>portico</AssemblyName>
     <RootNamespace>Portico.App</RootNamespace>
     <OutputType>Exe</OutputType>
+    <RequiresRociSource>true</RequiresRociSource>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Portico.Adapters/Portico.Adapters.csproj" />

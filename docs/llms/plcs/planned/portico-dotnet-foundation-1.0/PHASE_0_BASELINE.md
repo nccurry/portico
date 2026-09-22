@@ -75,13 +75,33 @@ Budgets: 1344
 
 `roci:test` deliberately uses `--no-restore`. On a fresh worktree it is not
 valid evidence by itself, because its project assets and outputs have not yet
-been created. The new .NET-first default task and CI gate must run restore,
-then build, then the non-visual tests. A focused test lane may use
-`--no-restore` only after that preparation step.
+been created. The new .NET-first default task must run restore, then build,
+then the non-visual tests. A focused test lane may use `--no-restore` only
+after that preparation step.
 
 The separate retained visual test is intentionally excluded from the 222-test
 routine baseline. It remains an opt-in Desktop evidence lane, not a default
-task or CI step.
+task.
+
+### Local Roci source decision
+
+Portico compiles directly against the sibling `../roci` source checkout. Set
+`ROCI_ROOT` to use another local checkout. The build must fail with a clear
+setup error before restore or compilation when the expected Roci source is not
+present. Only projects that reference Roci require that checkout; Finance and
+other inner-layer test lanes stay independent of it.
+
+`task test:roci-source` proves the sibling default, the `ROCI_ROOT` override,
+the one-error missing-checkout path before solution restore, and Finance's
+independence from Roci.
+
+Continuous integration is intentionally deferred; it is not a Phase 0
+completion condition. The protected `main` branch currently expects a `ci`
+status, so a pull request cannot merge until that repository policy changes or
+a suitable CI design is introduced. This is an external delivery constraint,
+not a reason to couple inner layers to Roci.
+
+The retained visual lane passed with 48 PNG captures from the synthetic demo.
 
 ## 2. Current public behavior
 
@@ -441,3 +461,8 @@ change.
 - The `portico.toml`, `portico.secrets.toml`, file-selection, rejection, and
   JSON-envelope contracts are explicit enough for Phase 3 and Phase 4 tests.
 - UI and MCP behavior remain out of this inventory and unchanged.
+- `task check` passed the 222-test normal suite and the local-Roci build
+  contract. `task doctor` passed against the synthetic demo data. `task visual`
+  passed and retained 48 PNG captures.
+- The focused structure, behavior, and hygiene re-audits passed after their
+  findings were resolved.

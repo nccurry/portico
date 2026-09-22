@@ -5,7 +5,9 @@
 - Status: In progress
 - Created: 2026-09-21
 - Owner: Portico maintainers
-- Implementation status: Phase 0 baseline and migration inventory recorded; implementation work remains in progress.
+- Implementation status: Phase 0 is complete: the baseline, migration inventory,
+  local Roci contract, and retained visual evidence are recorded. Phase 1 is
+  next.
 - Depends on: the completed Python archive move in legacy/python
 
 ## Purpose
@@ -31,6 +33,7 @@ construction, and desktop rendering together.
 | Python app | Archive it under legacy/python and use it only as reference. |
 | UI and MCP | Defer feature work until this foundation is complete. |
 | Language | Target .NET 11 and use C# 15 features only where they make a boundary clearer. |
+| Roci dependency | Compile directly against the sibling `../roci` checkout. `ROCI_ROOT` may select another local checkout; CI is deferred. |
 
 ## Scope
 
