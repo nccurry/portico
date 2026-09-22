@@ -148,6 +148,36 @@ public sealed class ArchitecturePolicyTests
     }
 
     [Fact]
+    public async Task NonCanonicalRociReferenceFixture_IsRejected()
+    {
+        EvaluatedProject app = (await ProductionProjects.Value)["Portico.App"];
+        string rociSourceRoot = app.RociSourceRoot
+            ?? throw new InvalidOperationException("Portico.App must expose RociSourceRoot during project evaluation.");
+        using TemporaryProjectFixture fixture = TemporaryProjectFixture.CreateNonCanonicalRoci(
+            CurrentRepository.Value,
+            ActiveTargetFramework,
+            rociSourceRoot);
+
+        EvaluatedProject project = await CurrentRepository.Value.Evaluator.EvaluateAsync(
+            fixture.ProjectPath,
+            TestContext.Current.CancellationToken);
+        IReadOnlyList<string> violations = FindReferenceViolations(
+            "Portico.Application",
+            project,
+            ProjectPolicies["Portico.Application"]);
+
+        string nonCanonicalRociCore = Path.Combine(
+            rociSourceRoot,
+            "src",
+            "nested",
+            "Roci.Core",
+            "Roci.Core.csproj");
+        Assert.Contains(
+            $"Portico.Application has an unapproved external project reference '{nonCanonicalRociCore}'.",
+            violations);
+    }
+
+    [Fact]
     public async Task Finance_HasNoForbiddenInfrastructure()
     {
         EvaluatedProject finance = (await ProductionProjects.Value)["Portico.Finance"];
@@ -195,6 +225,55 @@ public sealed class ArchitecturePolicyTests
             cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Empty(FinanceSourcePolicy.FindForbiddenNamespaceUses(tree));
+    }
+
+    [Fact]
+    public void FinanceInfrastructureScan_RejectsQualifiedInfrastructure()
+    {
+        SyntaxTree tree = CSharpSyntaxTree.ParseText(
+            """
+            namespace Portico.Finance;
+
+            public sealed class Evidence
+            {
+                private readonly System.Net.Http.HttpClient _client = null!;
+                private readonly Roci.Core.Widget? _widget = null;
+
+                public string Read() => global::System.IO.File.ReadAllText("evidence.csv");
+                public void Load() => Roci.Core.Widget.Load();
+            }
+            """,
+            path: "qualified-evidence.cs",
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        IReadOnlyList<string> violations = FinanceSourcePolicy.FindForbiddenNamespaceUses(tree);
+
+        Assert.Contains("qualified-evidence.cs: qualified name System.IO.File.ReadAllText", violations);
+        Assert.Contains("qualified-evidence.cs: qualified name System.Net.Http.HttpClient", violations);
+        Assert.Contains("qualified-evidence.cs: qualified name Roci.Core.Widget.Load", violations);
+    }
+
+    [Fact]
+    public void FinanceInfrastructureScan_RejectsImplicitFrameworkInfrastructure()
+    {
+        SyntaxTree tree = CSharpSyntaxTree.ParseText(
+            """
+            namespace Portico.Finance;
+
+            public sealed class Evidence
+            {
+                private readonly HttpClient _client = null!;
+
+                public bool Exists() => File.Exists("evidence.csv");
+            }
+            """,
+            path: "implicit-evidence.cs",
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        IReadOnlyList<string> violations = FinanceSourcePolicy.FindForbiddenNamespaceUses(tree);
+
+        Assert.Contains(violations, violation => violation.Contains("System.IO symbol 'File'", StringComparison.Ordinal));
+        Assert.Contains(violations, violation => violation.Contains("System.Net.Http symbol 'HttpClient'", StringComparison.Ordinal));
     }
 
     private static string ActiveTargetFramework => ReadAssemblyMetadata("Portico.ActiveTargetFramework");
@@ -256,7 +335,7 @@ public sealed class ArchitecturePolicyTests
                 portico.Add(projectName);
             }
             else if (!string.IsNullOrWhiteSpace(project.RociSourceRoot)
-                     && IsWithinDirectory(reference, project.RociSourceRoot))
+                     && PathComparer.Equals(reference, RociProjectPath(project.RociSourceRoot, projectName)))
             {
                 roci.Add(projectName);
             }
@@ -296,14 +375,8 @@ public sealed class ArchitecturePolicyTests
         Assert.Equal(ProductionProjectNames.Order(StringComparer.Ordinal), actual);
     }
 
-    private static bool IsWithinDirectory(string path, string directory)
-    {
-        string relativePath = Path.GetRelativePath(directory, path);
-        return !string.Equals(relativePath, "..", StringComparison.Ordinal)
-               && !relativePath.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-               && !relativePath.StartsWith($"..{Path.AltDirectorySeparatorChar}", StringComparison.Ordinal)
-               && !Path.IsPathRooted(relativePath);
-    }
+    private static string RociProjectPath(string rociSourceRoot, string projectName)
+        => Path.Combine(rociSourceRoot, "src", projectName, $"{projectName}.csproj");
 
     private static ProjectReferencePolicy Policy(IEnumerable<string> portico, IEnumerable<string> roci)
         => new(
@@ -418,6 +491,35 @@ public sealed class ArchitecturePolicyTests
                 <Project>
                   <ItemGroup Condition="'$(Configuration)' == 'Release'">
                     <ProjectReference Include="{{EscapeXml(repository.ProjectPath("Portico.Cli"))}}" />
+                  </ItemGroup>
+                </Project>
+                """);
+            return fixture;
+        }
+
+        public static TemporaryProjectFixture CreateNonCanonicalRoci(
+            RepositoryContext repository,
+            string targetFramework,
+            string rociSourceRoot)
+        {
+            TemporaryProjectFixture fixture = Create();
+            string nonCanonicalRociCore = Path.Combine(
+                rociSourceRoot,
+                "src",
+                "nested",
+                "Roci.Core",
+                "Roci.Core.csproj");
+            File.WriteAllText(
+                fixture.ProjectPath,
+                $$"""
+                <Project Sdk="Microsoft.NET.Sdk">
+                  <PropertyGroup>
+                    <TargetFramework>{{targetFramework}}</TargetFramework>
+                    <RociSourceRoot>{{EscapeXml(rociSourceRoot)}}</RociSourceRoot>
+                  </PropertyGroup>
+                  <ItemGroup>
+                    <ProjectReference Include="{{EscapeXml(repository.ProjectPath("Portico.Finance"))}}" />
+                    <ProjectReference Include="{{EscapeXml(nonCanonicalRociCore)}}" />
                   </ItemGroup>
                 </Project>
                 """);

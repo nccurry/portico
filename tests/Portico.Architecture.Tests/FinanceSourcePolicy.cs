@@ -19,45 +19,125 @@ internal static class FinanceSourcePolicy
 
     private static readonly string[] SourceSelectionNames = ["WorkbookSourceKind", "DataSourceSettings"];
 
+    private static readonly string[] ForbiddenNamespaceRoots = ["Google", "Portico", "Roci", "Spectre", "System", "Tomlyn"];
+
     private static readonly StringComparer PathComparer = OperatingSystem.IsWindows()
         ? StringComparer.OrdinalIgnoreCase
         : StringComparer.Ordinal;
 
+    private static readonly Lazy<IReadOnlyList<MetadataReference>> TrustedPlatformReferences = new(CreateTrustedPlatformReferences);
+
+    private static readonly SyntaxTree ImplicitFrameworkUsings = CSharpSyntaxTree.ParseText(
+        """
+        global using System;
+        global using System.Collections.Generic;
+        global using System.IO;
+        global using System.Linq;
+        global using System.Net.Http;
+        global using System.Net.Http.Json;
+        global using System.Threading;
+        global using System.Threading.Tasks;
+        """,
+        path: "<implicit-framework-usings>");
+
     public static IReadOnlyList<string> FindForbiddenNamespaceUses(IEnumerable<string> sourceFiles)
     {
-        var violations = new List<string>();
-        foreach (string sourceFile in sourceFiles.Order(StringComparer.Ordinal))
-        {
-            SyntaxTree tree = CSharpSyntaxTree.ParseText(File.ReadAllText(sourceFile), path: sourceFile);
-            violations.AddRange(FindForbiddenNamespaceUses(tree));
-        }
-
-        return violations;
+        SyntaxTree[] trees = sourceFiles
+            .Order(StringComparer.Ordinal)
+            .Select(sourceFile => CSharpSyntaxTree.ParseText(File.ReadAllText(sourceFile), path: sourceFile))
+            .ToArray();
+        return FindForbiddenNamespaceUses(trees);
     }
 
     public static IReadOnlyList<string> FindForbiddenNamespaceUses(SyntaxTree tree)
-    {
-        CompilationUnitSyntax root = tree.GetCompilationUnitRoot();
-        var violations = new List<string>();
+        => FindForbiddenNamespaceUses([tree]);
 
+    private static IReadOnlyList<string> FindForbiddenNamespaceUses(IEnumerable<SyntaxTree> sourceTrees)
+    {
+        SyntaxTree[] trees = sourceTrees.ToArray();
+        CSharpCompilation compilation = CSharpCompilation.Create(
+            "Portico.Finance.ArchitecturePolicy",
+            trees.Append(ImplicitFrameworkUsings),
+            TrustedPlatformReferences.Value,
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+        var violations = new SortedSet<string>(StringComparer.Ordinal);
+
+        foreach (SyntaxTree sourceTree in trees)
+        {
+            CompilationUnitSyntax root = sourceTree.GetCompilationUnitRoot();
+            SemanticModel semanticModel = compilation.GetSemanticModel(sourceTree);
+            AddForbiddenNamespaceUses(sourceTree, root, semanticModel, violations);
+            AddForbiddenSymbolUses(sourceTree, root, semanticModel, violations);
+        }
+
+        return violations.ToArray();
+    }
+
+    private static void AddForbiddenNamespaceUses(
+        SyntaxTree tree,
+        CompilationUnitSyntax root,
+        SemanticModel semanticModel,
+        ISet<string> violations)
+    {
         foreach (UsingDirectiveSyntax directive in root.DescendantNodes().OfType<UsingDirectiveSyntax>())
         {
-            string? name = directive.Name?.ToString();
-            if (string.IsNullOrWhiteSpace(name))
-                continue;
-
-            if (IsForbiddenNamespace(name))
+            string? name = directive.Name is null ? null : GetNamePath(directive.Name);
+            if (name is not null && IsForbiddenNamespace(name))
                 violations.Add($"{tree.FilePath}: using {name}");
         }
 
         foreach (BaseNamespaceDeclarationSyntax declaration in root.DescendantNodes().OfType<BaseNamespaceDeclarationSyntax>())
         {
-            string name = declaration.Name.ToString();
+            string name = GetNamePath(declaration.Name);
             if (IsForbiddenNamespace(name))
                 violations.Add($"{tree.FilePath}: namespace {name}");
         }
 
-        return violations;
+        foreach (AliasQualifiedNameSyntax name in root.DescendantNodes().OfType<AliasQualifiedNameSyntax>())
+        {
+            if (string.Equals(name.Alias.Identifier.ValueText, "global", StringComparison.Ordinal))
+                AddForbiddenQualifiedName(tree, GetNamePath(name.Name), violations);
+        }
+
+        foreach (QualifiedNameSyntax name in root.DescendantNodes().OfType<QualifiedNameSyntax>())
+        {
+            if (name.Parent is not QualifiedNameSyntax and not AliasQualifiedNameSyntax)
+                AddForbiddenQualifiedName(tree, GetNamePath(name), violations);
+        }
+
+        foreach (MemberAccessExpressionSyntax access in root.DescendantNodes().OfType<MemberAccessExpressionSyntax>())
+        {
+            string? name = GetForbiddenMemberAccessPath(access, semanticModel);
+            if (name is not null)
+                AddForbiddenQualifiedName(tree, name, violations);
+        }
+    }
+
+    private static void AddForbiddenSymbolUses(
+        SyntaxTree tree,
+        CompilationUnitSyntax root,
+        SemanticModel semanticModel,
+        ISet<string> violations)
+    {
+        foreach (IdentifierNameSyntax identifier in root.DescendantNodes().OfType<IdentifierNameSyntax>())
+        {
+            if (IsPartOfUsingOrNamespaceName(identifier))
+                continue;
+
+            ISymbol? symbol = semanticModel.GetSymbolInfo(identifier).Symbol;
+            if (symbol is null || symbol is INamespaceSymbol)
+                continue;
+
+            string? namespaceName = GetContainingNamespace(symbol);
+            if (namespaceName is not null && IsForbiddenNamespace(namespaceName))
+                violations.Add($"{tree.FilePath}: use {namespaceName} symbol '{identifier.Identifier.ValueText}'");
+        }
+    }
+
+    private static void AddForbiddenQualifiedName(SyntaxTree tree, string name, ISet<string> violations)
+    {
+        if (IsForbiddenNamespace(name))
+            violations.Add($"{tree.FilePath}: qualified name {name}");
     }
 
     public static IReadOnlyList<string> FindSourceSelectionDeclarations(string sourceFile)
@@ -116,5 +196,70 @@ internal static class FinanceSourcePolicy
     private static bool IsNamespaceOrChild(string name, string prefix)
         => string.Equals(name, prefix, StringComparison.Ordinal)
            || name.StartsWith($"{prefix}.", StringComparison.Ordinal);
+
+    private static string? GetContainingNamespace(ISymbol symbol)
+    {
+        ISymbol target = symbol is IAliasSymbol alias ? alias.Target : symbol;
+        INamespaceSymbol? namespaceSymbol = target is INamespaceSymbol directNamespace
+            ? directNamespace
+            : target.ContainingNamespace;
+
+        return namespaceSymbol is null || namespaceSymbol.IsGlobalNamespace
+            ? null
+            : namespaceSymbol.ToDisplayString();
+    }
+
+    private static string GetNamePath(NameSyntax name)
+        => name switch
+        {
+            IdentifierNameSyntax identifier => identifier.Identifier.ValueText,
+            GenericNameSyntax generic => generic.Identifier.ValueText,
+            QualifiedNameSyntax qualified => $"{GetNamePath(qualified.Left)}.{GetNamePath(qualified.Right)}",
+            AliasQualifiedNameSyntax alias => string.Equals(alias.Alias.Identifier.ValueText, "global", StringComparison.Ordinal)
+                ? GetNamePath(alias.Name)
+                : $"{alias.Alias.Identifier.ValueText}::{GetNamePath(alias.Name)}",
+            _ => throw new InvalidOperationException($"Unexpected C# name syntax '{name.Kind()}'.")
+        };
+
+    private static string? GetForbiddenMemberAccessPath(ExpressionSyntax expression, SemanticModel semanticModel)
+        => expression switch
+        {
+            AliasQualifiedNameSyntax alias when string.Equals(alias.Alias.Identifier.ValueText, "global", StringComparison.Ordinal)
+                => GetNamePath(alias.Name),
+            IdentifierNameSyntax identifier when IsForbiddenNamespaceRoot(identifier, semanticModel)
+                => identifier.Identifier.ValueText,
+            MemberAccessExpressionSyntax access => GetForbiddenMemberAccessPath(access.Expression, semanticModel) is { } parent
+                ? $"{parent}.{GetNamePath(access.Name)}"
+                : null,
+            _ => null
+        };
+
+    private static bool IsForbiddenNamespaceRoot(IdentifierNameSyntax identifier, SemanticModel semanticModel)
+    {
+        if (!ForbiddenNamespaceRoots.Contains(identifier.Identifier.ValueText, StringComparer.Ordinal))
+            return false;
+
+        ISymbol? symbol = semanticModel.GetSymbolInfo(identifier).Symbol;
+        return symbol is null or INamespaceSymbol;
+    }
+
+    private static bool IsPartOfUsingOrNamespaceName(IdentifierNameSyntax identifier)
+        => identifier.Ancestors().OfType<UsingDirectiveSyntax>()
+            .Any(directive => directive.Name?.Span.Contains(identifier.Span) == true)
+           || identifier.Ancestors().OfType<BaseNamespaceDeclarationSyntax>()
+               .Any(declaration => declaration.Name.Span.Contains(identifier.Span));
+
+    private static IReadOnlyList<MetadataReference> CreateTrustedPlatformReferences()
+    {
+        string? assemblies = AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") as string;
+        if (string.IsNullOrWhiteSpace(assemblies))
+            throw new InvalidOperationException("The runtime did not provide trusted platform assemblies for Finance source analysis.");
+
+        return assemblies
+            .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
+            .Select(path => MetadataReference.CreateFromFile(path))
+            .Cast<MetadataReference>()
+            .ToArray();
+    }
 
 }

@@ -23,7 +23,8 @@ internal sealed class ProjectEvaluator(string repositoryRoot, string configurati
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(EvaluationTimeout);
 
-        var startInfo = new ProcessStartInfo("dotnet")
+        string? dotnetHost = Environment.GetEnvironmentVariable("DOTNET_HOST_PATH");
+        var startInfo = new ProcessStartInfo(string.IsNullOrWhiteSpace(dotnetHost) ? "dotnet" : dotnetHost)
         {
             WorkingDirectory = repositoryRoot,
             RedirectStandardOutput = true,
