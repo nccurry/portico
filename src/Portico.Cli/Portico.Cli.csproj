@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Portico.Cli</AssemblyName>
+    <RootNamespace>Portico.Cli</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Portico.Application/Portico.Application.csproj" />
+  </ItemGroup>
+</Project>
