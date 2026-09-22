@@ -62,6 +62,10 @@ Create the target project structure before moving business behavior.
 - Keep Portico.App as the executable.
 - Add an architecture test that evaluates allowed project references from
   production project files in the active build configuration.
+- Enforce the final edges for the new projects and freeze the current legacy
+  edges: App's Adapters, Dashboard, Finance, and Roci references through Phase
+  4; Adapters to Dashboard and Finance through Phase 3; and Dashboard to
+  Finance through Phase 4. Reject any added Portico or external Roci edge.
 - Add forbidden-dependency tests or source scans for Finance.
 - Move only assembly markers, neutral records, and test scaffolding needed to
   establish the build graph.
@@ -70,9 +74,12 @@ Create the target project structure before moving business behavior.
 
 ### Exit checks
 
-- The target graph compiles with no forbidden reference.
+- The Phase 1 scaffold compiles, and every evaluated production reference
+  matches the final matrix or an enumerated temporary transition exception.
 - Architecture tests fail when deliberately given direct and imported
   prohibited-reference fixtures.
+- The architecture suite evaluates every production project and its exact
+  Portico and Roci reference sets, including the time-bounded legacy edges.
 - Existing Finance, Dashboard, Adapter, and App tests still pass.
 
 ## Phase 2: Make Finance pure and introduce Application

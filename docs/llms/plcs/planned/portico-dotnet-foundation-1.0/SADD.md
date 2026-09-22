@@ -60,6 +60,30 @@ forbidden reference to prove the evaluator catches it.
 Finance source may not import namespaces or packages associated with TOML, file
 I/O, HTTP, Google, Roci, CLI, or Desktop.
 
+### Phase 1 transition policy
+
+The matrix above is the final design. Phase 1 must still keep the working
+legacy projects available, so the architecture suite freezes these exact,
+temporary edges rather than treating them as new target edges:
+
+| Project | Temporary edge set | Removal phase |
+| --- | --- | --- |
+| Portico.App | Its current `Portico.Adapters`, `Portico.Dashboard`, and `Portico.Finance` references, plus its current Roci project-reference set, in addition to the final App edges. | 4 |
+| Portico.Adapters | `Portico.Dashboard` and `Portico.Finance`. | 3 |
+| Portico.Dashboard | `Portico.Finance`. | 4 |
+
+The suite requires the full evaluated Portico and Roci sets to match this
+policy exactly. It does not allow a new edge merely because the project is in
+transition. From Phase 1, Portico.Desktop may reference only
+Portico.Application and Roci.Core; no other external project reference is
+allowed.
+
+Finance has one separate temporary source-selection exception: only
+`FinanceSettings.cs` may contain `WorkbookSourceKind` and
+`DataSourceSettings`, and Phase 2 removes both types. Finance may not acquire
+any other source-kind, TOML, file, HTTP, Google, Roci, CLI, or Desktop
+dependency during that transition.
+
 ## 4. Runtime flows
 
 ### Config check

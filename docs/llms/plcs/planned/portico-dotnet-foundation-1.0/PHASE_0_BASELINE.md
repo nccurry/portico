@@ -51,6 +51,13 @@ project items, including imported references.
 Desktop must not reference Configuration or Data, and Finance must not regain a
 Portico project reference or a source-kind type.
 
+The table is the final target, not a claim that the legacy projects have
+already moved. Phase 1 architecture tests freeze the transition set exactly:
+App retains its current Adapters, Dashboard, Finance, and Roci references
+through Phase 4; Adapters retains Dashboard and Finance through Phase 3; and
+Dashboard retains Finance through Phase 4. The tests reject any added Portico
+or external Roci reference while those temporary edges remain.
+
 ### Restored build, test, and doctor evidence
 
 The following commands ran from a fresh linked worktree on the recorded commit.

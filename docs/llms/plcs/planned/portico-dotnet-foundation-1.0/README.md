@@ -91,6 +91,13 @@ Portico.Cli parses a typed command. For run, Portico.App dispatches that typed
 command to Application and then Desktop, so Portico.Cli never references
 Desktop.
 
+Phase 1 keeps three exact transition exceptions while the existing code moves:
+App retains its current Adapters, Dashboard, Finance, and Roci references
+through Phase 4; Adapters retains Dashboard and Finance through Phase 3; and
+Dashboard retains Finance through Phase 4. Architecture tests freeze those
+sets and reject added Portico or external Roci references. These exceptions do
+not change the final graph above.
+
 ## Phase order
 
 | Phase | Result |
