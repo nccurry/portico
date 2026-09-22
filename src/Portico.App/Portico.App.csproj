@@ -7,7 +7,12 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Portico.Adapters/Portico.Adapters.csproj" />
+    <ProjectReference Include="../Portico.Application/Portico.Application.csproj" />
+    <ProjectReference Include="../Portico.Cli/Portico.Cli.csproj" />
+    <ProjectReference Include="../Portico.Configuration/Portico.Configuration.csproj" />
+    <ProjectReference Include="../Portico.Data/Portico.Data.csproj" />
     <ProjectReference Include="../Portico.Dashboard/Portico.Dashboard.csproj" />
+    <ProjectReference Include="../Portico.Desktop/Portico.Desktop.csproj" />
     <ProjectReference Include="../Portico.Finance/Portico.Finance.csproj" />
     <ProjectReference Include="$(RociSourceRoot)/src/Roci.Hosting.MonoGame/Roci.Hosting.MonoGame.csproj" />
     <ProjectReference Include="$(RociSourceRoot)/src/Roci.Core/Roci.Core.csproj" />
