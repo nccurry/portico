@@ -16,5 +16,6 @@
     <Project Path="tests/Portico.Dashboard.Tests/Portico.Dashboard.Tests.csproj" />
     <Project Path="tests/Portico.Adapters.Tests/Portico.Adapters.Tests.csproj" />
     <Project Path="tests/Portico.App.Tests/Portico.App.Tests.csproj" />
+    <Project Path="tests/Portico.Architecture.Tests/Portico.Architecture.Tests.csproj" />
   </Folder>
 </Solution>
