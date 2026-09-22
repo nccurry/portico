@@ -6,6 +6,7 @@ namespace Portico.Architecture.Tests;
 internal sealed class ProjectEvaluator(string repositoryRoot, string configuration, string targetFramework)
 {
     private static readonly TimeSpan EvaluationTimeout = TimeSpan.FromSeconds(30);
+    internal static readonly SemaphoreSlim EvaluationGate = new(1, 1);
     private static readonly StringComparer PathComparer = OperatingSystem.IsWindows()
         ? StringComparer.OrdinalIgnoreCase
         : StringComparer.Ordinal;
@@ -23,55 +24,75 @@ internal sealed class ProjectEvaluator(string repositoryRoot, string configurati
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(EvaluationTimeout);
 
-        string? dotnetHost = Environment.GetEnvironmentVariable("DOTNET_HOST_PATH");
-        var startInfo = new ProcessStartInfo(string.IsNullOrWhiteSpace(dotnetHost) ? "dotnet" : dotnetHost)
-        {
-            WorkingDirectory = repositoryRoot,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-        startInfo.ArgumentList.Add("msbuild");
-        startInfo.ArgumentList.Add(fullProjectPath);
-        startInfo.ArgumentList.Add("-nologo");
-        startInfo.ArgumentList.Add("-nodeReuse:false");
-        startInfo.ArgumentList.Add("-getItem:ProjectReference;PackageReference;Compile");
-        startInfo.ArgumentList.Add("-getProperty:RociSourceRoot");
-        startInfo.ArgumentList.Add($"-property:Configuration={evaluationConfiguration}");
-        startInfo.ArgumentList.Add($"-property:TargetFramework={evaluationTargetFramework}");
-
-        using var process = new Process { StartInfo = startInfo };
-        if (!process.Start())
-            throw new InvalidOperationException($"Could not start MSBuild for '{fullProjectPath}'.");
-
-        Task<string> standardOutput = process.StandardOutput.ReadToEndAsync();
-        Task<string> standardError = process.StandardError.ReadToEndAsync();
-
         try
         {
-            await process.WaitForExitAsync(timeout.Token);
+            await EvaluationGate.WaitAsync(timeout.Token);
         }
         catch (OperationCanceledException) when (timeout.IsCancellationRequested)
         {
-            Stop(process);
-            await Task.WhenAll(standardOutput, standardError);
-
             if (cancellationToken.IsCancellationRequested)
                 throw;
 
-            throw new TimeoutException($"MSBuild item evaluation exceeded {EvaluationTimeout.TotalSeconds:0} seconds for '{fullProjectPath}'.");
+            throw new TimeoutException($"MSBuild evaluation queue exceeded {EvaluationTimeout.TotalSeconds:0} seconds for '{fullProjectPath}'.");
         }
 
-        string output = await standardOutput;
-        string error = await standardError;
-        if (process.ExitCode != 0)
+        try
         {
-            throw new InvalidOperationException(
-                $"MSBuild item evaluation failed for '{fullProjectPath}' with exit code {process.ExitCode}.{Environment.NewLine}{error}");
-        }
+            string? dotnetHost = Environment.GetEnvironmentVariable("DOTNET_HOST_PATH");
+            var startInfo = new ProcessStartInfo(string.IsNullOrWhiteSpace(dotnetHost) ? "dotnet" : dotnetHost)
+            {
+                WorkingDirectory = repositoryRoot,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            startInfo.ArgumentList.Add("msbuild");
+            startInfo.ArgumentList.Add(fullProjectPath);
+            startInfo.ArgumentList.Add("-nologo");
+            startInfo.ArgumentList.Add("-maxcpucount:1");
+            startInfo.ArgumentList.Add("-nodeReuse:false");
+            startInfo.ArgumentList.Add("-getItem:ProjectReference;PackageReference;Compile");
+            startInfo.ArgumentList.Add("-getProperty:RociSourceRoot");
+            startInfo.ArgumentList.Add($"-property:Configuration={evaluationConfiguration}");
+            startInfo.ArgumentList.Add($"-property:TargetFramework={evaluationTargetFramework}");
 
-        return ReadEvaluation(output);
+            using var process = new Process { StartInfo = startInfo };
+            if (!process.Start())
+                throw new InvalidOperationException($"Could not start MSBuild for '{fullProjectPath}'.");
+
+            Task<string> standardOutput = process.StandardOutput.ReadToEndAsync();
+            Task<string> standardError = process.StandardError.ReadToEndAsync();
+
+            try
+            {
+                await process.WaitForExitAsync(timeout.Token);
+            }
+            catch (OperationCanceledException) when (timeout.IsCancellationRequested)
+            {
+                Stop(process);
+                await Task.WhenAll(standardOutput, standardError);
+
+                if (cancellationToken.IsCancellationRequested)
+                    throw;
+
+                throw new TimeoutException($"MSBuild item evaluation exceeded {EvaluationTimeout.TotalSeconds:0} seconds for '{fullProjectPath}'.");
+            }
+
+            string output = await standardOutput;
+            string error = await standardError;
+            if (process.ExitCode != 0)
+            {
+                throw new InvalidOperationException(
+                    $"MSBuild item evaluation failed for '{fullProjectPath}' with exit code {process.ExitCode}.{Environment.NewLine}{error}");
+            }
+
+            return ReadEvaluation(output);
+        }
+        finally
+        {
+            EvaluationGate.Release();
+        }
     }
 
     private static EvaluatedProject ReadEvaluation(string output)
