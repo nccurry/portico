@@ -139,9 +139,10 @@ tasks:
 
   test:published:
     desc: "Publish Portico and exercise its headless commands as a process"
-    deps: [roci:source:check]
+    deps: [restore]
     cmds:
-      - dotnet test tests/Portico.EndToEnd.Tests/Portico.EndToEnd.Tests.csproj -p:Configuration={{.CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false --filter "Category=PublishedProcess"
+      - dotnet build tests/Portico.EndToEnd.Tests/Portico.EndToEnd.Tests.csproj --no-restore -p:Configuration={{.CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false
+      - dotnet exec tests/Portico.EndToEnd.Tests/bin/{{.CONFIGURATION}}/net11.0/Portico.EndToEnd.Tests.dll -trait Category=PublishedProcess
 
   test:roci-source:
     desc: "Verify the local Roci source contract"

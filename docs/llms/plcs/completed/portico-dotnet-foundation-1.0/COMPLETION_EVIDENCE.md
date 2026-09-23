@@ -29,7 +29,10 @@ in Debug and Release, including imported references. No active App,
 Dashboard, or Adapter transition edge remains. The published-process test
 copies synthetic CSV data and exercises `config check`, `data check`, and
 `doctor`, including invalid configuration, missing data, safe output, and exit
-codes.
+codes. Its Task lane restores the solution before publishing and honors the
+selected Debug or Release configuration; both variants passed locally. On a
+pristine checkout, use `task test:published` rather than invoking only the E2E
+project, since the inner publish uses the solution's restored App assets.
 
 `task dotnet:coverage` now fails below 95% lines or 90% branches in either
 named package. The measured `Portico.Finance` package passed at 97.15% lines

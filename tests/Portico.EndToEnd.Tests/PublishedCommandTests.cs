@@ -114,9 +114,11 @@ public sealed class PublishedCommandTests
     private static async Task<string> PublishAsync(string repository, string temporaryRoot)
     {
         string output = Path.Combine(temporaryRoot, "published");
+        string configuration = new DirectoryInfo(AppContext.BaseDirectory).Parent?.Name
+            ?? throw new InvalidOperationException("The test build configuration was not found.");
         ProcessResult result = await RunProcessAsync(
             "dotnet", repository,
-            ["publish", "src/Portico.App/Portico.App.csproj", "--configuration", "Debug", "--output", output],
+            ["publish", "src/Portico.App/Portico.App.csproj", "--configuration", configuration, "--output", output, "--no-restore"],
             TimeSpan.FromMinutes(5));
         Assert.True(result.ExitCode == 0, $"Published-process setup failed: {result.Output}\n{result.Error}");
         string executable = Path.Combine(output, OperatingSystem.IsWindows() ? "portico.exe" : "portico");
