@@ -109,7 +109,8 @@ public sealed partial class Workspace
         return new BudgetOverviewReport(categories, history);
     }
 
-    private BudgetRequest DefaultBudgetRequest()
+    /// <summary>Gets the configured starting month, groups, and adjustments for Budget.</summary>
+    public BudgetRequest DefaultBudgetRequest()
     {
         YearMonth month = _snapshot.Transactions
             .Where(transaction => !transaction.IsHidden)
