@@ -40,14 +40,18 @@ internal static class DashboardReportText
     public static ReportMetric Metric(string label, decimal value)
         => new(label, value, Money(value));
 
-    public static string Exclusions(IEnumerable<LedgerExclusion> exclusions)
-        => string.Join("; ", exclusions.Select(Exclusion));
+    public static string Exclusions(
+        IEnumerable<LedgerExclusion> exclusions,
+        IReadOnlyDictionary<string, string>? transactionSetLabels = null)
+        => string.Join("; ", exclusions.Select(exclusion => Exclusion(exclusion, transactionSetLabels)));
 
-    private static string Exclusion(LedgerExclusion exclusion)
+    private static string Exclusion(
+        LedgerExclusion exclusion,
+        IReadOnlyDictionary<string, string>? transactionSetLabels)
         => exclusion.Reason switch
         {
             LedgerExclusionReason.TransferGroup => "Transfer group",
-            LedgerExclusionReason.OutsideConfiguredSet => $"Outside configured set: {exclusion.Value}",
+            LedgerExclusionReason.OutsideConfiguredSet => $"Outside configured set: {SetLabel(exclusion, transactionSetLabels)}",
             LedgerExclusionReason.OutsideIncludedDescriptions => "Outside included groups/categories/transactions",
             LedgerExclusionReason.ExcludedIncomeCategory => $"Excluded income category: {exclusion.Value}",
             LedgerExclusionReason.ExcludedExpenseGroup => $"Excluded group: {exclusion.Value}",
@@ -58,6 +62,14 @@ internal static class DashboardReportText
             LedgerExclusionReason.ExpenseOverLimit => $"Expense over {RequiredLimit(exclusion)}",
             _ => throw new ArgumentOutOfRangeException(nameof(exclusion))
         };
+
+    private static string SetLabel(
+        LedgerExclusion exclusion,
+        IReadOnlyDictionary<string, string>? transactionSetLabels)
+        => transactionSetLabels is not null && exclusion.Value is not null &&
+            transactionSetLabels.TryGetValue(exclusion.Value, out string? label)
+                ? label
+                : throw new ArgumentException("An exclusion requires a configured transaction-set label.", nameof(transactionSetLabels));
 
     private static string RequiredLimit(LedgerExclusion exclusion)
         => exclusion.Limit is decimal value ? Money(value)

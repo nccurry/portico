@@ -1370,7 +1370,8 @@ public sealed class DashboardSession
                 Filters.SpendingSet, Filters.LookbackMonths, Filters.SpendingComparison,
                 Filters.SpendingBreakdown, CurrentSpendingAdjustments,
                 Presentation.Spending.SelectedEntity(Filters.SpendingBreakdown), spendingMonth)),
-                Filters.LookbackMonths, Filters.SpendingComparison),
+                Filters.LookbackMonths, Filters.SpendingComparison,
+                _workspace.ReportChoices.TransactionSetLabels),
             YearOverYearDashboardReport.Build(_workspace.YearOverYear(yearOverYearRequest)),
             SubscriptionsDashboardReport.Build(_workspace.Subscriptions(new SubscriptionsReportRequest(
                 Filters.SubscriptionCategories, Filters.SubscriptionDiscoveryExclusions,
@@ -1379,7 +1380,8 @@ public sealed class DashboardSession
             MerchantsDashboardReport.Build(_workspace.Merchants(new MerchantsReportRequest(
                 Filters.MerchantSet ?? Filters.SpendingSet, Filters.EffectiveMerchantLookbackMonths,
                 Filters.MerchantComparison, CurrentMerchantAdjustments,
-                Presentation.Merchants.SelectedMerchant, merchantMonth)), Filters.MerchantComparison),
+                Presentation.Merchants.SelectedMerchant, merchantMonth)), Filters.MerchantComparison,
+                _workspace.ReportChoices.TransactionSetLabels),
             BudgetDashboardMapper.Build(_workspace.Budget(new BudgetReportRequest(
                 CurrentBudgetRequest, Presentation.Budget.SelectedGroup,
                 Presentation.Budget.TransactionCategory == "all" ? null : Presentation.Budget.TransactionCategory)),

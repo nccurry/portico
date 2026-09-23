@@ -216,7 +216,7 @@ public sealed class CheckCommandTests
     }
 
     private static ConfigurationReadSuccess ValidConfiguration()
-        => new(new WorkspaceConfiguration(Settings(), new GoogleSheetsSourceRequest(
+        => new(new WorkspaceConfiguration(Settings(), Choices(), new GoogleSheetsSourceRequest(
             PrivateLocation, PrivateLocation, PrivateLocation, PrivateLocation)));
 
     private static PortfolioSnapshot Snapshot()
@@ -227,16 +227,19 @@ public sealed class CheckCommandTests
 
     private static FinanceSettings Settings()
         => new(
-            new LookbackSettings([12], 12),
             new ThresholdSettings(100m, 100m, 10m, 1),
-            new IncomeSavingsSettings("regular", 0.1m, [], []),
-            [], [],
-            new SubscriptionSettings([], 0, 1, [], []),
+            new IncomeSavingsSettings(0.1m, [], []),
+            [],
+            new SubscriptionSettings([], 0, 1, []),
             new BudgetSettings(12),
             new DataHealthSettings(1, false, false, false),
             new FinancialSafetySettings(3, [], [], 12, [], [], [], [], null),
             new FinancialIndependenceSettings(0.05m, 0.04m, 100m, 12, 10, [], []),
             new Dictionary<string, IReadOnlyList<string>>());
+
+    private static ReportChoiceSettings Choices()
+        => new(new LookbackSettings([12], 12), [],
+            new Dictionary<string, string>(StringComparer.Ordinal), true, []);
 
     private sealed record Result(int ExitCode, string Output, string Error);
 

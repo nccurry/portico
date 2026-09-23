@@ -26,9 +26,12 @@ public sealed partial record DashboardPageReport
 /// <summary>Turns merchant analysis into the configured desktop widgets.</summary>
 public static class MerchantsDashboardReport
 {
-    public static DashboardPageReport Build(MerchantsReport report, SpendingComparison comparison)
+    public static DashboardPageReport Build(
+        MerchantsReport report, SpendingComparison comparison,
+        IReadOnlyDictionary<string, string> transactionSetLabels)
     {
         ArgumentNullException.ThrowIfNull(report);
+        ArgumentNullException.ThrowIfNull(transactionSetLabels);
         MerchantAnalysisResult analysis = report.Analysis;
         MerchantOverviewEntry? selected = analysis.Overview.FirstOrDefault(entry =>
             string.Equals(entry.Merchant, report.SelectedMerchant, StringComparison.Ordinal));
@@ -61,7 +64,7 @@ public static class MerchantsDashboardReport
             ["merchants.detail_accounts"] = Breakdown("Account", report.SelectedAccounts),
             ["merchants.detail_descriptions"] = Descriptions(report.SelectedDescriptions),
             ["merchants.detail_transactions"] = Transactions(report.SelectedTransactions),
-            ["merchants.excluded"] = Excluded(analysis.CurrentLedger)
+            ["merchants.excluded"] = Excluded(analysis.CurrentLedger, transactionSetLabels)
         };
         string? caption = report.LatestExpenseDate is DateOnly date
             ? $"Spending through {date.ToString("MMMM d, yyyy", CultureInfo.InvariantCulture)}"
@@ -123,13 +126,16 @@ public static class MerchantsDashboardReport
                     entry.Transaction.Group, entry.Transaction.Account, Money(entry.NetSpending)])).ToArray(),
             entries.Count == 0 ? "No transactions are available for this merchant." : null);
 
-    private static DashboardWidgetReport Excluded(IReadOnlyList<SpendingLedgerEntry> entries)
+    private static DashboardWidgetReport Excluded(
+        IReadOnlyList<SpendingLedgerEntry> entries,
+        IReadOnlyDictionary<string, string> transactionSetLabels)
     {
         SpendingLedgerEntry[] excluded = entries.Where(entry => !entry.Included).ToArray();
         return new([], [], ["Date", "Description", "Category", "Group", "Spending", "Reason"],
             excluded.Select(entry => new ReportTableRow(
                 [Date(entry.Transaction.Date), entry.Transaction.Description, entry.Transaction.Category,
-                    entry.Transaction.Group, Money(entry.NetSpending), DashboardReportText.Exclusions(entry.Exclusions)], "negative")).ToArray(),
+                    entry.Transaction.Group, Money(entry.NetSpending),
+                    DashboardReportText.Exclusions(entry.Exclusions, transactionSetLabels)], "negative")).ToArray(),
             excluded.Length == 0 ? "No current-period rows are excluded." : null);
     }
 }

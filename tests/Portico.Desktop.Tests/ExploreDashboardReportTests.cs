@@ -85,10 +85,11 @@ public sealed class ExploreDashboardReportTests
 
         DashboardPageReport coffee = MerchantsDashboardReport.Build(workspace.Merchants(
             new MerchantsReportRequest(LookbackMonths: 2, SelectedMerchant: "COFFEE",
-                DetailMonth: new YearMonth(2026, 2))), SpendingComparison.PreviousPeriod);
+                DetailMonth: new YearMonth(2026, 2))), SpendingComparison.PreviousPeriod,
+            workspace.ReportChoices.TransactionSetLabels);
         DashboardPageReport market = MerchantsDashboardReport.Build(workspace.Merchants(
             new MerchantsReportRequest(LookbackMonths: 2, SelectedMerchant: "MARKET")),
-            SpendingComparison.LastYear);
+            SpendingComparison.LastYear, workspace.ReportChoices.TransactionSetLabels);
 
         Assert.Equal(DashboardPageId.Merchants, coffee.PageId);
         Assert.Equal(11, coffee.Widgets.Count);
@@ -105,8 +106,9 @@ public sealed class ExploreDashboardReportTests
     [Fact]
     public async Task EmptyMerchantsKeepTheSelectedDetailPrompt()
     {
-        DashboardPageReport page = MerchantsDashboardReport.Build((await Open([])).Merchants(),
-            SpendingComparison.PreviousPeriod);
+        Workspace workspace = await Open([]);
+        DashboardPageReport page = MerchantsDashboardReport.Build(workspace.Merchants(),
+            SpendingComparison.PreviousPeriod, workspace.ReportChoices.TransactionSetLabels);
 
         Assert.Equal(11, page.Widgets.Count);
         Assert.NotNull(page.MerchantsView?.EmptyMessage);
@@ -127,7 +129,8 @@ public sealed class ExploreDashboardReportTests
         };
 
         DashboardPageReport page = MerchantsDashboardReport.Build(workspace.Merchants(
-            new MerchantsReportRequest(Adjustments: adjustments)), SpendingComparison.PreviousPeriod);
+            new MerchantsReportRequest(Adjustments: adjustments)), SpendingComparison.PreviousPeriod,
+            workspace.ReportChoices.TransactionSetLabels);
 
         ReportTableRow row = Assert.Single(page.Widgets["merchants.excluded"].Rows);
         Assert.Equal("Excluded group: Living", row.Values[5]);
@@ -193,7 +196,7 @@ public sealed class ExploreDashboardReportTests
         public Task<ConfigurationReadOutcome> ReadAsync(
             ConfigurationSelection selection, CancellationToken cancellationToken)
             => Task.FromResult<ConfigurationReadOutcome>(new ConfigurationReadSuccess(
-                new WorkspaceConfiguration(Settings(), new LocalCsvSourceRequest("fixture"))));
+                new WorkspaceConfiguration(Settings(), Choices(), new LocalCsvSourceRequest("fixture"))));
     }
 
     private sealed class PortfolioReader(PortfolioSnapshot snapshot) : IPortfolioReader
@@ -204,15 +207,18 @@ public sealed class ExploreDashboardReportTests
 
     private static FinanceSettings Settings()
         => new(
-            new LookbackSettings([1, 2, 12], 2),
             new ThresholdSettings(100m, 100m, 10m, 1),
-            new IncomeSavingsSettings("regular", 25m, [], []),
-            [new TransactionSetDefinition("all", "All", [], [], [], [], [], [], [])],
-            [new FilterSetDefinition("spending", ["all"], "all")],
-            new SubscriptionSettings(["Subscriptions"], 70, 1, [], []),
+            new IncomeSavingsSettings(25m, [], []),
+            [new TransactionSetDefinition("all", [], [], [], [], [], [], [])],
+            new SubscriptionSettings(["Subscriptions"], 70, 1, []),
             new BudgetSettings(3),
             new DataHealthSettings(1, false, false, false),
             new FinancialSafetySettings(3, ["Cash"], [], 3, [], [], ["Debt"], [], null),
             new FinancialIndependenceSettings(0.05m, 0.04m, 1000m, 12, 10, [], []),
             new Dictionary<string, IReadOnlyList<string>>());
+
+    private static ReportChoiceSettings Choices() => new(
+        new LookbackSettings([1, 2, 12], 2),
+        [new FilterSetDefinition("spending", ["all"], "all")],
+        new Dictionary<string, string> { ["all"] = "All" }, true, []);
 }

@@ -10,12 +10,20 @@ internal static class DesktopTestSessions
 {
     public static FinanceSettings LoadSettings(string repositoryRoot)
     {
+        return LoadConfiguration(repositoryRoot).Settings;
+    }
+
+    private static ReportChoiceSettings LoadChoices(string repositoryRoot)
+        => LoadConfiguration(repositoryRoot).ReportChoices;
+
+    private static WorkspaceConfiguration LoadConfiguration(string repositoryRoot)
+    {
         ConfigurationReadOutcome read = new TomlConfigurationReader(repositoryRoot)
             .ReadAsync(new ConfigurationSelection(Path.Combine(repositoryRoot, "portico.toml")), default)
             .GetAwaiter().GetResult();
         return read switch
         {
-            ConfigurationReadSuccess success => success.GetConfiguration().Settings,
+            ConfigurationReadSuccess success => success.GetConfiguration(),
             _ => throw new InvalidOperationException("Could not load the demo settings.")
         };
     }
@@ -50,7 +58,8 @@ internal static class DesktopTestSessions
         DateOnly? asOfDate = null)
     {
         var application = new PorticoApplication(
-            new FixedConfigurationReader(settings), new FixedPortfolioReader(snapshot));
+            new FixedConfigurationReader(settings, LoadChoices(FindRepositoryRoot())),
+            new FixedPortfolioReader(snapshot));
         OpenWorkspaceOutcome opened = application.OpenWorkspaceAsync(
             new ConfigurationSelection(), asOfDate).GetAwaiter().GetResult();
         Workspace workspace = opened switch
@@ -61,12 +70,29 @@ internal static class DesktopTestSessions
         return new DashboardSession(workspace, definition);
     }
 
-    private sealed class FixedConfigurationReader(FinanceSettings settings) : IConfigurationReader
+    private sealed class FixedConfigurationReader(
+        FinanceSettings settings, ReportChoiceSettings choices) : IConfigurationReader
     {
         public Task<ConfigurationReadOutcome> ReadAsync(
             ConfigurationSelection selection, CancellationToken cancellationToken)
             => Task.FromResult<ConfigurationReadOutcome>(new ConfigurationReadSuccess(
-                new WorkspaceConfiguration(settings, new LocalCsvSourceRequest("unused"))));
+                new WorkspaceConfiguration(settings, choices, new LocalCsvSourceRequest("unused"))));
+    }
+
+    private static string FindRepositoryRoot()
+    {
+        foreach (string start in new[] { Directory.GetCurrentDirectory(), AppContext.BaseDirectory })
+        {
+            var current = new DirectoryInfo(start);
+            while (current is not null)
+            {
+                if (File.Exists(Path.Combine(current.FullName, "portico.toml")))
+                    return current.FullName;
+                current = current.Parent;
+            }
+        }
+
+        throw new DirectoryNotFoundException("Could not find the Portico repository root.");
     }
 
     private sealed class FixedPortfolioReader(PortfolioSnapshot snapshot) : IPortfolioReader

@@ -51,10 +51,11 @@ public sealed class FoundationReportMapperTests
         Workspace workspace = await OpenWorkspace();
         DashboardPageReport group = SpendingDashboardReport.Build(workspace.Spending(new SpendingReportRequest(
             LookbackMonths: 2, Breakdown: SpendingBreakdown.Group, Entity: "Living",
-            DetailMonth: new YearMonth(2026, 2))), 2, SpendingComparison.PreviousPeriod);
+            DetailMonth: new YearMonth(2026, 2))), 2, SpendingComparison.PreviousPeriod,
+            workspace.ReportChoices.TransactionSetLabels);
         DashboardPageReport category = SpendingDashboardReport.Build(workspace.Spending(new SpendingReportRequest(
             LookbackMonths: 2, Breakdown: SpendingBreakdown.Category, Entity: "Food")),
-            2, SpendingComparison.PreviousPeriod);
+            2, SpendingComparison.PreviousPeriod, workspace.ReportChoices.TransactionSetLabels);
 
         Assert.Equal(12, group.Widgets.Count);
         Assert.Equal("$300", group.Widgets["spending.detail_summary"].Metrics.Single(metric => metric.Label == "Spending").Display);
@@ -70,11 +71,46 @@ public sealed class FoundationReportMapperTests
         var adjustments = new SpendingAdjustments(["Living"], [], [], [], false, 100m);
 
         DashboardPageReport page = SpendingDashboardReport.Build(workspace.Spending(new SpendingReportRequest(
-            LookbackMonths: 2, Adjustments: adjustments)), 2, SpendingComparison.PreviousPeriod);
+            LookbackMonths: 2, Adjustments: adjustments)), 2, SpendingComparison.PreviousPeriod,
+            workspace.ReportChoices.TransactionSetLabels);
 
         Assert.Equal(2, page.Widgets["spending.excluded"].Rows.Count);
         Assert.All(page.Widgets["spending.excluded"].Rows,
             row => Assert.Equal("Excluded group: Living", row.Values[^1]));
+    }
+
+    [Fact]
+    public async Task SpendingResolvesConfiguredSetKeyToItsDesktopLabel()
+    {
+        FinanceSettings settings = Settings() with
+        {
+            TransactionSets = [new TransactionSetDefinition("all", [], [], [], [], [], [], []),
+                new TransactionSetDefinition("food", [], ["Food"], [], [], [], [], [])]
+        };
+        ReportChoiceSettings choices = Choices() with
+        {
+            FilterSets = [new FilterSetDefinition("spending", ["all", "food"], "all"),
+                new FilterSetDefinition("year_over_year", ["all"], "all")],
+            TransactionSetLabels = new Dictionary<string, string>
+            {
+                ["all"] = "All",
+                ["food"] = "Food only"
+            }
+        };
+        Workspace workspace = await OpenWorkspace(new PortfolioSnapshot(
+        [
+            Tx("food", 2026, 2, 10, "Living", "Food", -20m),
+            Tx("fuel", 2026, 2, 11, "Transport", "Fuel", -30m)
+        ], [], []), settings, choices);
+
+        SpendingReport report = workspace.Spending(new SpendingReportRequest("food", LookbackMonths: 2));
+        SpendingLedgerEntry excluded = Assert.Single(report.Analysis.CurrentLedger, entry => !entry.Included);
+        Assert.Equal("food", Assert.Single(excluded.Exclusions).Value);
+
+        DashboardPageReport page = SpendingDashboardReport.Build(report, 2,
+            SpendingComparison.PreviousPeriod, workspace.ReportChoices.TransactionSetLabels);
+        Assert.Equal("Outside configured set: Food only",
+            Assert.Single(page.Widgets["spending.excluded"].Rows).Values[^1]);
     }
 
     [Fact]
@@ -85,7 +121,8 @@ public sealed class FoundationReportMapperTests
             LookbackMonths: 2, Comparison: SpendingComparison.LastYear,
             Breakdown: SpendingBreakdown.Group, Entity: "Living"));
 
-        DashboardPageReport page = SpendingDashboardReport.Build(report, 2, SpendingComparison.LastYear);
+        DashboardPageReport page = SpendingDashboardReport.Build(report, 2, SpendingComparison.LastYear,
+            workspace.ReportChoices.TransactionSetLabels);
 
         Assert.Contains("same months last year", page.Widgets["spending.overview"].Columns);
         ReportSeries comparison = page.Widgets["spending.detail_history"].Series[1];
@@ -116,7 +153,8 @@ public sealed class FoundationReportMapperTests
         Workspace workspace = await OpenWorkspace(new PortfolioSnapshot([], [], []));
 
         DashboardPageReport income = IncomeSavingsDashboardReport.Build(workspace.Income(), 2);
-        DashboardPageReport spending = SpendingDashboardReport.Build(workspace.Spending(), 2, SpendingComparison.PreviousPeriod);
+        DashboardPageReport spending = SpendingDashboardReport.Build(workspace.Spending(), 2,
+            SpendingComparison.PreviousPeriod, workspace.ReportChoices.TransactionSetLabels);
         DashboardPageReport yearOverYear = YearOverYearDashboardReport.Build(workspace.YearOverYear());
 
         Assert.Equal("No categorized income or expense transactions are available.", income.IncomeSavingsView?.EmptyMessage);
@@ -144,7 +182,9 @@ public sealed class FoundationReportMapperTests
         Assert.Equal(100m, workspace.DefaultSpendingAdjustments().ExpenseLimit);
     }
 
-    private static async Task<Workspace> OpenWorkspace(PortfolioSnapshot? source = null, FinanceSettings? settings = null)
+    private static async Task<Workspace> OpenWorkspace(
+        PortfolioSnapshot? source = null, FinanceSettings? settings = null,
+        ReportChoiceSettings? choices = null)
     {
         FinancialTransaction[] transactions =
         [
@@ -154,7 +194,7 @@ public sealed class FoundationReportMapperTests
             Tx("income-feb", 2026, 2, 5, "Pay", "Salary", 1100m, TransactionKind.Income),
             Tx("food-feb", 2026, 2, 10, "Living", "Food", -300m)
         ];
-        var application = new PorticoApplication(new ConfigReader(settings ?? Settings()),
+        var application = new PorticoApplication(new ConfigReader(settings ?? Settings(), choices ?? Choices()),
             new DataReader(source ?? new PortfolioSnapshot(transactions, [], [])));
         OpenWorkspaceOutcome outcome = await application.OpenWorkspaceAsync(
             new ConfigurationSelection(), cancellationToken: TestContext.Current.CancellationToken);
@@ -171,24 +211,27 @@ public sealed class FoundationReportMapperTests
         => new(id, new DateOnly(year, month, day), category, group, "Checking", id, amount, kind);
 
     private static FinanceSettings Settings() => new(
-        new LookbackSettings([1, 2, 3, 12], 2),
         new ThresholdSettings(100m, 100m, 10m, 1),
-        new IncomeSavingsSettings("regular", 25m, [], []),
-        [new TransactionSetDefinition("all", "All", [], [], [], [], [], [], [])],
-        [new FilterSetDefinition("spending", ["all"], "all"),
-            new FilterSetDefinition("year_over_year", ["all"], "all")],
-        new SubscriptionSettings([], 0, 1, [], []),
+        new IncomeSavingsSettings(25m, [], []),
+        [new TransactionSetDefinition("all", [], [], [], [], [], [], [])],
+        new SubscriptionSettings([], 0, 1, []),
         new BudgetSettings(3),
         new DataHealthSettings(1, false, false, false),
         new FinancialSafetySettings(3, ["Cash"], [], 3, [], [], ["Debt"], [], null),
         new FinancialIndependenceSettings(0.05m, 0.04m, 1000m, 12, 10, [], []),
         new Dictionary<string, IReadOnlyList<string>>());
 
-    private sealed class ConfigReader(FinanceSettings settings) : IConfigurationReader
+    private static ReportChoiceSettings Choices() => new(
+        new LookbackSettings([1, 2, 3, 12], 2),
+        [new FilterSetDefinition("spending", ["all"], "all"),
+            new FilterSetDefinition("year_over_year", ["all"], "all")],
+        new Dictionary<string, string> { ["all"] = "All" }, true, []);
+
+    private sealed class ConfigReader(FinanceSettings settings, ReportChoiceSettings choices) : IConfigurationReader
     {
         public Task<ConfigurationReadOutcome> ReadAsync(ConfigurationSelection selection, CancellationToken cancellationToken)
             => Task.FromResult<ConfigurationReadOutcome>(new ConfigurationReadSuccess(
-                new WorkspaceConfiguration(settings, new LocalCsvSourceRequest("fixture"))));
+                new WorkspaceConfiguration(settings, choices, new LocalCsvSourceRequest("fixture"))));
     }
 
     private sealed class DataReader(PortfolioSnapshot snapshot) : IPortfolioReader

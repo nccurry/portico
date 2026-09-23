@@ -28,23 +28,25 @@ internal static class MapperWorkspaceFixture
         => new(id, id, "Cash", date, TimeOnly.MinValue, amount, AccountClass.Asset, false);
 
     private static FinanceSettings Settings() => new(
-        new LookbackSettings([3], 3),
         new ThresholdSettings(100m, 100m, 10m, 1),
-        new IncomeSavingsSettings("regular", 0.1m, [], []),
-        [], [],
-        new SubscriptionSettings([], 0, 1, [], []),
+        new IncomeSavingsSettings(0.1m, [], []),
+        [],
+        new SubscriptionSettings([], 0, 1, []),
         new BudgetSettings(12),
         new DataHealthSettings(7, false, false, false),
         new FinancialSafetySettings(3, ["Cash"], [], 3, [], [], ["Debt"], [], null),
         new FinancialIndependenceSettings(5m, 4m, 1000m, 12, 10, [], []),
         new Dictionary<string, IReadOnlyList<string>>());
 
+    private static ReportChoiceSettings Choices() => new(
+        new LookbackSettings([3], 3), [], new Dictionary<string, string>(), true, []);
+
     private sealed class ConfigurationReader : IConfigurationReader
     {
         public Task<ConfigurationReadOutcome> ReadAsync(
             ConfigurationSelection selection, CancellationToken cancellationToken)
             => Task.FromResult<ConfigurationReadOutcome>(new ConfigurationReadSuccess(
-                new WorkspaceConfiguration(Settings(), new LocalCsvSourceRequest("unused"))));
+                new WorkspaceConfiguration(Settings(), Choices(), new LocalCsvSourceRequest("unused"))));
     }
 
     private sealed class PortfolioReader(PortfolioSnapshot snapshot) : IPortfolioReader

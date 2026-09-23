@@ -190,7 +190,7 @@ public sealed class PorticoHostTests
             Calls++;
             Selection = selection;
             return Task.FromResult<ConfigurationReadOutcome>(new ConfigurationReadSuccess(
-                new WorkspaceConfiguration(Settings(), new LocalCsvSourceRequest("unused"))));
+                new WorkspaceConfiguration(Settings(), Choices(), new LocalCsvSourceRequest("unused"))));
         }
     }
 
@@ -207,16 +207,19 @@ public sealed class PorticoHostTests
 
     private static FinanceSettings Settings()
         => new(
-            new LookbackSettings([3, 6, 12], 12),
             new ThresholdSettings(3000m, 20000m, 10m, 1),
-            new IncomeSavingsSettings("regular", 20m, [], []),
-            [new TransactionSetDefinition("all", "All", [], [], [], [], [], [], [])],
-            [new FilterSetDefinition("spending", ["all"], "all"),
-                new FilterSetDefinition("year_over_year", ["all"], "all")],
-            new SubscriptionSettings([], 80, 45, [], []),
+            new IncomeSavingsSettings(20m, [], []),
+            [new TransactionSetDefinition("all", [], [], [], [], [], [], [])],
+            new SubscriptionSettings([], 80, 45, []),
             new BudgetSettings(12),
             new DataHealthSettings(7, true, false, true),
             new FinancialSafetySettings(6, [], [], 6, [], [], [], [], null),
             new FinancialIndependenceSettings(7m, 4m, 1_000_000m, 12, 50, [], []),
             new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal));
+
+    private static ReportChoiceSettings Choices()
+        => new(new LookbackSettings([3, 6, 12], 12),
+            [new FilterSetDefinition("spending", ["all"], "all"),
+                new FilterSetDefinition("year_over_year", ["all"], "all")],
+            new Dictionary<string, string>(StringComparer.Ordinal) { ["all"] = "All" }, true, []);
 }

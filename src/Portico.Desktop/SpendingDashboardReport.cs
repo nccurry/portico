@@ -8,9 +8,12 @@ namespace Portico.Desktop;
 /// <summary>Turns one semantic Spending report into existing desktop widgets.</summary>
 public static class SpendingDashboardReport
 {
-    public static DashboardPageReport Build(SpendingReport report, int lookbackMonths, SpendingComparison comparison)
+    public static DashboardPageReport Build(
+        SpendingReport report, int lookbackMonths, SpendingComparison comparison,
+        IReadOnlyDictionary<string, string> transactionSetLabels)
     {
         ArgumentNullException.ThrowIfNull(report);
+        ArgumentNullException.ThrowIfNull(transactionSetLabels);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(lookbackMonths);
         if (!Enum.IsDefined(comparison))
             throw new ArgumentOutOfRangeException(nameof(comparison));
@@ -55,7 +58,7 @@ public static class SpendingDashboardReport
             ["spending.detail_categories"] = Categories(report, comparisonLabel),
             ["spending.detail_merchants"] = Merchants(report.Merchants),
             ["spending.detail_transactions"] = Transactions(report.CurrentDetail),
-            ["spending.excluded"] = Excluded(report.Analysis.CurrentLedger)
+            ["spending.excluded"] = Excluded(report.Analysis.CurrentLedger, transactionSetLabels)
         };
         return new DashboardPageReport(DashboardPageId.Spending, widgets);
     }
@@ -125,14 +128,16 @@ public static class SpendingDashboardReport
             rows.Length == 0 ? "No transactions match this selection." : null);
     }
 
-    private static DashboardWidgetReport Excluded(IReadOnlyList<SpendingLedgerEntry> ledger)
+    private static DashboardWidgetReport Excluded(
+        IReadOnlyList<SpendingLedgerEntry> ledger,
+        IReadOnlyDictionary<string, string> transactionSetLabels)
     {
         ReportTableRow[] rows = ledger.Where(entry => !entry.Included)
             .OrderByDescending(entry => entry.Transaction.Date)
             .ThenBy(entry => entry.Transaction.Id, StringComparer.Ordinal)
             .Select(entry => new ReportTableRow(
                 [Date(entry.Transaction.Date), entry.Transaction.Description, Group(entry.Transaction),
-                    Category(entry.Transaction), Money(entry.NetSpending), Exclusions(entry.Exclusions)]))
+                    Category(entry.Transaction), Money(entry.NetSpending), Exclusions(entry.Exclusions, transactionSetLabels)]))
             .ToArray();
         return new([], [], ["Date", "Transaction", "Group", "Category", "Spending", "Reason"], rows,
             rows.Length == 0 ? "No rows are excluded by this view." : null);

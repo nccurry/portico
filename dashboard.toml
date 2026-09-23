@@ -1,6 +1,5 @@
 # Portico Roci desktop dashboard layout.
-# This file controls presentation only. Keep calculation settings in portico-demo.toml
-# or your existing Portico TOML file.
+# This file controls presentation only. Keep calculation settings in portico.toml.
 
 schema_version = 1
 app_title = "Portico"
