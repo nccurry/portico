@@ -223,7 +223,6 @@ public sealed class PlanAnalysisTests
 
     private static FinanceSettings Settings()
         => new(
-            new DataSourceSettings(WorkbookSourceKind.LocalCsv, "demo"),
             new LookbackSettings([1, 3, 6, 12], 3),
             new ThresholdSettings(100m, 1_000m, 10m, 1),
             new IncomeSavingsSettings("regular", 20m, [], []),

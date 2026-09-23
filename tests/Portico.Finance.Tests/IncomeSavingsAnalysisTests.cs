@@ -214,7 +214,6 @@ public sealed class IncomeSavingsAnalysisTests
 
     private static FinanceSettings Settings()
         => new(
-            new DataSourceSettings(WorkbookSourceKind.LocalCsv, "demo"),
             new LookbackSettings([3, 6, 12, 24], 12),
             new ThresholdSettings(3_000m, 20_000m, 10m, 1),
             new IncomeSavingsSettings("regular", 20m, ["Bonus"], ["Travel"]),

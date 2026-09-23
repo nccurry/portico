@@ -6,11 +6,17 @@ using Tomlyn.Model;
 
 namespace Portico.Adapters;
 
+/// <summary>Pairs the current finance policy with its workbook source.</summary>
+public sealed record LoadedFinanceConfiguration(FinanceSettings Finance, DataSourceSettings Data);
+
 /// <summary>Loads Portico calculation, dashboard, and optional public-sheet TOML files.</summary>
 public static class TomlConfigurationLoader
 {
-    /// <summary>Loads the existing Portico finance configuration without changing its schema.</summary>
-    public static FinanceSettings LoadFinance(string path)
+    /// <summary>Loads the financial settings without exposing source choices to Finance.</summary>
+    public static FinanceSettings LoadFinance(string path) => LoadFinanceConfiguration(path).Finance;
+
+    /// <summary>Loads the current finance and source settings without changing the file schema.</summary>
+    public static LoadedFinanceConfiguration LoadFinanceConfiguration(string path)
     {
         TomlTable root = Read(path);
         var errors = new List<ConfigurationError>();
@@ -112,8 +118,7 @@ public static class TomlConfigurationLoader
             independenceSettings,
             errors);
         ThrowIfErrors(errors);
-        return new FinanceSettings(
-            dataSettings,
+        var financeSettings = new FinanceSettings(
             new LookbackSettings(lookbackMonths, defaultMonths),
             thresholdSettings,
             incomeSettings,
@@ -125,6 +130,7 @@ public static class TomlConfigurationLoader
             safetySettings,
             independenceSettings,
             aliases);
+        return new LoadedFinanceConfiguration(financeSettings, dataSettings);
     }
 
     /// <summary>Loads the separate TOML file that controls dashboard navigation and widgets.</summary>

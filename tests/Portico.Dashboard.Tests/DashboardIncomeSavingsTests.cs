@@ -145,7 +145,6 @@ public sealed class DashboardIncomeSavingsTests
 
     private static FinanceSettings Settings()
         => new(
-            new DataSourceSettings(WorkbookSourceKind.LocalCsv, "demo"),
             new LookbackSettings([1, 2, 3, 6, 12, 24], 3),
             new ThresholdSettings(3_000m, 20_000m, 10m, 1),
             new IncomeSavingsSettings("regular", 20m, [], ["Travel"]),

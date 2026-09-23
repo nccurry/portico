@@ -520,7 +520,6 @@ public sealed class DashboardPresentationTests
             new TransactionSetDefinition("utilities", "Utilities", [], [], [], [], [], ["all"], [])
         ];
         return new FinanceSettings(
-            new DataSourceSettings(WorkbookSourceKind.LocalCsv, "demo/data"),
             new LookbackSettings([3, 6, 12, 24], 12),
             new ThresholdSettings(1_000m, 5_000m, 10m, 1),
             new IncomeSavingsSettings("regular", 20m, [], []),

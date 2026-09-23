@@ -122,7 +122,6 @@ public sealed class DashboardYearOverYearTests
             new TransactionSetDefinition("living", "Living", ["Living"], [], [], [], [], [], [])
         ];
         return new FinanceSettings(
-            new DataSourceSettings(WorkbookSourceKind.LocalCsv, "demo"),
             new LookbackSettings([3, 6, 12], 12),
             new ThresholdSettings(3_000m, 20_000m, 10m, 1),
             new IncomeSavingsSettings("regular", 20m, [], []),

@@ -97,7 +97,7 @@ public static class PorticoCli
         PortfolioSnapshot snapshot = loaded.Snapshot ?? new PortfolioSnapshot([], [], []);
         return new DoctorResult(
             true,
-            loaded.Settings.Data.Kind == WorkbookSourceKind.LocalCsv ? "local-csv" : "google-sheets",
+            loaded.Data.Kind == WorkbookSourceKind.LocalCsv ? "local-csv" : "google-sheets",
             loaded.Definition.Pages.Count,
             snapshot.Transactions.Count,
             snapshot.Balances.Count,
@@ -107,24 +107,25 @@ public static class PorticoCli
 
     private static async Task<LoadedPortico> LoadAsync(PorticoCommand command, bool loadData)
     {
-        FinanceSettings settings = TomlConfigurationLoader.LoadFinance(command.ConfigPath);
-        settings = ApplyOverrides(settings, command);
+        LoadedFinanceConfiguration configuration = TomlConfigurationLoader.LoadFinanceConfiguration(command.ConfigPath);
+        FinanceSettings settings = configuration.Finance;
+        DataSourceSettings data = ApplyOverrides(configuration.Data, command);
         DashboardDefinition definition = TomlConfigurationLoader.LoadDashboard(command.DashboardPath);
         ValidateReportReferences(definition);
         ValidateDashboardBindings(definition, settings);
         if (!loadData)
-            return new LoadedPortico(settings, definition, null);
+            return new LoadedPortico(settings, data, definition, null);
 
-        IPortfolioSnapshotSource source = CreateSource(settings, command);
+        IPortfolioSnapshotSource source = CreateSource(data, command);
         PortfolioSnapshot snapshot = await source.LoadAsync();
-        return new LoadedPortico(settings, definition, snapshot);
+        return new LoadedPortico(settings, data, definition, snapshot);
     }
 
-    private static FinanceSettings ApplyOverrides(FinanceSettings settings, PorticoCommand command)
+    private static DataSourceSettings ApplyOverrides(DataSourceSettings data, PorticoCommand command)
     {
-        WorkbookSourceKind kind = command.SourceOverride ?? settings.Data.Kind;
-        string? directory = command.DataDirectory ?? ResolveDataDirectory(settings.Data.Directory, command.ConfigPath);
-        return settings with { Data = new DataSourceSettings(kind, directory) };
+        WorkbookSourceKind kind = command.SourceOverride ?? data.Kind;
+        string? directory = command.DataDirectory ?? ResolveDataDirectory(data.Directory, command.ConfigPath);
+        return data with { Kind = kind, Directory = directory };
     }
 
     private static string? ResolveDataDirectory(string? directory, string configPath)
@@ -138,13 +139,13 @@ public static class PorticoCli
             : Path.GetFullPath(Path.Combine(configDirectory, directory));
     }
 
-    private static IPortfolioSnapshotSource CreateSource(FinanceSettings settings, PorticoCommand command)
+    private static IPortfolioSnapshotSource CreateSource(DataSourceSettings data, PorticoCommand command)
     {
-        if (settings.Data.Kind == WorkbookSourceKind.LocalCsv)
+        if (data.Kind == WorkbookSourceKind.LocalCsv)
         {
-            if (string.IsNullOrWhiteSpace(settings.Data.Directory))
+            if (string.IsNullOrWhiteSpace(data.Directory))
                 throw new DataLoadException("A local source needs --data-dir or data.directory.");
-            return new LocalCsvSnapshotSource(settings.Data.Directory);
+            return new LocalCsvSnapshotSource(data.Directory);
         }
 
         var urls = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -271,7 +272,7 @@ public static class PorticoCli
         return 0;
     }
 
-    private sealed record LoadedPortico(FinanceSettings Settings, DashboardDefinition Definition, PortfolioSnapshot? Snapshot);
+    private sealed record LoadedPortico(FinanceSettings Settings, DataSourceSettings Data, DashboardDefinition Definition, PortfolioSnapshot? Snapshot);
 }
 
 /// <summary>Specifies the recognized top-level Portico commands.</summary>

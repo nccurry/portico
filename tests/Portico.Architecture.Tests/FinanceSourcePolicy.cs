@@ -22,10 +22,6 @@ internal static class FinanceSourcePolicy
 
     private static readonly string[] ForbiddenNamespaceRoots = ["Google", "Portico", "Roci", "Spectre", "System", "Tomlyn"];
 
-    private static readonly StringComparer PathComparer = OperatingSystem.IsWindows()
-        ? StringComparer.OrdinalIgnoreCase
-        : StringComparer.Ordinal;
-
     private static readonly Lazy<IReadOnlyList<MetadataReference>> TrustedPlatformReferences = new(CreateTrustedPlatformReferences);
 
     private const string ImplicitFrameworkUsings =
@@ -162,42 +158,33 @@ internal static class FinanceSourcePolicy
             violations.Add($"{tree.FilePath}: qualified name {name}");
     }
 
-    public static IReadOnlyList<string> FindSourceSelectionDeclarations(string sourceFile, CSharpParseOptions parseOptions)
-    {
-        SyntaxTree tree = CSharpSyntaxTree.ParseText(File.ReadAllText(sourceFile), parseOptions, sourceFile);
-        return tree.GetRoot()
-            .DescendantNodes()
-            .OfType<BaseTypeDeclarationSyntax>()
-            .Select(declaration => declaration.Identifier.ValueText)
-            .Where(name => SourceSelectionNames.Contains(name, StringComparer.Ordinal))
-            .Order(StringComparer.Ordinal)
-            .ToArray();
-    }
-
-    public static IReadOnlyList<string> FindSourceSelectionUsesOutsideFinanceSettings(
+    public static IReadOnlyList<string> FindSourceSelectionUses(
         IEnumerable<string> sourceFiles,
-        string financeSettingsFile,
         CSharpParseOptions parseOptions)
     {
         var violations = new List<string>();
-        string allowedSourceFile = Path.GetFullPath(financeSettingsFile);
         foreach (string sourceFile in sourceFiles.Order(StringComparer.Ordinal))
         {
-            if (PathComparer.Equals(Path.GetFullPath(sourceFile), allowedSourceFile))
-                continue;
-
             SyntaxTree tree = CSharpSyntaxTree.ParseText(File.ReadAllText(sourceFile), parseOptions, sourceFile);
-            foreach (IdentifierNameSyntax identifier in tree.GetRoot().DescendantNodes().OfType<IdentifierNameSyntax>())
-            {
-                if (SourceSelectionNames.Contains(identifier.Identifier.ValueText, StringComparer.Ordinal))
-                    violations.Add($"{sourceFile}: {identifier.Identifier.ValueText}");
-            }
+            violations.AddRange(FindSourceSelectionUses(tree));
+        }
 
-            foreach (BaseTypeDeclarationSyntax declaration in tree.GetRoot().DescendantNodes().OfType<BaseTypeDeclarationSyntax>())
-            {
-                if (SourceSelectionNames.Contains(declaration.Identifier.ValueText, StringComparer.Ordinal))
-                    violations.Add($"{sourceFile}: {declaration.Identifier.ValueText}");
-            }
+        return violations;
+    }
+
+    public static IReadOnlyList<string> FindSourceSelectionUses(SyntaxTree tree)
+    {
+        var violations = new List<string>();
+        foreach (IdentifierNameSyntax identifier in tree.GetRoot().DescendantNodes().OfType<IdentifierNameSyntax>())
+        {
+            if (SourceSelectionNames.Contains(identifier.Identifier.ValueText, StringComparer.Ordinal))
+                violations.Add($"{tree.FilePath}: {identifier.Identifier.ValueText}");
+        }
+
+        foreach (BaseTypeDeclarationSyntax declaration in tree.GetRoot().DescendantNodes().OfType<BaseTypeDeclarationSyntax>())
+        {
+            if (SourceSelectionNames.Contains(declaration.Identifier.ValueText, StringComparer.Ordinal))
+                violations.Add($"{tree.FilePath}: {declaration.Identifier.ValueText}");
         }
 
         return violations;

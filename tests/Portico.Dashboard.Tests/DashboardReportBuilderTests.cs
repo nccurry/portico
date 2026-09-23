@@ -695,7 +695,6 @@ public sealed class DashboardReportBuilderTests
             Set("housing", groups: ["Housing"])
         ];
         return new FinanceSettings(
-            new DataSourceSettings(WorkbookSourceKind.LocalCsv, "demo/data"),
             new LookbackSettings([1, 3, 12], 3),
             new ThresholdSettings(100m, 1000m, 10m, 1),
             new IncomeSavingsSettings("regular", 20m, [], ["Fun"]),

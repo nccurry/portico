@@ -78,11 +78,12 @@ transition. From Phase 1, Portico.Desktop may reference only
 Portico.Application and Roci.Core; no other external project reference is
 allowed.
 
-Finance has one separate temporary source-selection exception: only
-`FinanceSettings.cs` may contain `WorkbookSourceKind` and
-`DataSourceSettings`, and Phase 2 removes both types. Finance may not acquire
-any other source-kind, TOML, file, HTTP, Google, Roci, CLI, or Desktop
-dependency during that transition.
+Phase 1 had one separate temporary source-selection exception in
+`FinanceSettings.cs`. The first Phase 2 change retires it:
+`WorkbookSourceKind` and `DataSourceSettings` now live in the legacy Adapters
+project, and `FinanceSettings` contains only financial policy. Finance must
+not acquire source-kind, TOML, file, HTTP, Google, Roci, CLI, or Desktop
+dependencies.
 
 ## 4. Runtime flows
 
