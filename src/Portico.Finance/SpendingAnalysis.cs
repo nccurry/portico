@@ -263,7 +263,7 @@ public static class SpendingAnalysisCalculator
         if (string.Equals(group, "Transfer", StringComparison.Ordinal))
             reasons.Add(new LedgerExclusion(LedgerExclusionReason.TransferGroup));
         if (!transactionSetIncluded)
-            reasons.Add(new LedgerExclusion(LedgerExclusionReason.OutsideConfiguredSet, selectedSet.Label));
+            reasons.Add(new LedgerExclusion(LedgerExclusionReason.OutsideConfiguredSet, selectedSet.Key));
         if (includeMode && !includedDescription)
             reasons.Add(new LedgerExclusion(LedgerExclusionReason.OutsideIncludedDescriptions));
         if (Contains(adjustments.ExcludedGroups, group))

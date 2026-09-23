@@ -261,15 +261,10 @@ public sealed class IncomeSavingsAnalysisTests
 
     private static FinanceSettings Settings()
         => new(
-            new LookbackSettings([3, 6, 12, 24], 12),
             new ThresholdSettings(3_000m, 20_000m, 10m, 1),
-            new IncomeSavingsSettings("regular", 20m, ["Bonus"], ["Travel"]),
-            [new TransactionSetDefinition("all", "All", [], [], [], [], [], [], [])],
-            [
-                new FilterSetDefinition("spending", ["all"], "all"),
-                new FilterSetDefinition("year_over_year", ["all"], "all")
-            ],
-            new SubscriptionSettings([], 80, 45, [], []),
+            new IncomeSavingsSettings(20m, ["Bonus"], ["Travel"]),
+            [new TransactionSetDefinition("all", [], [], [], [], [], [], [])],
+            new SubscriptionSettings([], 80, 45, []),
             new BudgetSettings(12),
             new DataHealthSettings(7, true, false, true),
             new FinancialSafetySettings(6, [], [], 6, [], [], [], [], null),

@@ -18,7 +18,7 @@ public sealed class WorkspaceTests
         var configuration = new Reader<ConfigurationReadOutcome>(_ =>
         {
             events.Add("configuration");
-            return new ConfigurationReadSuccess(new WorkspaceConfiguration(Settings(), source));
+            return new ConfigurationReadSuccess(new WorkspaceConfiguration(Settings(), Choices(), source));
         });
         var portfolio = new Reader<PortfolioReadOutcome>(_ =>
         {
@@ -101,25 +101,59 @@ public sealed class WorkspaceTests
     {
         var months = new List<int> { 3, 6, 12 };
         var options = new List<string> { "all", "essential" };
-        FinanceSettings settings = Settings() with
+        var discoveryExclusions = new List<string> { "Food" };
+        var labels = new Dictionary<string, string>(StringComparer.Ordinal) { ["all"] = "All spending" };
+        ReportChoiceSettings choices = Choices() with
         {
             Lookback = new LookbackSettings(months, 6),
             FilterSets = [new FilterSetDefinition("spending", options, "all")],
-            TransactionSets = [new TransactionSetDefinition("all", "All spending", [], [], [], [], [], [], [])]
+            TransactionSetLabels = labels,
+            DefaultSubscriptionDiscoveryExclusions = discoveryExclusions
         };
-        Workspace workspace = Opened(await Application(new PortfolioReadSuccess(Snapshot()), settings)
+        FinanceSettings settings = Settings() with
+        {
+            TransactionSets = [new TransactionSetDefinition("all", [], [], [], [], [], [], [])]
+        };
+        Workspace workspace = Opened(await Application(new PortfolioReadSuccess(Snapshot()), settings, choices)
             .OpenWorkspaceAsync(new ConfigurationSelection(), cancellationToken: TestContext.Current.CancellationToken));
 
         months[0] = 24;
         options[0] = "changed";
+        discoveryExclusions.Clear();
+        labels["all"] = "Changed";
 
         Assert.Equal([3, 6, 12], workspace.ReportChoices.LookbackMonths);
         Assert.Equal(6, workspace.ReportChoices.DefaultLookbackMonths);
+        Assert.True(workspace.ReportChoices.DefaultIncomeIsRegular);
         Assert.Equal(["all", "essential"], workspace.ReportChoices.FilterSets["spending"].Options);
         Assert.Equal("all", workspace.ReportChoices.FilterSets["spending"].Default);
         Assert.Equal("All spending", workspace.ReportChoices.TransactionSetLabels["all"]);
+        Assert.Equal(["Food"], workspace.SubscriptionDiscoveryDefaults([]));
         Assert.Throws<NotSupportedException>(() => ((IList<int>)workspace.ReportChoices.LookbackMonths)[0] = 24);
         Assert.Throws<NotSupportedException>(() => ((IList<string>)workspace.ReportChoices.FilterSets["spending"].Options)[0] = "changed");
+    }
+
+    [Fact]
+    public async Task ReportChoiceDefaults_DriveIncomeRequestsWithoutChangingFinancialPolicy()
+    {
+        FinanceSettings settings = Settings() with
+        {
+            IncomeSavings = new IncomeSavingsSettings(0.1m, ["Food"], [])
+        };
+        ReportChoiceSettings choices = Choices() with
+        {
+            DefaultIncomeIsRegular = false,
+            Lookback = new LookbackSettings([1, 3], 3)
+        };
+        Workspace workspace = Opened(await Application(new PortfolioReadSuccess(Snapshot()), settings, choices)
+            .OpenWorkspaceAsync(new ConfigurationSelection(), cancellationToken: TestContext.Current.CancellationToken));
+
+        Assert.False(workspace.DefaultIncomeIsRegular);
+        Assert.Equal(3, workspace.ReportChoices.DefaultLookbackMonths);
+        Assert.Equal(1000m, workspace.Home().CashFlow.Income);
+        Assert.Equal(0m, workspace.Home(new HomeReportRequest(RegularIncome: true)).CashFlow.Income);
+        Assert.Equal(1000m, workspace.Income().Analysis.CurrentSummary.Income);
+        Assert.Equal(0m, workspace.Income(new IncomeReportRequest(RegularIncome: true)).Analysis.CurrentSummary.Income);
     }
 
     [Fact]
@@ -340,7 +374,7 @@ public sealed class WorkspaceTests
     {
         FinanceSettings settings = Settings() with
         {
-            IncomeSavings = new IncomeSavingsSettings("regular", 0.1m, ["Food"], [])
+            IncomeSavings = new IncomeSavingsSettings(0.1m, ["Food"], [])
         };
         Workspace workspace = Opened(await Application(new PortfolioReadSuccess(Snapshot()), settings)
             .OpenWorkspaceAsync(new ConfigurationSelection(), cancellationToken: TestContext.Current.CancellationToken));
@@ -407,13 +441,14 @@ public sealed class WorkspaceTests
             new HomeReportRequest(CashFlowLookbackMonths: 0)));
     }
 
-    private static PorticoApplication Application(PortfolioReadOutcome portfolio, FinanceSettings? settings = null)
+    private static PorticoApplication Application(
+        PortfolioReadOutcome portfolio, FinanceSettings? settings = null, ReportChoiceSettings? choices = null)
         => new(
-            new ConfigurationReader(new Reader<ConfigurationReadOutcome>(_ => Success(settings))),
+            new ConfigurationReader(new Reader<ConfigurationReadOutcome>(_ => Success(settings, choices))),
             new PortfolioReader(new Reader<PortfolioReadOutcome>(_ => portfolio)));
 
-    private static ConfigurationReadSuccess Success(FinanceSettings? settings = null)
-        => new(new WorkspaceConfiguration(settings ?? Settings(), new GoogleSheetsSourceRequest(
+    private static ConfigurationReadSuccess Success(FinanceSettings? settings = null, ReportChoiceSettings? choices = null)
+        => new(new WorkspaceConfiguration(settings ?? Settings(), choices ?? Choices(), new GoogleSheetsSourceRequest(
             PrivateLocation, PrivateLocation, PrivateLocation, PrivateLocation)));
 
     private static Workspace Opened(OpenWorkspaceOutcome outcome)
@@ -457,17 +492,19 @@ public sealed class WorkspaceTests
 
     private static FinanceSettings Settings()
         => new(
-            new LookbackSettings([3], 3),
             new ThresholdSettings(100m, 100m, 10m, 1),
-            new IncomeSavingsSettings("regular", 0.1m, [], []),
+            new IncomeSavingsSettings(0.1m, [], []),
             [],
-            [],
-            new SubscriptionSettings([], 0, 1, [], []),
+            new SubscriptionSettings([], 0, 1, []),
             new BudgetSettings(12),
             new DataHealthSettings(1, false, false, false),
             new FinancialSafetySettings(3, ["Cash"], [], 3, [], [], ["Debt"], [], null),
             new FinancialIndependenceSettings(0.05m, 0.04m, 1000m, 12, 10, [], []),
             new Dictionary<string, IReadOnlyList<string>>());
+
+    private static ReportChoiceSettings Choices()
+        => new(new LookbackSettings([3], 3), [],
+            new Dictionary<string, string>(StringComparer.Ordinal), true, []);
 
     private sealed class Reader<T>(Func<CancellationToken, T> read)
     {

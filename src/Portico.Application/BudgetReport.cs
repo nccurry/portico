@@ -69,7 +69,7 @@ public sealed partial class Workspace
     /// <summary>Calculates the older broad category budget view without a selected group.</summary>
     public BudgetOverviewReport BudgetOverview(int? lookbackMonths = null)
     {
-        int lookback = lookbackMonths ?? _settings.Lookback.DefaultMonths;
+        int lookback = lookbackMonths ?? _reportChoiceSettings.Lookback.DefaultMonths;
         if (lookback <= 0)
             throw new ArgumentOutOfRangeException(nameof(lookbackMonths));
         if (_snapshot.LatestDate is not DateOnly latest)

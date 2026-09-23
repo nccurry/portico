@@ -31,7 +31,7 @@ public sealed partial class Workspace
             _settings.Subscriptions,
             _settings.MerchantAliases,
             request.Categories ?? _settings.Subscriptions.KnownCategories,
-            request.DiscoveryExclusions ?? _settings.Subscriptions.DefaultExcludeCategories,
+            request.DiscoveryExclusions ?? _reportChoiceSettings.DefaultSubscriptionDiscoveryExclusions,
             confidence);
         string? selected = !string.IsNullOrWhiteSpace(request.SelectedMerchant)
             && analysis.Active.Concat(analysis.Candidates).Concat(analysis.Inactive)

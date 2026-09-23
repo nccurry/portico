@@ -277,7 +277,7 @@ public sealed class CheckTests
     }
 
     private static ConfigurationReadSuccess Success()
-        => new(new WorkspaceConfiguration(Settings(), new GoogleSheetsSourceRequest(
+        => new(new WorkspaceConfiguration(Settings(), ReportWorkspaceFixture.Choices(), new GoogleSheetsSourceRequest(
             PrivateLocation, PrivateLocation, PrivateLocation, PrivateLocation)));
 
     private static PorticoFailure Failure(ConfigurationCheckOutcome outcome)
@@ -302,12 +302,10 @@ public sealed class CheckTests
 
     private static FinanceSettings Settings()
         => new(
-            new LookbackSettings([12], 12),
             new ThresholdSettings(100m, 100m, 10m, 1),
-            new IncomeSavingsSettings("regular", 0.1m, [], []),
+            new IncomeSavingsSettings(0.1m, [], []),
             [],
-            [],
-            new SubscriptionSettings([], 0, 1, [], []),
+            new SubscriptionSettings([], 0, 1, []),
             new BudgetSettings(12),
             new DataHealthSettings(1, false, false, false),
             new FinancialSafetySettings(3, [], [], 12, [], [], [], [], null),

@@ -115,19 +115,14 @@ public sealed class YearOverYearAnalysisTests
     {
         TransactionSetDefinition[] sets =
         [
-            new TransactionSetDefinition("all", "All", [], [], [], [], [], [], []),
-            new TransactionSetDefinition("living", "Living", ["Living"], [], [], [], [], [], [])
+            new TransactionSetDefinition("all", [], [], [], [], [], [], []),
+            new TransactionSetDefinition("living", ["Living"], [], [], [], [], [], [])
         ];
         return new FinanceSettings(
-            new LookbackSettings([3, 6, 12], 12),
             new ThresholdSettings(3_000m, 20_000m, 10m, 1),
-            new IncomeSavingsSettings("regular", 20m, [], []),
+            new IncomeSavingsSettings(20m, [], []),
             sets,
-            [
-                new FilterSetDefinition("spending", ["all", "living"], "all"),
-                new FilterSetDefinition("year_over_year", ["all", "living"], "all")
-            ],
-            new SubscriptionSettings([], 80, 45, [], []),
+            new SubscriptionSettings([], 80, 45, []),
             new BudgetSettings(12),
             new DataHealthSettings(7, true, false, true),
             new FinancialSafetySettings(6, [], [], 6, [], [], [], [], null),

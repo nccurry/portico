@@ -226,11 +226,10 @@ public sealed class FinancialIndependenceAndDataHealthTests
         => new(id, account, group, new DateOnly(year, month, day), TimeOnly.MinValue, value, accountClass, hidden);
 
     private static FinanceSettings Settings() => new(
-        new LookbackSettings([3], 3),
         new ThresholdSettings(100m, 100m, 10m, 1),
-        new IncomeSavingsSettings("regular", 0.1m, [], []),
-        [], [],
-        new SubscriptionSettings([], 0, 1, [], []),
+        new IncomeSavingsSettings(0.1m, [], []),
+        [],
+        new SubscriptionSettings([], 0, 1, []),
         new BudgetSettings(12),
         new DataHealthSettings(7, false, false, false),
         new FinancialSafetySettings(3, ["Cash"], [], 3, [], [], ["Debt"], [], null),
@@ -242,7 +241,7 @@ public sealed class FinancialIndependenceAndDataHealthTests
         public Task<ConfigurationReadOutcome> ReadAsync(
             ConfigurationSelection selection, CancellationToken cancellationToken)
             => Task.FromResult<ConfigurationReadOutcome>(new ConfigurationReadSuccess(
-                new WorkspaceConfiguration(Settings(), new LocalCsvSourceRequest("unused"))));
+                new WorkspaceConfiguration(Settings(), ReportWorkspaceFixture.Choices(), new LocalCsvSourceRequest("unused"))));
     }
 
     private sealed class PortfolioReader(PortfolioSnapshot snapshot) : IPortfolioReader

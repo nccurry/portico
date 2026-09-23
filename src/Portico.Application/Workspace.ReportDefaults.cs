@@ -6,7 +6,7 @@ public sealed partial class Workspace
 {
     /// <summary>Gets the configured default Income calculation mode.</summary>
     public bool DefaultIncomeIsRegular
-        => string.Equals(_settings.IncomeSavings.DefaultView, "regular", StringComparison.OrdinalIgnoreCase);
+        => _reportChoiceSettings.DefaultIncomeIsRegular;
 
     /// <summary>Gets independent adjustment values for an Income calculation mode.</summary>
     public IncomeSavingsAdjustments IncomeAdjustments(bool regular)

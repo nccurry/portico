@@ -99,7 +99,7 @@ public sealed class PorticoApplication(IConfigurationReader configurationReader,
             if (portfolio is not PortfolioReadSuccess loaded)
                 throw new InvalidOperationException("The portfolio reader returned no outcome.");
 
-            return new WorkspaceOpened(new Workspace(loaded.GetSnapshot(), settings.Settings, asOfDate));
+            return new WorkspaceOpened(new Workspace(loaded.GetSnapshot(), settings.Settings, settings.ReportChoices, asOfDate));
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

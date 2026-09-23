@@ -271,9 +271,7 @@ public sealed class FinanceBoundaryTests
         FinanceSettings settings = Settings();
 
         Assert.Equal("all", settings.TransactionSet("all").Key);
-        Assert.Equal("spending", settings.FilterSet("spending").Key);
         Assert.Throws<ArgumentException>(() => settings.TransactionSet("ALL"));
-        Assert.Throws<ArgumentException>(() => settings.FilterSet("missing"));
     }
 
     [Fact]
@@ -328,12 +326,10 @@ public sealed class FinanceBoundaryTests
 
     private static FinanceSettings Settings()
         => new(
-            new LookbackSettings([1, 3, 12], 3),
             new ThresholdSettings(100m, 1_000m, 10m, 1),
-            new IncomeSavingsSettings("regular", 20m, [], []),
-            [new TransactionSetDefinition("all", "All", [], [], [], [], [], [], [])],
-            [new FilterSetDefinition("spending", ["all"], "all")],
-            new SubscriptionSettings([], 80, 45, [], []),
+            new IncomeSavingsSettings(20m, [], []),
+            [new TransactionSetDefinition("all", [], [], [], [], [], [], [])],
+            new SubscriptionSettings([], 80, 45, []),
             new BudgetSettings(12),
             new DataHealthSettings(7, true, false, true),
             new FinancialSafetySettings(6, [], [], 6, [], [], [], [], null),

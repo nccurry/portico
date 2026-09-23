@@ -81,9 +81,11 @@ public sealed class GoogleSheetsSourceRequest : SourceRequest
 }
 
 /// <summary>Validated settings and source details for an in-process handoff.</summary>
-public sealed class WorkspaceConfiguration(FinanceSettings settings, SourceRequest source)
+public sealed class WorkspaceConfiguration(FinanceSettings settings, ReportChoiceSettings reportChoices, SourceRequest source)
 {
     public FinanceSettings Settings { get; } = settings ?? throw new ArgumentNullException(nameof(settings));
+
+    public ReportChoiceSettings ReportChoices { get; } = reportChoices ?? throw new ArgumentNullException(nameof(reportChoices));
 
     public SourceRequest Source { get; } = source ?? throw new ArgumentNullException(nameof(source));
 }

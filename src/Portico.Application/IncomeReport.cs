@@ -51,12 +51,11 @@ public sealed partial class Workspace
     public IncomeReport Income(IncomeReportRequest? request = null)
     {
         request ??= new IncomeReportRequest();
-        int lookback = request.LookbackMonths ?? _settings.Lookback.DefaultMonths;
+        int lookback = request.LookbackMonths ?? _reportChoiceSettings.Lookback.DefaultMonths;
         if (lookback <= 0)
             throw new ArgumentOutOfRangeException(nameof(request), "Income lookback must be positive.");
 
-        bool regular = request.RegularIncome
-            ?? string.Equals(_settings.IncomeSavings.DefaultView, "regular", StringComparison.OrdinalIgnoreCase);
+        bool regular = request.RegularIncome ?? _reportChoiceSettings.DefaultIncomeIsRegular;
         IncomeSavingsAdjustments adjustments = CopyAdjustments(request.Adjustments
             ?? IncomeSavingsAdjustments.Default(_settings, regular));
         IncomeSavingsAnalysisResult analysis = IncomeSavingsAnalysisCalculator.Build(

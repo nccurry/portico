@@ -317,7 +317,7 @@ public sealed class FinanceCalculatorTests
         IReadOnlyList<string>? merchants = null,
         IReadOnlyList<string>? includes = null,
         IReadOnlyList<string>? excludes = null)
-        => new(key, key, groups ?? [], [], [], merchants ?? [], [], includes ?? [], excludes ?? []);
+        => new(key, groups ?? [], [], [], merchants ?? [], [], includes ?? [], excludes ?? []);
 
     private static IReadOnlyDictionary<string, IReadOnlyList<string>> EmptyAliases()
         => new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal);

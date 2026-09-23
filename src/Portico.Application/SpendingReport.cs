@@ -81,13 +81,13 @@ public sealed partial class Workspace
     public SpendingReport Spending(SpendingReportRequest? request = null)
     {
         request ??= new SpendingReportRequest();
-        int lookback = request.LookbackMonths ?? _settings.Lookback.DefaultMonths;
+        int lookback = request.LookbackMonths ?? _reportChoiceSettings.Lookback.DefaultMonths;
         if (lookback <= 0)
             throw new ArgumentOutOfRangeException(nameof(request), "Spending lookback must be positive.");
         if (!Enum.IsDefined(request.Comparison) || !Enum.IsDefined(request.Breakdown))
             throw new ArgumentOutOfRangeException(nameof(request), "Unsupported Spending comparison or breakdown.");
 
-        string setKey = request.TransactionSet ?? _settings.FilterSet("spending").Default;
+        string setKey = request.TransactionSet ?? _reportChoiceSettings.FilterSet("spending").Default;
         _settings.TransactionSet(setKey);
         SpendingAnalysisResult analysis = SpendingAnalysisCalculator.Build(
             _snapshot.Transactions.Where(transaction => !transaction.IsHidden),

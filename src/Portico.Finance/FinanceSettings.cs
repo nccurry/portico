@@ -1,14 +1,10 @@
 ﻿namespace Portico.Finance;
 
-/// <summary>Provides the common report lookback choices.</summary>
-public sealed record LookbackSettings(IReadOnlyList<int> Months, int DefaultMonths);
-
 /// <summary>Provides default large-transaction and duplicate thresholds.</summary>
 public sealed record ThresholdSettings(decimal Expense, decimal Income, decimal DuplicateMinimum, int DuplicateDays);
 
 /// <summary>Provides the baseline policy for income and savings reports.</summary>
 public sealed record IncomeSavingsSettings(
-    string DefaultView,
     decimal TargetRate,
     IReadOnlyList<string> ExcludeCategories,
     IReadOnlyList<string> ExcludeGroups);
@@ -16,7 +12,6 @@ public sealed record IncomeSavingsSettings(
 /// <summary>Defines one named reusable transaction selection.</summary>
 public sealed record TransactionSetDefinition(
     string Key,
-    string Label,
     IReadOnlyList<string> Groups,
     IReadOnlyList<string> Categories,
     IReadOnlyList<string> Accounts,
@@ -25,15 +20,11 @@ public sealed record TransactionSetDefinition(
     IReadOnlyList<string> Includes,
     IReadOnlyList<string> Excludes);
 
-/// <summary>Defines the transaction-set options offered by a report control.</summary>
-public sealed record FilterSetDefinition(string Key, IReadOnlyList<string> Options, string Default);
-
-/// <summary>Provides subscription detection and display defaults.</summary>
+/// <summary>Provides subscription detection policy.</summary>
 public sealed record SubscriptionSettings(
     IReadOnlyList<string> KnownCategories,
     int MinimumConfidence,
     int StaleAfterDays,
-    IReadOnlyList<string> DefaultExcludeCategories,
     IReadOnlyList<string> DetectionExcludedCategories);
 
 /// <summary>Provides the number of budget history months.</summary>
@@ -70,11 +61,9 @@ public sealed record FinancialIndependenceSettings(
 
 /// <summary>Holds the supported financial calculation settings.</summary>
 public sealed record FinanceSettings(
-    LookbackSettings Lookback,
     ThresholdSettings Thresholds,
     IncomeSavingsSettings IncomeSavings,
     IReadOnlyList<TransactionSetDefinition> TransactionSets,
-    IReadOnlyList<FilterSetDefinition> FilterSets,
     SubscriptionSettings Subscriptions,
     BudgetSettings Budget,
     DataHealthSettings DataHealth,
@@ -92,17 +81,5 @@ public sealed record FinanceSettings(
         }
 
         throw new ArgumentException($"Unknown transaction set '{key}'.", nameof(key));
-    }
-
-    /// <summary>Gets one filter-set definition by its stable key.</summary>
-    public FilterSetDefinition FilterSet(string key)
-    {
-        foreach (FilterSetDefinition definition in FilterSets)
-        {
-            if (string.Equals(definition.Key, key, StringComparison.Ordinal))
-                return definition;
-        }
-
-        throw new ArgumentException($"Unknown filter set '{key}'.", nameof(key));
     }
 }
