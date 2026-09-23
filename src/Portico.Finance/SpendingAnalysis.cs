@@ -1,6 +1,4 @@
-﻿using System.Globalization;
-
-namespace Portico.Finance;
+﻿namespace Portico.Finance;
 
 /// <summary>Chooses the matched period used for the Spending by category comparison.</summary>
 public enum SpendingComparison
@@ -57,7 +55,11 @@ public sealed record SpendingLedgerEntry(
     FinancialTransaction Transaction,
     bool Included,
     decimal NetSpending,
-    string ExclusionReason);
+    IReadOnlyList<LedgerExclusion> Exclusions)
+{
+    /// <summary>Supports the old Dashboard until Desktop owns the wording.</summary>
+    public string ExclusionReason => LegacyFinanceCopy.Exclusions(Exclusions);
+}
 
 /// <summary>Represents one ranked current and comparison spending row.</summary>
 public sealed record SpendingOverviewEntry(
@@ -256,30 +258,30 @@ public static class SpendingAnalysisCalculator
         bool transactionSetIncluded,
         SpendingAdjustments adjustments)
     {
-        var reasons = new List<string>();
+        var reasons = new List<LedgerExclusion>();
         string group = string.IsNullOrWhiteSpace(transaction.Group) ? "Unknown" : transaction.Group;
         string category = string.IsNullOrWhiteSpace(transaction.Category) ? "Unknown" : transaction.Category;
         bool includeMode = adjustments.IncludedDescriptions.Count > 0;
         bool includedDescription = MatchesAny(transaction.Description, adjustments.IncludedDescriptions);
 
         if (string.Equals(group, "Transfer", StringComparison.Ordinal))
-            reasons.Add("Transfer group");
+            reasons.Add(new LedgerExclusion(LedgerExclusionReason.TransferGroup));
         if (!transactionSetIncluded)
-            reasons.Add($"Outside configured set: {selectedSet.Label}");
+            reasons.Add(new LedgerExclusion(LedgerExclusionReason.OutsideConfiguredSet, selectedSet.Label));
         if (includeMode && !includedDescription)
-            reasons.Add("Outside included groups/categories/transactions");
+            reasons.Add(new LedgerExclusion(LedgerExclusionReason.OutsideIncludedDescriptions));
         if (Contains(adjustments.ExcludedGroups, group))
-            reasons.Add($"Excluded group: {group}");
+            reasons.Add(new LedgerExclusion(LedgerExclusionReason.ExcludedExpenseGroup, group));
         if (Contains(adjustments.ExcludedCategories, category))
-            reasons.Add($"Excluded category: {category}");
+            reasons.Add(new LedgerExclusion(LedgerExclusionReason.ExcludedCategory, category));
         foreach (string term in MatchingTerms(transaction.Description, adjustments.ExcludedDescriptions))
-            reasons.Add($"Excluded transaction like: {term}");
+            reasons.Add(new LedgerExclusion(LedgerExclusionReason.ExcludedDescription, term));
         if (adjustments.ExcludeLargeExpenses && decimal.Abs(transaction.Amount) > adjustments.ExpenseLimit)
         {
-            reasons.Add($"Expense over {adjustments.ExpenseLimit.ToString("C0", CultureInfo.GetCultureInfo("en-US"))}");
+            reasons.Add(new LedgerExclusion(LedgerExclusionReason.ExpenseOverLimit, Limit: adjustments.ExpenseLimit));
         }
 
-        return new SpendingLedgerEntry(transaction, reasons.Count == 0, -transaction.Amount, string.Join("; ", reasons));
+        return new SpendingLedgerEntry(transaction, reasons.Count == 0, -transaction.Amount, reasons);
     }
 
     private static IReadOnlyList<SpendingOverviewEntry> BuildOverview(

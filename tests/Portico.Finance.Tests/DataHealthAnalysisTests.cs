@@ -36,6 +36,15 @@ public sealed class DataHealthAnalysisTests
             "duplicates",
             "reversals"
         ], result.Checks.Select(check => check.Id));
+        Assert.Equal(
+        [
+            DataHealthCheckKind.Uncategorized,
+            DataHealthCheckKind.IncompleteTransactions,
+            DataHealthCheckKind.AccountMapping,
+            DataHealthCheckKind.StaleAccounts,
+            DataHealthCheckKind.Duplicates,
+            DataHealthCheckKind.Reversals
+        ], result.Checks.Select(check => check.Kind));
         Assert.Equal(1, Check(result, "uncategorized").FindingCount);
         Assert.Equal(1, Check(result, "incomplete").FindingCount);
         Assert.Equal(1, Check(result, "account_mapping").FindingCount);
@@ -43,6 +52,8 @@ public sealed class DataHealthAnalysisTests
         Assert.Equal(1, Check(result, "duplicates").FindingCount);
         Assert.Equal(1, Check(result, "reversals").FindingCount);
         Assert.Equal("Review", Check(result, "duplicates").Status);
+        Assert.Equal(DataHealthCheckKind.Duplicates, Check(result, "duplicates").Kind);
+        Assert.Equal(DataHealthCheckStatus.Review, Check(result, "duplicates").StatusKind);
         Assert.Equal("Expense refund", Assert.Single(Check(result, "reversals").Records).Details);
         Assert.Equal(4, result.NeedsAttention);
         Assert.Equal(2, result.ReviewItems);
@@ -70,6 +81,7 @@ public sealed class DataHealthAnalysisTests
             new DateOnly(2026, 6, 10));
 
         Assert.Equal("Passed", Check(strict, "duplicates").Status);
+        Assert.Equal(DataHealthCheckStatus.Passed, Check(strict, "duplicates").StatusKind);
         Assert.Equal("Passed", Check(strict, "uncategorized").Status);
         Assert.Equal(1, Check(loose, "duplicates").FindingCount);
         Assert.Equal(1, Check(loose, "uncategorized").FindingCount);
@@ -88,6 +100,7 @@ public sealed class DataHealthAnalysisTests
         Assert.All(result.Checks, check =>
         {
             Assert.Equal("Passed", check.Status);
+            Assert.Equal(DataHealthCheckStatus.Passed, check.StatusKind);
             Assert.Equal(0, check.FindingCount);
             Assert.Equal(0m, check.FinancialScope);
         });

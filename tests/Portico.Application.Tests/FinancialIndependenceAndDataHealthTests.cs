@@ -130,6 +130,7 @@ public sealed class FinancialIndependenceAndDataHealthTests
 
         Assert.Equal("duplicates", selected.SelectedCheck.Id);
         Assert.Equal(DataHealthCheckStatus.Review, selected.SelectedCheck.Status);
+        Assert.Equal(DataHealthCheckKind.Duplicates, selected.SelectedCheck.Kind);
         Assert.Single(selected.SelectedCheck.Records);
         Assert.Single(selected.SelectedCheck.DuplicatePairs);
         Assert.Equal(1, selected.ReviewItems);

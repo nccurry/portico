@@ -136,7 +136,21 @@ public sealed class PlanAnalysisTests
         Assert.Equal(200m, living.Spent);
         Assert.Equal(100m, living.PercentUsed);
         Assert.Empty(empty.Groups);
+        Assert.Equal(BudgetEmptyReason.NoGroupsSelected, empty.EmptyReason);
         Assert.Equal("Select at least one budget group.", empty.EmptyMessage);
+    }
+
+    [Fact]
+    public void BudgetBuild_KeepsAZeroValuedSelectedGroupWhenThereAreNoRows()
+    {
+        BudgetAnalysisResult result = BudgetAnalysisCalculator.Build(
+            [],
+            [],
+            Request(new YearMonth(2025, 2), ["Living"]));
+
+        Assert.Null(result.EmptyReason);
+        Assert.Null(result.EmptyMessage);
+        Assert.Equal(0m, Assert.Single(result.Groups).Budget);
     }
 
     [Fact]
