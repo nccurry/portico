@@ -157,6 +157,12 @@ Make all active call surfaces use Application without changing the desktop UX.
 - Move Roci startup and dashboard presentation into Portico.Desktop.
 - Translate Application problems into existing desktop status/error views.
 - Remove DashboardSession and old App paths only after equivalent tests pass.
+- Replace Finance's display-ready exclusion sentences, budget empty-state copy,
+  and Data Health names/actions/status strings with typed reasons and status.
+  Keep the existing desktop wording in its presentation mapping.
+- Resolve ownership of lookback choices, filter-control options, and the
+  default income view when the new configuration and Desktop contracts are
+  settled; keep only financial policy in FinanceSettings.
 
 ### Exit checks
 
@@ -167,6 +173,8 @@ Make all active call surfaces use Application without changing the desktop UX.
 - No CLI or Desktop project references Configuration or Data directly.
 - App composition tests prove a parsed run command reaches Desktop without a
   Portico.Cli-to-Portico.Desktop reference.
+- Finance returns financial values and typed classifications, not desktop
+  wording or control choices.
 
 ## Phase 5: Finish quality, operations, and documentation
 
