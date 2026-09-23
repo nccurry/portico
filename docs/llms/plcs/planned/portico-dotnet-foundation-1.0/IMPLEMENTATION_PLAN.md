@@ -61,7 +61,7 @@ Create the target project structure before moving business behavior.
   Portico.Cli, Portico.Desktop, and Portico.Architecture.Tests.
 - Keep Portico.App as the executable.
 - Add an architecture test that evaluates allowed project references from
-  production project files in the active build configuration.
+  production project files in Debug and Release.
 - Enforce the final edges for the new projects and freeze the current legacy
   edges: App's Adapters, Dashboard, Finance, and Roci references through Phase
   4; Adapters to Dashboard and Finance through Phase 3; and Dashboard to

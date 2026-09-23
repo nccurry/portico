@@ -2,6 +2,8 @@
 
 internal sealed record EvaluatedProject(
     string? RociSourceRoot,
+    string DefineConstants,
+    string LangVersion,
     IReadOnlyList<string> ProjectReferences,
     IReadOnlyList<string> PackageReferences,
     IReadOnlyList<string> CompileItems);

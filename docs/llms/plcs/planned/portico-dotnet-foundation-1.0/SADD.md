@@ -51,14 +51,14 @@ the key inversion: configuration and loading are outer implementations even
 though the application invokes them.
 
 Architecture tests evaluate the ProjectReference items for each production
-project in the active build configuration. That catches direct, conditional,
+project in Debug and Release. That catches direct, conditional,
 and imported references rather than only literal XML in one project file.
-Production projects use the matrix above; test projects use a separate,
-explicit test-only matrix. The suite includes a fixture with an imported
-forbidden reference to prove the evaluator catches it.
+The Phase 1 suite checks the nine production projects. Its fixture adds a
+Release-only imported reference to prove the evaluator catches it.
 
-Finance source may not import namespaces or packages associated with TOML, file
-I/O, HTTP, Google, Roci, CLI, or Desktop.
+Finance source may not use TOML, file I/O, HTTP, Google, Roci, CLI, Desktop, or
+console types. The source scan parses each build configuration with its evaluated
+language version and preprocessor symbols.
 
 ### Phase 1 transition policy
 
