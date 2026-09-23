@@ -5,9 +5,9 @@
 - Status: In progress
 - Created: 2026-09-21
 - Owner: Portico maintainers
-- Implementation status: Phases 0 and 1 are complete. The baseline, migration
-  inventory, local Roci contract, retained visual evidence, project boundaries,
-  and architecture tests are recorded. Phase 2 is next.
+- Implementation status: Phases 0, 1, and 2 are complete. The baseline,
+  project boundaries, pure Finance policy, and semantic Application reports
+  are in place. Phase 3 (configuration and data adapters) is next.
 - Depends on: the completed Python archive move in legacy/python
 
 ## Purpose
@@ -122,6 +122,18 @@ The default sibling `../roci` was on a separate, dirty Roci branch at
 CS1503 errors in data-grid code. The same errors reproduced in a clean Roci
 worktree at that commit. The default checkout is therefore not counted as a
 passing build; no Roci source was changed for this PLC.
+
+## Phase 2 verification (2026-09-23)
+
+The combined Phase 2 changes passed `task check` against the same clean local
+Roci checkout: formatting, strict build, 342 nonvisual tests, and the local
+Roci source contract passed. `task doctor` reported ready with the local CSV
+demo source, 10 pages, 986 transactions, 432 balances, and 1344 budgets.
+
+The built-in coverage collector measured the named `Portico.Finance` package
+at 97.13% lines and 90.20% branches and `Portico.Application` at 98.56% lines
+and 93.80% branches. Both exceed the 95%/90% PLC target. The local failing
+coverage task remains due by 2026-09-30; Phase 5 cannot pass without it.
 
 ## Completion condition
 

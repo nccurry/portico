@@ -7,7 +7,9 @@ foundation.
 ## Current status
 
 The active application is the C# code under `src/Portico.*`. Its future design
-is planned, not implemented, in the .NET foundation PLC:
+is being delivered in phases under the .NET foundation PLC. The project
+boundaries and in-process Application reports exist; the active CLI and desktop
+still use their older paths:
 
 - [Foundation PLC](docs/llms/plcs/planned/portico-dotnet-foundation-1.0/README.md)
 - [Deferred Desktop and MCP PLC](docs/llms/plcs/planned/portico-desktop-and-mcp-adapters-1.0/README.md)

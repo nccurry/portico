@@ -5,7 +5,10 @@
 Portico is transitioning from its archived Python/Streamlit implementation to
 a .NET application. The active C# code is still an interim design:
 
-- `Portico.Finance` contains financial models and calculations.
+- `Portico.Finance` contains financial models and calculations, but no longer
+  owns data-source selection.
+- `Portico.Application` provides typed check and workspace operations and
+  semantic reports alongside the old dashboard path.
 - `Portico.Dashboard` contains both report building and some presentation
   state.
 - `Portico.Adapters` contains TOML, CSV, and Google Sheets concerns.
@@ -13,9 +16,9 @@ a .NET application. The active C# code is still an interim design:
   presentation code.
 
 That structure is useful working software, but it is not the target boundary
-model. In particular, finance settings still know about data-source choices,
-the CLI constructs adapters directly, and dashboard code mixes application and
-desktop concerns.
+model. In particular, the CLI still constructs adapters directly, and dashboard
+code still mixes application and desktop concerns. The new Application reports
+are not yet wired into the desktop.
 
 ## Planned target
 

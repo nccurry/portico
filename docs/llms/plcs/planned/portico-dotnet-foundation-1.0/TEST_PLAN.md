@@ -115,14 +115,16 @@ Finance and Application must reach at least 95% line coverage and 90% branch
 coverage after the new project baseline is established. A coverage percentage
 does not excuse an untested error path or a weak assertion.
 
-Phase 2 uses a dated local ratchet while semantic reports are still being
+Phase 2 began with a dated local ratchet while semantic reports were being
 added. On 2026-09-23, the built-in .NET coverage collector measured the named
 `Portico.Finance` package at 90.00% lines and 79.54% branches, and the named
 `Portico.Application` package at 97.62% lines and 82.69% branches. These are
-pre-report baselines, not passing coverage gates. Re-measure both packages at
-the Phase 2 close. By 2026-09-30, `task dotnet:coverage` must fail locally if
-either package is below 95% lines or 90% branches. Phase 5 cannot pass until
-that gate is green; no CI workflow is required.
+pre-report baselines, not passing coverage gates. At the Phase 2 close, the
+same named packages measured 97.13% lines / 90.20% branches for Finance and
+98.56% lines / 93.80% branches for Application. By 2026-09-30, the local
+`task dotnet:coverage` command must fail if either package is below 95% lines
+or 90% branches. Phase 5 cannot pass until that gate is green; no CI workflow
+is required.
 
 Use this command for each owning test project:
 

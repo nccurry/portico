@@ -39,6 +39,12 @@ Application reports with the same behavior. A workspace copies normalized
 snapshot collections when opened; the validated FinanceSettings handed to it
 must remain immutable for that workspace's lifetime.
 
+The old Dashboard FI and Data Health compact views are not the full semantic
+reports. During Phase 4, map the new FI summary, projection, and sensitivity
+values and the six Data Health checks into the existing compact cards without
+changing their visible wording or state. Check the old fallback cases with
+Desktop tests before removing the Dashboard builders.
+
 No Common, Shared, Contracts, Service, or generic Infrastructure project is
 planned. Each named project has a distinct reason to change.
 
