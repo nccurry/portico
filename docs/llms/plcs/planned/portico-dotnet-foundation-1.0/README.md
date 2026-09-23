@@ -5,9 +5,9 @@
 - Status: In progress
 - Created: 2026-09-21
 - Owner: Portico maintainers
-- Implementation status: Phase 0 is complete: the baseline, migration inventory,
-  local Roci contract, and retained visual evidence are recorded. Phase 1 is
-  next.
+- Implementation status: Phases 0 and 1 are complete. The baseline, migration
+  inventory, local Roci contract, retained visual evidence, project boundaries,
+  and architecture tests are recorded. Phase 2 is next.
 - Depends on: the completed Python archive move in legacy/python
 
 ## Purpose
@@ -108,6 +108,20 @@ not change the final graph above.
 | 3 | New configuration and data-loading implementations with safe diagnostics. |
 | 4 | Mature CLI, Portico.App composition, and a no-redesign Desktop rewire. |
 | 5 | Full test lanes, task commands, docs, and final migration proof. |
+
+## Phase 1 verification (2026-09-23)
+
+The combined Phase 1 changes passed `task check` with the clean local Roci
+checkout at `../roci-ui-focus-outline-containment` (`c814b027`), selected through
+`ROCI_ROOT`. Formatting, the strict build, all 235 nonvisual tests, and the local
+Roci source contract passed. `task doctor` reported ready. Architecture tests
+covered all nine production projects in Debug and Release.
+
+The default sibling `../roci` was on a separate, dirty Roci branch at
+`7511540e` during verification. Its `Roci.Ui` project failed to compile with two
+CS1503 errors in data-grid code. The same errors reproduced in a clean Roci
+worktree at that commit. The default checkout is therefore not counted as a
+passing build; no Roci source was changed for this PLC.
 
 ## Completion condition
 
