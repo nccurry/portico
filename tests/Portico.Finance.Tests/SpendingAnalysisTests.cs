@@ -116,12 +116,10 @@ public sealed class SpendingAnalysisTests
         Assert.Equal(
             new LedgerExclusion(LedgerExclusionReason.ExcludedExpenseGroup, "Housing"),
             Assert.Single(rent.Exclusions));
-        Assert.Contains("Excluded group: Housing", rent.ExclusionReason, StringComparison.Ordinal);
         Assert.False(grocery.Included);
         Assert.Equal(
             new LedgerExclusion(LedgerExclusionReason.ExcludedCategory, "Food"),
             Assert.Single(grocery.Exclusions));
-        Assert.Contains("Excluded category: Food", grocery.ExclusionReason, StringComparison.Ordinal);
         Assert.Equal(2_071m, group.Summary.TotalSpending);
         Assert.Equal(3_021m, category.Summary.TotalSpending);
     }
@@ -155,8 +153,7 @@ public sealed class SpendingAnalysisTests
         Assert.Equal(
             new LedgerExclusion(LedgerExclusionReason.ExcludedDescription, "coffee"),
             Assert.Single(coffee.Exclusions));
-        Assert.Contains("Excluded transaction like: coffee", coffee.ExclusionReason, StringComparison.Ordinal);
-        Assert.DoesNotContain("Outside included groups/categories/transactions", coffee.ExclusionReason, StringComparison.Ordinal);
+        Assert.DoesNotContain(coffee.Exclusions, exclusion => exclusion.Reason == LedgerExclusionReason.OutsideIncludedDescriptions);
     }
 
     [Fact]
@@ -174,7 +171,6 @@ public sealed class SpendingAnalysisTests
         Assert.Equal(
             new LedgerExclusion(LedgerExclusionReason.ExpenseOverLimit, Limit: 1_000m),
             Assert.Single(over.Exclusions));
-        Assert.Contains("Expense over $1,000", over.ExclusionReason, StringComparison.Ordinal);
         Assert.Equal(2_070m, analysis.Summary.TotalSpending);
     }
 
@@ -229,7 +225,6 @@ public sealed class SpendingAnalysisTests
         Assert.Equal(
             new LedgerExclusion(LedgerExclusionReason.OutsideConfiguredSet, "Living"),
             Assert.Single(rent.Exclusions));
-        Assert.Contains("Outside configured set: Living", rent.ExclusionReason, StringComparison.Ordinal);
         (string Merchant, decimal Spending, decimal SharePercent, int Transactions, decimal AverageTransaction, DateOnly LastTransaction) merchant =
             Assert.Single(SpendingAnalysisCalculator.Merchants(living.CurrentLedger, settings.MerchantAliases));
         Assert.Equal("Whole Foods", merchant.Merchant);

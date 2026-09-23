@@ -83,11 +83,7 @@ public sealed record BudgetAnalysisResult(
     IReadOnlyDictionary<string, BudgetGroupDetail> GroupDetails,
     IReadOnlyList<BudgetDailyPaceEntry> DailyPace,
     IReadOnlyList<BudgetPerformanceEntry> YearToDate,
-    BudgetEmptyReason? EmptyReason = null)
-{
-    /// <summary>Supports the old Dashboard until Desktop owns the wording.</summary>
-    public string? EmptyMessage => LegacyFinanceCopy.BudgetEmpty(EmptyReason);
-}
+    BudgetEmptyReason? EmptyReason = null);
 
 /// <summary>Builds plan-versus-actual Budget analysis without any UI dependency.</summary>
 public static class BudgetAnalysisCalculator

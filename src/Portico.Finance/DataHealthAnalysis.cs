@@ -91,15 +91,6 @@ public sealed record DataHealthCheckResult(
         _ => throw new ArgumentOutOfRangeException(nameof(Kind))
     };
 
-    /// <summary>Supports the old Dashboard until Desktop owns the wording.</summary>
-    public string Name => LegacyFinanceCopy.HealthName(Kind);
-
-    /// <summary>Supports the old Dashboard until Desktop owns the wording.</summary>
-    public string Action => LegacyFinanceCopy.HealthAction(Kind);
-
-    /// <summary>Supports the old Dashboard until Desktop owns the wording.</summary>
-    public string Status => LegacyFinanceCopy.HealthStatus(StatusKind);
-
     /// <summary>Gets how many rows need attention or review for this check.</summary>
     public int FindingCount => Records.Count;
 }

@@ -55,11 +55,7 @@ public sealed record SpendingLedgerEntry(
     FinancialTransaction Transaction,
     bool Included,
     decimal NetSpending,
-    IReadOnlyList<LedgerExclusion> Exclusions)
-{
-    /// <summary>Supports the old Dashboard until Desktop owns the wording.</summary>
-    public string ExclusionReason => LegacyFinanceCopy.Exclusions(Exclusions);
-}
+    IReadOnlyList<LedgerExclusion> Exclusions);
 
 /// <summary>Represents one ranked current and comparison spending row.</summary>
 public sealed record SpendingOverviewEntry(
