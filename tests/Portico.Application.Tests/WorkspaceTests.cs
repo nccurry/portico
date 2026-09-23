@@ -68,6 +68,34 @@ public sealed class WorkspaceTests
     }
 
     [Fact]
+    public async Task OpenWorkspace_CopiesMutableFinancePolicyBeforeBuildingReports()
+    {
+        var excludedCategories = new List<string>();
+        var emergencyGroups = new List<string> { "Cash" };
+        var independenceGroups = new List<string> { "Debt" };
+        FinanceSettings original = Settings();
+        FinanceSettings settings = original with
+        {
+            IncomeSavings = original.IncomeSavings with { ExcludeCategories = excludedCategories },
+            FinancialSafety = original.FinancialSafety with { EmergencyFundIncludedGroups = emergencyGroups },
+            FinancialIndependence = original.FinancialIndependence with { IncludedGroups = independenceGroups }
+        };
+        Workspace workspace = Opened(await Application(new PortfolioReadSuccess(Snapshot()), settings)
+            .OpenWorkspaceAsync(new ConfigurationSelection(), cancellationToken: TestContext.Current.CancellationToken));
+        HomeReport before = workspace.Home();
+
+        excludedCategories.Add("Food");
+        emergencyGroups.Clear();
+        independenceGroups.Clear();
+        HomeReport after = workspace.Home();
+        Assert.Equal(1000m, before.CashFlow.Income);
+        Assert.Equal(before.CashFlow, after.CashFlow);
+        Assert.Equal(5m, before.Safety.EmergencyFundMonthsCovered);
+        Assert.Equal(before.Safety, after.Safety);
+        Assert.Equal(-10m, after.Safety.FinancialIndependenceProgressPercent);
+    }
+
+    [Fact]
     public async Task OpenWorkspace_EmptySnapshotHasFixedFallbackDate()
     {
         Workspace workspace = Opened(await Application(new PortfolioReadSuccess(new PortfolioSnapshot([], [], [])))
