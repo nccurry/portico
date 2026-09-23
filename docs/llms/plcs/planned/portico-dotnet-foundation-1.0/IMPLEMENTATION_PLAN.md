@@ -125,6 +125,10 @@ boundaries.
   interfaces.
 - Keep WorkbookNormalizer as the shared trust boundary, moving it to the
   owning Data project.
+- Define and enforce a supported source-date floor before report calculations.
+  It must leave every configured current/comparison lookback representable;
+  reject earlier transaction, balance, or budget dates with a safe typed data
+  problem. Do not clip matched comparison periods to unequal lengths.
 - Inject HTTP ownership from Portico.App rather than constructing clients in
   CLI code.
 - Translate expected errors to PorticoProblem values and redact secrets.
@@ -136,6 +140,8 @@ boundaries.
 
 - Configuration and Data tests run without Desktop or CLI references.
 - CSV and fake-Google fixtures normalize to the same snapshot contract.
+- Dates too early for the supported report windows fail at the data boundary,
+  before a report can underflow the calendar.
 - All failure output is safe and deterministic.
 - The old mixed TOML loader and source type leak are removed or unused.
 

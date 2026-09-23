@@ -63,6 +63,9 @@ replacement test or a documented reason it consolidated into a stronger test.
 - fake Google success;
 - fake Google non-success, timeout, cancellation, and invalid document;
 - same semantic fixture through both source readers.
+- the documented minimum supported date at and just below the boundary in
+  transaction, balance, and budget inputs; an earlier date yields a typed data
+  problem rather than reaching report lookback arithmetic.
 
 ### CLI
 
