@@ -266,7 +266,6 @@ public sealed class SpendingAnalysisTests
             new TransactionSetDefinition("living", "Living", ["Living"], [], [], [], [], [], [])
         ];
         return new FinanceSettings(
-            new DataSourceSettings(WorkbookSourceKind.LocalCsv, "demo"),
             new LookbackSettings([1, 2, 3, 6, 12, 24], 3),
             new ThresholdSettings(1_000m, 5_000m, 10m, 1),
             new IncomeSavingsSettings("regular", 20m, [], []),

@@ -113,10 +113,12 @@ public sealed class AdapterTests
         File.WriteAllText(financePath, FinanceToml());
         File.WriteAllText(dashboardPath, DashboardToml());
 
-        FinanceSettings finance = TomlConfigurationLoader.LoadFinance(financePath);
+        LoadedFinanceConfiguration configuration = TomlConfigurationLoader.LoadFinanceConfiguration(financePath);
+        FinanceSettings finance = configuration.Finance;
         Portico.Dashboard.DashboardDefinition dashboard = TomlConfigurationLoader.LoadDashboard(dashboardPath);
 
-        Assert.Equal(WorkbookSourceKind.LocalCsv, finance.Data.Kind);
+        Assert.Equal(WorkbookSourceKind.LocalCsv, configuration.Data.Kind);
+        Assert.Equal("demo/data", configuration.Data.Directory);
         Assert.Equal(12, finance.Lookback.DefaultMonths);
         Assert.Equal("discretionary", finance.FilterSet("spending").Default);
         Assert.Single(dashboard.Pages);
@@ -133,6 +135,28 @@ public sealed class AdapterTests
         Assert.Equal(DashboardControlKind.SegmentedChoice, control.Kind);
         Assert.Equal(DashboardControlSource.HomeTimeFrame, control.Source);
         Assert.Equal(["3m", "6m", "1y", "2y", "5y", "all"], control.ChoiceOptions);
+    }
+
+    [Fact]
+    public void ConfigurationLoader_KeepsRemoteSourceOutsideFinanceSettings()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"portico-finance-{Guid.NewGuid():N}.toml");
+        try
+        {
+            File.WriteAllText(path, FinanceToml()
+                .Replace("source = \"local\"", "source = \"remote\"", StringComparison.Ordinal)
+                .Replace("directory = \"demo/data\"", string.Empty, StringComparison.Ordinal));
+
+            LoadedFinanceConfiguration configuration = TomlConfigurationLoader.LoadFinanceConfiguration(path);
+
+            Assert.Equal(WorkbookSourceKind.GoogleSheets, configuration.Data.Kind);
+            Assert.Null(configuration.Data.Directory);
+            Assert.Equal(12, configuration.Finance.Lookback.DefaultMonths);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
     }
 
     [Fact]

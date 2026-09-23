@@ -207,29 +207,38 @@ public sealed class ArchitecturePolicyTests
     }
 
     [Fact]
-    public async Task Finance_SourceSelectionSeam_StaysLimited()
+    public async Task Finance_HasNoSourceSelectionTypes()
     {
-        string financeSettings = Path.GetFullPath(Path.Combine(
-            CurrentRepository.Value.Root,
-            "src",
-            "Portico.Finance",
-            "FinanceSettings.cs"));
-
         foreach ((string configuration, IReadOnlyDictionary<string, EvaluatedProject> projects) in await ProductionProjects.Value)
         {
             EvaluatedProject finance = projects["Portico.Finance"];
             CSharpParseOptions parseOptions = FinanceSourcePolicy.ParseOptions(finance);
-            Assert.True(
-                finance.CompileItems.Any(sourceFile => PathComparer.Equals(sourceFile, financeSettings)),
-                $"FinanceSettings.cs must be an effective Compile item in {configuration}.");
-            Assert.Equal(
-                ["DataSourceSettings", "WorkbookSourceKind"],
-                FinanceSourcePolicy.FindSourceSelectionDeclarations(financeSettings, parseOptions));
-            Assert.Empty(FinanceSourcePolicy.FindSourceSelectionUsesOutsideFinanceSettings(
-                finance.CompileItems,
-                financeSettings,
-                parseOptions));
+            IReadOnlyList<string> violations = FinanceSourcePolicy.FindSourceSelectionUses(finance.CompileItems, parseOptions);
+            Assert.True(violations.Count == 0, $"{configuration}:{Environment.NewLine}{string.Join(Environment.NewLine, violations)}");
         }
+    }
+
+    [Fact]
+    public void FinanceSourceSelectionScan_RejectsTypesButIgnoresComments()
+    {
+        SyntaxTree tree = CSharpSyntaxTree.ParseText(
+            """
+            namespace Portico.Finance;
+            // DataSourceSettings is an old adapter type.
+            public sealed record DataSourceSettings(WorkbookSourceKind Kind);
+            """,
+            path: "source-selection.cs",
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal(
+            ["source-selection.cs: WorkbookSourceKind", "source-selection.cs: DataSourceSettings"],
+            FinanceSourcePolicy.FindSourceSelectionUses(tree));
+
+        SyntaxTree commentOnly = CSharpSyntaxTree.ParseText(
+            "// DataSourceSettings and WorkbookSourceKind were moved out of Finance.",
+            path: "comment-only.cs",
+            cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Empty(FinanceSourcePolicy.FindSourceSelectionUses(commentOnly));
     }
 
     [Fact]

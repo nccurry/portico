@@ -1,18 +1,5 @@
 ﻿namespace Portico.Finance;
 
-/// <summary>Chooses the configured workbook source.</summary>
-public enum WorkbookSourceKind
-{
-    /// <summary>Read four CSV files from a local directory.</summary>
-    LocalCsv,
-
-    /// <summary>Read four public Google Sheets tabs through CSV export URLs.</summary>
-    GoogleSheets
-}
-
-/// <summary>Describes the selected workbook source.</summary>
-public sealed record DataSourceSettings(WorkbookSourceKind Kind, string? Directory);
-
 /// <summary>Provides the common report lookback choices.</summary>
 public sealed record LookbackSettings(IReadOnlyList<int> Months, int DefaultMonths);
 
@@ -81,9 +68,8 @@ public sealed record FinancialIndependenceSettings(
     IReadOnlyList<string> IncludedAccountPatterns,
     IReadOnlyList<string> IncludedGroups);
 
-/// <summary>Holds every supported calculation setting from the existing Portico TOML format.</summary>
+/// <summary>Holds the supported financial calculation settings.</summary>
 public sealed record FinanceSettings(
-    DataSourceSettings Data,
     LookbackSettings Lookback,
     ThresholdSettings Thresholds,
     IncomeSavingsSettings IncomeSavings,

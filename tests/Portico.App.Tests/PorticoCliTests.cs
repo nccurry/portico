@@ -1,4 +1,5 @@
 ﻿using Portico.App;
+using Portico.Adapters;
 using Portico.Finance;
 
 namespace Portico.App.Tests;
@@ -52,8 +53,44 @@ public sealed class PorticoCliTests
         Assert.Equal(0, exitCode);
         Assert.True(string.IsNullOrWhiteSpace(error.ToString()));
         Assert.Contains("\"Ready\":true", json, StringComparison.Ordinal);
+        Assert.Contains("\"Source\":\"local-csv\"", json, StringComparison.Ordinal);
         Assert.Contains("\"PageCount\":10", json, StringComparison.Ordinal);
         Assert.DoesNotContain("demo/data", json, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Doctor_UsesLocalDirectoryOverride()
+    {
+        string root = FindRepositoryRoot();
+        string config = Path.Combine(Path.GetTempPath(), $"portico-config-{Guid.NewGuid():N}.toml");
+        try
+        {
+            await File.WriteAllTextAsync(
+                config,
+                (await File.ReadAllTextAsync(Path.Combine(root, "portico-demo.toml"), TestContext.Current.CancellationToken))
+                    .Replace("directory = \"demo/data\"", "directory = \"missing\"", StringComparison.Ordinal),
+                TestContext.Current.CancellationToken);
+            var output = new StringWriter();
+            var error = new StringWriter();
+
+            int exitCode = await PorticoCli.RunAsync(
+            [
+                "doctor", "--config", config,
+                "--dashboard", Path.Combine(root, "dashboard.toml"),
+                "--data-dir", Path.Combine(root, "demo", "data")
+            ],
+            output,
+            error);
+
+            Assert.Equal(0, exitCode);
+            Assert.True(string.IsNullOrWhiteSpace(error.ToString()));
+            Assert.Contains("Source: local-csv", output.ToString(), StringComparison.Ordinal);
+            Assert.Contains("Transactions: 986", output.ToString(), StringComparison.Ordinal);
+        }
+        finally
+        {
+            File.Delete(config);
+        }
     }
 
     [Fact]
