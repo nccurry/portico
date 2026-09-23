@@ -89,16 +89,16 @@ public sealed class IncomeReportTests
     }
 
     [Fact]
-    public async Task Income_NearLastCalendarMonthIsSelectable()
+    public async Task Income_LastCalendarMonthIsSelectable()
     {
         Workspace workspace = await ReportWorkspaceFixture.Open(new PortfolioSnapshot(
-            [ReportWorkspaceFixture.Transaction("last", 9999, 11, 30, "Work", "Salary", 10m, TransactionKind.Income)],
+            [ReportWorkspaceFixture.Transaction("last", 9999, 12, 31, "Work", "Salary", 10m, TransactionKind.Income)],
             [], []));
 
         IncomeReport report = workspace.Income(new IncomeReportRequest(LookbackMonths: 1,
-            DetailMonth: new YearMonth(9999, 11)));
+            DetailMonth: new YearMonth(9999, 12)));
 
-        Assert.Equal(new YearMonth(9999, 11), report.DetailMonth);
+        Assert.Equal(new YearMonth(9999, 12), report.DetailMonth);
         Assert.Equal(10m, report.Detail!.Income);
     }
 }
