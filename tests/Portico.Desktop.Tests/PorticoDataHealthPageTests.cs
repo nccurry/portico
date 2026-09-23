@@ -1,7 +1,6 @@
 ﻿using System.Numerics;
 
 using Portico.Configuration;
-using Portico.Desktop;
 using Portico.CaptureHost;
 using Portico.Desktop;
 using Portico.Finance;

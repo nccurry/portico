@@ -1,7 +1,6 @@
 ﻿using System.Numerics;
 using Portico.Configuration;
 using Portico.Desktop;
-using Portico.Desktop;
 using Portico.Finance;
 using Roci.Core;
 using Roci.TestUtilities;

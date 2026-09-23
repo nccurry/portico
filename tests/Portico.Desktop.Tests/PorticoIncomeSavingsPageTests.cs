@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-using Portico.Desktop;
 using Portico.Desktop.Ui.Components;
 using Portico.CaptureHost;
 using Portico.Desktop;

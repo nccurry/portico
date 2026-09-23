@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 using Portico.Configuration;
-using Portico.Desktop;
+using Portico.Application;
 using Portico.Desktop.Ui.Components;
 using Portico.CaptureHost;
 using Portico.Desktop;
@@ -35,7 +35,7 @@ public sealed class PorticoPresentationComponentsTests
         Assert.True(InvokeAccept(timeFrame.Segments[4]));
         scene.Refresh();
 
-        Assert.Equal(HomeTimeFrame.FiveYears, session.Filters.HomeTimeFrame);
+        Assert.Equal(HomePeriod.FiveYears, session.Filters.HomeTimeFrame);
         Assert.Equal(4, State<SegmentedControlState>(scene, "Control:Home:time_frame").SelectedIndex);
     }
 
@@ -97,7 +97,7 @@ public sealed class PorticoPresentationComponentsTests
         SegmentedControlState timeFrame = State<SegmentedControlState>(scene, "Control:Home:time_frame");
         Assert.True(InvokeAccept(timeFrame.Segments[4]));
         scene.Refresh();
-        Assert.Equal(HomeTimeFrame.FiveYears, session.Filters.HomeTimeFrame);
+        Assert.Equal(HomePeriod.FiveYears, session.Filters.HomeTimeFrame);
         Assert.Equal(4, State<SegmentedControlState>(scene, "Control:Home:time_frame").SelectedIndex);
 
         CollapsibleState savingsDetails = State<CollapsibleState>(scene, "Account details: Savings (3)");
@@ -117,7 +117,7 @@ public sealed class PorticoPresentationComponentsTests
         scene.Refresh();
 
         Assert.True(scene.DisplayState.HideValues);
-        Assert.Equal(HomeTimeFrame.FiveYears, session.Filters.HomeTimeFrame);
+        Assert.Equal(HomePeriod.FiveYears, session.Filters.HomeTimeFrame);
         Assert.Equal(4, State<SegmentedControlState>(scene, "Control:Home:time_frame").SelectedIndex);
         Assert.True(State<CollapsibleState>(scene, "Account details: Savings (3)").IsExpanded);
         Assert.Equal("Hidden", Text(scene, "MetricValue:net-worth:Net worth"));

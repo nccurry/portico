@@ -1,5 +1,5 @@
-﻿using System.Numerics;
-using Portico.Desktop;
+using System.Numerics;
+using Portico.Application;
 using Portico.CaptureHost;
 using Portico.Desktop;
 using Portico.Finance;
@@ -207,9 +207,9 @@ public sealed class PorticoCaptureCatalogTests
     }
 
     [Theory]
-    [InlineData("home", HomeTimeFrame.OneYear)]
-    [InlineData("home-all", HomeTimeFrame.All)]
-    public void CreateSession_HomeRangeScenariosUseTheConfiguredReportRange(string scenario, HomeTimeFrame expected)
+    [InlineData("home", HomePeriod.OneYear)]
+    [InlineData("home-all", HomePeriod.All)]
+    public void CreateSession_HomeRangeScenariosUseTheConfiguredReportRange(string scenario, HomePeriod expected)
     {
         GameRunContext context = PorticoCaptureCatalog.RunCatalog.CreateContext(new GameRunOptions
         {
