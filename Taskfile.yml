@@ -65,7 +65,13 @@ tasks:
     desc: "Run non-visual .NET tests"
     deps: [roci:source:check]
     cmds:
-      - dotnet test {{.SOLUTION}} --no-restore -p:Configuration={{.CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false --filter "Category!=VisualCapture"
+      - dotnet test {{.SOLUTION}} --no-restore -p:Configuration={{.CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false --filter "Category!=VisualCapture&Category!=PublishedProcess"
+
+  test:published:
+    desc: "Publish Portico and exercise its headless commands as a process"
+    deps: [roci:source:check]
+    cmds:
+      - dotnet test tests/Portico.EndToEnd.Tests/Portico.EndToEnd.Tests.csproj -p:Configuration={{.CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false --filter "Category=PublishedProcess"
 
   test:roci-source:
     desc: "Verify the local Roci source contract"

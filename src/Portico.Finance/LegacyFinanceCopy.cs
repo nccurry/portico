@@ -2,7 +2,6 @@
 
 namespace Portico.Finance;
 
-// Remove after the old Dashboard is replaced by Desktop.
 internal static class LegacyFinanceCopy
 {
     public static string Exclusions(IEnumerable<LedgerExclusion> exclusions)

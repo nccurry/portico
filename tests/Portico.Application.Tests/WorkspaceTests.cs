@@ -47,6 +47,7 @@ public sealed class WorkspaceTests
         Assert.DoesNotContain(PrivateLocation, output, StringComparison.Ordinal);
         Assert.DoesNotContain(PrivateRow, output, StringComparison.Ordinal);
         Assert.DoesNotContain("Balances", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReportChoices", output, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -93,6 +94,30 @@ public sealed class WorkspaceTests
         Assert.Equal(5m, before.Safety.EmergencyFundMonthsCovered);
         Assert.Equal(before.Safety, after.Safety);
         Assert.Equal(-10m, after.Safety.FinancialIndependenceProgressPercent);
+    }
+
+    [Fact]
+    public async Task ReportChoices_AreReadOnlyAndIndependentOfReaderSettings()
+    {
+        var months = new List<int> { 3, 6, 12 };
+        var options = new List<string> { "all", "essential" };
+        FinanceSettings settings = Settings() with
+        {
+            Lookback = new LookbackSettings(months, 6),
+            FilterSets = [new FilterSetDefinition("spending", options, "all")]
+        };
+        Workspace workspace = Opened(await Application(new PortfolioReadSuccess(Snapshot()), settings)
+            .OpenWorkspaceAsync(new ConfigurationSelection(), cancellationToken: TestContext.Current.CancellationToken));
+
+        months[0] = 24;
+        options[0] = "changed";
+
+        Assert.Equal([3, 6, 12], workspace.ReportChoices.LookbackMonths);
+        Assert.Equal(6, workspace.ReportChoices.DefaultLookbackMonths);
+        Assert.Equal(["all", "essential"], workspace.ReportChoices.FilterSets["spending"].Options);
+        Assert.Equal("all", workspace.ReportChoices.FilterSets["spending"].Default);
+        Assert.Throws<NotSupportedException>(() => ((IList<int>)workspace.ReportChoices.LookbackMonths)[0] = 24);
+        Assert.Throws<NotSupportedException>(() => ((IList<string>)workspace.ReportChoices.FilterSets["spending"].Options)[0] = "changed");
     }
 
     [Fact]
@@ -339,6 +364,7 @@ public sealed class WorkspaceTests
         HomeReport report = workspace.Home(new HomeReportRequest(HomePeriod.ThreeMonths));
 
         Assert.Equal(390m, report.Closing!.NetWorth);
+        Assert.Equal(3, report.VisibleAccountCount);
         HomeGroupMovement group = Assert.Single(report.Groups);
         Assert.Equal(350m, group.ClosingSignedBalance);
         Assert.Equal(400m, group.OpeningSignedBalance);
