@@ -7,8 +7,23 @@
   <ItemGroup>
     <ProjectReference Include="../Portico.Application/Portico.Application.csproj" />
     <ProjectReference Include="$(RociSourceRoot)/src/Roci.Core/Roci.Core.csproj" />
+    <ProjectReference Include="$(RociSourceRoot)/src/Roci.Hosting.MonoGame/Roci.Hosting.MonoGame.csproj" />
+    <ProjectReference Include="$(RociSourceRoot)/src/Roci.Input/Roci.Input.csproj" />
+    <ProjectReference Include="$(RociSourceRoot)/src/Roci.Input.Automation/Roci.Input.Automation.csproj" />
+    <ProjectReference Include="$(RociSourceRoot)/src/Roci.Input.Automation.Launch/Roci.Input.Automation.Launch.csproj" />
+    <ProjectReference Include="$(RociSourceRoot)/src/Roci.Input.MonoGame/Roci.Input.MonoGame.csproj" />
+    <ProjectReference Include="$(RociSourceRoot)/src/Roci.Launch/Roci.Launch.csproj" />
+    <ProjectReference Include="$(RociSourceRoot)/src/Roci.Rendering/Roci.Rendering.csproj" />
+    <ProjectReference Include="$(RociSourceRoot)/src/Roci.Rendering.FontStashSharp/Roci.Rendering.FontStashSharp.csproj" />
+    <ProjectReference Include="$(RociSourceRoot)/src/Roci.Rendering.MonoGame/Roci.Rendering.MonoGame.csproj" />
+    <ProjectReference Include="$(RociSourceRoot)/src/Roci.Ui/Roci.Ui.csproj" />
+    <ProjectReference Include="$(RociSourceRoot)/src/Roci.Ui.Charts/Roci.Ui.Charts.csproj" />
+    <ProjectReference Include="$(RociSourceRoot)/src/Roci.Ui.Charts.Rendering/Roci.Ui.Charts.Rendering.csproj" />
+    <ProjectReference Include="$(RociSourceRoot)/src/Roci.Ui.Input/Roci.Ui.Input.csproj" />
+    <ProjectReference Include="$(RociSourceRoot)/src/Roci.Ui.Rendering/Roci.Ui.Rendering.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Tomlyn" />
+    <PackageReference Include="MonoGame.Framework.DesktopGL" />
   </ItemGroup>
 </Project>
