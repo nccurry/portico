@@ -35,8 +35,8 @@ public sealed partial class Workspace
         MerchantAnalysisResult analysis = MerchantAnalysisCalculator.Build(
             visible,
             _settings,
-            request.TransactionSetKey ?? _settings.FilterSet("spending").Default,
-            request.LookbackMonths ?? _settings.Lookback.DefaultMonths,
+            request.TransactionSetKey ?? _reportChoiceSettings.FilterSet("spending").Default,
+            request.LookbackMonths ?? _reportChoiceSettings.Lookback.DefaultMonths,
             request.Comparison,
             request.Adjustments ?? SpendingAdjustments.Default(_settings.Thresholds.Expense));
         string? selected = analysis.Overview.Any(entry => string.Equals(

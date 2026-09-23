@@ -1,28 +1,30 @@
 ﻿using System.Collections.ObjectModel;
-using Portico.Finance;
 
 namespace Portico.Application;
 
 /// <summary>Configured choices available to report requests and desktop controls.</summary>
 public sealed class ReportChoices
 {
-    internal ReportChoices(FinanceSettings settings)
+    internal ReportChoices(ReportChoiceSettings choices)
     {
-        LookbackMonths = Array.AsReadOnly(settings.Lookback.Months.ToArray());
-        DefaultLookbackMonths = settings.Lookback.DefaultMonths;
-        FilterSets = new ReadOnlyDictionary<string, ReportFilterChoices>(settings.FilterSets.ToDictionary(
+        LookbackMonths = Array.AsReadOnly(choices.Lookback.Months.ToArray());
+        DefaultLookbackMonths = choices.Lookback.DefaultMonths;
+        DefaultIncomeIsRegular = choices.DefaultIncomeIsRegular;
+        FilterSets = new ReadOnlyDictionary<string, ReportFilterChoices>(choices.FilterSets.ToDictionary(
             set => set.Key,
             set => new ReportFilterChoices(Array.AsReadOnly(set.Options.ToArray()), set.Default),
             StringComparer.Ordinal));
-        TransactionSetLabels = new ReadOnlyDictionary<string, string>(settings.TransactionSets.ToDictionary(
-            set => set.Key,
-            set => set.Label,
+        TransactionSetLabels = new ReadOnlyDictionary<string, string>(choices.TransactionSetLabels.ToDictionary(
+            pair => pair.Key,
+            pair => pair.Value,
             StringComparer.Ordinal));
     }
 
     public IReadOnlyList<int> LookbackMonths { get; }
 
     public int DefaultLookbackMonths { get; }
+
+    public bool DefaultIncomeIsRegular { get; }
 
     public IReadOnlyDictionary<string, ReportFilterChoices> FilterSets { get; }
 

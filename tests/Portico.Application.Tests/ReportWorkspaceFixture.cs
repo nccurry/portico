@@ -7,10 +7,11 @@ internal static class ReportWorkspaceFixture
     public static async Task<Workspace> Open(
         PortfolioSnapshot snapshot,
         FinanceSettings? settings = null,
-        DateOnly? asOfDate = null)
+        DateOnly? asOfDate = null,
+        ReportChoiceSettings? choices = null)
     {
         var application = new PorticoApplication(
-            new ConfigurationReader(settings ?? Settings()),
+            new ConfigurationReader(settings ?? Settings(), choices ?? Choices()),
             new PortfolioReader(snapshot));
         OpenWorkspaceOutcome outcome = await application.OpenWorkspaceAsync(
             new ConfigurationSelection(), asOfDate, TestContext.Current.CancellationToken);
@@ -32,24 +33,28 @@ internal static class ReportWorkspaceFixture
 
     public static FinanceSettings Settings()
         => new(
-            new LookbackSettings([1, 3, 12], 3),
             new ThresholdSettings(100m, 100m, 10m, 1),
-            new IncomeSavingsSettings("regular", 25m, ["Gift"], ["Transfer"]),
-            [new TransactionSetDefinition("all", "All", [], [], [], [], [], [], [])],
-            [new FilterSetDefinition("spending", ["all"], "all")],
-            new SubscriptionSettings([], 0, 1, [], []),
+            new IncomeSavingsSettings(25m, ["Gift"], ["Transfer"]),
+            [new TransactionSetDefinition("all", [], [], [], [], [], [], [])],
+            new SubscriptionSettings([], 0, 1, []),
             new BudgetSettings(3),
             new DataHealthSettings(1, false, false, false),
             new FinancialSafetySettings(3, ["Cash"], [], 3, [], [], ["Debt"], [], null),
             new FinancialIndependenceSettings(0.05m, 0.04m, 1000m, 12, 10, [], []),
             new Dictionary<string, IReadOnlyList<string>>());
 
-    private sealed class ConfigurationReader(FinanceSettings settings) : IConfigurationReader
+    public static ReportChoiceSettings Choices()
+        => new(new LookbackSettings([1, 3, 12], 3),
+            [new FilterSetDefinition("spending", ["all"], "all"),
+                new FilterSetDefinition("year_over_year", ["all"], "all")],
+            new Dictionary<string, string>(StringComparer.Ordinal) { ["all"] = "All" }, true, []);
+
+    private sealed class ConfigurationReader(FinanceSettings settings, ReportChoiceSettings choices) : IConfigurationReader
     {
         public Task<ConfigurationReadOutcome> ReadAsync(
             ConfigurationSelection selection, CancellationToken cancellationToken)
             => Task.FromResult<ConfigurationReadOutcome>(new ConfigurationReadSuccess(
-                new WorkspaceConfiguration(settings, new LocalCsvSourceRequest("fixture"))));
+                new WorkspaceConfiguration(settings, choices, new LocalCsvSourceRequest("fixture"))));
     }
 
     private sealed class PortfolioReader(PortfolioSnapshot snapshot) : IPortfolioReader

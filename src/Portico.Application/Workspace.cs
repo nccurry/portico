@@ -9,8 +9,9 @@ public sealed partial class Workspace
 {
     private readonly PortfolioSnapshot _snapshot;
     private readonly FinanceSettings _settings;
+    private readonly ReportChoiceSettings _reportChoiceSettings;
 
-    internal Workspace(PortfolioSnapshot snapshot, FinanceSettings settings, DateOnly? asOfDate)
+    internal Workspace(PortfolioSnapshot snapshot, FinanceSettings settings, ReportChoiceSettings reportChoices, DateOnly? asOfDate)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
         _snapshot = new PortfolioSnapshot(
@@ -18,7 +19,8 @@ public sealed partial class Workspace
             snapshot.Balances.ToArray(),
             snapshot.Budgets.ToArray());
         _settings = CopySettings(settings ?? throw new ArgumentNullException(nameof(settings)));
-        ReportChoices = new ReportChoices(_settings);
+        _reportChoiceSettings = CopyReportChoices(reportChoices ?? throw new ArgumentNullException(nameof(reportChoices)));
+        ReportChoices = new ReportChoices(_reportChoiceSettings);
         AsOfDate = asOfDate ?? _snapshot.LatestDate ?? new DateOnly(2000, 1, 1);
     }
 
@@ -32,7 +34,6 @@ public sealed partial class Workspace
     {
         return settings with
         {
-            Lookback = settings.Lookback with { Months = settings.Lookback.Months.ToArray() },
             IncomeSavings = settings.IncomeSavings with
             {
                 ExcludeCategories = settings.IncomeSavings.ExcludeCategories.ToArray(),
@@ -48,14 +49,9 @@ public sealed partial class Workspace
                 Includes = set.Includes.ToArray(),
                 Excludes = set.Excludes.ToArray()
             }).ToArray(),
-            FilterSets = settings.FilterSets.Select(set => set with
-            {
-                Options = set.Options.ToArray()
-            }).ToArray(),
             Subscriptions = settings.Subscriptions with
             {
                 KnownCategories = settings.Subscriptions.KnownCategories.ToArray(),
-                DefaultExcludeCategories = settings.Subscriptions.DefaultExcludeCategories.ToArray(),
                 DetectionExcludedCategories = settings.Subscriptions.DetectionExcludedCategories.ToArray()
             },
             FinancialSafety = settings.FinancialSafety with
@@ -78,4 +74,14 @@ public sealed partial class Workspace
                 StringComparer.Ordinal)
         };
     }
+
+    private static ReportChoiceSettings CopyReportChoices(ReportChoiceSettings choices)
+        => choices with
+        {
+            Lookback = choices.Lookback with { Months = choices.Lookback.Months.ToArray() },
+            FilterSets = choices.FilterSets.Select(set => set with { Options = set.Options.ToArray() }).ToArray(),
+            TransactionSetLabels = choices.TransactionSetLabels.ToDictionary(
+                pair => pair.Key, pair => pair.Value, StringComparer.Ordinal),
+            DefaultSubscriptionDiscoveryExclusions = choices.DefaultSubscriptionDiscoveryExclusions.ToArray()
+        };
 }

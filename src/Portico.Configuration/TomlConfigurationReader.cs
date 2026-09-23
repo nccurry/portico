@@ -84,7 +84,8 @@ public sealed class TomlConfigurationReader : IConfigurationReader
         TomlTable merchants = Table(main, "merchants", "", problems);
         CheckKeys(merchants, "merchants", problems, "aliases");
         IReadOnlyDictionary<string, IReadOnlyList<string>> aliases = Aliases(merchants, problems);
-        IReadOnlyList<TransactionSetDefinition> transactionSets = TransactionSets(main, problems);
+        (IReadOnlyList<TransactionSetDefinition> transactionSets,
+            IReadOnlyDictionary<string, string> transactionSetLabels) = TransactionSets(main, problems);
         IReadOnlyList<FilterSetDefinition> filterSets = FilterSets(main, transactionSets, problems);
 
         TomlTable savings = Table(main, "income_savings", "", problems);
@@ -96,7 +97,6 @@ public sealed class TomlConfigurationReader : IConfigurationReader
         decimal targetRate = Number(savings, "target_rate", "income_savings", problems);
         Range(targetRate, 0m, 100m, "income_savings.target_rate", problems);
         var savingsSettings = new IncomeSavingsSettings(
-            defaultView,
             targetRate,
             Strings(savings, "exclude_categories", "income_savings", problems),
             Strings(savings, "exclude_groups", "income_savings", problems));
@@ -113,8 +113,9 @@ public sealed class TomlConfigurationReader : IConfigurationReader
             Strings(subscriptions, "known_categories", "subscriptions", problems),
             minimumConfidence,
             staleAfterDays,
-            Strings(subscriptions, "default_exclude_categories", "subscriptions", problems),
             Strings(subscriptions, "detection_excluded_categories", "subscriptions", problems));
+        IReadOnlyList<string> defaultDiscoveryExclusions = Strings(
+            subscriptions, "default_exclude_categories", "subscriptions", problems);
 
         TomlTable budget = Table(main, "budget", "", problems);
         CheckKeys(budget, "budget", problems, "history_months");
@@ -207,18 +208,22 @@ public sealed class TomlConfigurationReader : IConfigurationReader
             return new PorticoFailure(problems);
 
         var settings = new FinanceSettings(
-            new LookbackSettings(months, defaultMonths),
             new ThresholdSettings(expense, income, duplicateMinimum, duplicateDays),
             savingsSettings,
             transactionSets,
-            filterSets,
             subscriptionSettings,
             new BudgetSettings(historyMonths),
             healthSettings,
             safetySettings,
             independenceSettings,
             aliases);
-        return new ConfigurationReadSuccess(new WorkspaceConfiguration(settings, source!));
+        var choices = new ReportChoiceSettings(
+            new LookbackSettings(months, defaultMonths),
+            filterSets,
+            transactionSetLabels,
+            defaultView == "regular",
+            defaultDiscoveryExclusions);
+        return new ConfigurationReadSuccess(new WorkspaceConfiguration(settings, choices, source!));
     }
 
     private string? ResolveFile(string path, string field, List<PorticoProblem> problems)
@@ -319,12 +324,13 @@ public sealed class TomlConfigurationReader : IConfigurationReader
         return aliases;
     }
 
-    private static IReadOnlyList<TransactionSetDefinition> TransactionSets(
+    private static (IReadOnlyList<TransactionSetDefinition> Sets, IReadOnlyDictionary<string, string> Labels) TransactionSets(
         TomlTable root,
         List<PorticoProblem> problems)
     {
         TomlTable table = Table(root, "transaction_sets", "", problems);
         var sets = new List<TransactionSetDefinition>();
+        var labels = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach ((string key, object? value) in table)
         {
             if (string.IsNullOrWhiteSpace(key) || value is not TomlTable definition)
@@ -335,9 +341,9 @@ public sealed class TomlConfigurationReader : IConfigurationReader
             CheckKeys(definition, "transaction_sets", problems,
                 "label", "groups", "categories", "accounts", "merchants",
                 "transactions_like", "includes", "excludes");
+            labels.Add(key, RequiredString(definition, "label", "transaction_sets", problems));
             sets.Add(new TransactionSetDefinition(
                 key,
-                RequiredString(definition, "label", "transaction_sets", problems),
                 Strings(definition, "groups", "transaction_sets", problems),
                 Strings(definition, "categories", "transaction_sets", problems),
                 Strings(definition, "accounts", "transaction_sets", problems),
@@ -349,7 +355,7 @@ public sealed class TomlConfigurationReader : IConfigurationReader
         if (sets.Count == 0)
             Add(problems, "config.missing-field", "Define at least one transaction set.", "transaction_sets");
         ValidateSetReferences(sets, problems);
-        return sets;
+        return (sets, labels);
     }
 
     private static void ValidateSetReferences(

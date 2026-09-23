@@ -403,15 +403,10 @@ public sealed class AdvancedAnalyzeAnalysisTests
 
     private static FinanceSettings Settings()
         => new(
-            new LookbackSettings([1, 2, 3, 6, 12, 24], 3),
             new ThresholdSettings(1_000m, 5_000m, 10m, 1),
-            new IncomeSavingsSettings("regular", 20m, [], []),
-            [new TransactionSetDefinition("all", "All", [], [], [], [], [], [], [])],
-            [
-                new FilterSetDefinition("spending", ["all"], "all"),
-                new FilterSetDefinition("year_over_year", ["all"], "all")
-            ],
-            new SubscriptionSettings(["Streaming"], 80, 45, [], []),
+            new IncomeSavingsSettings(20m, [], []),
+            [new TransactionSetDefinition("all", [], [], [], [], [], [], [])],
+            new SubscriptionSettings(["Streaming"], 80, 45, []),
             new BudgetSettings(12),
             new DataHealthSettings(7, true, false, true),
             new FinancialSafetySettings(6, [], [], 6, [], [], [], [], null),

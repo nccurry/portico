@@ -223,7 +223,7 @@ public sealed class SpendingAnalysisTests
         SpendingLedgerEntry rent = Assert.Single(living.CurrentLedger, entry => entry.Transaction.Id == "rent");
         Assert.False(rent.Included);
         Assert.Equal(
-            new LedgerExclusion(LedgerExclusionReason.OutsideConfiguredSet, "Living"),
+            new LedgerExclusion(LedgerExclusionReason.OutsideConfiguredSet, "living"),
             Assert.Single(rent.Exclusions));
         (string Merchant, decimal Spending, decimal SharePercent, int Transactions, decimal AverageTransaction, DateOnly LastTransaction) merchant =
             Assert.Single(SpendingAnalysisCalculator.Merchants(living.CurrentLedger, settings.MerchantAliases));
@@ -272,16 +272,14 @@ public sealed class SpendingAnalysisTests
     {
         TransactionSetDefinition[] sets =
         [
-            new TransactionSetDefinition("all", "All", [], [], [], [], [], [], []),
-            new TransactionSetDefinition("living", "Living", ["Living"], [], [], [], [], [], [])
+            new TransactionSetDefinition("all", [], [], [], [], [], [], []),
+            new TransactionSetDefinition("living", ["Living"], [], [], [], [], [], [])
         ];
         return new FinanceSettings(
-            new LookbackSettings([1, 2, 3, 6, 12, 24], 3),
             new ThresholdSettings(1_000m, 5_000m, 10m, 1),
-            new IncomeSavingsSettings("regular", 20m, [], []),
+            new IncomeSavingsSettings(20m, [], []),
             sets,
-            [new FilterSetDefinition("spending", ["all", "living"], "all")],
-            new SubscriptionSettings([], 80, 45, [], []),
+            new SubscriptionSettings([], 80, 45, []),
             new BudgetSettings(12),
             new DataHealthSettings(7, true, false, true),
             new FinancialSafetySettings(6, [], [], 6, [], [], [], [], null),

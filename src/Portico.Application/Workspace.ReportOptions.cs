@@ -95,7 +95,7 @@ public sealed partial class Workspace
     public IReadOnlyList<string> SubscriptionDiscoveryDefaults(IReadOnlyList<string> selected)
     {
         IReadOnlyList<string> available = TransactionChoices(TransactionChoiceField.Category);
-        return _settings.Subscriptions.DefaultExcludeCategories
+        return _reportChoiceSettings.DefaultSubscriptionDiscoveryExclusions
             .Where(available.Contains)
             .Where(category => !category.EndsWith("bill", StringComparison.OrdinalIgnoreCase))
             .Where(category => !selected.Contains(category, StringComparer.Ordinal))

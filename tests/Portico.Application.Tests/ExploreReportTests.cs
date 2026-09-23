@@ -256,18 +256,13 @@ public sealed class ExploreReportTests
 
     private static FinanceSettings Settings()
         => new(
-            new LookbackSettings([3], 3),
             new ThresholdSettings(100m, 100m, 10m, 1),
-            new IncomeSavingsSettings("regular", 0.1m, [], []),
+            new IncomeSavingsSettings(0.1m, [], []),
             [
-                new TransactionSetDefinition("all", "All", [], [], [], [], [], [], []),
-                new TransactionSetDefinition("living", "Living", ["Living"], [], [], [], [], [], [])
+                new TransactionSetDefinition("all", [], [], [], [], [], [], []),
+                new TransactionSetDefinition("living", ["Living"], [], [], [], [], [], [])
             ],
-            [
-                new FilterSetDefinition("spending", ["all"], "all"),
-                new FilterSetDefinition("year_over_year", ["all", "living"], "all")
-            ],
-            new SubscriptionSettings(["Subscriptions"], 70, 5, [], []),
+            new SubscriptionSettings(["Subscriptions"], 70, 5, []),
             new BudgetSettings(12),
             new DataHealthSettings(1, false, false, false),
             new FinancialSafetySettings(3, [], [], 3, [], [], [], [], null),
@@ -278,8 +273,18 @@ public sealed class ExploreReportTests
     {
         public Task<ConfigurationReadOutcome> ReadAsync(ConfigurationSelection selection, CancellationToken cancellationToken)
             => Task.FromResult<ConfigurationReadOutcome>(new ConfigurationReadSuccess(new WorkspaceConfiguration(
-                settings, new LocalCsvSourceRequest("synthetic"))));
+                settings, Choices(), new LocalCsvSourceRequest("synthetic"))));
     }
+
+    private static ReportChoiceSettings Choices()
+        => new(new LookbackSettings([3], 3),
+            [new FilterSetDefinition("spending", ["all"], "all"),
+                new FilterSetDefinition("year_over_year", ["all", "living"], "all")],
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["all"] = "All",
+                ["living"] = "Living"
+            }, true, []);
 
     private sealed class PortfolioReader(PortfolioSnapshot snapshot) : IPortfolioReader
     {

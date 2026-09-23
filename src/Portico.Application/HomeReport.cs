@@ -114,7 +114,7 @@ public sealed partial class Workspace
             .ToArray();
 
         YearMonth? latestMonth = _snapshot.LatestDate is DateOnly date ? YearMonth.From(date) : null;
-        int lookbackMonths = request.CashFlowLookbackMonths ?? _settings.Lookback.DefaultMonths;
+        int lookbackMonths = request.CashFlowLookbackMonths ?? _reportChoiceSettings.Lookback.DefaultMonths;
         if (lookbackMonths <= 0)
             throw new ArgumentOutOfRangeException(nameof(request), "Cash-flow lookback must be positive.");
         YearMonth? startMonth = latestMonth is null
@@ -122,8 +122,7 @@ public sealed partial class Workspace
             : latestMonth.Value.AddMonths(-Math.Min(
                 lookbackMonths - 1,
                 (latestMonth.Value.Year - 1) * 12 + latestMonth.Value.Month - 1));
-        IncomeExpensePolicy policy = (request.RegularIncome
-            ?? string.Equals(_settings.IncomeSavings.DefaultView, "regular", StringComparison.OrdinalIgnoreCase))
+        IncomeExpensePolicy policy = (request.RegularIncome ?? _reportChoiceSettings.DefaultIncomeIsRegular)
             ? IncomeExpensePolicy.From(_settings.IncomeSavings)
             : new IncomeExpensePolicy([], []);
         CashFlowSummary cashFlow = CashFlowCalculator.Summarize(CashFlowCalculator.BuildMonthly(

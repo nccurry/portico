@@ -43,7 +43,7 @@ public sealed partial class Workspace
     {
         request ??= new YearOverYearReportRequest();
         FinancialTransaction[] visible = _snapshot.Transactions.Where(transaction => !transaction.IsHidden).ToArray();
-        string presetSetKey = request.PresetSetKey ?? _settings.FilterSet("year_over_year").Default;
+        string presetSetKey = request.PresetSetKey ?? _reportChoiceSettings.FilterSet("year_over_year").Default;
         IReadOnlyList<string> presets = YearOverYearAnalysisCalculator.PresetCategories(
             visible, _settings, presetSetKey);
         IReadOnlyList<string> categories = YearOverYearAnalysisCalculator.Entities(
