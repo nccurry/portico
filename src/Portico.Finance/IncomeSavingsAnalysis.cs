@@ -65,9 +65,6 @@ public sealed record IncomeSavingsLedgerEntry(
     bool Included,
     IReadOnlyList<LedgerExclusion> Exclusions)
 {
-    /// <summary>Supports the old Dashboard until Desktop owns the wording.</summary>
-    public string ExclusionReason => LegacyFinanceCopy.Exclusions(Exclusions);
-
     /// <summary>Gets the row's positive income contribution when it is included.</summary>
     public decimal Income => Included && Transaction.Kind == TransactionKind.Income ? Transaction.Amount : 0m;
 
