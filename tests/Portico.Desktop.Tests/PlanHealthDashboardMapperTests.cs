@@ -61,7 +61,8 @@ public sealed class PlanHealthDashboardMapperTests
     {
         Workspace workspace = await MapperWorkspaceFixture.Open(new PortfolioSnapshot([], [], []));
 
-        DashboardPageReport page = BudgetDashboardMapper.Build(workspace.Budget());
+        DashboardPageReport page = BudgetDashboardMapper.Build(
+            workspace.Budget(), workspace.AsOfDate, workspace.HasVisibleTransactions);
 
         Assert.Equal(BudgetEmptyReason.NoGroupsSelected, page.BudgetView?.Analysis.EmptyReason);
         Assert.Equal("Select at least one budget group.", page.BudgetView?.EmptyMessage);

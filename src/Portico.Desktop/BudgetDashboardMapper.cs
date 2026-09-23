@@ -22,13 +22,6 @@ public sealed record BudgetPageView(
 /// <summary>Turns the semantic Budget report into desktop widgets and copy.</summary>
 public static class BudgetDashboardMapper
 {
-    /// <summary>Convenient for direct callers; the host supplies its workspace date and visibility for exact captions.</summary>
-    public static DashboardPageReport Build(BudgetReport report)
-    {
-        ArgumentNullException.ThrowIfNull(report);
-        return Build(report, report.Analysis.Request.ThroughDate, report.Transactions.Count > 0);
-    }
-
     public static DashboardPageReport Build(BudgetReport report, DateOnly reportDate, bool hasVisibleTransactions)
     {
         ArgumentNullException.ThrowIfNull(report);

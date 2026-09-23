@@ -78,6 +78,22 @@ public sealed class FoundationReportMapperTests
     }
 
     [Fact]
+    public async Task SpendingLastYearUsesMatchedHistoryAndLabels()
+    {
+        Workspace workspace = await OpenWorkspace();
+        SpendingReport report = workspace.Spending(new SpendingReportRequest(
+            LookbackMonths: 2, Comparison: SpendingComparison.LastYear,
+            Breakdown: SpendingBreakdown.Group, Entity: "Living"));
+
+        DashboardPageReport page = SpendingDashboardReport.Build(report, 2, SpendingComparison.LastYear);
+
+        Assert.Contains("same months last year", page.Widgets["spending.overview"].Columns);
+        ReportSeries comparison = page.Widgets["spending.detail_history"].Series[1];
+        Assert.Equal("same months last year", comparison.Label);
+        Assert.Equal(50m, comparison.Points[^1].Y);
+    }
+
+    [Fact]
     public async Task YearOverYearShowsEmptyChoiceThenSelectedComparison()
     {
         Workspace workspace = await OpenWorkspace();

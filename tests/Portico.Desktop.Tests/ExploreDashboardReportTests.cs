@@ -95,6 +95,24 @@ public sealed class ExploreDashboardReportTests
     }
 
     [Fact]
+    public async Task MerchantExclusionsUseTypedReasonsForDesktopCopy()
+    {
+        Workspace workspace = await Open(
+            [Expense("coffee", 2026, 3, 1, "Coffee", "Food", -20m)],
+            new DateOnly(2026, 3, 5));
+        SpendingAdjustments adjustments = SpendingAdjustments.Default(100m) with
+        {
+            ExcludedGroups = ["Living"]
+        };
+
+        DashboardPageReport page = MerchantsDashboardReport.Build(workspace.Merchants(
+            new MerchantsReportRequest(Adjustments: adjustments)), SpendingComparison.PreviousPeriod);
+
+        ReportTableRow row = Assert.Single(page.Widgets["merchants.excluded"].Rows);
+        Assert.Equal("Excluded group: Living", row.Values[5]);
+    }
+
+    [Fact]
     public async Task TransactionFilterChangesResultsAndTopWidgets()
     {
         Workspace workspace = await Open(

@@ -22,12 +22,6 @@ public sealed record FinancialIndependencePageView(
 /// <summary>Turns semantic Financial Independence values into desktop widgets.</summary>
 public static class FinancialIndependenceDashboardMapper
 {
-    public static DashboardPageReport Build(FinancialIndependenceReport report)
-    {
-        ArgumentNullException.ThrowIfNull(report);
-        return Build(report, report.LatestTransactionDate ?? report.LatestBalanceDate ?? new DateOnly(2000, 1, 1));
-    }
-
     public static DashboardPageReport Build(FinancialIndependenceReport report, DateOnly reportDate)
     {
         ArgumentNullException.ThrowIfNull(report);

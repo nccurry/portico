@@ -129,7 +129,7 @@ public static class MerchantsDashboardReport
         return new([], [], ["Date", "Description", "Category", "Group", "Spending", "Reason"],
             excluded.Select(entry => new ReportTableRow(
                 [Date(entry.Transaction.Date), entry.Transaction.Description, entry.Transaction.Category,
-                    entry.Transaction.Group, Money(entry.NetSpending), entry.ExclusionReason], "negative")).ToArray(),
+                    entry.Transaction.Group, Money(entry.NetSpending), DashboardReportText.Exclusions(entry.Exclusions)], "negative")).ToArray(),
             excluded.Length == 0 ? "No current-period rows are excluded." : null);
     }
 }
