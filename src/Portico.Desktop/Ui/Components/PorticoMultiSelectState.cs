@@ -1,4 +1,4 @@
-namespace Portico.Desktop.Ui.Components;
+﻿namespace Portico.Desktop.Ui.Components;
 
 /// <summary>Holds the local interaction state for one composed multi-select.</summary>
 public sealed class PorticoMultiSelectState<T>
