@@ -8,4 +8,7 @@
     <ProjectReference Include="../Portico.Application/Portico.Application.csproj" />
     <ProjectReference Include="$(RociSourceRoot)/src/Roci.Core/Roci.Core.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Tomlyn" />
+  </ItemGroup>
 </Project>
