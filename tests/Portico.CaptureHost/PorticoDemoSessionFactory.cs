@@ -1,6 +1,7 @@
-﻿using Portico.Adapters;
-using Portico.Dashboard;
-using Portico.Finance;
+using Portico.Application;
+using Portico.Configuration;
+using Portico.Data;
+using Portico.Desktop;
 
 namespace Portico.CaptureHost;
 
@@ -19,17 +20,29 @@ public static class PorticoDemoSessionFactory
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(repositoryRoot);
 
-        string configPath = Path.Combine(repositoryRoot, "portico-demo.toml");
+        string configPath = Path.Combine(repositoryRoot, "portico.toml");
         string dashboardPath = Path.Combine(repositoryRoot, "dashboard.toml");
-        string dataPath = Path.Combine(repositoryRoot, "demo", "data");
-        FinanceSettings settings = TomlConfigurationLoader.LoadFinance(configPath);
-        DashboardDefinition definition = TomlConfigurationLoader.LoadDashboard(dashboardPath);
-        PortfolioSnapshot snapshot = new LocalCsvSnapshotSource(dataPath)
-            .LoadAsync()
-            .GetAwaiter()
-            .GetResult();
+        using var httpClient = new HttpClient();
+        var application = new PorticoApplication(
+            new TomlConfigurationReader(repositoryRoot),
+            new DataPortfolioReader(httpClient));
+        OpenWorkspaceOutcome opened = application.OpenWorkspaceAsync(
+            new ConfigurationSelection(configPath), CaptureDate).GetAwaiter().GetResult();
+        Workspace workspace = opened switch
+        {
+            WorkspaceOpened success => success.GetWorkspace(),
+            PorticoFailure failure => throw new InvalidOperationException(failure.Problems[0].Message),
+            _ => throw new InvalidOperationException("Could not open the demo workspace.")
+        };
+        DashboardReadOutcome read = DashboardConfigurationReader.Read(dashboardPath, workspace.ReportChoices);
+        DashboardDefinition definition = read switch
+        {
+            DashboardReadSuccess success => success.Definition,
+            PorticoFailure failure => throw new InvalidOperationException(failure.Problems[0].Message),
+            _ => throw new InvalidOperationException("Could not read the demo dashboard.")
+        };
 
-        return new DashboardSession(snapshot, settings, definition, CaptureDate);
+        return new DashboardSession(workspace, definition);
     }
 
     private static string FindRepositoryRoot()
@@ -38,7 +51,7 @@ public static class PorticoDemoSessionFactory
         while (current is not null)
         {
             if (File.Exists(Path.Combine(current.FullName, "Portico.Roci.slnx"))
-                && File.Exists(Path.Combine(current.FullName, "portico-demo.toml"))
+                && File.Exists(Path.Combine(current.FullName, "portico.toml"))
                 && File.Exists(Path.Combine(current.FullName, "dashboard.toml")))
             {
                 return current.FullName;
