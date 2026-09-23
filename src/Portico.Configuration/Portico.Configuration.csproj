@@ -7,4 +7,7 @@
     <ProjectReference Include="../Portico.Application/Portico.Application.csproj" />
     <ProjectReference Include="../Portico.Finance/Portico.Finance.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Tomlyn" />
+  </ItemGroup>
 </Project>
