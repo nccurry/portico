@@ -160,6 +160,32 @@ public sealed class PlanHealthDashboardMapperTests
     }
 
     [Fact]
+    public async Task DataHealthDetailUsesTheExistingWordingForTypedFindings()
+    {
+        var date = new DateOnly(2026, 3, 10);
+        Workspace workspace = await MapperWorkspaceFixture.Open(new PortfolioSnapshot(
+        [
+            new FinancialTransaction("incomplete", date, "Food", "Living", "", "", -30m, TransactionKind.Expense),
+            new FinancialTransaction("refund", date, "Food", "Living", "Checking", "Refund", 15m, TransactionKind.Expense),
+            new FinancialTransaction("income-reversal", date, "Pay", "Income", "Checking", "Correction", -10m, TransactionKind.Income)
+        ],
+        [
+            new BalanceObservation("", "Old account", "", new DateOnly(2026, 2, 1), TimeOnly.MinValue,
+                100m, AccountClass.Asset, false)
+        ], []), date);
+
+        static DashboardWidgetReport Detail(Workspace workspace, string checkId)
+            => DataHealthDashboardMapper.Build(workspace.DataHealth(
+                new DataHealthReportRequest(SelectedCheckId: checkId))).Widgets["health.detail"];
+
+        Assert.Equal("Account, Description", Assert.Single(Detail(workspace, "incomplete").Rows).Values[^1]);
+        Assert.Equal("Account ID, Group", Assert.Single(Detail(workspace, "account_mapping").Rows).Values[^1]);
+        Assert.Equal("37 days old", Assert.Single(Detail(workspace, "stale_accounts").Rows).Values[^1]);
+        Assert.Equal(["Expense refund", "Income reversal"],
+            Detail(workspace, "reversals").Rows.Select(row => row.Values[^1]).Order(StringComparer.Ordinal));
+    }
+
+    [Fact]
     public async Task DataHealthEmptySourceKeepsExistingEmptyPanelMessage()
     {
         Workspace workspace = await MapperWorkspaceFixture.Open(new PortfolioSnapshot([], [], []));

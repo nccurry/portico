@@ -53,9 +53,47 @@ public sealed class DataHealthAnalysisTests
         Assert.Equal(1, Check(result, "reversals").FindingCount);
         Assert.Equal(DataHealthCheckKind.Duplicates, Check(result, "duplicates").Kind);
         Assert.Equal(DataHealthCheckStatus.Review, Check(result, "duplicates").StatusKind);
-        Assert.Equal("Expense refund", Assert.Single(Check(result, "reversals").Records).Details);
+        Assert.Equal([DataHealthMissingField.Account, DataHealthMissingField.Description],
+            Assert.Single(Check(result, "incomplete").Records).Details switch
+            {
+                DataHealthMissingFields missing => missing.Fields,
+                _ => []
+            });
+        Assert.Equal([DataHealthMissingField.AccountId, DataHealthMissingField.Group],
+            Assert.Single(Check(result, "account_mapping").Records).Details switch
+            {
+                DataHealthMissingFields missing => missing.Fields,
+                _ => []
+            });
+        Assert.Equal(40, Assert.Single(Check(result, "stale_accounts").Records).Details switch
+        {
+            DataHealthStaleDays stale => stale.Days,
+            _ => -1
+        });
+        Assert.Equal(DataHealthReversalKind.ExpenseRefund,
+            Assert.Single(Check(result, "reversals").Records).Details switch
+            {
+                DataHealthReversal reversal => reversal.Kind,
+                _ => (DataHealthReversalKind)(-1)
+            });
+        Assert.Null(Assert.Single(Check(result, "duplicates").Records).Details);
         Assert.Equal(4, result.NeedsAttention);
         Assert.Equal(2, result.ReviewItems);
+    }
+
+    [Fact]
+    public void Build_ClassifiesAnIncomeReversalWithoutDisplayWording()
+    {
+        DataHealthAnalysisResult result = DataHealthAnalysisCalculator.Build(
+            [Transaction("reversal", new DateOnly(2026, 6, 1), "Pay", "Income", "Checking", "Correction", -10m, TransactionKind.Income)],
+            [], Options(), new DateOnly(2026, 6, 10));
+
+        DataHealthRecord record = Assert.Single(Check(result, "reversals").Records);
+        Assert.Equal(DataHealthReversalKind.IncomeReversal, record.Details switch
+        {
+            DataHealthReversal reversal => reversal.Kind,
+            _ => (DataHealthReversalKind)(-1)
+        });
     }
 
     [Fact]

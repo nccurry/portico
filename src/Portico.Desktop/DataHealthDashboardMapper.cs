@@ -95,7 +95,7 @@ public static class DataHealthDashboardMapper
                     check.Check.Kind == DataHealthCheckKind.StaleAccounts ? "Days stale" : "Missing fields"],
                 check.Records.Select(record => new ReportTableRow([
                     DateOrNoData(record.Date), record.Account, record.Group,
-                    record.Amount is null ? "—" : Money(record.Amount.Value), record.Details
+                    record.Amount is null ? "—" : Money(record.Amount.Value), DetailsText(record.Details)
                 ], Tone(check.Check.Status))).ToArray(),
                 check.FindingCount == 0 ? "No findings for this check." : null);
 
@@ -108,10 +108,34 @@ public static class DataHealthDashboardMapper
         return new([], [], ["Date", "Description", "Account", "Category", "Group", "Amount", detailsColumn],
             check.Records.Select(record => new ReportTableRow([
                 DateOrNoData(record.Date), record.Description, record.Account, record.Category, record.Group,
-                record.Amount is null ? "—" : Money(record.Amount.Value), record.Details
+                record.Amount is null ? "—" : Money(record.Amount.Value), DetailsText(record.Details)
             ], Tone(check.Check.Status))).ToArray(),
             check.FindingCount == 0 ? "No findings for this check." : null);
     }
+
+    private static string DetailsText(DataHealthRecordDetail? details)
+        => details switch
+        {
+            null => string.Empty,
+            DataHealthMissingFields missing => string.Join(", ", missing.Fields.Select(MissingFieldName)),
+            DataHealthStaleDays stale => $"{stale.Days.ToString(CultureInfo.InvariantCulture)} days old",
+            DataHealthReversal reversal => reversal.Kind switch
+            {
+                DataHealthReversalKind.ExpenseRefund => "Expense refund",
+                DataHealthReversalKind.IncomeReversal => "Income reversal",
+                _ => throw new ArgumentOutOfRangeException(nameof(details))
+            }
+        };
+
+    private static string MissingFieldName(DataHealthMissingField field)
+        => field switch
+        {
+            DataHealthMissingField.AccountId => "Account ID",
+            DataHealthMissingField.Account => "Account",
+            DataHealthMissingField.Description => "Description",
+            DataHealthMissingField.Group => "Group",
+            _ => throw new ArgumentOutOfRangeException(nameof(field))
+        };
 
     private static string? Tone(DataHealthCheckStatus status) => status switch
     {
