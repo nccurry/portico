@@ -49,7 +49,7 @@ public sealed class PorticoHost(PorticoApplication application, DesktopRunner de
             return outcome switch
             {
                 WorkspaceOpened opened => await _desktop(
-                    opened.GetWorkspace(), command.DashboardPath, output, error, cancellationToken),
+                    opened.GetWorkspace(), DashboardPath(command), output, error, cancellationToken),
                 PorticoFailure failure => Cli.PorticoCli.WriteRunFailure(failure, output),
                 _ => throw new InvalidOperationException("The workspace operation returned no outcome.")
             };
@@ -64,5 +64,14 @@ public sealed class PorticoHost(PorticoApplication application, DesktopRunner de
         {
             return Cli.PorticoCli.WriteHostFailure(error);
         }
+    }
+
+    private static string DashboardPath(Cli.PorticoCommand command)
+    {
+        if (command.DashboardPath is not null)
+            return command.DashboardPath;
+
+        string mainPath = Path.GetFullPath(command.Selection.ConfigurationPath ?? "portico.toml");
+        return Path.Combine(Path.GetDirectoryName(mainPath)!, "dashboard.toml");
     }
 }

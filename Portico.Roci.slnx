@@ -17,6 +17,7 @@
     <Project Path="tests/Portico.Cli.Tests/Portico.Cli.Tests.csproj" />
     <Project Path="tests/Portico.Configuration.Tests/Portico.Configuration.Tests.csproj" />
     <Project Path="tests/Portico.Data.Tests/Portico.Data.Tests.csproj" />
+    <Project Path="tests/Portico.Desktop.Tests/Portico.Desktop.Tests.csproj" />
     <Project Path="tests/Portico.EndToEnd.Tests/Portico.EndToEnd.Tests.csproj" />
     <Project Path="tests/Portico.Dashboard.Tests/Portico.Dashboard.Tests.csproj" />
     <Project Path="tests/Portico.Adapters.Tests/Portico.Adapters.Tests.csproj" />

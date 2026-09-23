@@ -61,6 +61,27 @@ public sealed class PorticoHostTests
     }
 
     [Fact]
+    public async Task Run_DefaultDashboardIsSiblingOfSelectedMainConfiguration()
+    {
+        string mainPath = Path.Combine(Path.GetTempPath(), "selected", "portico.toml");
+        string? dashboardPath = null;
+        var host = new PorticoHost(
+            new PorticoApplication(new FakeConfigurationReader(), new FakePortfolioReader()),
+            (_, path, _, _, _) =>
+            {
+                dashboardPath = path;
+                return Task.FromResult(0);
+            });
+
+        int exitCode = await host.RunAsync(
+            ["run", "--config", mainPath], new StringWriter(), new StringWriter(),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(0, exitCode);
+        Assert.Equal(Path.Combine(Path.GetDirectoryName(mainPath)!, "dashboard.toml"), dashboardPath);
+    }
+
+    [Fact]
     public async Task UsageFailure_DoesNotReadConfigurationOrStartDesktop()
     {
         var configuration = new FakeConfigurationReader();
