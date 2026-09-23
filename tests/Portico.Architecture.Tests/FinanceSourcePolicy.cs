@@ -13,6 +13,7 @@ internal static class FinanceSourcePolicy
         "Roci",
         "System.IO",
         "System.Net",
+        "System.Console",
         "System.CommandLine",
         "Spectre.Console"
     ];
@@ -27,7 +28,7 @@ internal static class FinanceSourcePolicy
 
     private static readonly Lazy<IReadOnlyList<MetadataReference>> TrustedPlatformReferences = new(CreateTrustedPlatformReferences);
 
-    private static readonly SyntaxTree ImplicitFrameworkUsings = CSharpSyntaxTree.ParseText(
+    private const string ImplicitFrameworkUsings =
         """
         global using System;
         global using System.Collections.Generic;
@@ -37,14 +38,27 @@ internal static class FinanceSourcePolicy
         global using System.Net.Http.Json;
         global using System.Threading;
         global using System.Threading.Tasks;
-        """,
-        path: "<implicit-framework-usings>");
+        """;
 
-    public static IReadOnlyList<string> FindForbiddenNamespaceUses(IEnumerable<string> sourceFiles)
+    public static CSharpParseOptions ParseOptions(EvaluatedProject project)
+    {
+        if (!LanguageVersionFacts.TryParse(project.LangVersion, out LanguageVersion languageVersion))
+            throw new InvalidOperationException($"Unknown Finance language version '{project.LangVersion}'.");
+
+        string[] symbols = project.DefineConstants
+            .Split([';', ','], StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        return CSharpParseOptions.Default
+            .WithLanguageVersion(languageVersion)
+            .WithPreprocessorSymbols(symbols);
+    }
+
+    public static IReadOnlyList<string> FindForbiddenNamespaceUses(
+        IEnumerable<string> sourceFiles,
+        CSharpParseOptions parseOptions)
     {
         SyntaxTree[] trees = sourceFiles
             .Order(StringComparer.Ordinal)
-            .Select(sourceFile => CSharpSyntaxTree.ParseText(File.ReadAllText(sourceFile), path: sourceFile))
+            .Select(sourceFile => CSharpSyntaxTree.ParseText(File.ReadAllText(sourceFile), parseOptions, sourceFile))
             .ToArray();
         return FindForbiddenNamespaceUses(trees);
     }
@@ -55,9 +69,11 @@ internal static class FinanceSourcePolicy
     private static IReadOnlyList<string> FindForbiddenNamespaceUses(IEnumerable<SyntaxTree> sourceTrees)
     {
         SyntaxTree[] trees = sourceTrees.ToArray();
+        CSharpParseOptions parseOptions = trees.FirstOrDefault()?.Options as CSharpParseOptions
+            ?? CSharpParseOptions.Default;
         CSharpCompilation compilation = CSharpCompilation.Create(
             "Portico.Finance.ArchitecturePolicy",
-            trees.Append(ImplicitFrameworkUsings),
+            trees.Append(CSharpSyntaxTree.ParseText(ImplicitFrameworkUsings, parseOptions, "<implicit-framework-usings>")),
             TrustedPlatformReferences.Value,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
         var violations = new SortedSet<string>(StringComparer.Ordinal);
@@ -131,6 +147,12 @@ internal static class FinanceSourcePolicy
             string? namespaceName = GetContainingNamespace(symbol);
             if (namespaceName is not null && IsForbiddenNamespace(namespaceName))
                 violations.Add($"{tree.FilePath}: use {namespaceName} symbol '{identifier.Identifier.ValueText}'");
+
+            if (string.Equals((symbol as INamedTypeSymbol)?.ToDisplayString(), "System.Console", StringComparison.Ordinal)
+                || string.Equals(symbol.ContainingType?.ToDisplayString(), "System.Console", StringComparison.Ordinal))
+            {
+                violations.Add($"{tree.FilePath}: use System.Console symbol '{identifier.Identifier.ValueText}'");
+            }
         }
     }
 
@@ -140,9 +162,9 @@ internal static class FinanceSourcePolicy
             violations.Add($"{tree.FilePath}: qualified name {name}");
     }
 
-    public static IReadOnlyList<string> FindSourceSelectionDeclarations(string sourceFile)
+    public static IReadOnlyList<string> FindSourceSelectionDeclarations(string sourceFile, CSharpParseOptions parseOptions)
     {
-        SyntaxTree tree = CSharpSyntaxTree.ParseText(File.ReadAllText(sourceFile), path: sourceFile);
+        SyntaxTree tree = CSharpSyntaxTree.ParseText(File.ReadAllText(sourceFile), parseOptions, sourceFile);
         return tree.GetRoot()
             .DescendantNodes()
             .OfType<BaseTypeDeclarationSyntax>()
@@ -154,7 +176,8 @@ internal static class FinanceSourcePolicy
 
     public static IReadOnlyList<string> FindSourceSelectionUsesOutsideFinanceSettings(
         IEnumerable<string> sourceFiles,
-        string financeSettingsFile)
+        string financeSettingsFile,
+        CSharpParseOptions parseOptions)
     {
         var violations = new List<string>();
         string allowedSourceFile = Path.GetFullPath(financeSettingsFile);
@@ -163,7 +186,7 @@ internal static class FinanceSourcePolicy
             if (PathComparer.Equals(Path.GetFullPath(sourceFile), allowedSourceFile))
                 continue;
 
-            SyntaxTree tree = CSharpSyntaxTree.ParseText(File.ReadAllText(sourceFile), path: sourceFile);
+            SyntaxTree tree = CSharpSyntaxTree.ParseText(File.ReadAllText(sourceFile), parseOptions, sourceFile);
             foreach (IdentifierNameSyntax identifier in tree.GetRoot().DescendantNodes().OfType<IdentifierNameSyntax>())
             {
                 if (SourceSelectionNames.Contains(identifier.Identifier.ValueText, StringComparer.Ordinal))

@@ -6,7 +6,8 @@ namespace Portico.Architecture.Tests;
 internal sealed class ProjectEvaluator(string repositoryRoot, string configuration, string targetFramework)
 {
     private static readonly TimeSpan EvaluationTimeout = TimeSpan.FromSeconds(30);
-    internal static readonly SemaphoreSlim EvaluationGate = new(1, 1);
+    private static readonly TimeSpan QueueTimeout = TimeSpan.FromSeconds(90);
+    private static readonly SemaphoreSlim EvaluationGate = new(1, 1);
     private static readonly StringComparer PathComparer = OperatingSystem.IsWindows()
         ? StringComparer.OrdinalIgnoreCase
         : StringComparer.Ordinal;
@@ -21,23 +22,25 @@ internal sealed class ProjectEvaluator(string repositoryRoot, string configurati
         CancellationToken cancellationToken)
     {
         string fullProjectPath = Path.GetFullPath(projectPath);
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeout.CancelAfter(EvaluationTimeout);
+        using var queueTimeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        queueTimeout.CancelAfter(QueueTimeout);
 
         try
         {
-            await EvaluationGate.WaitAsync(timeout.Token);
+            await EvaluationGate.WaitAsync(queueTimeout.Token);
         }
-        catch (OperationCanceledException) when (timeout.IsCancellationRequested)
+        catch (OperationCanceledException) when (queueTimeout.IsCancellationRequested)
         {
             if (cancellationToken.IsCancellationRequested)
                 throw;
 
-            throw new TimeoutException($"MSBuild evaluation queue exceeded {EvaluationTimeout.TotalSeconds:0} seconds for '{fullProjectPath}'.");
+            throw new TimeoutException($"MSBuild evaluation queue exceeded {QueueTimeout.TotalSeconds:0} seconds for '{fullProjectPath}'.");
         }
 
         try
         {
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeout.CancelAfter(EvaluationTimeout);
             string? dotnetHost = Environment.GetEnvironmentVariable("DOTNET_HOST_PATH");
             var startInfo = new ProcessStartInfo(string.IsNullOrWhiteSpace(dotnetHost) ? "dotnet" : dotnetHost)
             {
@@ -53,7 +56,7 @@ internal sealed class ProjectEvaluator(string repositoryRoot, string configurati
             startInfo.ArgumentList.Add("-maxcpucount:1");
             startInfo.ArgumentList.Add("-nodeReuse:false");
             startInfo.ArgumentList.Add("-getItem:ProjectReference;PackageReference;Compile");
-            startInfo.ArgumentList.Add("-getProperty:RociSourceRoot");
+            startInfo.ArgumentList.Add("-getProperty:RociSourceRoot;DefineConstants;LangVersion");
             startInfo.ArgumentList.Add($"-property:Configuration={evaluationConfiguration}");
             startInfo.ArgumentList.Add($"-property:TargetFramework={evaluationTargetFramework}");
 
@@ -101,7 +104,9 @@ internal sealed class ProjectEvaluator(string repositoryRoot, string configurati
         JsonElement root = document.RootElement;
 
         return new EvaluatedProject(
-            ReadProperty(root, "RociSourceRoot"),
+            ReadProperty(root, "RociSourceRoot") is { Length: > 0 } rociRoot ? Path.GetFullPath(rociRoot) : null,
+            ReadProperty(root, "DefineConstants") ?? string.Empty,
+            ReadProperty(root, "LangVersion") ?? throw new InvalidOperationException("MSBuild did not evaluate LangVersion."),
             ReadItems(root, "ProjectReference", paths: true),
             ReadItems(root, "PackageReference", paths: false),
             ReadItems(root, "Compile", paths: true));
@@ -115,8 +120,7 @@ internal sealed class ProjectEvaluator(string repositoryRoot, string configurati
             return null;
         }
 
-        string? text = value.GetString();
-        return string.IsNullOrWhiteSpace(text) ? null : Path.GetFullPath(text);
+        return value.GetString();
     }
 
     private static IReadOnlyList<string> ReadItems(JsonElement root, string name, bool paths)

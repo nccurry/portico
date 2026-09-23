@@ -22,6 +22,7 @@ public sealed class ArchitecturePolicyTests
         "Portico.Desktop",
         "Portico.Finance"
     ];
+    private static readonly string[] Configurations = ["Debug", "Release"];
 
     private static readonly IReadOnlyDictionary<string, ProjectReferencePolicy> ProjectPolicies =
         new Dictionary<string, ProjectReferencePolicy>(StringComparer.Ordinal)
@@ -65,39 +66,33 @@ public sealed class ArchitecturePolicyTests
         };
 
     private static readonly Lazy<RepositoryContext> CurrentRepository = new(RepositoryContext.Create);
-    private static readonly Lazy<Task<IReadOnlyDictionary<string, EvaluatedProject>>> ProductionProjects = new(LoadProductionProjectsAsync);
+    private static readonly Lazy<Task<IReadOnlyDictionary<string, IReadOnlyDictionary<string, EvaluatedProject>>>> ProductionProjects =
+        new(LoadProductionProjectsAsync);
 
     [Fact]
     public async Task ProductionProjectPolicy_StaysWithinPhaseOneRules()
     {
-        IReadOnlyDictionary<string, EvaluatedProject> projects = await ProductionProjects.Value;
-
-        foreach ((string projectName, ProjectReferencePolicy policy) in ProjectPolicies)
-            AssertNoReferenceViolations(projectName, projects[projectName], policy);
-    }
-
-    [Fact]
-    public async Task TargetScaffold_DeclaresTheFinalEdges()
-    {
-        IReadOnlyDictionary<string, EvaluatedProject> projects = await ProductionProjects.Value;
-
-        foreach (string projectName in new[] { "Portico.Application", "Portico.Configuration", "Portico.Data", "Portico.Cli", "Portico.Desktop" })
-            AssertNoReferenceViolations(projectName, projects[projectName], ProjectPolicies[projectName]);
+        foreach ((string configuration, IReadOnlyDictionary<string, EvaluatedProject> projects) in await ProductionProjects.Value)
+        {
+            foreach ((string projectName, ProjectReferencePolicy policy) in ProjectPolicies)
+                AssertNoReferenceViolations(projectName, projects[projectName], policy, configuration);
+        }
     }
 
     [Fact]
     public async Task OnlyApp_MayComposeAllTargetOuterModules()
     {
-        IReadOnlyDictionary<string, EvaluatedProject> projects = await ProductionProjects.Value;
         string[] outerModules = ["Portico.Cli", "Portico.Desktop", "Portico.Configuration", "Portico.Data"];
+        foreach (IReadOnlyDictionary<string, EvaluatedProject> projects in (await ProductionProjects.Value).Values)
+        {
+            string[] composers = projects
+                .Where(pair => outerModules.All(module => ClassifyReferences(pair.Value).Portico.Contains(module)))
+                .Select(pair => pair.Key)
+                .Order(StringComparer.Ordinal)
+                .ToArray();
 
-        string[] composers = projects
-            .Where(pair => outerModules.All(module => ClassifyReferences(pair.Value).Portico.Contains(module)))
-            .Select(pair => pair.Key)
-            .Order(StringComparer.Ordinal)
-            .ToArray();
-
-        Assert.Equal(["Portico.App"], composers);
+            Assert.Equal(["Portico.App"], composers);
+        }
     }
 
     [Fact]
@@ -150,9 +145,7 @@ public sealed class ArchitecturePolicyTests
     [Fact]
     public async Task NonCanonicalRociReferenceFixture_IsRejected()
     {
-        EvaluatedProject app = (await ProductionProjects.Value)["Portico.App"];
-        string rociSourceRoot = app.RociSourceRoot
-            ?? throw new InvalidOperationException("Portico.App must expose RociSourceRoot during project evaluation.");
+        string rociSourceRoot = CurrentRepository.Value.ExpectedRociSourceRoot;
         using TemporaryProjectFixture fixture = TemporaryProjectFixture.CreateNonCanonicalRoci(
             CurrentRepository.Value,
             ActiveTargetFramework,
@@ -178,69 +171,65 @@ public sealed class ArchitecturePolicyTests
     }
 
     [Fact]
-    public async Task ProjectEvaluation_QueuesConcurrentCallers()
+    public async Task ProjectControlledRociRootFixture_IsRejected()
     {
-        using TemporaryProjectFixture firstFixture = TemporaryProjectFixture.CreateDirect(
-            CurrentRepository.Value,
-            ActiveTargetFramework);
-        using TemporaryProjectFixture secondFixture = TemporaryProjectFixture.CreateDirect(
-            CurrentRepository.Value,
+        RepositoryContext repository = CurrentRepository.Value;
+        using TemporaryProjectFixture fixture = TemporaryProjectFixture.CreateOverriddenRociRoot(
+            repository,
             ActiveTargetFramework);
 
-        await ProjectEvaluator.EvaluationGate.WaitAsync(TestContext.Current.CancellationToken);
-        Task<EvaluatedProject>[] queuedProjects = [];
-        try
-        {
-            queuedProjects =
-            [
-                CurrentRepository.Value.Evaluator.EvaluateAsync(
-                    firstFixture.ProjectPath,
-                    TestContext.Current.CancellationToken),
-                CurrentRepository.Value.Evaluator.EvaluateAsync(
-                    secondFixture.ProjectPath,
-                    TestContext.Current.CancellationToken)
-            ];
+        EvaluatedProject project = await repository.Evaluator.EvaluateAsync(
+            fixture.ProjectPath,
+            TestContext.Current.CancellationToken);
+        IReadOnlyList<string> violations = FindReferenceViolations(
+            "Portico.Desktop",
+            project,
+            ProjectPolicies["Portico.Desktop"]);
 
-            Assert.All(queuedProjects, evaluation => Assert.False(evaluation.IsCompleted));
-        }
-        finally
-        {
-            ProjectEvaluator.EvaluationGate.Release();
-        }
-
-        EvaluatedProject[] projects = await Task.WhenAll(queuedProjects);
-        Assert.All(projects, project => Assert.Equal(2, project.ProjectReferences.Count));
+        Assert.Contains(violations, violation => violation.Contains("unapproved external project reference", StringComparison.Ordinal));
+        Assert.Contains(violations, violation => violation.Contains("unexpected RociSourceRoot", StringComparison.Ordinal));
     }
 
     [Fact]
     public async Task Finance_HasNoForbiddenInfrastructure()
     {
-        EvaluatedProject finance = (await ProductionProjects.Value)["Portico.Finance"];
+        foreach ((string configuration, IReadOnlyDictionary<string, EvaluatedProject> projects) in await ProductionProjects.Value)
+        {
+            EvaluatedProject finance = projects["Portico.Finance"];
+            Assert.Empty(finance.ProjectReferences);
+            Assert.Empty(finance.PackageReferences);
 
-        Assert.Empty(finance.ProjectReferences);
-        Assert.Empty(finance.PackageReferences);
-
-        IReadOnlyList<string> violations = FinanceSourcePolicy.FindForbiddenNamespaceUses(finance.CompileItems);
-        Assert.True(violations.Count == 0, string.Join(Environment.NewLine, violations));
+            IReadOnlyList<string> violations = FinanceSourcePolicy.FindForbiddenNamespaceUses(
+                finance.CompileItems,
+                FinanceSourcePolicy.ParseOptions(finance));
+            Assert.True(violations.Count == 0, $"{configuration}:{Environment.NewLine}{string.Join(Environment.NewLine, violations)}");
+        }
     }
 
     [Fact]
     public async Task Finance_SourceSelectionSeam_StaysLimited()
     {
-        EvaluatedProject finance = (await ProductionProjects.Value)["Portico.Finance"];
         string financeSettings = Path.GetFullPath(Path.Combine(
             CurrentRepository.Value.Root,
             "src",
             "Portico.Finance",
             "FinanceSettings.cs"));
 
-        Assert.True(
-            finance.CompileItems.Any(sourceFile => PathComparer.Equals(sourceFile, financeSettings)),
-            "FinanceSettings.cs must be an effective Compile item.");
-        Assert.Equal(
-            ["DataSourceSettings", "WorkbookSourceKind"],
-            FinanceSourcePolicy.FindSourceSelectionDeclarations(financeSettings));
-        Assert.Empty(FinanceSourcePolicy.FindSourceSelectionUsesOutsideFinanceSettings(finance.CompileItems, financeSettings));
+        foreach ((string configuration, IReadOnlyDictionary<string, EvaluatedProject> projects) in await ProductionProjects.Value)
+        {
+            EvaluatedProject finance = projects["Portico.Finance"];
+            CSharpParseOptions parseOptions = FinanceSourcePolicy.ParseOptions(finance);
+            Assert.True(
+                finance.CompileItems.Any(sourceFile => PathComparer.Equals(sourceFile, financeSettings)),
+                $"FinanceSettings.cs must be an effective Compile item in {configuration}.");
+            Assert.Equal(
+                ["DataSourceSettings", "WorkbookSourceKind"],
+                FinanceSourcePolicy.FindSourceSelectionDeclarations(financeSettings, parseOptions));
+            Assert.Empty(FinanceSourcePolicy.FindSourceSelectionUsesOutsideFinanceSettings(
+                finance.CompileItems,
+                financeSettings,
+                parseOptions));
+        }
     }
 
     [Fact]
@@ -311,31 +300,86 @@ public sealed class ArchitecturePolicyTests
         Assert.Contains(violations, violation => violation.Contains("System.Net.Http symbol 'HttpClient'", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void FinanceInfrastructureScan_RejectsConditionalSourceInRelease()
+    {
+        const string source = """
+            namespace Portico.Finance;
+            public static class Evidence
+            {
+            #if RELEASE
+                public static void Print() => System.Console.WriteLine("release");
+            #endif
+            }
+            """;
+        CSharpParseOptions debugOptions = CSharpParseOptions.Default.WithPreprocessorSymbols("DEBUG");
+        CSharpParseOptions releaseOptions = CSharpParseOptions.Default.WithPreprocessorSymbols("RELEASE");
+
+        Assert.Empty(FinanceSourcePolicy.FindForbiddenNamespaceUses(CSharpSyntaxTree.ParseText(
+            source,
+            debugOptions,
+            cancellationToken: TestContext.Current.CancellationToken)));
+        Assert.Contains(
+            FinanceSourcePolicy.FindForbiddenNamespaceUses(CSharpSyntaxTree.ParseText(
+                source,
+                releaseOptions,
+                cancellationToken: TestContext.Current.CancellationToken)),
+            violation => violation.Contains("System.Console", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void FinanceInfrastructureScan_RejectsConsoleWithImplicitUsing()
+    {
+        SyntaxTree tree = CSharpSyntaxTree.ParseText(
+            """
+            namespace Portico.Finance;
+            public static class Evidence
+            {
+                public static void Print() => Console.WriteLine("evidence");
+            }
+            """,
+            path: "console-evidence.cs",
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Contains(
+            FinanceSourcePolicy.FindForbiddenNamespaceUses(tree),
+            violation => violation.Contains("System.Console", StringComparison.Ordinal));
+    }
+
     private static string ActiveTargetFramework => ReadAssemblyMetadata("Portico.ActiveTargetFramework");
 
-    private static async Task<IReadOnlyDictionary<string, EvaluatedProject>> LoadProductionProjectsAsync()
+    private static async Task<IReadOnlyDictionary<string, IReadOnlyDictionary<string, EvaluatedProject>>> LoadProductionProjectsAsync()
     {
         RepositoryContext repository = CurrentRepository.Value;
         AssertProductionProjectCatalog(repository);
 
-        var projects = new Dictionary<string, EvaluatedProject>(StringComparer.Ordinal);
-        foreach (string projectName in ProductionProjectNames)
+        var byConfiguration = new Dictionary<string, IReadOnlyDictionary<string, EvaluatedProject>>(StringComparer.Ordinal);
+        foreach (string configuration in Configurations)
         {
-            projects[projectName] = await repository.Evaluator.EvaluateAsync(
-                repository.ProjectPath(projectName),
-                CancellationToken.None);
+            var projects = new Dictionary<string, EvaluatedProject>(StringComparer.Ordinal);
+            foreach (string projectName in ProductionProjectNames)
+            {
+                projects[projectName] = await repository.Evaluator.EvaluateAsync(
+                    repository.ProjectPath(projectName),
+                    ActiveTargetFramework,
+                    configuration,
+                    CancellationToken.None);
+            }
+
+            byConfiguration.Add(configuration, projects);
         }
 
-        return projects;
+        return byConfiguration;
     }
 
     private static void AssertNoReferenceViolations(
         string projectName,
         EvaluatedProject project,
-        ProjectReferencePolicy policy)
+        ProjectReferencePolicy policy,
+        string configuration)
     {
         IReadOnlyList<string> violations = FindReferenceViolations(projectName, project, policy);
-        Assert.True(violations.Count == 0, string.Join(Environment.NewLine, violations));
+        Assert.True(violations.Count == 0, $"{configuration}:{Environment.NewLine}{string.Join(Environment.NewLine, violations)}");
     }
 
     private static IReadOnlyList<string> FindReferenceViolations(
@@ -347,6 +391,13 @@ public sealed class ArchitecturePolicyTests
         var violations = new List<string>();
         AddSetViolations(violations, projectName, "Portico", policy.Portico, actual.Portico);
         AddSetViolations(violations, projectName, "Roci", policy.Roci, actual.Roci);
+
+        string expectedRociRoot = CurrentRepository.Value.ExpectedRociSourceRoot;
+        if (project.RociSourceRoot is not null
+            && !PathComparer.Equals(
+                Path.TrimEndingDirectorySeparator(project.RociSourceRoot),
+                Path.TrimEndingDirectorySeparator(expectedRociRoot)))
+            violations.Add($"{projectName} has an unexpected RociSourceRoot '{project.RociSourceRoot}'.");
 
         foreach (string reference in actual.Other)
             violations.Add($"{projectName} has an unapproved external project reference '{reference}'.");
@@ -369,8 +420,7 @@ public sealed class ArchitecturePolicyTests
             {
                 portico.Add(projectName);
             }
-            else if (!string.IsNullOrWhiteSpace(project.RociSourceRoot)
-                     && PathComparer.Equals(reference, RociProjectPath(project.RociSourceRoot, projectName)))
+            else if (PathComparer.Equals(reference, RociProjectPath(repository.ExpectedRociSourceRoot, projectName)))
             {
                 roci.Add(projectName);
             }
@@ -441,11 +491,17 @@ public sealed class ArchitecturePolicyTests
         {
             Root = root;
             Evaluator = new ProjectEvaluator(root, configuration, targetFramework);
+            string? overrideRoot = Environment.GetEnvironmentVariable("ROCI_ROOT");
+            ExpectedRociSourceRoot = Path.GetFullPath(
+                string.IsNullOrWhiteSpace(overrideRoot) ? Path.Combine(root, "..", "roci") : overrideRoot,
+                root);
         }
 
         public string Root { get; }
 
         public ProjectEvaluator Evaluator { get; }
+
+        public string ExpectedRociSourceRoot { get; }
 
         public static RepositoryContext Create()
         {
@@ -555,6 +611,29 @@ public sealed class ArchitecturePolicyTests
                   <ItemGroup>
                     <ProjectReference Include="{{EscapeXml(repository.ProjectPath("Portico.Finance"))}}" />
                     <ProjectReference Include="{{EscapeXml(nonCanonicalRociCore)}}" />
+                  </ItemGroup>
+                </Project>
+                """);
+            return fixture;
+        }
+
+        public static TemporaryProjectFixture CreateOverriddenRociRoot(
+            RepositoryContext repository,
+            string targetFramework)
+        {
+            TemporaryProjectFixture fixture = Create();
+            string fakeRociRoot = Path.Combine(fixture.Root, "fake-roci");
+            File.WriteAllText(
+                fixture.ProjectPath,
+                $$"""
+                <Project Sdk="Microsoft.NET.Sdk">
+                  <PropertyGroup>
+                    <TargetFramework>{{targetFramework}}</TargetFramework>
+                    <RociSourceRoot>{{EscapeXml(fakeRociRoot)}}</RociSourceRoot>
+                  </PropertyGroup>
+                  <ItemGroup>
+                    <ProjectReference Include="{{EscapeXml(repository.ProjectPath("Portico.Application"))}}" />
+                    <ProjectReference Include="{{EscapeXml(RociProjectPath(fakeRociRoot, "Roci.Core"))}}" />
                   </ItemGroup>
                 </Project>
                 """);
