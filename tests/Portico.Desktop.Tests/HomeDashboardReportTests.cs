@@ -9,9 +9,9 @@ public sealed class HomeDashboardReportTests
     [Fact]
     public void EmptyHomeKeepsAllSixWidgetsAndTheirExistingEmptyMessages()
     {
-        var home = new HomeReport(null, [], [], [], EmptyCashFlow(), EmptySafety());
+        var home = new HomeReport(null, [], [], [], 0, EmptyCashFlow(), EmptySafety());
 
-        DashboardPageReport page = HomeDashboardReport.Build(home, visibleAccountCount: 0);
+        DashboardPageReport page = HomeDashboardReport.Build(home);
 
         Assert.Equal(DashboardPageId.Home, page.PageId);
         Assert.Equal(6, page.Widgets.Count);
@@ -31,10 +31,11 @@ public sealed class HomeDashboardReportTests
             [new NetWorthPoint(start, 1000m, -400m, 600m), new NetWorthPoint(end, 1200m, -300m, 900m)],
             [new HomeGroupMovement("Debt", -400m, -300m, LiabilitiesOnly: true)],
             [new HomeAccountMovement("a1", "Credit card", "Debt", AccountClass.Liability, -400m, -300m)],
+            2,
             new CashFlowSummary(500m, 300m, 200m, 40m, 200m, 1, 1),
             EmptySafety());
 
-        DashboardPageReport page = HomeDashboardReport.Build(home, visibleAccountCount: 2);
+        DashboardPageReport page = HomeDashboardReport.Build(home);
 
         Assert.Equal(3, page.Widgets["home.net_worth"].Series.Count);
         Assert.Equal(900m, page.Widgets["home.overview"].Metrics.Single(metric => metric.Label == "Net worth").Value);

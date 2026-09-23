@@ -17,11 +17,35 @@ public union DashboardReadOutcome(DashboardReadSuccess, PorticoFailure);
 /// <summary>Reads the desktop-only dashboard grammar without exposing private TOML values.</summary>
 public static class DashboardConfigurationReader
 {
-    public static DashboardReadOutcome Read(string? path = null)
+    private static readonly IReadOnlySet<string> RootKeys = new HashSet<string>(
+        ["schema_version", "app_title", "pages"], StringComparer.Ordinal);
+    private static readonly IReadOnlySet<string> PageKeys = new HashSet<string>(
+        ["id", "title", "description", "visible", "group", "order", "rail_label", "page_heading",
+            "icon", "filters", "sections", "controls", "widgets"], StringComparer.Ordinal);
+    private static readonly IReadOnlySet<string> FilterKeys = new HashSet<string>(
+        ["id", "label", "kind", "source", "default", "options"], StringComparer.Ordinal);
+    private static readonly IReadOnlySet<string> SectionKeys = new HashSet<string>(
+        ["id", "title", "layout", "order", "description"], StringComparer.Ordinal);
+    private static readonly IReadOnlySet<string> ControlKeys = new HashSet<string>(
+        ["id", "label", "kind", "source", "option_source", "options", "default", "defaults",
+            "minimum", "maximum", "step", "width", "section"], StringComparer.Ordinal);
+    private static readonly IReadOnlySet<string> WidgetKeys = new HashSet<string>(
+        ["id", "title", "kind", "report", "span", "description", "bar_series", "section",
+            "x_axis_title", "y_axis_title"], StringComparer.Ordinal);
+
+    public static DashboardReadOutcome Read(string path, ReportChoices? choices = null)
     {
         try
         {
-            return new DashboardReadSuccess(ParseDashboard(path ?? "dashboard.toml"));
+            DashboardDefinition definition = ParseDashboard(path);
+            if (choices is not null)
+            {
+                IReadOnlyList<PorticoProblem> problems = DashboardBindingValidator.Validate(definition, choices);
+                if (problems.Count > 0)
+                    return new PorticoFailure(problems);
+            }
+
+            return new DashboardReadSuccess(definition);
         }
         catch (DashboardParseException exception)
         {
@@ -71,6 +95,7 @@ public static class DashboardConfigurationReader
     {
         TomlTable root = ReadToml(path);
         var errors = new List<ConfigurationError>();
+        RejectUnknownKeys(root, RootKeys, "dashboard", errors);
         int schemaVersion = Integer(root, "schema_version", "dashboard", errors);
         string appTitle = String(root, "app_title", "dashboard", errors);
         IReadOnlyList<TomlTable> pageTables = Tables(root, "pages", "dashboard", errors);
@@ -98,6 +123,7 @@ public static class DashboardConfigurationReader
     private static DashboardPageDefinition ParsePage(TomlTable table, int index, List<ConfigurationError> errors)
     {
         string path = $"dashboard.pages[{index}]";
+        RejectUnknownKeys(table, PageKeys, path, errors);
         string rawId = String(table, "id", path, errors);
         DashboardPageId id = ParsePageId(rawId, $"{path}.id", errors);
         string title = String(table, "title", path, errors);
@@ -117,6 +143,7 @@ public static class DashboardConfigurationReader
         {
             TomlTable filter = filters[filterIndex];
             string filterPath = $"{path}.filters[{filterIndex}]";
+            RejectUnknownKeys(filter, FilterKeys, filterPath, errors);
             string kind = String(filter, "kind", filterPath, errors);
             parsedFilters.Add(new DashboardFilterDefinition(
                 String(filter, "id", filterPath, errors),
@@ -132,6 +159,7 @@ public static class DashboardConfigurationReader
         {
             TomlTable section = sections[sectionIndex];
             string sectionPath = $"{path}.sections[{sectionIndex}]";
+            RejectUnknownKeys(section, SectionKeys, sectionPath, errors);
             parsedSections.Add(new DashboardSectionDefinition(
                 String(section, "id", sectionPath, errors),
                 String(section, "title", sectionPath, errors),
@@ -145,6 +173,7 @@ public static class DashboardConfigurationReader
         {
             TomlTable control = controls[controlIndex];
             string controlPath = $"{path}.controls[{controlIndex}]";
+            RejectUnknownKeys(control, ControlKeys, controlPath, errors);
             string kind = String(control, "kind", controlPath, errors);
             parsedControls.Add(new DashboardControlDefinition(
                 String(control, "id", controlPath, errors),
@@ -167,6 +196,7 @@ public static class DashboardConfigurationReader
         {
             TomlTable widget = widgets[widgetIndex];
             string widgetPath = $"{path}.widgets[{widgetIndex}]";
+            RejectUnknownKeys(widget, WidgetKeys, widgetPath, errors);
             string kind = String(widget, "kind", widgetPath, errors);
             parsedWidgets.Add(new DashboardWidgetDefinition(
                 String(widget, "id", widgetPath, errors),
@@ -197,6 +227,16 @@ public static class DashboardConfigurationReader
             Sections = parsedSections,
             Controls = parsedControls
         };
+    }
+
+    private static void RejectUnknownKeys(
+        TomlTable table,
+        IReadOnlySet<string> known,
+        string field,
+        List<ConfigurationError> errors)
+    {
+        if (table.Keys.Any(key => !known.Contains(key)))
+            errors.Add(new ConfigurationError(field, "contains an unknown key."));
     }
 
     private static TomlTable Table(TomlTable parent, string key, List<ConfigurationError> errors)

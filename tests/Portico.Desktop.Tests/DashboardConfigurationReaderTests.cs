@@ -1,5 +1,7 @@
 ﻿using Portico.Application;
 using Portico.Desktop;
+using Portico.Configuration;
+using Portico.Finance;
 
 namespace Portico.Desktop.Tests;
 
@@ -93,6 +95,100 @@ public sealed class DashboardConfigurationReaderTests
         }
     }
 
+    [Fact]
+    public async Task DashboardChoicesMatchTheCheckedInWorkspace()
+    {
+        string root = FindRepositoryRoot();
+        var application = new PorticoApplication(
+            new TomlConfigurationReader(Path.GetTempPath()),
+            new EmptyPortfolioReader());
+        OpenWorkspaceOutcome opened = await application.OpenWorkspaceAsync(
+            new ConfigurationSelection(Path.Combine(root, "portico.toml")),
+            cancellationToken: TestContext.Current.CancellationToken);
+        Workspace workspace = opened switch
+        {
+            WorkspaceOpened value => value.GetWorkspace(),
+            _ => throw new InvalidOperationException("Expected the checked-in workspace.")
+        };
+
+        DashboardReadOutcome outcome = DashboardConfigurationReader.Read(
+            Path.Combine(root, "dashboard.toml"),
+            workspace.ReportChoices);
+
+        Assert.True(outcome is DashboardReadSuccess);
+    }
+
+    [Theory]
+    [InlineData("app_title = \"Portico\"", "dashboard")]
+    [InlineData("[[pages.widgets]]", "dashboard.pages[0].widgets[0]")]
+    public void UnknownKeysAreRejectedAtTheirSafeTablePath(string anchor, string expectedField)
+    {
+        string original = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "dashboard.toml"));
+        string path = Path.GetTempFileName();
+        try
+        {
+            File.WriteAllText(path, original.Replace(
+                anchor,
+                anchor + Environment.NewLine + "private-account-token = true",
+                StringComparison.Ordinal));
+
+            DashboardReadOutcome outcome = DashboardConfigurationReader.Read(path);
+
+            PorticoFailure failure = outcome switch
+            {
+                PorticoFailure value => value,
+                _ => throw new InvalidOperationException("Expected a dashboard failure.")
+            };
+            Assert.Contains(failure.Problems, problem => problem.Field == expectedField);
+            Assert.DoesNotContain("private-account-token", string.Join(" ", failure.Problems.Select(problem => problem.Message)));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task DashboardRejectsUnconfiguredLookbackWithoutEchoingItsValue()
+    {
+        string root = FindRepositoryRoot();
+        var application = new PorticoApplication(
+            new TomlConfigurationReader(Path.GetTempPath()),
+            new EmptyPortfolioReader());
+        OpenWorkspaceOutcome opened = await application.OpenWorkspaceAsync(
+            new ConfigurationSelection(Path.Combine(root, "portico.toml")),
+            cancellationToken: TestContext.Current.CancellationToken);
+        Workspace workspace = opened switch
+        {
+            WorkspaceOpened value => value.GetWorkspace(),
+            _ => throw new InvalidOperationException("Expected the checked-in workspace.")
+        };
+        string original = File.ReadAllText(Path.Combine(root, "dashboard.toml"));
+        string path = Path.GetTempFileName();
+        try
+        {
+            File.WriteAllText(path, original.Replace(
+                "options = [\"3\", \"6\", \"12\", \"24\"]",
+                "options = [\"3\", \"6\", \"12\", \"999999-private\"]",
+                StringComparison.Ordinal));
+
+            DashboardReadOutcome outcome = DashboardConfigurationReader.Read(path, workspace.ReportChoices);
+
+            PorticoFailure failure = outcome switch
+            {
+                PorticoFailure value => value,
+                _ => throw new InvalidOperationException("Expected a dashboard failure.")
+            };
+            Assert.Contains(failure.Problems, problem => problem.Code == "dashboard.unsupported-choice");
+            Assert.Contains(failure.Problems, problem => problem.Field?.EndsWith(".options[3]", StringComparison.Ordinal) == true);
+            Assert.DoesNotContain("999999-private", string.Join(" ", failure.Problems.Select(problem => problem.Message)));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
     [Theory]
     [InlineData("3m", HomePeriod.ThreeMonths)]
     [InlineData("6m", HomePeriod.SixMonths)]
@@ -115,5 +211,11 @@ public sealed class DashboardConfigurationReaderTests
         }
 
         throw new InvalidOperationException("The dashboard fixture was not found.");
+    }
+
+    private sealed class EmptyPortfolioReader : IPortfolioReader
+    {
+        public Task<PortfolioReadOutcome> ReadAsync(SourceRequest source, CancellationToken cancellationToken)
+            => Task.FromResult<PortfolioReadOutcome>(new PortfolioReadSuccess(new PortfolioSnapshot([], [], [])));
     }
 }

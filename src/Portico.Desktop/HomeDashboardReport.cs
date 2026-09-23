@@ -8,10 +8,10 @@ public static class HomeDashboardReport
 {
     private static readonly CultureInfo MoneyCulture = CultureInfo.GetCultureInfo("en-US");
 
-    public static DashboardPageReport Build(HomeReport home, int visibleAccountCount)
+    public static DashboardPageReport Build(HomeReport home)
     {
         ArgumentNullException.ThrowIfNull(home);
-        ArgumentOutOfRangeException.ThrowIfNegative(visibleAccountCount);
+        ArgumentOutOfRangeException.ThrowIfNegative(home.VisibleAccountCount);
 
         var history = home.NetWorthHistory;
         ReportMetric[] groups = home.Groups.Select(group => GroupMetric(group, home.Window)).ToArray();
@@ -34,7 +34,7 @@ public static class HomeDashboardReport
                 Metric("Net worth", closing?.NetWorth ?? 0m),
                 Metric("Cash flow", home.CashFlow.Surplus, tone: home.CashFlow.Surplus >= 0m ? "positive" : "negative"),
                 Metric("Savings rate", home.CashFlow.SavingsRatePercent, Percent(home.CashFlow.SavingsRatePercent)),
-                Metric("Accounts", visibleAccountCount, visibleAccountCount.ToString(CultureInfo.InvariantCulture))),
+                Metric("Accounts", home.VisibleAccountCount, home.VisibleAccountCount.ToString(CultureInfo.InvariantCulture))),
             ["home.attribution"] = groups.Length == 0
                 ? EmptyBalances()
                 : Chart(Series(
@@ -46,7 +46,7 @@ public static class HomeDashboardReport
             ["home.accounts"] = new(groups, [], [], [], groups.Length == 0
                 ? "No mapped balance groups are available." : null),
             ["home.inventory"] = new([], [], ["Group", "Account", "Balance", "Change"], accounts,
-                visibleAccountCount == 0 ? "No visible account balances are available." : null),
+                home.VisibleAccountCount == 0 ? "No visible account balances are available." : null),
             ["home.safety"] = Metrics(
                 Metric("Emergency fund", safety.EmergencyFundMonthsCovered,
                     safety.EmergencyFundMonthsCovered is null
