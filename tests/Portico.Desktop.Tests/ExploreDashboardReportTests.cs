@@ -35,7 +35,28 @@ public sealed class ExploreDashboardReportTests
         Assert.All(tune.Widgets["subscriptions.detail_charges"].Rows,
             row => Assert.Contains("Tune Basic", row.Values));
         Assert.Equal(2, tune.Widgets["subscriptions.active"].Rows.Count);
+        Assert.Equal(["STREAM BASIC", "Active", "Monthly", "$10", "Mar 10, 2026"],
+            stream.Widgets["subscriptions.active"].Rows.Single(row => row.Values[0] == "STREAM BASIC").Values);
         Assert.NotEmpty(tune.Widgets["subscriptions.lifecycle"].TimelineRanges);
+    }
+
+    [Fact]
+    public async Task DetectedSubscriptionKeepsConfidenceAndCadenceLabels()
+    {
+        Workspace workspace = await Open(
+        [
+            Expense("cloud-jan", 2026, 1, 10, "Cloud Backup", "Software", -5m),
+            Expense("cloud-feb", 2026, 2, 10, "Cloud Backup", "Software", -5m),
+            Expense("cloud-mar", 2026, 3, 10, "Cloud Backup", "Software", -5m)
+        ], new DateOnly(2026, 3, 20));
+
+        DashboardPageReport page = SubscriptionsDashboardReport.Build(workspace.Subscriptions());
+
+        ReportTableRow candidate = Assert.Single(page.Widgets["subscriptions.candidates"].Rows);
+        Assert.Equal("CLOUD BACKUP", candidate.Values[0]);
+        Assert.Equal("Detected (85%)", candidate.Values[1]);
+        Assert.Equal("Monthly", candidate.Values[2]);
+        Assert.Equal("positive", candidate.Tone);
     }
 
     [Fact]

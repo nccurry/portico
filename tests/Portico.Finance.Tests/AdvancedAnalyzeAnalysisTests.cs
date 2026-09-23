@@ -227,10 +227,14 @@ public sealed class AdvancedAnalyzeAnalysisTests
             80);
 
         SubscriptionInventoryEntry video = Assert.Single(analysis.Active);
-        Assert.Equal(("VIDEO SERVICE", "Monthly", 12m, 2m), (video.Merchant, video.Cadence, video.MonthlyRunRate, video.PriceChange));
+        Assert.Equal(("VIDEO SERVICE", SubscriptionCadence.Monthly, 12m, 2m), (video.Merchant, video.Cadence, video.MonthlyRunRate, video.PriceChange));
+        Assert.Equal(SubscriptionOrigin.Categorized, video.Source);
+        Assert.Equal(SubscriptionStatus.Active, video.Status);
+        Assert.Equal(SubscriptionBundleKind.SingleStream, video.BundleType);
         Assert.Equal(new DateOnly(2025, 3, 2), video.PriceChangeDate);
         SubscriptionInventoryEntry cloud = Assert.Single(analysis.Candidates);
-        Assert.Equal(("CLOUD BACKUP", "Monthly"), (cloud.Merchant, cloud.Cadence));
+        Assert.Equal(("CLOUD BACKUP", SubscriptionCadence.Monthly), (cloud.Merchant, cloud.Cadence));
+        Assert.Equal(SubscriptionOrigin.Detected, cloud.Source);
         Assert.Equal((1, 12m, 32m), (analysis.Summary.ActiveCount, analysis.Summary.MonthlyRunRate, analysis.Summary.TrailingTwelveMonthSpend));
         Assert.Equal([new YearMonth(2025, 1), new YearMonth(2025, 2), new YearMonth(2025, 3), new YearMonth(2025, 4), new YearMonth(2025, 5)], analysis.History.Select(entry => entry.Month));
         Assert.Equal((12m, 10.67m, 1), (analysis.History[2].ActualSpend, decimal.Round(analysis.History[2].RollingAverage, 2), analysis.History[2].ActiveMerchants));
@@ -257,7 +261,7 @@ public sealed class AdvancedAnalyzeAnalysisTests
             80);
 
         SubscriptionInventoryEntry inactive = Assert.Single(analysis.Inactive);
-        Assert.Equal("Inactive", inactive.Status);
+        Assert.Equal(SubscriptionStatus.Inactive, inactive.Status);
         Assert.Empty(analysis.Active);
         Assert.Contains(analysis.Lifecycles, lifecycle => lifecycle.DisplayEnd == new DateOnly(2024, 4, 30));
     }
@@ -318,8 +322,8 @@ public sealed class AdvancedAnalyzeAnalysisTests
             rows, Settings().Subscriptions, EmptyAliases(), ["Streaming"], [], 80);
 
         SubscriptionInventoryEntry pending = Assert.Single(result.Active);
-        Assert.Equal("Pending", pending.Cadence);
-        Assert.Equal("Pending", pending.BundleType);
+        Assert.Equal(SubscriptionCadence.Pending, pending.Cadence);
+        Assert.Equal(SubscriptionBundleKind.Pending, pending.BundleType);
         Assert.Equal(60, pending.Confidence);
         Assert.Null(pending.MonthlyRunRate);
         Assert.Null(pending.NextExpectedDate);
@@ -343,9 +347,9 @@ public sealed class AdvancedAnalyzeAnalysisTests
         SubscriptionAnalysisResult result = SubscriptionAnalysisCalculator.Build(
             rows, Settings().Subscriptions, EmptyAliases(), ["Streaming"], [], 80);
 
-        Assert.Equal("Monthly", Assert.Single(result.Active).Cadence);
+        Assert.Equal(SubscriptionCadence.Monthly, Assert.Single(result.Active).Cadence);
         Assert.Equal([1, 2], result.Lifecycles.Select(row => row.Episode).Order());
-        Assert.Equal("Inactive", Assert.Single(result.Lifecycles, row => row.Episode == 1).Status);
+        Assert.Equal(SubscriptionStatus.Inactive, Assert.Single(result.Lifecycles, row => row.Episode == 1).Status);
         Assert.True(Assert.Single(result.Lifecycles, row => row.Episode == 2).IsCurrent);
         Assert.Equal(new DateOnly(2024, 9, 1), Assert.Single(result.Lifecycles, row => row.Episode == 2).EpisodeStart);
     }
@@ -365,8 +369,8 @@ public sealed class AdvancedAnalyzeAnalysisTests
             rows, Settings().Subscriptions, EmptyAliases(), ["Streaming"], [], 80);
 
         SubscriptionInventoryEntry bundle = Assert.Single(result.Active);
-        Assert.Equal("Merchant bundle", bundle.BundleType);
-        Assert.Equal("Multiple", bundle.Cadence);
+        Assert.Equal(SubscriptionBundleKind.MerchantBundle, bundle.BundleType);
+        Assert.Equal(SubscriptionCadence.Multiple, bundle.Cadence);
         Assert.Equal(60m, bundle.TrailingTwelveMonthSpend);
         Assert.Equal(30m, bundle.MonthlyRunRate);
         Assert.Equal(61, bundle.Confidence);

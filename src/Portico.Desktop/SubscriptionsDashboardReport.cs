@@ -99,13 +99,32 @@ public static class SubscriptionsDashboardReport
         => new(metrics ?? [], [], ["Merchant", "Status", "Cadence", "Est. monthly", "Last charge"],
             entries.Select(entry => new ReportTableRow(
                 [entry.Merchant,
-                    entry.Source == "Detected" ? $"Detected ({entry.Confidence}%)" : entry.Status,
-                    entry.Cadence, OptionalMoney(entry.MonthlyRunRate), Date(entry.LastDate)],
-                entry.Status == "Active" ? "positive" : null)).ToArray(),
+                    entry.Source == SubscriptionOrigin.Detected ? $"Detected ({entry.Confidence}%)" : StatusLabel(entry.Status),
+                    CadenceLabel(entry.Cadence), OptionalMoney(entry.MonthlyRunRate), Date(entry.LastDate)],
+                entry.Status == SubscriptionStatus.Active ? "positive" : null)).ToArray(),
             entries.Count == 0 ? emptyMessage : null)
         {
             TimelineRanges = lifecycles ?? [],
             DateGuide = dateGuide
+        };
+
+    private static string StatusLabel(SubscriptionStatus status)
+        => status switch
+        {
+            SubscriptionStatus.Active => "Active",
+            SubscriptionStatus.Inactive => "Inactive",
+            _ => throw new ArgumentOutOfRangeException(nameof(status))
+        };
+
+    private static string CadenceLabel(SubscriptionCadence cadence)
+        => cadence switch
+        {
+            SubscriptionCadence.Pending => "Pending",
+            SubscriptionCadence.Monthly => "Monthly",
+            SubscriptionCadence.Quarterly => "Quarterly",
+            SubscriptionCadence.Annual => "Annual",
+            SubscriptionCadence.Multiple => "Multiple",
+            _ => throw new ArgumentOutOfRangeException(nameof(cadence))
         };
 
     private static DashboardWidgetReport Charges(IReadOnlyList<SubscriptionChargeEntry> entries)

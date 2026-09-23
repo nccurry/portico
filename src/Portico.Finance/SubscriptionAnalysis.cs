@@ -3,12 +3,44 @@
 /// <summary>Represents one normalized expense charge used by subscription analysis.</summary>
 public sealed record SubscriptionChargeEntry(FinancialTransaction Transaction, string Merchant, decimal Amount);
 
+/// <summary>Identifies whether a subscription came from a selected category or charge detection.</summary>
+public enum SubscriptionOrigin
+{
+    Categorized,
+    Detected
+}
+
+/// <summary>Classifies a subscription by its expected charge window.</summary>
+public enum SubscriptionStatus
+{
+    Active,
+    Inactive
+}
+
+/// <summary>Classifies the observed time between subscription charges.</summary>
+public enum SubscriptionCadence
+{
+    Pending,
+    Monthly,
+    Quarterly,
+    Annual,
+    Multiple
+}
+
+/// <summary>Classifies whether a merchant's charges represent one stream or a bundle.</summary>
+public enum SubscriptionBundleKind
+{
+    Pending,
+    SingleStream,
+    MerchantBundle
+}
+
 /// <summary>Represents one known or detected subscription inventory item.</summary>
 public sealed record SubscriptionInventoryEntry(
     string Merchant,
-    string Source,
-    string Status,
-    string Cadence,
+    SubscriptionOrigin Source,
+    SubscriptionStatus Status,
+    SubscriptionCadence Cadence,
     int Confidence,
     DateOnly FirstDate,
     DateOnly LastDate,
@@ -20,7 +52,7 @@ public sealed record SubscriptionInventoryEntry(
     string Category,
     string Account,
     int ChargeCount,
-    string BundleType);
+    SubscriptionBundleKind BundleType);
 
 /// <summary>Represents one observed and inferred subscription lifecycle episode.</summary>
 public sealed record SubscriptionLifecycleEntry(
@@ -31,9 +63,9 @@ public sealed record SubscriptionLifecycleEntry(
     DateOnly ActiveUntil,
     DateOnly InactiveAfter,
     DateOnly DisplayEnd,
-    string Status,
+    SubscriptionStatus Status,
     bool IsCurrent,
-    string Cadence,
+    SubscriptionCadence Cadence,
     string Category,
     string Account,
     int ChargeCount,
@@ -75,11 +107,11 @@ public sealed record SubscriptionAnalysisResult(
 /// <summary>Builds source-compatible subscription inventory, discovery, lifecycle, and history results.</summary>
 public static class SubscriptionAnalysisCalculator
 {
-    private static readonly (string Cadence, int Days, int Months, int MinimumGap, int MaximumGap)[] Cadences =
+    private static readonly (SubscriptionCadence Cadence, int Days, int Months, int MinimumGap, int MaximumGap)[] Cadences =
     [
-        ("Monthly", 30, 1, 20, 40),
-        ("Quarterly", 91, 3, 75, 105),
-        ("Annual", 365, 12, 330, 400)
+        (SubscriptionCadence.Monthly, 30, 1, 20, 40),
+        (SubscriptionCadence.Quarterly, 91, 3, 75, 105),
+        (SubscriptionCadence.Annual, 365, 12, 330, 400)
     ];
 
     /// <summary>Builds every source subscription page region from the current settings and controls.</summary>
@@ -120,8 +152,8 @@ public static class SubscriptionAnalysisCalculator
             .ToArray();
         SubscriptionInventoryEntry[] inventory = known
             .GroupBy(entry => entry.Merchant, StringComparer.Ordinal)
-            .Select(group => CreateInventory(group.ToArray(), latest, "Categorized"))
-            .OrderBy(entry => entry.Status, StringComparer.Ordinal)
+            .Select(group => CreateInventory(group.ToArray(), latest, SubscriptionOrigin.Categorized))
+            .OrderBy(entry => entry.Status)
             .ThenByDescending(entry => entry.FirstDate)
             .ThenBy(entry => entry.Merchant, StringComparer.Ordinal)
             .ToArray();
@@ -135,12 +167,12 @@ public static class SubscriptionAnalysisCalculator
             minimumConfidence);
         SubscriptionHistoryEntry[] history = BuildHistory(known, lifecycles, latest);
         SubscriptionInventoryEntry[] active = inventory
-            .Where(entry => string.Equals(entry.Status, "Active", StringComparison.Ordinal))
+            .Where(entry => entry.Status == SubscriptionStatus.Active)
             .OrderByDescending(entry => CurrentEpisodeStart(lifecycles, entry.Merchant) ?? entry.FirstDate)
             .ThenBy(entry => entry.Merchant, StringComparer.Ordinal)
             .ToArray();
         SubscriptionInventoryEntry[] inactive = inventory
-            .Where(entry => string.Equals(entry.Status, "Inactive", StringComparison.Ordinal))
+            .Where(entry => entry.Status == SubscriptionStatus.Inactive)
             .OrderByDescending(entry => entry.LastDate)
             .ThenBy(entry => entry.Merchant, StringComparer.Ordinal)
             .ToArray();
@@ -203,7 +235,7 @@ public static class SubscriptionAnalysisCalculator
             .Select(group => Candidate(group.ToArray(), latest, minimumConfidence))
             .Where(entry => entry is not null)
             .Select(entry => entry!)
-            .OrderBy(entry => entry.Status, StringComparer.Ordinal)
+            .OrderBy(entry => entry.Status)
             .ThenByDescending(entry => entry.LastDate)
             .ThenByDescending(entry => entry.Confidence)
             .ToArray();
@@ -218,7 +250,7 @@ public static class SubscriptionAnalysisCalculator
         if (entries.Count < 3 || uniqueMonths < 3 || entries.Count > uniqueMonths * 1.25m)
             return null;
 
-        (string cadence, decimal regularity) = InferCadence(entries.Select(entry => entry.Transaction.Date));
+        (SubscriptionCadence cadence, decimal regularity) = InferCadence(entries.Select(entry => entry.Transaction.Date));
         if (!IsKnownCadence(cadence) || regularity < .70m)
             return null;
 
@@ -235,32 +267,33 @@ public static class SubscriptionAnalysisCalculator
         if (confidence < minimumConfidence)
             return null;
 
-        SubscriptionInventoryEntry row = CreateInventory(entries, latest, "Detected");
-        if (!string.Equals(row.Status, "Active", StringComparison.Ordinal))
+        SubscriptionInventoryEntry row = CreateInventory(entries, latest, SubscriptionOrigin.Detected);
+        if (row.Status != SubscriptionStatus.Active)
             return null;
         return row with
         {
             Cadence = cadence,
             Confidence = confidence,
-            BundleType = "Single stream"
+            BundleType = SubscriptionBundleKind.SingleStream
         };
     }
 
     private static SubscriptionInventoryEntry CreateInventory(
         IReadOnlyList<SubscriptionChargeEntry> source,
         DateOnly latest,
-        string origin)
+        SubscriptionOrigin origin)
     {
         SubscriptionChargeEntry[] entries = source
             .OrderBy(entry => entry.Transaction.Date)
             .ThenBy(entry => entry.Transaction.Id, StringComparer.Ordinal)
             .ToArray();
         int uniqueMonths = entries.Select(entry => entry.Transaction.Month).Distinct().Count();
-        (string cadence, decimal regularity) = InferCadence(entries.Select(entry => entry.Transaction.Date));
-        bool merchantBundle = entries.Length > uniqueMonths * 1.25m || string.Equals(cadence, "Multiple", StringComparison.Ordinal);
-        string bundle = merchantBundle ? "Merchant bundle" : string.Equals(cadence, "Pending", StringComparison.Ordinal) ? "Pending" : "Single stream";
+        (SubscriptionCadence cadence, decimal regularity) = InferCadence(entries.Select(entry => entry.Transaction.Date));
+        bool merchantBundle = entries.Length > uniqueMonths * 1.25m || cadence == SubscriptionCadence.Multiple;
+        SubscriptionBundleKind bundle = merchantBundle ? SubscriptionBundleKind.MerchantBundle
+            : cadence == SubscriptionCadence.Pending ? SubscriptionBundleKind.Pending : SubscriptionBundleKind.SingleStream;
         if (merchantBundle)
-            cadence = "Multiple";
+            cadence = SubscriptionCadence.Multiple;
 
         DateOnly first = entries[0].Transaction.Date;
         DateOnly last = entries[^1].Transaction.Date;
@@ -269,14 +302,14 @@ public static class SubscriptionAnalysisCalculator
         (decimal priceChange, DateOnly? priceDate) = LatestPriceChange(SplitEpisodes(entries, cadence)[^1], cadence);
         int confidence = cadence switch
         {
-            "Pending" => entries.Length == 1 ? 40 : 60,
-            "Multiple" => Math.Min(85, 55 + uniqueMonths * 3),
+            SubscriptionCadence.Pending => entries.Length == 1 ? 40 : 60,
+            SubscriptionCadence.Multiple => Math.Min(85, 55 + uniqueMonths * 3),
             _ => (int)decimal.Round(Math.Min(100m, regularity * 70m + Math.Min(entries.Length / 6m, 1m) * 30m), 0, MidpointRounding.ToEven)
         };
         return new SubscriptionInventoryEntry(
             entries[0].Merchant,
             origin,
-            latest <= inactiveAfter ? "Active" : "Inactive",
+            latest <= inactiveAfter ? SubscriptionStatus.Active : SubscriptionStatus.Inactive,
             cadence,
             confidence,
             first,
@@ -321,7 +354,7 @@ public static class SubscriptionAnalysisCalculator
                     activeUntil,
                     inactiveAfter,
                     inactiveAfter < latest ? inactiveAfter : latest,
-                    current ? inventoryEntry.Status : "Inactive",
+                    current ? inventoryEntry.Status : SubscriptionStatus.Inactive,
                     current,
                     inventoryEntry.Cadence,
                     Mode(episode.Select(entry => entry.Transaction.Category)),
@@ -336,8 +369,8 @@ public static class SubscriptionAnalysisCalculator
         }
 
         return rows
-            .OrderBy(entry => string.Equals(entry.Status, "Active", StringComparison.Ordinal) ? 0 : 1)
-            .ThenByDescending(entry => string.Equals(entry.Status, "Inactive", StringComparison.Ordinal) ? entry.DisplayEnd : entry.EpisodeStart)
+            .OrderBy(entry => entry.Status == SubscriptionStatus.Active ? 0 : 1)
+            .ThenByDescending(entry => entry.Status == SubscriptionStatus.Inactive ? entry.DisplayEnd : entry.EpisodeStart)
             .ThenBy(entry => entry.Merchant, StringComparer.Ordinal)
             .ThenByDescending(entry => entry.Episode)
             .ToArray();
@@ -383,7 +416,7 @@ public static class SubscriptionAnalysisCalculator
         IReadOnlyList<SubscriptionChargeEntry> known,
         DateOnly latest)
     {
-        SubscriptionInventoryEntry[] active = inventory.Where(entry => string.Equals(entry.Status, "Active", StringComparison.Ordinal)).ToArray();
+        SubscriptionInventoryEntry[] active = inventory.Where(entry => entry.Status == SubscriptionStatus.Active).ToArray();
         decimal trailing = known.Where(entry => entry.Transaction.Date > latest.AddYears(-1)).Sum(entry => entry.Amount);
         DateOnly priorStart = latest.AddYears(-2);
         DateOnly trailingStart = latest.AddYears(-1);
@@ -414,7 +447,7 @@ public static class SubscriptionAnalysisCalculator
 
     private static IReadOnlyList<SubscriptionChargeEntry>[] SplitEpisodes(
         IReadOnlyList<SubscriptionChargeEntry> source,
-        string cadence)
+        SubscriptionCadence cadence)
     {
         var episodes = new List<IReadOnlyList<SubscriptionChargeEntry>>();
         var current = new List<SubscriptionChargeEntry>();
@@ -436,10 +469,10 @@ public static class SubscriptionAnalysisCalculator
         return episodes.ToArray();
     }
 
-    private static (DateOnly? NextExpected, DateOnly ActiveUntil, DateOnly InactiveAfter) Boundaries(DateOnly lastDate, string cadence)
+    private static (DateOnly? NextExpected, DateOnly ActiveUntil, DateOnly InactiveAfter) Boundaries(DateOnly lastDate, SubscriptionCadence cadence)
     {
-        (string Cadence, int Days, int Months, int MinimumGap, int MaximumGap) match = Cadences
-            .FirstOrDefault(value => string.Equals(value.Cadence, cadence, StringComparison.Ordinal));
+        (SubscriptionCadence Cadence, int Days, int Months, int MinimumGap, int MaximumGap) match = Cadences
+            .FirstOrDefault(value => value.Cadence == cadence);
         int days = match.Days;
         if (days == 0)
         {
@@ -452,16 +485,16 @@ public static class SubscriptionAnalysisCalculator
         return (next, inactiveAfter, inactiveAfter);
     }
 
-    private static (string Cadence, decimal Regularity) InferCadence(IEnumerable<DateOnly> dates)
+    private static (SubscriptionCadence Cadence, decimal Regularity) InferCadence(IEnumerable<DateOnly> dates)
     {
         DateOnly[] unique = dates.Distinct().Order().ToArray();
         if (unique.Length < 3)
-            return ("Pending", 0m);
+            return (SubscriptionCadence.Pending, 0m);
 
         int[] gaps = unique.Zip(unique.Skip(1), (previous, current) => current.DayNumber - previous.DayNumber).ToArray();
         var best = Cadences[0];
         decimal bestScore = -1m;
-        foreach ((string cadence, int days, int months, int minimum, int maximum) candidate in Cadences)
+        foreach ((SubscriptionCadence cadence, int days, int months, int minimum, int maximum) candidate in Cadences)
         {
             decimal score = gaps.Count(gap => gap >= candidate.minimum && gap <= candidate.maximum) / (decimal)gaps.Length;
             if (score > bestScore)
@@ -471,20 +504,20 @@ public static class SubscriptionAnalysisCalculator
             }
         }
 
-        return bestScore >= .70m ? (best.Cadence, bestScore) : ("Multiple", bestScore);
+        return bestScore >= .70m ? (best.Cadence, bestScore) : (SubscriptionCadence.Multiple, bestScore);
     }
 
     private static decimal? MonthlyRunRate(
         IReadOnlyList<SubscriptionChargeEntry> entries,
-        string cadence,
+        SubscriptionCadence cadence,
         DateOnly latestDate)
     {
-        (string Cadence, int Days, int Months, int MinimumGap, int MaximumGap) match = Cadences
-            .FirstOrDefault(value => string.Equals(value.Cadence, cadence, StringComparison.Ordinal));
+        (SubscriptionCadence Cadence, int Days, int Months, int MinimumGap, int MaximumGap) match = Cadences
+            .FirstOrDefault(value => value.Cadence == cadence);
         int months = match.Months;
         if (months > 0)
             return entries.OrderBy(entry => entry.Transaction.Date).ThenBy(entry => entry.Transaction.Id, StringComparer.Ordinal).Last().Amount / months;
-        if (string.Equals(cadence, "Pending", StringComparison.Ordinal))
+        if (cadence == SubscriptionCadence.Pending)
             return null;
 
         YearMonth first = entries.Min(entry => entry.Transaction.Month);
@@ -496,7 +529,7 @@ public static class SubscriptionAnalysisCalculator
 
     private static (decimal Change, DateOnly? Date) LatestPriceChange(
         IReadOnlyList<SubscriptionChargeEntry> source,
-        string cadence)
+        SubscriptionCadence cadence)
     {
         if (!IsKnownCadence(cadence))
             return (0m, null);
@@ -520,8 +553,8 @@ public static class SubscriptionAnalysisCalculator
         return (change, date);
     }
 
-    private static bool IsKnownCadence(string cadence)
-        => Cadences.Any(value => string.Equals(value.Cadence, cadence, StringComparison.Ordinal));
+    private static bool IsKnownCadence(SubscriptionCadence cadence)
+        => Cadences.Any(value => value.Cadence == cadence);
 
     private static string[] Values(IEnumerable<string> values)
         => values
