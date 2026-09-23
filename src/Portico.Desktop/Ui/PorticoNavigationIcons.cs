@@ -1,4 +1,4 @@
-namespace Portico.Desktop.Ui;
+﻿namespace Portico.Desktop.Ui;
 
 /// <summary>Maps source icon identifiers to compact ASCII tokens because Roci has no Material icon primitive.</summary>
 internal static class PorticoNavigationIcons

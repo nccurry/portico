@@ -1,4 +1,4 @@
-using Portico.Desktop.Ui;
+﻿using Portico.Desktop.Ui;
 using Portico.Desktop.Ui.Components;
 using Roci.Core;
 using Roci.Ui;

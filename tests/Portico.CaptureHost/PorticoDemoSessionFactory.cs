@@ -1,4 +1,4 @@
-using Portico.Application;
+﻿using Portico.Application;
 using Portico.Configuration;
 using Portico.Data;
 using Portico.Desktop;
