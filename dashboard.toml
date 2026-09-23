@@ -4,6 +4,7 @@
 
 schema_version = 1
 app_title = "Portico"
+demo_data = true
 
 [[pages]]
 id = "home"

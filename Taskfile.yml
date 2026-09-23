@@ -87,7 +87,7 @@ tasks:
     cmds:
       - task: restore
       - task: build
-      - dotnet test tests/Portico.App.Tests/Portico.App.Tests.csproj --no-restore -p:Configuration={{.CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false --filter "Category=VisualCapture" -m:1 -- xUnit.ParallelizeTestCollections=false
+      - dotnet test tests/Portico.Desktop.Tests/Portico.Desktop.Tests.csproj --no-restore -p:Configuration={{.CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false --filter "Category=VisualCapture" -m:1 -- xUnit.ParallelizeTestCollections=false
 
   doctor:
     aliases: [roci:doctor]

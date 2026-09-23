@@ -73,6 +73,34 @@ public sealed class CheckCommandTests
     }
 
     [Fact]
+    public async Task ConfigCheckWritesTextResultOnlyToStdout()
+    {
+        Result result = await Run(PorticoCommandLine.Parse(["config", "check"]),
+            new FakeConfigurationReader(_ => ValidConfiguration()),
+            new FakePortfolioReader(_ => throw new InvalidOperationException("Data must not be read.")),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Empty(result.Error);
+        Assert.Equal("Portico config check: ready\nSource: google_sheets\n",
+            result.Output.Replace("\r\n", "\n", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task DataCheckWritesTextResultOnlyToStdout()
+    {
+        Result result = await Run(PorticoCommandLine.Parse(["data", "check"]),
+            new FakeConfigurationReader(_ => ValidConfiguration()),
+            new FakePortfolioReader(_ => new PortfolioReadSuccess(Snapshot())),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Empty(result.Error);
+        Assert.Equal("Portico data check: ready\nSource: google_sheets\nTransactions: 1\nBalances: 1\nBudgets: 1\n",
+            result.Output.Replace("\r\n", "\n", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task ConfigProblemsStopBeforeDataAndWriteOneOrderedFailureDocument()
     {
         var portfolio = new FakePortfolioReader(_ => throw new InvalidOperationException("Data must not be read."));

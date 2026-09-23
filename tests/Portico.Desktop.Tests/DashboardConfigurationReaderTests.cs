@@ -21,6 +21,39 @@ public sealed class DashboardConfigurationReaderTests
         };
         Assert.Equal(10, success.Definition.Pages.Count);
         Assert.Equal(DashboardPageId.Home, success.Definition.FirstVisiblePage().Id);
+        Assert.True(success.Definition.IsDemoData);
+    }
+
+    [Fact]
+    public void DemoMarkerDefaultsOffAndRejectsInvalidValues()
+    {
+        string original = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "dashboard.toml"));
+        string path = Path.GetTempFileName();
+        try
+        {
+            File.WriteAllText(path, original.Replace("demo_data = true", "", StringComparison.Ordinal));
+            DashboardReadSuccess withoutMarker = DashboardConfigurationReader.Read(path) switch
+            {
+                DashboardReadSuccess success => success,
+                _ => throw new InvalidOperationException("Expected a dashboard definition.")
+            };
+            Assert.False(withoutMarker.Definition.IsDemoData);
+
+            File.WriteAllText(path, original.Replace(
+                "demo_data = true", "demo_data = \"private-account-token\"", StringComparison.Ordinal));
+            PorticoFailure invalid = DashboardConfigurationReader.Read(path) switch
+            {
+                PorticoFailure failure => failure,
+                _ => throw new InvalidOperationException("Expected a dashboard failure.")
+            };
+            Assert.Contains(invalid.Problems, problem => problem.Field == "dashboard.demo_data");
+            Assert.DoesNotContain("private-account-token",
+                string.Join(" ", invalid.Problems.Select(problem => problem.Message)), StringComparison.Ordinal);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
     }
 
     [Fact]

@@ -678,6 +678,9 @@ public sealed record DashboardDefinition(
     string AppTitle,
     IReadOnlyList<DashboardPageDefinition> Pages)
 {
+    /// <summary>Marks the selected data as synthetic in the desktop window.</summary>
+    public bool IsDemoData { get; init; }
+
     /// <summary>The configuration schema supported by this build.</summary>
     public const int SupportedSchemaVersion = 1;
 

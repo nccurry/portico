@@ -101,6 +101,83 @@ public sealed class PorticoHostTests
         Assert.Equal(0, configuration.Calls);
     }
 
+    [Fact]
+    public async Task Run_MissingDashboardReturnsSafeConfigurationFailureWithoutOpeningWindow()
+    {
+        string privatePath = Path.Combine(Path.GetTempPath(), $"private-dashboard-{Guid.NewGuid():N}.toml");
+        var host = new PorticoHost(
+            new PorticoApplication(new FakeConfigurationReader(), new FakePortfolioReader()),
+            DesktopDashboardHost.RunAsync);
+        var output = new StringWriter();
+        var error = new StringWriter();
+
+        int exitCode = await host.RunAsync(
+            ["run", "--dashboard", privatePath], output, error,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(3, exitCode);
+        Assert.Contains("dashboard.invalid-value", output.ToString(), StringComparison.Ordinal);
+        Assert.DoesNotContain(privatePath, output.ToString(), StringComparison.Ordinal);
+        Assert.Empty(error.ToString());
+        Assert.DoesNotContain("Opening", output.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Run_InvalidDashboardDoesNotEchoItsContents()
+    {
+        string path = Path.GetTempFileName();
+        try
+        {
+            await File.WriteAllTextAsync(path, "private-account-token = true\n[broken",
+                TestContext.Current.CancellationToken);
+            var host = new PorticoHost(
+                new PorticoApplication(new FakeConfigurationReader(), new FakePortfolioReader()),
+                DesktopDashboardHost.RunAsync);
+            var output = new StringWriter();
+            var error = new StringWriter();
+
+            int exitCode = await host.RunAsync(
+                ["run", "--dashboard", path], output, error,
+                TestContext.Current.CancellationToken);
+
+            Assert.Equal(3, exitCode);
+            Assert.Contains("dashboard.invalid-value", output.ToString(), StringComparison.Ordinal);
+            Assert.DoesNotContain("private-account-token", output.ToString(), StringComparison.Ordinal);
+            Assert.DoesNotContain(path, output.ToString(), StringComparison.Ordinal);
+            Assert.Empty(error.ToString());
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task Run_WorkspaceFailureDoesNotStartDesktop()
+    {
+        var host = new PorticoHost(
+            new PorticoApplication(new FailureConfigurationReader(), new FakePortfolioReader()),
+            (_, _, _, _, _) => throw new InvalidOperationException("Desktop must not start."));
+        var output = new StringWriter();
+        var error = new StringWriter();
+
+        int exitCode = await host.RunAsync(
+            ["run"], output, error, TestContext.Current.CancellationToken);
+
+        Assert.Equal(3, exitCode);
+        Assert.Contains("config.invalid-value", output.ToString(), StringComparison.Ordinal);
+        Assert.Empty(error.ToString());
+    }
+
+    private sealed class FailureConfigurationReader : IConfigurationReader
+    {
+        public Task<ConfigurationReadOutcome> ReadAsync(
+            ConfigurationSelection selection, CancellationToken cancellationToken)
+            => Task.FromResult<ConfigurationReadOutcome>(new PorticoFailure([
+                new PorticoProblem("config.invalid-value", "The configuration is invalid.")
+            ]));
+    }
+
     private sealed class FakeConfigurationReader : IConfigurationReader
     {
         public int Calls { get; private set; }

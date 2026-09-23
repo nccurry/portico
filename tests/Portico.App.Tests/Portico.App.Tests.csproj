@@ -5,9 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/Portico.App/Portico.App.csproj" />
-    <ProjectReference Include="../../src/Portico.Adapters/Portico.Adapters.csproj" />
-    <ProjectReference Include="../Portico.CaptureHost/Portico.CaptureHost.csproj" />
-    <ProjectReference Include="$(RociSourceRoot)/tests/Roci.TestUtilities/Roci.TestUtilities.csproj" />
+    <ProjectReference Include="../../src/Portico.Finance/Portico.Finance.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" />

@@ -1,36 +1,35 @@
-﻿using Portico.Dashboard;
+﻿using Portico.Application;
+using Portico.Desktop;
+using Cli = Portico.Cli;
 
 namespace Portico.App;
 
-/// <summary>Owns the desktop presentation boundary for the Roci dashboard.</summary>
+/// <summary>Opens the configured desktop after Application loads a workspace.</summary>
 public static class DesktopDashboardHost
 {
-    /// <summary>Starts the desktop dashboard from a fully built report.</summary>
     public static Task<int> RunAsync(
-        DashboardSession session,
+        Workspace workspace,
+        string? dashboardPath,
         TextWriter output,
         TextWriter error,
-        bool isDemoData = false)
+        CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(session);
+        ArgumentNullException.ThrowIfNull(workspace);
+        ArgumentException.ThrowIfNullOrWhiteSpace(dashboardPath);
         ArgumentNullException.ThrowIfNull(output);
         ArgumentNullException.ThrowIfNull(error);
+        cancellationToken.ThrowIfCancellationRequested();
 
-        try
-        {
-            output.WriteLine("Opening the Portico desktop dashboard.");
-            Roci.Hosting.MonoGame.MonoGameHost.Run(
-                PorticoDashboardGame.CreateHostSettings(),
-                _ => new PorticoDashboardGame(
-                    session,
-                    Roci.Launch.GameRunContext.Empty,
-                    new PorticoDashboardDisplayState(isDemoData)));
-            return Task.FromResult(0);
-        }
-        catch (Exception exception)
-        {
-            error.WriteLine($"Desktop error: {exception.Message}");
-            return Task.FromResult(4);
-        }
+        DashboardReadOutcome read = DashboardConfigurationReader.Read(
+            dashboardPath, workspace.ReportChoices);
+        if (read is PorticoFailure failure)
+            return Task.FromResult(Cli.PorticoCli.WriteRunFailure(failure, output));
+        if (read is not DashboardReadSuccess success)
+            throw new InvalidOperationException("The dashboard reader returned no outcome.");
+
+        var session = new DashboardSession(workspace, success.Definition);
+        output.WriteLine("Opening the Portico desktop dashboard.");
+        PorticoDesktopWindow.Run(session);
+        return Task.FromResult(0);
     }
 }

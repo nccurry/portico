@@ -106,6 +106,31 @@ public sealed class PorticoCaptureCatalogTests
         Assert.Equal(new CaptureSize(1500, 1000), context.OriginalOptions.CaptureSize);
     }
 
+    [Fact]
+    public void DemoHideMarkerExcludesTransfersUntilDataHealthIncludesHiddenRows()
+    {
+        DashboardSession session = PorticoDemoSessionFactory.Create();
+
+        ReportMetric visible = Assert.Single(session.Report.Page(DashboardPageId.DataHealth)
+            .Widgets["health.summary"].Metrics, metric => metric.Label == "Transactions through");
+        Assert.Equal("914 rows", visible.Detail);
+
+        session.SetControlToggle(DashboardPageId.DataHealth, "include_inactive", true);
+        ReportMetric all = Assert.Single(session.Report.Page(DashboardPageId.DataHealth)
+            .Widgets["health.summary"].Metrics, metric => metric.Label == "Transactions through");
+        Assert.Equal("986 rows", all.Detail);
+
+        GameRunContext context = PorticoCaptureCatalog.RunCatalog.CreateContext(new GameRunOptions
+        {
+            StartStateId = PorticoCaptureCatalog.DemoLaunchState,
+            ScenarioId = "top-transactions"
+        });
+        DashboardSession transactions = PorticoCaptureCatalog.CreateSession(context);
+        ReportMetric count = Assert.Single(transactions.Report.Page(DashboardPageId.TopTransactions)
+            .Widgets["transactions.summary"].Metrics, metric => metric.Label == "Transactions");
+        Assert.Equal(79m, count.Value);
+    }
+
     [Theory]
     [InlineData("home", DashboardPageId.Home, 12, "discretionary", "utilities", true)]
     [InlineData("spending", DashboardPageId.Spending, 3, "all", "utilities", true)]

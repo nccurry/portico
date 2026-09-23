@@ -12,12 +12,10 @@ public sealed class ArchitecturePolicyTests
 
     private static readonly string[] ProductionProjectNames =
     [
-        "Portico.Adapters",
         "Portico.App",
         "Portico.Application",
         "Portico.Cli",
         "Portico.Configuration",
-        "Portico.Dashboard",
         "Portico.Data",
         "Portico.Desktop",
         "Portico.Finance"
@@ -32,20 +30,7 @@ public sealed class ArchitecturePolicyTests
             ["Portico.Configuration"] = Policy(["Portico.Application", "Portico.Finance"], []),
             ["Portico.Data"] = Policy(["Portico.Application", "Portico.Finance"], []),
             ["Portico.Cli"] = Policy(["Portico.Application"], []),
-            ["Portico.Desktop"] = Policy(["Portico.Application"], ["Roci.Core"]),
-            ["Portico.Dashboard"] = Policy(["Portico.Finance"], []),
-            ["Portico.Adapters"] = Policy(["Portico.Dashboard", "Portico.Finance"], []),
-            ["Portico.App"] = Policy(
-            [
-                "Portico.Adapters",
-                "Portico.Application",
-                "Portico.Cli",
-                "Portico.Configuration",
-                "Portico.Data",
-                "Portico.Dashboard",
-                "Portico.Desktop",
-                "Portico.Finance"
-            ],
+            ["Portico.Desktop"] = Policy(["Portico.Application"],
             [
                 "Roci.Core",
                 "Roci.Hosting.MonoGame",
@@ -62,7 +47,10 @@ public sealed class ArchitecturePolicyTests
                 "Roci.Ui.Charts.Rendering",
                 "Roci.Ui.Input",
                 "Roci.Ui.Rendering"
-            ])
+            ]),
+            ["Portico.App"] = Policy(
+                ["Portico.Application", "Portico.Cli", "Portico.Configuration", "Portico.Data", "Portico.Desktop"],
+                [])
         };
 
     private static readonly Lazy<RepositoryContext> CurrentRepository = new(RepositoryContext.Create);
@@ -70,7 +58,7 @@ public sealed class ArchitecturePolicyTests
         new(LoadProductionProjectsAsync);
 
     [Fact]
-    public async Task ProductionProjectPolicy_StaysWithinPhaseOneRules()
+    public async Task ProductionProjectPolicy_EnforcesFinalGraph()
     {
         foreach ((string configuration, IReadOnlyDictionary<string, EvaluatedProject> projects) in await ProductionProjects.Value)
         {

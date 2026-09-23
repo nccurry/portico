@@ -18,7 +18,7 @@ public union DashboardReadOutcome(DashboardReadSuccess, PorticoFailure);
 public static class DashboardConfigurationReader
 {
     private static readonly IReadOnlySet<string> RootKeys = new HashSet<string>(
-        ["schema_version", "app_title", "pages"], StringComparer.Ordinal);
+        ["schema_version", "app_title", "demo_data", "pages"], StringComparer.Ordinal);
     private static readonly IReadOnlySet<string> PageKeys = new HashSet<string>(
         ["id", "title", "description", "visible", "group", "order", "rail_label", "page_heading",
             "icon", "filters", "sections", "controls", "widgets"], StringComparer.Ordinal);
@@ -98,12 +98,16 @@ public static class DashboardConfigurationReader
         RejectUnknownKeys(root, RootKeys, "dashboard", errors);
         int schemaVersion = Integer(root, "schema_version", "dashboard", errors);
         string appTitle = String(root, "app_title", "dashboard", errors);
+        bool isDemoData = OptionalBoolean(root, "demo_data", false, "dashboard", errors);
         IReadOnlyList<TomlTable> pageTables = Tables(root, "pages", "dashboard", errors);
         var pages = new List<DashboardPageDefinition>(pageTables.Count);
         for (int index = 0; index < pageTables.Count; index++)
             pages.Add(ParsePage(pageTables[index], index, errors));
 
-        var definition = new DashboardDefinition(schemaVersion, appTitle, pages);
+        var definition = new DashboardDefinition(schemaVersion, appTitle, pages)
+        {
+            IsDemoData = isDemoData
+        };
         foreach (string problem in definition.Validate())
             errors.Add(new ConfigurationError("dashboard", problem));
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++)

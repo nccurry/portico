@@ -102,7 +102,8 @@ public static class PorticoCli
     public static int ExitCode(PorticoFailure failure)
     {
         ArgumentNullException.ThrowIfNull(failure);
-        if (failure.Problems.Any(problem => problem.Code.StartsWith("config.", StringComparison.Ordinal)))
+        if (failure.Problems.Any(problem => problem.Code.StartsWith("config.", StringComparison.Ordinal)
+            || problem.Code.StartsWith("dashboard.", StringComparison.Ordinal)))
             return 3;
         if (failure.Problems.Any(problem => problem.Code.StartsWith("data.", StringComparison.Ordinal)
             || problem.Code.StartsWith("source.", StringComparison.Ordinal) && !problem.Retryable))
