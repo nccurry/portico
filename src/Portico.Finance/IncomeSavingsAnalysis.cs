@@ -1,6 +1,4 @@
-﻿using System.Globalization;
-
-namespace Portico.Finance;
+﻿namespace Portico.Finance;
 
 /// <summary>Holds the source-style filters used by the Income and savings calculation.</summary>
 public sealed record IncomeSavingsAdjustments(
@@ -65,8 +63,11 @@ public sealed record IncomeSavingsPeriod(
 public sealed record IncomeSavingsLedgerEntry(
     FinancialTransaction Transaction,
     bool Included,
-    string ExclusionReason)
+    IReadOnlyList<LedgerExclusion> Exclusions)
 {
+    /// <summary>Supports the old Dashboard until Desktop owns the wording.</summary>
+    public string ExclusionReason => LegacyFinanceCopy.Exclusions(Exclusions);
+
     /// <summary>Gets the row's positive income contribution when it is included.</summary>
     public decimal Income => Included && Transaction.Kind == TransactionKind.Income ? Transaction.Amount : 0m;
 
@@ -200,46 +201,46 @@ public static class IncomeSavingsAnalysisCalculator
     {
         string group = Normalize(transaction.Group);
         string category = Normalize(transaction.Category);
-        var reasons = new List<string>();
+        var reasons = new List<LedgerExclusion>();
 
         if (string.Equals(group, "Transfer", StringComparison.Ordinal))
-            reasons.Add("Transfer group");
+            reasons.Add(new LedgerExclusion(LedgerExclusionReason.TransferGroup));
         if (transaction.Kind == TransactionKind.Income
             && Contains(adjustments.ExcludedIncomeCategories, category))
         {
-            reasons.Add($"Excluded income category: {category}");
+            reasons.Add(new LedgerExclusion(LedgerExclusionReason.ExcludedIncomeCategory, category));
         }
         if (transaction.Kind == TransactionKind.Expense
             && Contains(adjustments.ExcludedExpenseGroups, group))
         {
-            reasons.Add($"Excluded group: {group}");
+            reasons.Add(new LedgerExclusion(LedgerExclusionReason.ExcludedExpenseGroup, group));
         }
         if (transaction.Kind == TransactionKind.Expense
             && Contains(adjustments.ExcludedExpenseCategories, category))
         {
-            reasons.Add($"Excluded expense category: {category}");
+            reasons.Add(new LedgerExclusion(LedgerExclusionReason.ExcludedExpenseCategory, category));
         }
 
         bool includeMode = adjustments.IncludedDescriptions.Count > 0;
         if (includeMode && !MatchesAny(transaction.Description, adjustments.IncludedDescriptions))
-            reasons.Add("Outside included groups/categories/transactions");
+            reasons.Add(new LedgerExclusion(LedgerExclusionReason.OutsideIncludedDescriptions));
         foreach (string term in MatchingTerms(transaction.Description, adjustments.ExcludedDescriptions))
-            reasons.Add($"Excluded transaction like: {term}");
+            reasons.Add(new LedgerExclusion(LedgerExclusionReason.ExcludedDescription, term));
 
         if (transaction.Kind == TransactionKind.Income
             && adjustments.ExcludeLargeIncome
             && decimal.Abs(transaction.Amount) > adjustments.IncomeLimit)
         {
-            reasons.Add($"Income over {adjustments.IncomeLimit.ToString("C0", CultureInfo.GetCultureInfo("en-US"))}");
+            reasons.Add(new LedgerExclusion(LedgerExclusionReason.IncomeOverLimit, Limit: adjustments.IncomeLimit));
         }
         if (transaction.Kind == TransactionKind.Expense
             && adjustments.ExcludeLargeExpenses
             && decimal.Abs(transaction.Amount) > adjustments.ExpenseLimit)
         {
-            reasons.Add($"Expense over {adjustments.ExpenseLimit.ToString("C0", CultureInfo.GetCultureInfo("en-US"))}");
+            reasons.Add(new LedgerExclusion(LedgerExclusionReason.ExpenseOverLimit, Limit: adjustments.ExpenseLimit));
         }
 
-        return new IncomeSavingsLedgerEntry(transaction, reasons.Count == 0, string.Join("; ", reasons));
+        return new IncomeSavingsLedgerEntry(transaction, reasons.Count == 0, reasons);
     }
 
     private static IReadOnlyList<IncomeSavingsMonth> BuildMonthly(

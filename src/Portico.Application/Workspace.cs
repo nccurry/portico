@@ -1,5 +1,7 @@
 ﻿using Portico.Finance;
 
+using System.Text.Json.Serialization;
+
 namespace Portico.Application;
 
 /// <summary>A fixed portfolio and financial policy for semantic report requests.</summary>
@@ -16,10 +18,15 @@ public sealed partial class Workspace
             snapshot.Balances.ToArray(),
             snapshot.Budgets.ToArray());
         _settings = CopySettings(settings ?? throw new ArgumentNullException(nameof(settings)));
+        ReportChoices = new ReportChoices(_settings);
         AsOfDate = asOfDate ?? _snapshot.LatestDate ?? new DateOnly(2000, 1, 1);
     }
 
     public DateOnly AsOfDate { get; }
+
+    /// <summary>Read-only configured choices for report requests and presentation controls.</summary>
+    [JsonIgnore]
+    public ReportChoices ReportChoices { get; }
 
     private static FinanceSettings CopySettings(FinanceSettings settings)
     {

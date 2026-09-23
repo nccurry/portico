@@ -50,6 +50,7 @@ public sealed record HomeReport(
     IReadOnlyList<NetWorthPoint> NetWorthHistory,
     IReadOnlyList<HomeGroupMovement> Groups,
     IReadOnlyList<HomeAccountMovement> Accounts,
+    int VisibleAccountCount,
     CashFlowSummary CashFlow,
     FinancialSafetySummary Safety)
 {
@@ -137,7 +138,7 @@ public sealed partial class Workspace
             _settings.FinancialIndependence,
             AsOfDate);
 
-        return new HomeReport(window, history, groups, accounts, cashFlow, safety);
+        return new HomeReport(window, history, groups, accounts, closing.Count, cashFlow, safety);
     }
 
     private static HomeBalanceWindow? BalanceWindow(

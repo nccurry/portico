@@ -52,16 +52,54 @@ public sealed record DataHealthDuplicatePair(
     FinancialTransaction Second,
     int DaysApart);
 
-/// <summary>Describes one named health check and its underlying records.</summary>
+/// <summary>Identifies a source-data check.</summary>
+public enum DataHealthCheckKind
+{
+    Uncategorized,
+    IncompleteTransactions,
+    AccountMapping,
+    StaleAccounts,
+    Duplicates,
+    Reversals
+}
+
+/// <summary>Classifies the result of a source-data check.</summary>
+public enum DataHealthCheckStatus
+{
+    Passed,
+    NeedsAttention,
+    Review
+}
+
+/// <summary>Describes one health check and its underlying records.</summary>
 public sealed record DataHealthCheckResult(
-    string Id,
-    string Name,
-    string Action,
-    string Status,
+    DataHealthCheckKind Kind,
+    DataHealthCheckStatus StatusKind,
     decimal FinancialScope,
     IReadOnlyList<DataHealthRecord> Records,
     IReadOnlyList<DataHealthDuplicatePair> DuplicatePairs)
 {
+    /// <summary>Gets the stable identifier used to select this check.</summary>
+    public string Id => Kind switch
+    {
+        DataHealthCheckKind.Uncategorized => "uncategorized",
+        DataHealthCheckKind.IncompleteTransactions => "incomplete",
+        DataHealthCheckKind.AccountMapping => "account_mapping",
+        DataHealthCheckKind.StaleAccounts => "stale_accounts",
+        DataHealthCheckKind.Duplicates => "duplicates",
+        DataHealthCheckKind.Reversals => "reversals",
+        _ => throw new ArgumentOutOfRangeException(nameof(Kind))
+    };
+
+    /// <summary>Supports the old Dashboard until Desktop owns the wording.</summary>
+    public string Name => LegacyFinanceCopy.HealthName(Kind);
+
+    /// <summary>Supports the old Dashboard until Desktop owns the wording.</summary>
+    public string Action => LegacyFinanceCopy.HealthAction(Kind);
+
+    /// <summary>Supports the old Dashboard until Desktop owns the wording.</summary>
+    public string Status => LegacyFinanceCopy.HealthStatus(StatusKind);
+
     /// <summary>Gets how many rows need attention or review for this check.</summary>
     public int FindingCount => Records.Count;
 }
@@ -76,12 +114,12 @@ public sealed record DataHealthAnalysisResult(
 {
     /// <summary>Gets the total count of checks that need attention.</summary>
     public int NeedsAttention => Checks
-        .Where(check => string.Equals(check.Status, "Needs attention", StringComparison.Ordinal))
+        .Where(check => check.StatusKind == DataHealthCheckStatus.NeedsAttention)
         .Sum(check => check.FindingCount);
 
     /// <summary>Gets the total count of checks that need review.</summary>
     public int ReviewItems => Checks
-        .Where(check => string.Equals(check.Status, "Review", StringComparison.Ordinal))
+        .Where(check => check.StatusKind == DataHealthCheckStatus.Review)
         .Sum(check => check.FindingCount);
 }
 
@@ -113,36 +151,26 @@ public static class DataHealthAnalysisCalculator
         DataHealthCheckResult[] checks =
         [
             TransactionCheck(
-                "uncategorized",
-                "Missing classifications",
-                "Assign a category with a valid group and type.",
+                DataHealthCheckKind.Uncategorized,
                 transactionValues.Where(IsUncategorized)),
             TransactionCheck(
-                "incomplete",
-                "Missing transaction details",
-                "Fill the missing identifying fields in the Transactions sheet.",
+                DataHealthCheckKind.IncompleteTransactions,
                 transactionValues.Where(IsIncomplete),
                 IncompleteDetails),
             BalanceCheck(
-                "account_mapping",
-                "Account mapping gaps",
-                "Map each account to an ID, group, and asset or liability class.",
+                DataHealthCheckKind.AccountMapping,
                 latestBalances.Where(IsMissingMapping),
                 MissingMappingDetails),
             BalanceCheck(
-                "stale_accounts",
-                "Stale balance accounts",
-                "Refresh or reconnect accounts that stopped reporting balances.",
+                DataHealthCheckKind.StaleAccounts,
                 latestBalances.Where(balance => asOfDate.DayNumber - balance.Date.DayNumber > options.StaleAccountDays),
                 balance => $"{asOfDate.DayNumber - balance.Date.DayNumber} days old"),
             DuplicateCheck(duplicates),
             TransactionCheck(
-                "reversals",
-                "Refunds and income reversals",
-                "Confirm that refunds, clawbacks, and corrections are categorized as intended.",
+                DataHealthCheckKind.Reversals,
                 transactionValues.Where(IsReversal),
                 ReversalDetails,
-                "Review")
+                DataHealthCheckStatus.Review)
         ];
         return new DataHealthAnalysisResult(
             options,
@@ -153,12 +181,10 @@ public static class DataHealthAnalysisCalculator
     }
 
     private static DataHealthCheckResult TransactionCheck(
-        string id,
-        string name,
-        string action,
+        DataHealthCheckKind kind,
         IEnumerable<FinancialTransaction> transactions,
         Func<FinancialTransaction, string>? details = null,
-        string findingStatus = "Needs attention")
+        DataHealthCheckStatus findingStatus = DataHealthCheckStatus.NeedsAttention)
     {
         DataHealthRecord[] records = transactions
             .Select(transaction => new DataHealthRecord(
@@ -170,13 +196,11 @@ public static class DataHealthAnalysisCalculator
                 transaction.Amount,
                 details?.Invoke(transaction) ?? string.Empty))
             .ToArray();
-        return Check(id, name, action, findingStatus, records, []);
+        return Check(kind, findingStatus, records, []);
     }
 
     private static DataHealthCheckResult BalanceCheck(
-        string id,
-        string name,
-        string action,
+        DataHealthCheckKind kind,
         IEnumerable<BalanceObservation> balances,
         Func<BalanceObservation, string> details)
     {
@@ -192,7 +216,7 @@ public static class DataHealthAnalysisCalculator
                 balance.Balance,
                 details(balance)))
             .ToArray();
-        return Check(id, name, action, "Needs attention", records, []);
+        return Check(kind, DataHealthCheckStatus.NeedsAttention, records, []);
     }
 
     private static DataHealthCheckResult DuplicateCheck(IReadOnlyList<DataHealthDuplicatePair> duplicates)
@@ -208,26 +232,20 @@ public static class DataHealthAnalysisCalculator
                 $"{pair.DaysApart} days apart"))
             .ToArray();
         return Check(
-            "duplicates",
-            "Potential duplicate transactions",
-            "Confirm whether each pair represents the same underlying charge.",
-            "Review",
+            DataHealthCheckKind.Duplicates,
+            DataHealthCheckStatus.Review,
             records,
             duplicates);
     }
 
     private static DataHealthCheckResult Check(
-        string id,
-        string name,
-        string action,
-        string findingStatus,
+        DataHealthCheckKind kind,
+        DataHealthCheckStatus findingStatus,
         IReadOnlyList<DataHealthRecord> records,
         IReadOnlyList<DataHealthDuplicatePair> duplicatePairs)
         => new(
-            id,
-            name,
-            action,
-            records.Count == 0 ? "Passed" : findingStatus,
+            kind,
+            records.Count == 0 ? DataHealthCheckStatus.Passed : findingStatus,
             records.Sum(record => decimal.Abs(record.Amount ?? 0m)),
             records,
             duplicatePairs);
