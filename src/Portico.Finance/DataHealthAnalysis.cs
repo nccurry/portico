@@ -36,7 +36,35 @@ public sealed record DataHealthCheckOptions(
     }
 }
 
-/// <summary>Describes one table-ready data quality record.</summary>
+/// <summary>Names a missing source field without prescribing its display wording.</summary>
+public enum DataHealthMissingField
+{
+    AccountId,
+    Account,
+    Description,
+    Group
+}
+
+/// <summary>Classifies a transaction whose amount reverses its usual direction.</summary>
+public enum DataHealthReversalKind
+{
+    ExpenseRefund,
+    IncomeReversal
+}
+
+/// <summary>Identifies the missing fields on one record.</summary>
+public sealed record DataHealthMissingFields(IReadOnlyList<DataHealthMissingField> Fields);
+
+/// <summary>Counts the days since an account's latest balance.</summary>
+public sealed record DataHealthStaleDays(int Days);
+
+/// <summary>Identifies one refund or income reversal.</summary>
+public sealed record DataHealthReversal(DataHealthReversalKind Kind);
+
+/// <summary>Typed facts used to describe a Data Health finding.</summary>
+public union DataHealthRecordDetail(DataHealthMissingFields, DataHealthStaleDays, DataHealthReversal);
+
+/// <summary>Describes one data quality record.</summary>
 public sealed record DataHealthRecord(
     DateOnly? Date,
     string Description,
@@ -44,7 +72,7 @@ public sealed record DataHealthRecord(
     string Category,
     string Group,
     decimal? Amount,
-    string Details);
+    DataHealthRecordDetail? Details);
 
 /// <summary>Describes one potential pair of duplicate transactions.</summary>
 public sealed record DataHealthDuplicatePair(
@@ -155,7 +183,7 @@ public static class DataHealthAnalysisCalculator
             BalanceCheck(
                 DataHealthCheckKind.StaleAccounts,
                 latestBalances.Where(balance => asOfDate.DayNumber - balance.Date.DayNumber > options.StaleAccountDays),
-                balance => $"{asOfDate.DayNumber - balance.Date.DayNumber} days old"),
+                balance => new DataHealthStaleDays(asOfDate.DayNumber - balance.Date.DayNumber)),
             DuplicateCheck(duplicates),
             TransactionCheck(
                 DataHealthCheckKind.Reversals,
@@ -174,7 +202,7 @@ public static class DataHealthAnalysisCalculator
     private static DataHealthCheckResult TransactionCheck(
         DataHealthCheckKind kind,
         IEnumerable<FinancialTransaction> transactions,
-        Func<FinancialTransaction, string>? details = null,
+        Func<FinancialTransaction, DataHealthRecordDetail>? details = null,
         DataHealthCheckStatus findingStatus = DataHealthCheckStatus.NeedsAttention)
     {
         DataHealthRecord[] records = transactions
@@ -185,7 +213,7 @@ public static class DataHealthAnalysisCalculator
                 transaction.Category,
                 transaction.Group,
                 transaction.Amount,
-                details?.Invoke(transaction) ?? string.Empty))
+                details?.Invoke(transaction)))
             .ToArray();
         return Check(kind, findingStatus, records, []);
     }
@@ -193,7 +221,7 @@ public static class DataHealthAnalysisCalculator
     private static DataHealthCheckResult BalanceCheck(
         DataHealthCheckKind kind,
         IEnumerable<BalanceObservation> balances,
-        Func<BalanceObservation, string> details)
+        Func<BalanceObservation, DataHealthRecordDetail> details)
     {
         DataHealthRecord[] records = balances
             .OrderByDescending(balance => balance.Date)
@@ -220,7 +248,7 @@ public static class DataHealthAnalysisCalculator
                 pair.First.Category,
                 pair.First.Group,
                 decimal.Abs(pair.First.Amount),
-                $"{pair.DaysApart} days apart"))
+                null))
             .ToArray();
         return Check(
             DataHealthCheckKind.Duplicates,
@@ -313,27 +341,24 @@ public static class DataHealthAnalysisCalculator
         => (transaction.Kind == TransactionKind.Expense && transaction.Amount > 0m)
             || (transaction.Kind == TransactionKind.Income && transaction.Amount < 0m);
 
-    private static string IncompleteDetails(FinancialTransaction transaction)
-        => string.Join(
-            ", ",
-            new[]
-            {
-                IsBlank(transaction.Account) ? "Account" : null,
-                IsBlank(transaction.Description) ? "Description" : null
-            }.Where(value => value is not null));
+    private static DataHealthRecordDetail IncompleteDetails(FinancialTransaction transaction)
+        => new DataHealthMissingFields(new[]
+        {
+            IsBlank(transaction.Account) ? DataHealthMissingField.Account : (DataHealthMissingField?)null,
+            IsBlank(transaction.Description) ? DataHealthMissingField.Description : null
+        }.OfType<DataHealthMissingField>().ToArray());
 
-    private static string MissingMappingDetails(BalanceObservation balance)
-        => string.Join(
-            ", ",
-            new[]
-            {
-                IsBlank(balance.AccountId) ? "Account ID" : null,
-                IsBlank(balance.Account) ? "Account" : null,
-                IsBlank(balance.Group) ? "Group" : null
-            }.Where(value => value is not null));
+    private static DataHealthRecordDetail MissingMappingDetails(BalanceObservation balance)
+        => new DataHealthMissingFields(new[]
+        {
+            IsBlank(balance.AccountId) ? DataHealthMissingField.AccountId : (DataHealthMissingField?)null,
+            IsBlank(balance.Account) ? DataHealthMissingField.Account : null,
+            IsBlank(balance.Group) ? DataHealthMissingField.Group : null
+        }.OfType<DataHealthMissingField>().ToArray());
 
-    private static string ReversalDetails(FinancialTransaction transaction)
-        => transaction.Kind == TransactionKind.Expense ? "Expense refund" : "Income reversal";
+    private static DataHealthRecordDetail ReversalDetails(FinancialTransaction transaction)
+        => new DataHealthReversal(transaction.Kind == TransactionKind.Expense
+            ? DataHealthReversalKind.ExpenseRefund : DataHealthReversalKind.IncomeReversal);
 
     private static string AccountKey(BalanceObservation balance)
         => !IsBlank(balance.AccountId)
