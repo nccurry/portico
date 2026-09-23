@@ -33,6 +33,12 @@ The current Portico.Dashboard project splits by responsibility:
   Portico.Desktop;
 - Portico.Dashboard is removed only after all owning tests move.
 
+Phase 2 adds semantic Application reports beside the still-live Dashboard
+builders. Phase 4 removes the old calculations only after Desktop renders the
+Application reports with the same behavior. A workspace copies normalized
+snapshot collections when opened; the validated FinanceSettings handed to it
+must remain immutable for that workspace's lifetime.
+
 No Common, Shared, Contracts, Service, or generic Infrastructure project is
 planned. Each named project has a distinct reason to change.
 

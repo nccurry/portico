@@ -1,6 +1,6 @@
 ﻿namespace Portico.Application;
 
-/// <summary>Runs Portico's in-process checks through its input boundaries.</summary>
+/// <summary>Runs Portico's in-process operations through its input boundaries.</summary>
 public sealed class PorticoApplication(IConfigurationReader configurationReader, IPortfolioReader portfolioReader)
 {
     private readonly IConfigurationReader _configurationReader = configurationReader
@@ -72,6 +72,41 @@ public sealed class PorticoApplication(IConfigurationReader configurationReader,
         }
     }
 
+    /// <summary>Loads one fixed portfolio and its financial policy for report requests.</summary>
+    public async Task<OpenWorkspaceOutcome> OpenWorkspaceAsync(
+        ConfigurationSelection selection,
+        DateOnly? asOfDate = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(selection);
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            ConfigurationReadOutcome configuration = await _configurationReader.ReadAsync(selection, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (configuration is PorticoFailure failure)
+                return failure;
+            if (configuration is not ConfigurationReadSuccess read)
+                throw new InvalidOperationException("The configuration reader returned no outcome.");
+
+            WorkspaceConfiguration settings = read.GetConfiguration();
+            PortfolioReadOutcome portfolio = await _portfolioReader.ReadAsync(settings.Source, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (portfolio is PorticoFailure dataFailure)
+                return dataFailure;
+            if (portfolio is not PortfolioReadSuccess loaded)
+                throw new InvalidOperationException("The portfolio reader returned no outcome.");
+
+            return new WorkspaceOpened(new Workspace(loaded.GetSnapshot(), settings.Settings, asOfDate));
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return Cancelled();
+        }
+    }
+
     private static PorticoFailure Cancelled()
-        => new([new PorticoProblem("operation.cancelled", "The check was cancelled.", retryable: true)]);
+        => new([new PorticoProblem("operation.cancelled", "The operation was cancelled.", retryable: true)]);
 }
