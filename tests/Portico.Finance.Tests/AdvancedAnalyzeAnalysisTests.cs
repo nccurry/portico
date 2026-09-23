@@ -102,6 +102,39 @@ public sealed class AdvancedAnalyzeAnalysisTests
     }
 
     [Fact]
+    public void MerchantAnalysis_DetailKeepsRawDescriptionsAndFiltersSelectedMonth()
+    {
+        FinancialTransaction[] rows =
+        [
+            Expense("april", 2025, 4, 1, "Coffee", "Living", "COFFEE SHOP 101", -10m),
+            Expense("may-one", 2025, 5, 1, "Coffee", "Living", "COFFEE SHOP 101", -20m),
+            Expense("may-two", 2025, 5, 2, "Coffee", "Living", "COFFEE SHOP 102", -30m),
+            Expense("other", 2025, 5, 3, "Food", "Living", "MARKET 10", -100m)
+        ];
+        MerchantAnalysisResult analysis = MerchantAnalysisCalculator.Build(
+            rows, Settings(), "all", 2, SpendingComparison.PreviousPeriod, SpendingAdjustments.Default(1_000m));
+
+        IReadOnlyList<MerchantDescriptionEntry> descriptions = MerchantAnalysisCalculator.Descriptions(
+            analysis.CurrentLedger, "COFFEE SHOP", EmptyAliases());
+        IReadOnlyList<SpendingLedgerEntry> may = MerchantAnalysisCalculator.Transactions(
+            analysis.CurrentLedger, "COFFEE SHOP", new YearMonth(2025, 5), EmptyAliases());
+        IReadOnlyList<MerchantDetailBreakdownEntry> accounts = MerchantAnalysisCalculator.Breakdown(
+            analysis.CurrentLedger, "COFFEE SHOP", "Account", EmptyAliases());
+        IReadOnlyList<MerchantDetailBreakdownEntry> groups = MerchantAnalysisCalculator.Breakdown(
+            analysis.CurrentLedger, "COFFEE SHOP", "Group", EmptyAliases());
+
+        Assert.Equal(["COFFEE SHOP 101", "COFFEE SHOP 102"], descriptions.Select(entry => entry.Description));
+        Assert.Equal((30m, 2, new DateOnly(2025, 5, 1)),
+            (descriptions[0].Spending, descriptions[0].Transactions, descriptions[0].LastTransaction));
+        Assert.Equal(["may-two", "may-one"], may.Select(entry => entry.Transaction.Id));
+        Assert.Equal(("Checking", 60m, 3),
+            (Assert.Single(accounts).Entity, accounts[0].Spending, accounts[0].Transactions));
+        Assert.Equal("Living", Assert.Single(groups).Entity);
+        Assert.Throws<ArgumentException>(() => MerchantAnalysisCalculator.Breakdown(
+            analysis.CurrentLedger, "COFFEE SHOP", "Merchant", EmptyAliases()));
+    }
+
+    [Fact]
     public void TransactionExplorer_SeparatesQuickFocusModesAndUsesPreThresholdMerchantStatistics()
     {
         FinancialTransaction[] rows =
@@ -252,6 +285,91 @@ public sealed class AdvancedAnalyzeAnalysisTests
         Assert.Empty(analysis.Candidates);
         Assert.Empty(analysis.Inactive);
         Assert.Empty(analysis.History);
+    }
+
+    [Fact]
+    public void SubscriptionAnalysis_EmptyInputReturnsNoDateOrPendingEstimate()
+    {
+        SubscriptionAnalysisResult result = SubscriptionAnalysisCalculator.Build(
+            [], Settings().Subscriptions, EmptyAliases(), ["Streaming"], [], 80);
+
+        Assert.Null(result.LatestDataDate);
+        Assert.Empty(result.Inventory);
+        Assert.Empty(result.Lifecycles);
+        Assert.Equal(0, result.Summary.ActiveCount);
+        Assert.Equal(0, result.Summary.PendingEstimateCount);
+        Assert.Null(result.Summary.AnnualChangePercent);
+        Assert.Throws<ArgumentOutOfRangeException>(() => SubscriptionAnalysisCalculator.Build(
+            [], Settings().Subscriptions, EmptyAliases(), [], [], 69));
+        Assert.Throws<ArgumentOutOfRangeException>(() => SubscriptionAnalysisCalculator.Build(
+            [], Settings().Subscriptions, EmptyAliases(), [], [], 101));
+    }
+
+    [Fact]
+    public void SubscriptionAnalysis_PendingCadenceHasNoRunRateUntilMoreDatesExist()
+    {
+        FinancialTransaction[] rows =
+        [
+            Expense("jan", 2025, 1, 1, "Streaming", "Fun", "VIDEO SERVICE", -10m),
+            Expense("feb", 2025, 2, 1, "Streaming", "Fun", "VIDEO SERVICE", -10m)
+        ];
+
+        SubscriptionAnalysisResult result = SubscriptionAnalysisCalculator.Build(
+            rows, Settings().Subscriptions, EmptyAliases(), ["Streaming"], [], 80);
+
+        SubscriptionInventoryEntry pending = Assert.Single(result.Active);
+        Assert.Equal("Pending", pending.Cadence);
+        Assert.Equal("Pending", pending.BundleType);
+        Assert.Equal(60, pending.Confidence);
+        Assert.Null(pending.MonthlyRunRate);
+        Assert.Null(pending.NextExpectedDate);
+        Assert.Equal(1, result.Summary.PendingEstimateCount);
+        Assert.Equal(0m, result.Summary.MonthlyRunRate);
+    }
+
+    [Fact]
+    public void SubscriptionAnalysis_ReactivationStartsANewEpisode()
+    {
+        FinancialTransaction[] rows =
+        [
+            Expense("jan", 2024, 1, 1, "Streaming", "Fun", "VIDEO SERVICE", -10m),
+            Expense("feb", 2024, 2, 1, "Streaming", "Fun", "VIDEO SERVICE", -10m),
+            Expense("mar", 2024, 3, 1, "Streaming", "Fun", "VIDEO SERVICE", -10m),
+            Expense("sep", 2024, 9, 1, "Streaming", "Fun", "VIDEO SERVICE", -12m),
+            Expense("oct", 2024, 10, 1, "Streaming", "Fun", "VIDEO SERVICE", -12m),
+            Expense("nov", 2024, 11, 1, "Streaming", "Fun", "VIDEO SERVICE", -12m)
+        ];
+
+        SubscriptionAnalysisResult result = SubscriptionAnalysisCalculator.Build(
+            rows, Settings().Subscriptions, EmptyAliases(), ["Streaming"], [], 80);
+
+        Assert.Equal("Monthly", Assert.Single(result.Active).Cadence);
+        Assert.Equal([1, 2], result.Lifecycles.Select(row => row.Episode).Order());
+        Assert.Equal("Inactive", Assert.Single(result.Lifecycles, row => row.Episode == 1).Status);
+        Assert.True(Assert.Single(result.Lifecycles, row => row.Episode == 2).IsCurrent);
+        Assert.Equal(new DateOnly(2024, 9, 1), Assert.Single(result.Lifecycles, row => row.Episode == 2).EpisodeStart);
+    }
+
+    [Fact]
+    public void SubscriptionAnalysis_MerchantBundleUsesObservedSpendingRunRate()
+    {
+        FinancialTransaction[] rows =
+        [
+            Expense("jan-one", 2025, 1, 1, "Streaming", "Fun", "VIDEO SERVICE", -10m),
+            Expense("jan-two", 2025, 1, 2, "Streaming", "Fun", "VIDEO SERVICE", -20m),
+            Expense("feb-one", 2025, 2, 1, "Streaming", "Fun", "VIDEO SERVICE", -10m),
+            Expense("feb-two", 2025, 2, 2, "Streaming", "Fun", "VIDEO SERVICE", -20m)
+        ];
+
+        SubscriptionAnalysisResult result = SubscriptionAnalysisCalculator.Build(
+            rows, Settings().Subscriptions, EmptyAliases(), ["Streaming"], [], 80);
+
+        SubscriptionInventoryEntry bundle = Assert.Single(result.Active);
+        Assert.Equal("Merchant bundle", bundle.BundleType);
+        Assert.Equal("Multiple", bundle.Cadence);
+        Assert.Equal(60m, bundle.TrailingTwelveMonthSpend);
+        Assert.Equal(30m, bundle.MonthlyRunRate);
+        Assert.Equal(61, bundle.Confidence);
     }
 
     private static FinancialTransaction Expense(

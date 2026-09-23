@@ -27,7 +27,7 @@ public readonly record struct YearMonth : IComparable<YearMonth>
     public DateOnly Start => new(Year, Month, 1);
 
     /// <summary>Gets the last day of this month.</summary>
-    public DateOnly End => Start.AddMonths(1).AddDays(-1);
+    public DateOnly End => new(Year, Month, DateTime.DaysInMonth(Year, Month));
 
     /// <summary>Creates a month from a date.</summary>
     public static YearMonth From(DateOnly value) => new(value.Year, value.Month);
@@ -60,8 +60,12 @@ public readonly record struct YearMonth : IComparable<YearMonth>
             return [];
 
         var months = new List<YearMonth>();
-        for (YearMonth current = start; current.CompareTo(end) <= 0; current = current.AddMonths(1))
+        for (YearMonth current = start; ; current = current.AddMonths(1))
+        {
             months.Add(current);
+            if (current == end)
+                break;
+        }
         return months;
     }
 
