@@ -100,6 +100,9 @@ public sealed class DashboardSession
         if (updated == Filters)
             return;
 
+        updated.Budget?.Validate();
+        updated.FinancialIndependenceSource?.Validate();
+        updated.FinancialIndependenceScenario?.Validate();
         updated.DataHealth?.Validate();
         Filters = updated;
         SyncDataHealthPresentation(source);
