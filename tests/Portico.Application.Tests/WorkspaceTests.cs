@@ -104,7 +104,8 @@ public sealed class WorkspaceTests
         FinanceSettings settings = Settings() with
         {
             Lookback = new LookbackSettings(months, 6),
-            FilterSets = [new FilterSetDefinition("spending", options, "all")]
+            FilterSets = [new FilterSetDefinition("spending", options, "all")],
+            TransactionSets = [new TransactionSetDefinition("all", "All spending", [], [], [], [], [], [], [])]
         };
         Workspace workspace = Opened(await Application(new PortfolioReadSuccess(Snapshot()), settings)
             .OpenWorkspaceAsync(new ConfigurationSelection(), cancellationToken: TestContext.Current.CancellationToken));
@@ -116,6 +117,7 @@ public sealed class WorkspaceTests
         Assert.Equal(6, workspace.ReportChoices.DefaultLookbackMonths);
         Assert.Equal(["all", "essential"], workspace.ReportChoices.FilterSets["spending"].Options);
         Assert.Equal("all", workspace.ReportChoices.FilterSets["spending"].Default);
+        Assert.Equal("All spending", workspace.ReportChoices.TransactionSetLabels["all"]);
         Assert.Throws<NotSupportedException>(() => ((IList<int>)workspace.ReportChoices.LookbackMonths)[0] = 24);
         Assert.Throws<NotSupportedException>(() => ((IList<string>)workspace.ReportChoices.FilterSets["spending"].Options)[0] = "changed");
     }

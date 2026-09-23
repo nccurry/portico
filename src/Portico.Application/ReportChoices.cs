@@ -14,6 +14,10 @@ public sealed class ReportChoices
             set => set.Key,
             set => new ReportFilterChoices(Array.AsReadOnly(set.Options.ToArray()), set.Default),
             StringComparer.Ordinal));
+        TransactionSetLabels = new ReadOnlyDictionary<string, string>(settings.TransactionSets.ToDictionary(
+            set => set.Key,
+            set => set.Label,
+            StringComparer.Ordinal));
     }
 
     public IReadOnlyList<int> LookbackMonths { get; }
@@ -21,6 +25,8 @@ public sealed class ReportChoices
     public int DefaultLookbackMonths { get; }
 
     public IReadOnlyDictionary<string, ReportFilterChoices> FilterSets { get; }
+
+    public IReadOnlyDictionary<string, string> TransactionSetLabels { get; }
 }
 
 /// <summary>Named transaction-set options and their configured default.</summary>
