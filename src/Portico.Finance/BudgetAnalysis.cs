@@ -68,6 +68,12 @@ public sealed record BudgetGroupDetail(
     IReadOnlyList<BudgetPerformanceEntry> Categories,
     IReadOnlyList<FinancialTransaction> Transactions);
 
+/// <summary>Identifies why a budget analysis has no groups to show.</summary>
+public enum BudgetEmptyReason
+{
+    NoGroupsSelected
+}
+
 /// <summary>Contains all source-shaped Budget data for a selected month and group set.</summary>
 public sealed record BudgetAnalysisResult(
     BudgetRequest Request,
@@ -77,7 +83,11 @@ public sealed record BudgetAnalysisResult(
     IReadOnlyDictionary<string, BudgetGroupDetail> GroupDetails,
     IReadOnlyList<BudgetDailyPaceEntry> DailyPace,
     IReadOnlyList<BudgetPerformanceEntry> YearToDate,
-    string? EmptyMessage = null);
+    BudgetEmptyReason? EmptyReason = null)
+{
+    /// <summary>Supports the old Dashboard until Desktop owns the wording.</summary>
+    public string? EmptyMessage => LegacyFinanceCopy.BudgetEmpty(EmptyReason);
+}
 
 /// <summary>Builds plan-versus-actual Budget analysis without any UI dependency.</summary>
 public static class BudgetAnalysisCalculator
@@ -107,7 +117,7 @@ public static class BudgetAnalysisCalculator
             .ToArray();
 
         if (selectedGroups.Length == 0)
-            return Empty(request, "Select at least one budget group.");
+            return Empty(request, BudgetEmptyReason.NoGroupsSelected);
 
         YearMonth historyStart = HistoryStart(
             budgetRows,
@@ -128,9 +138,6 @@ public static class BudgetAnalysisCalculator
             .OrderByDescending(entry => entry.Spent)
             .ThenBy(entry => entry.Entity, StringComparer.Ordinal)
             .ToArray();
-        if (groups.Count == 0)
-            return Empty(request, "No budget or spending data is available for this selection.");
-
         BudgetSummary summary = Summarize(groupHistory, request.SelectedMonth);
         var details = new Dictionary<string, BudgetGroupDetail>(StringComparer.Ordinal);
         foreach (BudgetPerformanceEntry group in groups)
@@ -175,7 +182,7 @@ public static class BudgetAnalysisCalculator
             null);
     }
 
-    private static BudgetAnalysisResult Empty(BudgetRequest request, string message)
+    private static BudgetAnalysisResult Empty(BudgetRequest request, BudgetEmptyReason reason)
         => new(
             request,
             MonthProgress(request.SelectedMonth, request.ThroughDate),
@@ -184,7 +191,7 @@ public static class BudgetAnalysisCalculator
             new Dictionary<string, BudgetGroupDetail>(StringComparer.Ordinal),
             [],
             [],
-            message);
+            reason);
 
     private static YearMonth HistoryStart(
         IReadOnlyList<BudgetEntry> budgets,

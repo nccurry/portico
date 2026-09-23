@@ -113,8 +113,14 @@ public sealed class SpendingAnalysisTests
         SpendingLedgerEntry rent = Assert.Single(group.CurrentLedger, entry => entry.Transaction.Id == "rent");
         SpendingLedgerEntry grocery = Assert.Single(category.CurrentLedger, entry => entry.Transaction.Id == "grocery");
         Assert.False(rent.Included);
+        Assert.Equal(
+            new LedgerExclusion(LedgerExclusionReason.ExcludedExpenseGroup, "Housing"),
+            Assert.Single(rent.Exclusions));
         Assert.Contains("Excluded group: Housing", rent.ExclusionReason, StringComparison.Ordinal);
         Assert.False(grocery.Included);
+        Assert.Equal(
+            new LedgerExclusion(LedgerExclusionReason.ExcludedCategory, "Food"),
+            Assert.Single(grocery.Exclusions));
         Assert.Contains("Excluded category: Food", grocery.ExclusionReason, StringComparison.Ordinal);
         Assert.Equal(2_071m, group.Summary.TotalSpending);
         Assert.Equal(3_021m, category.Summary.TotalSpending);
@@ -146,6 +152,9 @@ public sealed class SpendingAnalysisTests
         Assert.Equal(3_051m, excluded.Summary.TotalSpending);
         Assert.Equal(50m, both.Summary.TotalSpending);
         SpendingLedgerEntry coffee = Assert.Single(both.CurrentLedger, entry => entry.Transaction.Id == "coffee");
+        Assert.Equal(
+            new LedgerExclusion(LedgerExclusionReason.ExcludedDescription, "coffee"),
+            Assert.Single(coffee.Exclusions));
         Assert.Contains("Excluded transaction like: coffee", coffee.ExclusionReason, StringComparison.Ordinal);
         Assert.DoesNotContain("Outside included groups/categories/transactions", coffee.ExclusionReason, StringComparison.Ordinal);
     }
@@ -162,6 +171,9 @@ public sealed class SpendingAnalysisTests
         SpendingLedgerEntry over = Assert.Single(analysis.CurrentLedger, entry => entry.Transaction.Id == "over-limit");
         Assert.True(boundary.Included);
         Assert.False(over.Included);
+        Assert.Equal(
+            new LedgerExclusion(LedgerExclusionReason.ExpenseOverLimit, Limit: 1_000m),
+            Assert.Single(over.Exclusions));
         Assert.Contains("Expense over $1,000", over.ExclusionReason, StringComparison.Ordinal);
         Assert.Equal(2_070m, analysis.Summary.TotalSpending);
     }
@@ -214,6 +226,9 @@ public sealed class SpendingAnalysisTests
         Assert.Equal(50m, living.Summary.TotalSpending);
         SpendingLedgerEntry rent = Assert.Single(living.CurrentLedger, entry => entry.Transaction.Id == "rent");
         Assert.False(rent.Included);
+        Assert.Equal(
+            new LedgerExclusion(LedgerExclusionReason.OutsideConfiguredSet, "Living"),
+            Assert.Single(rent.Exclusions));
         Assert.Contains("Outside configured set: Living", rent.ExclusionReason, StringComparison.Ordinal);
         (string Merchant, decimal Spending, decimal SharePercent, int Transactions, decimal AverageTransaction, DateOnly LastTransaction) merchant =
             Assert.Single(SpendingAnalysisCalculator.Merchants(living.CurrentLedger, settings.MerchantAliases));

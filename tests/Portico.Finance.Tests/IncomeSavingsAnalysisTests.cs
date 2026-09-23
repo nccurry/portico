@@ -107,18 +107,34 @@ public sealed class IncomeSavingsAnalysisTests
         IncomeSavingsAnalysisResult result = IncomeSavingsAnalysisCalculator.Build(rows, 1, adjustments);
 
         Assert.False(Entry(result, "salary").Included);
+        Assert.Equal(
+            new LedgerExclusion(LedgerExclusionReason.ExcludedIncomeCategory, "Salary"),
+            Assert.Single(Entry(result, "salary").Exclusions));
         Assert.Contains("Excluded income category: Salary", Entry(result, "salary").ExclusionReason, StringComparison.Ordinal);
         Assert.True(Entry(result, "income-boundary").Included);
         Assert.False(Entry(result, "income-over").Included);
+        Assert.Equal(
+            new LedgerExclusion(LedgerExclusionReason.IncomeOverLimit, Limit: 5_000m),
+            Assert.Single(Entry(result, "income-over").Exclusions));
         Assert.Contains("Income over $5,000", Entry(result, "income-over").ExclusionReason, StringComparison.Ordinal);
         Assert.False(Entry(result, "food").Included);
+        Assert.Equal(
+            new LedgerExclusion(LedgerExclusionReason.ExcludedExpenseCategory, "Food"),
+            Assert.Single(Entry(result, "food").Exclusions));
         Assert.Contains("Excluded expense category: Food", Entry(result, "food").ExclusionReason, StringComparison.Ordinal);
         Assert.False(Entry(result, "travel").Included);
+        Assert.Equal(
+            new LedgerExclusion(LedgerExclusionReason.ExcludedExpenseGroup, "Travel"),
+            Assert.Single(Entry(result, "travel").Exclusions));
         Assert.Contains("Excluded group: Travel", Entry(result, "travel").ExclusionReason, StringComparison.Ordinal);
         Assert.True(Entry(result, "expense-boundary").Included);
         Assert.False(Entry(result, "expense-over").Included);
+        Assert.Equal(
+            new LedgerExclusion(LedgerExclusionReason.ExpenseOverLimit, Limit: 1_000m),
+            Assert.Single(Entry(result, "expense-over").Exclusions));
         Assert.Contains("Expense over $1,000", Entry(result, "expense-over").ExclusionReason, StringComparison.Ordinal);
         Assert.False(Entry(result, "transfer").Included);
+        Assert.Equal(LedgerExclusionReason.TransferGroup, Assert.Single(Entry(result, "transfer").Exclusions).Reason);
         Assert.Contains("Transfer group", Entry(result, "transfer").ExclusionReason, StringComparison.Ordinal);
         Assert.Equal(5_000m, result.CurrentSummary.Income);
         Assert.Equal(1_000m, result.CurrentSummary.NetExpenses);
@@ -142,9 +158,16 @@ public sealed class IncomeSavingsAnalysisTests
         IncomeSavingsAnalysisResult result = IncomeSavingsAnalysisCalculator.Build(rows, 1, adjustments);
 
         Assert.True(Entry(result, "keep").Included);
+        Assert.Empty(Entry(result, "keep").Exclusions);
         Assert.False(Entry(result, "outside").Included);
+        Assert.Equal(
+            LedgerExclusionReason.OutsideIncludedDescriptions,
+            Assert.Single(Entry(result, "outside").Exclusions).Reason);
         Assert.Contains("Outside included groups/categories/transactions", Entry(result, "outside").ExclusionReason, StringComparison.Ordinal);
         Assert.False(Entry(result, "excluded").Included);
+        Assert.Equal(
+            new LedgerExclusion(LedgerExclusionReason.ExcludedDescription, "ignore"),
+            Assert.Single(Entry(result, "excluded").Exclusions));
         Assert.Contains("Excluded transaction like: ignore", Entry(result, "excluded").ExclusionReason, StringComparison.Ordinal);
         Assert.Equal(1_000m, result.CurrentSummary.Income);
         Assert.Equal(0m, result.CurrentSummary.NetExpenses);
@@ -165,6 +188,41 @@ public sealed class IncomeSavingsAnalysisTests
         Assert.Equal([new YearMonth(2025, 3), new YearMonth(2025, 4)], result.Period.PreviousMonths);
         Assert.False(result.HasFullPreviousPeriod);
         Assert.Equal(1_000m, result.PreviousSummary.Income);
+    }
+
+    [Fact]
+    public void Build_ReportsOverlappingExclusionsInStableOrder()
+    {
+        FinancialTransaction row = Expense(
+            "flight",
+            2025,
+            6,
+            "Flight",
+            "Travel",
+            "Ignore flight",
+            -1_100m);
+        IncomeSavingsAdjustments adjustments = Adjustments() with
+        {
+            ExcludedExpenseGroups = ["Travel"],
+            ExcludedExpenseCategories = ["Flight"],
+            ExcludedDescriptions = ["ignore"],
+            ExcludeLargeExpenses = true
+        };
+
+        IncomeSavingsLedgerEntry entry = Entry(
+            IncomeSavingsAnalysisCalculator.Build([row], 1, adjustments),
+            "flight");
+
+        Assert.Equal(
+        [
+            new LedgerExclusion(LedgerExclusionReason.ExcludedExpenseGroup, "Travel"),
+            new LedgerExclusion(LedgerExclusionReason.ExcludedExpenseCategory, "Flight"),
+            new LedgerExclusion(LedgerExclusionReason.ExcludedDescription, "ignore"),
+            new LedgerExclusion(LedgerExclusionReason.ExpenseOverLimit, Limit: 1_000m)
+        ], entry.Exclusions);
+        Assert.Equal(
+            "Excluded group: Travel; Excluded expense category: Flight; Excluded transaction like: ignore; Expense over $1,000",
+            entry.ExclusionReason);
     }
 
     [Fact]

@@ -7,17 +7,10 @@ public sealed record DataHealthReportRequest(
     DataHealthCheckOptions? Options = null,
     string? SelectedCheckId = null);
 
-/// <summary>Classifies one Data Health check without presentation wording.</summary>
-public enum DataHealthCheckStatus
-{
-    Passed,
-    NeedsAttention,
-    Review
-}
-
 /// <summary>One check in the fixed Data Health queue.</summary>
 public sealed record DataHealthCheck(
     string Id,
+    DataHealthCheckKind Kind,
     DataHealthCheckStatus Status,
     decimal FinancialScope,
     IReadOnlyList<DataHealthRecord> Records,
@@ -62,13 +55,8 @@ public sealed partial class Workspace
             evaluationDate);
         DataHealthCheck[] checks = analysis.Checks.Select(check => new DataHealthCheck(
             check.Id,
-            check.Status switch
-            {
-                "Passed" => DataHealthCheckStatus.Passed,
-                "Needs attention" => DataHealthCheckStatus.NeedsAttention,
-                "Review" => DataHealthCheckStatus.Review,
-                _ => throw new InvalidOperationException("Unknown Data Health check status.")
-            },
+            check.Kind,
+            check.StatusKind,
             check.FinancialScope,
             check.Records,
             check.DuplicatePairs)).ToArray();
