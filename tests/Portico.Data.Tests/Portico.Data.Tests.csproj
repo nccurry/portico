@@ -4,6 +4,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/Portico.Data/Portico.Data.csproj" />
+    <ProjectReference Include="../../src/Portico.Configuration/Portico.Configuration.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" />

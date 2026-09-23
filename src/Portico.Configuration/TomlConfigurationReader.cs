@@ -536,10 +536,10 @@ public sealed class TomlConfigurationReader : IConfigurationReader
         var values = new List<string>(array.Count);
         foreach (object? item in array)
         {
-            if (item is string text)
+            if (item is string text && !string.IsNullOrWhiteSpace(text))
                 values.Add(text);
             else
-                Add(problems, "config.invalid-value", "The array must contain only text.", field);
+                Add(problems, "config.invalid-value", "The array must contain only non-empty text.", field);
         }
         return values;
     }

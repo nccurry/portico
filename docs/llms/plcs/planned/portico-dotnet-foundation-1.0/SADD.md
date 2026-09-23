@@ -235,7 +235,14 @@ Data owns two concrete readers:
 
 Both feed a shared normalizer that produces the one trusted PortfolioSnapshot
 contract used by Finance and Application. Normalization owns required-column
-checks, type conversion, cross-table consistency, and data-contract problems.
+checks, type conversion, account-identity consistency, and data-contract
+problems. Unknown categories and unmatched account rules remain visible to
+Data Health rather than becoming rejected source files.
+Transactions, balances, and budget months must be on or after 1900-01-01.
+Data reports an earlier value as `data.date-out-of-range` before Application
+calculates current and matched-prior report windows.
+The old Adapters path keeps its existing normalizer only while the active App
+still uses it. Phase 4 removes that temporary duplicate with the old App path.
 
 The data module receives an Application source request and returns a typed
 snapshot outcome. It does not expose CsvHelper rows, HTTP response objects, or

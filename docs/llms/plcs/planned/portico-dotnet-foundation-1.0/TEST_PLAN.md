@@ -59,7 +59,7 @@ replacement test or a documented reason it consolidated into a stronger test.
 - valid local CSV source;
 - each required file missing;
 - each required column missing or malformed;
-- normalizer cross-table mismatch;
+- normalizer cross-row account-identity mismatch;
 - fake Google success;
 - fake Google non-success, timeout, cancellation, and invalid document;
 - same semantic fixture through both source readers.

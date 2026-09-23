@@ -220,6 +220,22 @@ public sealed class TomlConfigurationReaderTests
             failure.Problems.Select(problem => problem.Field));
     }
 
+    [Theory]
+    [InlineData("included_account_patterns = [\"Brokerage\"]", "included_account_patterns = [\" \"]", "financial_independence.included_account_patterns")]
+    [InlineData("transactions_like = []", "transactions_like = [\"\"]", "transaction_sets.transactions_like")]
+    public async Task BlankTextPattern_IsRejectedBeforeFinanceUse(string original, string invalid, string field)
+    {
+        using var files = new TestFiles();
+        files.Write("portico.toml", ValidMain().Replace(original, invalid, StringComparison.Ordinal));
+
+        PorticoFailure failure = Failure(await files.Reader.ReadAsync(
+            new ConfigurationSelection(), TestContext.Current.CancellationToken));
+
+        PorticoProblem problem = Assert.Single(failure.Problems);
+        Assert.Equal("config.invalid-value", problem.Code);
+        Assert.Equal(field, problem.Field);
+    }
+
     [Fact]
     public async Task BadSetReferences_FailBeforeFinanceUse()
     {

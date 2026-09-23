@@ -9,6 +9,9 @@ a .NET application. The active C# code is still an interim design:
   owns data-source selection.
 - `Portico.Application` provides typed check and workspace operations and
   semantic reports alongside the old dashboard path.
+- `Portico.Configuration` reads the new versioned TOML files into Application
+  settings and safe problems.
+- `Portico.Data` reads local CSV or Google Sheets into one normalized snapshot.
 - `Portico.Dashboard` contains both report building and some presentation
   state.
 - `Portico.Adapters` contains TOML, CSV, and Google Sheets concerns.
@@ -18,7 +21,8 @@ a .NET application. The active C# code is still an interim design:
 That structure is useful working software, but it is not the target boundary
 model. In particular, the CLI still constructs adapters directly, and dashboard
 code still mixes application and desktop concerns. The new Application reports
-are not yet wired into the desktop.
+and readers work together in process but are not yet wired into the active CLI
+or desktop.
 
 ## Planned target
 

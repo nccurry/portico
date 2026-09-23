@@ -221,7 +221,7 @@ internal static class WorkbookNormalizer
         => value.Trim().ToLowerInvariant() switch
         {
             "" or "false" or "no" or "0" => false,
-            "true" or "yes" or "1" => true,
+            "true" or "yes" or "1" or "hide" => true,
             _ => throw new DataContractException($"{source} row {rowIndex + 2} has an invalid {column} value.")
         };
 

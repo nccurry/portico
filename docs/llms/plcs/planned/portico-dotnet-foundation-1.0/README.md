@@ -5,9 +5,10 @@
 - Status: In progress
 - Created: 2026-09-21
 - Owner: Portico maintainers
-- Implementation status: Phases 0, 1, and 2 are complete. The baseline,
-  project boundaries, pure Finance policy, and semantic Application reports
-  are in place. Phase 3 (configuration and data adapters) is next.
+- Implementation status: Phases 0 through 3 are complete. The project
+  boundaries, semantic Application reports, versioned Configuration reader,
+  and typed CSV/Google Data reader are in place. Phase 4 (CLI, App, and
+  Desktop rewire) is next.
 - Depends on: the completed Python archive move in legacy/python
 
 ## Purpose
@@ -134,6 +135,21 @@ The built-in coverage collector measured the named `Portico.Finance` package
 at 97.13% lines and 90.20% branches and `Portico.Application` at 98.56% lines
 and 93.80% branches. Both exceed the 95%/90% PLC target. The local failing
 coverage task remains due by 2026-09-30; Phase 5 cannot pass without it.
+
+## Phase 3 verification (2026-09-23)
+
+The new Configuration and Data readers work together through Application with
+the synthetic root `portico.toml`, even when the caller's working directory
+differs from the config file's directory. The new reader accepts the existing
+demo workbook's `Hide` marker and reports source dates before 1900-01-01 as
+typed data problems. It does not call the old Adapters implementation.
+
+After the Phase 3 audit fixes, `task check` passed against the same clean local
+Roci checkout: formatting, strict build with zero warnings, all 418 nonvisual
+tests, and the local Roci source contract. The existing `task doctor` remained
+ready with unchanged demo counts. The aggregate 11-gate audit passed after
+fixing blank text-array entries and testing all required CSV headers. The old
+App/Adapters route remains only until the Phase 4 rewire.
 
 ## Completion condition
 

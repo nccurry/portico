@@ -73,13 +73,35 @@ public sealed class DataPortfolioReaderTests
 
     [Theory]
     [InlineData("transactions", "Date")]
+    [InlineData("transactions", "Category")]
+    [InlineData("transactions", "Amount")]
+    [InlineData("transactions", "Account")]
+    [InlineData("transactions", "Full Description")]
+    [InlineData("balance_history", "Date")]
+    [InlineData("balance_history", "Time")]
+    [InlineData("balance_history", "Account")]
+    [InlineData("balance_history", "Account #")]
     [InlineData("balance_history", "Account ID")]
+    [InlineData("balance_history", "Balance")]
+    [InlineData("balance_history", "Class")]
+    [InlineData("categories", "Category")]
+    [InlineData("categories", "Group")]
     [InlineData("categories", "Type")]
+    [InlineData("categories", "Hide From Reports")]
     [InlineData("accounts", "Account")]
+    [InlineData("accounts", "Class Override")]
+    [InlineData("accounts", "Group")]
+    [InlineData("accounts", "Hide")]
     public async Task MissingRequiredColumn_IsADataProblem(string table, string column)
     {
         using var fixture = new WorkbookFixture();
-        fixture.Replace(table, fixture.Documents[table].Replace(column, "Missing", StringComparison.Ordinal));
+        string document = fixture.Documents[table];
+        int firstNewline = document.IndexOf('\n');
+        string[] headers = document[..firstNewline].TrimEnd('\r').Split(',');
+        int index = Array.IndexOf(headers, column);
+        Assert.True(index >= 0, $"The fixture must contain the {column} header.");
+        headers[index] = "Missing";
+        fixture.Replace(table, string.Join(",", headers) + document[firstNewline..]);
 
         PorticoFailure failure = Failure(await Local(fixture));
 
@@ -181,6 +203,19 @@ public sealed class DataPortfolioReaderTests
 
         AssertProblem(failure, "data.invalid", false);
         Assert.DoesNotContain("private-hide", failure.Problems[0].Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task HideToken_HidesCategoryRows()
+    {
+        using var fixture = new WorkbookFixture();
+        fixture.Replace("categories", fixture.Documents["categories"]
+            .Replace("Food,Living,Expense,,300", "Food,Living,Expense,Hide,300", StringComparison.Ordinal));
+
+        PortfolioSnapshot snapshot = Success(await Local(fixture));
+
+        Assert.True(snapshot.Transactions[0].IsHidden);
+        Assert.True(Assert.Single(snapshot.Budgets, entry => entry.Category == "Food").IsHidden);
     }
 
     [Fact]

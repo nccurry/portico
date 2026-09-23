@@ -123,8 +123,9 @@ boundaries.
   weekly_summary.
 - Implement local CSV and Google Sheets readers against Application input
   interfaces.
-- Keep WorkbookNormalizer as the shared trust boundary, moving it to the
-  owning Data project.
+- Put the new path's shared normalizer in Data. The old Adapters normalizer
+  remains only for the still-live App path until Phase 4 removes that path;
+  do not make Data depend on Adapters to avoid a temporary second boundary.
 - Define and enforce a supported source-date floor before report calculations.
   It must leave every configured current/comparison lookback representable;
   reject earlier transaction, balance, or budget dates with a safe typed data
@@ -132,9 +133,10 @@ boundaries.
 - Inject HTTP ownership from Portico.App rather than constructing clients in
   CLI code.
 - Translate expected errors to PorticoProblem values and redact secrets.
-- Replace root demo fixtures with the new schema. Do not support the old
-  document shape; an explicit config path remains a location selector rather
-  than a filename-based compatibility switch.
+- Add root demo fixtures in the new schema. Keep the old demo file only for
+  the still-live App path until Phase 4; the new reader must reject its old
+  document shape. An explicit config path selects a location, not a
+  filename-based compatibility switch.
 
 ### Exit checks
 
@@ -143,7 +145,9 @@ boundaries.
 - Dates too early for the supported report windows fail at the data boundary,
   before a report can underflow the calendar.
 - All failure output is safe and deterministic.
-- The old mixed TOML loader and source type leak are removed or unused.
+- Application's new configuration and data path does not call the old mixed
+  TOML loader or old source types. The old App path may retain them only until
+  its Phase 4 rewire, with architecture tests freezing those temporary edges.
 
 ## Phase 4: Rewire Portico.App, CLI, and Desktop
 
@@ -163,6 +167,9 @@ Make all active call surfaces use Application without changing the desktop UX.
 - Move Roci startup and dashboard presentation into Portico.Desktop.
 - Translate Application problems into existing desktop status/error views.
 - Remove DashboardSession and old App paths only after equivalent tests pass.
+- Delete the old Adapters normalizer, mixed TOML loader, and source types once
+  the new App path and owning tests have replaced their last production uses.
+- Remove the old root demo configuration after App uses the new portico.toml.
 - Replace Finance's display-ready exclusion sentences, budget empty-state copy,
   and Data Health names/actions/status strings with typed reasons and status.
   Keep the existing desktop wording in its presentation mapping.

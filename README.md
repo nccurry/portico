@@ -47,9 +47,10 @@ The current demo can also be checked without opening a desktop window:
 task doctor
 ```
 
-`portico-demo.toml`, `dashboard.toml`, and `demo/data` are active C# demo
-fixtures. They remain at the repository root until the foundation work replaces
-their configuration contract.
+`portico-demo.toml`, `dashboard.toml`, and `demo/data` are the active C# demo
+fixtures. The new-schema `portico.toml` and `portico.secrets.example.toml` are
+for the foundation's Configuration/Data path; the current desktop does not yet
+read them. The old demo file is removed when Phase 4 rewires the App.
 
 ## Legacy Python reference
 
