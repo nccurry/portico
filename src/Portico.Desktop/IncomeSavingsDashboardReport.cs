@@ -7,7 +7,7 @@ namespace Portico.Desktop;
 
 public sealed partial record DashboardPageReport
 {
-    /// <summary>Source-shaped regions used by the current Income and savings renderer.</summary>
+    /// <summary>Sections shown by the Income and savings renderer.</summary>
     public IncomeSavingsPageView? IncomeSavingsView { get; init; }
 }
 

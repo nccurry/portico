@@ -835,7 +835,7 @@ public static class DashboardControlMappings
             _ => null
         };
 
-    /// <summary>Parses one configured source-shaped Spending comparison value.</summary>
+    /// <summary>Parses a configured Spending comparison option.</summary>
     public static bool TryParseSpendingComparison(string? value, out SpendingComparison comparison)
     {
         switch (value)
@@ -852,7 +852,7 @@ public static class DashboardControlMappings
         }
     }
 
-    /// <summary>Parses one configured source-shaped Spending breakdown value.</summary>
+    /// <summary>Parses a configured Spending breakdown option.</summary>
     public static bool TryParseSpendingBreakdown(string? value, out SpendingBreakdown breakdown)
     {
         switch (value)

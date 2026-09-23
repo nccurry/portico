@@ -29,7 +29,7 @@ public sealed record SpendingAdjustments(
     bool ExcludeLargeExpenses,
     decimal ExpenseLimit)
 {
-    /// <summary>Creates the source page's empty adjustment set.</summary>
+    /// <summary>Creates an empty spending adjustment set.</summary>
     public static SpendingAdjustments Default(decimal expenseLimit)
         => new([], [], [], [], false, expenseLimit);
 
@@ -50,7 +50,7 @@ public sealed record SpendingPeriod(
     public bool HasMonths => CurrentMonths.Count > 0;
 }
 
-/// <summary>Represents one expense row together with its source-style inclusion result.</summary>
+/// <summary>Records an expense transaction, its net spending, and why it was included or excluded.</summary>
 public sealed record SpendingLedgerEntry(
     FinancialTransaction Transaction,
     bool Included,
@@ -80,7 +80,7 @@ public sealed record SpendingPeriodSummary(
     int TransactionCount,
     int MonthCount);
 
-/// <summary>Contains all financial values needed by the source-shaped Spending by category page.</summary>
+/// <summary>Contains period totals, expense rows, and category or group rankings.</summary>
 public sealed record SpendingAnalysisResult(
     SpendingPeriod Period,
     IReadOnlyList<SpendingLedgerEntry> CurrentLedger,
@@ -139,7 +139,7 @@ public static class SpendingAnalysisCalculator
         return new SpendingAnalysisResult(period, current, previous, summary, overview);
     }
 
-    /// <summary>Returns the current month sequence used by a source-shaped spending page.</summary>
+    /// <summary>Returns the spending months covered by the selected lookback period.</summary>
     public static IReadOnlyList<YearMonth> CurrentMonths(
         IEnumerable<FinancialTransaction> transactions,
         int lookbackMonths)

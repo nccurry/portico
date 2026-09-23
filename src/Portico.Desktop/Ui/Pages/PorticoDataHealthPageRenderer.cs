@@ -9,7 +9,7 @@ using Roci.Ui.Widgets;
 
 namespace Portico.Desktop.Ui.Pages;
 
-/// <summary>Builds the source-shaped Data Health page from typed health checks.</summary>
+/// <summary>Builds the Data Health page from typed health checks.</summary>
 internal sealed class PorticoDataHealthPageRenderer
 {
     private static readonly string[] RequiredWidgets = ["summary", "queue", "detail"];
@@ -24,7 +24,7 @@ internal sealed class PorticoDataHealthPageRenderer
         _requestRebuild = requestRebuild ?? throw new ArgumentNullException(nameof(requestRebuild));
     }
 
-    /// <summary>Gets whether a page declares the full source-shaped Data Health grammar.</summary>
+    /// <summary>Checks whether the Data Health page defines every required widget and control.</summary>
     public bool CanRender(DashboardPageDefinition page)
     {
         ArgumentNullException.ThrowIfNull(page);
@@ -43,7 +43,7 @@ internal sealed class PorticoDataHealthPageRenderer
                 "selected_check");
     }
 
-    /// <summary>Builds the source page heading.</summary>
+    /// <summary>Builds the Data Health page heading.</summary>
     public void BuildHeader(UiBuilder ui, DashboardPageDefinition page, DashboardPageReport report)
     {
         ArgumentNullException.ThrowIfNull(ui);

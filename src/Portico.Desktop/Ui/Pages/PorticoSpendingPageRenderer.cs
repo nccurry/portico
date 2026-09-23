@@ -10,7 +10,7 @@ using Roci.Ui.Widgets;
 
 namespace Portico.Desktop.Ui.Pages;
 
-/// <summary>Builds the source-shaped Spending by category page from configured controls and reports.</summary>
+/// <summary>Builds the Spending by category page from report data and configured controls.</summary>
 internal sealed class PorticoSpendingPageRenderer
 {
     private static readonly string[] RequiredWidgets =
@@ -39,7 +39,7 @@ internal sealed class PorticoSpendingPageRenderer
         _adjustmentsControl = new PorticoSpendingAdjustmentsControl(_session, _requestRebuild, DashboardPageId.Spending);
     }
 
-    /// <summary>Gets whether a page has the complete source-shaped Spending grammar.</summary>
+    /// <summary>Checks whether the Spending page defines every required widget and control.</summary>
     public bool CanRender(DashboardPageDefinition page)
     {
         ArgumentNullException.ThrowIfNull(page);
@@ -112,9 +112,8 @@ internal sealed class PorticoSpendingPageRenderer
 
     private void BuildControls(UiBuilder ui, DashboardPageDefinition page)
     {
-        // The source page keeps its filters on the page background. The shared
-        // control bar is intentionally panel-shaped for older pages, so this
-        // page owns its source-shaped wrapping row.
+        // Keep Spending filters on the page background, outside the shared
+        // control bar's panel.
         ui.HStack(PorticoSkin.CompactGap, "SpendingControlBar")
             .SetFlexWrap()
             .SetCrossGap(PorticoSkin.CompactGap)

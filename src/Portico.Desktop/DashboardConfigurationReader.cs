@@ -14,7 +14,7 @@ public sealed class DashboardReadSuccess(DashboardDefinition definition)
 /// <summary>Expected dashboard configuration result.</summary>
 public union DashboardReadOutcome(DashboardReadSuccess, PorticoFailure);
 
-/// <summary>Reads the desktop-only dashboard grammar without exposing private TOML values.</summary>
+/// <summary>Reads desktop-only dashboard settings without exposing private TOML values.</summary>
 public static class DashboardConfigurationReader
 {
     private static readonly IReadOnlySet<string> RootKeys = new HashSet<string>(

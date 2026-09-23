@@ -8,7 +8,7 @@ using Roci.Ui.Widgets;
 
 namespace Portico.Desktop.Ui.Components;
 
-/// <summary>Builds the shared source-style adjustment popover used by spending and Budget pages.</summary>
+/// <summary>Builds the adjustment controls shared by Spending and Budget pages.</summary>
 internal sealed class PorticoSpendingAdjustmentsControl
 {
     private readonly DashboardSession _session;
@@ -17,7 +17,7 @@ internal sealed class PorticoSpendingAdjustmentsControl
     private readonly Dictionary<string, PorticoMultiSelectState<string>> _multiSelectStates = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _termDrafts = new(StringComparer.Ordinal);
 
-    /// <summary>Creates the shared popover for a page with the configured expense-adjustment grammar.</summary>
+    /// <summary>Creates the shared expense-adjustment popover for configured pages.</summary>
     public PorticoSpendingAdjustmentsControl(DashboardSession session, Action requestRebuild, DashboardPageId pageId)
     {
         _session = session ?? throw new ArgumentNullException(nameof(session));

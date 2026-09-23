@@ -12,7 +12,7 @@ public static class MerchantNameNormalizer
     private static readonly Regex LongCode = new(@"\b(?=[A-Z0-9]*\d)[A-Z0-9]{8,}\b", RegexOptions.Compiled);
     private static readonly Regex NonMerchantCharacter = new(@"[^A-Z0-9#*]+", RegexOptions.Compiled);
 
-    /// <summary>Returns a source-style merchant name after aliases and cleanup are applied.</summary>
+    /// <summary>Applies merchant aliases and removes transaction-specific text from a description.</summary>
     public static string Normalize(
         string? description,
         IReadOnlyDictionary<string, IReadOnlyList<string>> aliases,

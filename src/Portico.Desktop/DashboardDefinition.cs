@@ -89,7 +89,7 @@ public enum DashboardNavigationIcon
     HealthAndSafety
 }
 
-/// <summary>Specifies the finite widget grammar accepted by the dashboard configuration.</summary>
+/// <summary>Specifies the supported widget structure in dashboard configuration.</summary>
 public enum DashboardWidgetKind
 {
     /// <summary>A small numeric or text value.</summary>
@@ -287,10 +287,10 @@ public enum DashboardControlSource
     /// <summary>Uses dynamic expense categories for Spending by category adjustments.</summary>
     SpendingExcludedCategories,
 
-    /// <summary>Uses source-style text terms that restrict Spending by category rows.</summary>
+    /// <summary>Uses description terms to include Spending by category rows.</summary>
     SpendingIncludedDescriptions,
 
-    /// <summary>Uses source-style text terms that exclude Spending by category rows.</summary>
+    /// <summary>Uses description terms to exclude Spending by category rows.</summary>
     SpendingExcludedDescriptions,
 
     /// <summary>Uses the Spending by category large-expense switch.</summary>
@@ -519,7 +519,7 @@ public enum DashboardControlOptionSource
     /// <summary>Reads expense categories from the loaded spending data.</summary>
     SpendingCategories,
 
-    /// <summary>Reads the current source-style spending months from the loaded data.</summary>
+    /// <summary>Reads the available spending months from the loaded data.</summary>
     SpendingMonths,
 
     /// <summary>Reads income categories from the loaded income and expense data.</summary>
@@ -531,7 +531,7 @@ public enum DashboardControlOptionSource
     /// <summary>Reads expense categories from the loaded income and expense data.</summary>
     IncomeExpenseCategories,
 
-    /// <summary>Reads the current source-style income detail months.</summary>
+    /// <summary>Reads the available income detail months from the loaded data.</summary>
     IncomeMonths,
 
     /// <summary>Reads preset-eligible categories for Year over year.</summary>
@@ -692,7 +692,7 @@ public sealed record DashboardDefinition(
         "income_view"
     };
 
-    /// <summary>Checks the finite dashboard grammar and reports every independent issue.</summary>
+    /// <summary>Checks dashboard settings and reports every independent issue.</summary>
     public IReadOnlyList<string> Validate()
     {
         var problems = new List<string>();

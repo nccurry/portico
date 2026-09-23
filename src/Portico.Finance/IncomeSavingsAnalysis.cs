@@ -1,6 +1,6 @@
 ﻿namespace Portico.Finance;
 
-/// <summary>Holds the source-style filters used by the Income and savings calculation.</summary>
+/// <summary>Holds category, group, description, and amount filters for the Income and savings calculation.</summary>
 public sealed record IncomeSavingsAdjustments(
     IReadOnlyList<string> ExcludedIncomeCategories,
     IReadOnlyList<string> ExcludedExpenseGroups,
@@ -59,7 +59,7 @@ public sealed record IncomeSavingsPeriod(
     public bool HasMonths => CurrentMonths.Count > 0;
 }
 
-/// <summary>Represents one income or expense row and its source-style inclusion result.</summary>
+/// <summary>Records whether an income or expense transaction was included in the calculation.</summary>
 public sealed record IncomeSavingsLedgerEntry(
     FinancialTransaction Transaction,
     bool Included,

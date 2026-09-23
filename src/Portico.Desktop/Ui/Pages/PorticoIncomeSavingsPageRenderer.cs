@@ -10,7 +10,7 @@ using Roci.Ui.Widgets;
 
 namespace Portico.Desktop.Ui.Pages;
 
-/// <summary>Builds the source-shaped Income and savings page from its typed report and controls.</summary>
+/// <summary>Builds the Income and savings page from report data and configured controls.</summary>
 internal sealed class PorticoIncomeSavingsPageRenderer
 {
     private static readonly string[] RequiredWidgets =
@@ -38,7 +38,7 @@ internal sealed class PorticoIncomeSavingsPageRenderer
         _requestRebuild = requestRebuild ?? throw new ArgumentNullException(nameof(requestRebuild));
     }
 
-    /// <summary>Gets whether a page has the complete source-shaped Income and savings grammar.</summary>
+    /// <summary>Checks whether the Income and savings page defines every required widget and control.</summary>
     public bool CanRender(DashboardPageDefinition page)
     {
         ArgumentNullException.ThrowIfNull(page);
@@ -97,7 +97,7 @@ internal sealed class PorticoIncomeSavingsPageRenderer
         ArgumentNullException.ThrowIfNull(display);
 
         IncomeSavingsPageView view = report.IncomeSavingsView
-            ?? throw new InvalidOperationException("Income and savings report needs a source-shaped page view.");
+            ?? throw new InvalidOperationException("Income and savings report needs a page view.");
         BuildControls(ui, page);
         BuildSummary(ui, view, display);
         if (!view.HasLedgerRows)

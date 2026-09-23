@@ -9,7 +9,7 @@ using Roci.Ui.Widgets;
 
 namespace Portico.Desktop.Ui.Pages;
 
-/// <summary>Builds the source-shaped Financial Independence scenario page from typed reports.</summary>
+/// <summary>Builds the Financial Independence scenario page from report data.</summary>
 internal sealed class PorticoFinancialIndependencePageRenderer
 {
     private static readonly string[] RequiredWidgets =
@@ -27,7 +27,7 @@ internal sealed class PorticoFinancialIndependencePageRenderer
         _requestRebuild = requestRebuild ?? throw new ArgumentNullException(nameof(requestRebuild));
     }
 
-    /// <summary>Gets whether a page declares the complete source-shaped FI grammar.</summary>
+    /// <summary>Checks whether the Financial Independence page defines every required widget and control.</summary>
     public bool CanRender(DashboardPageDefinition page)
     {
         ArgumentNullException.ThrowIfNull(page);
@@ -55,7 +55,7 @@ internal sealed class PorticoFinancialIndependencePageRenderer
                 "source_tab");
     }
 
-    /// <summary>Builds the source page title and source-data caption.</summary>
+    /// <summary>Builds the page title and latest-data caption.</summary>
     public void BuildHeader(UiBuilder ui, DashboardPageDefinition page, DashboardPageReport report)
     {
         ArgumentNullException.ThrowIfNull(ui);

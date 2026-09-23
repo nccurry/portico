@@ -6,7 +6,7 @@ namespace Portico.Desktop;
 /// <summary>Holds Home-only detail state without leaking it into finance calculations.</summary>
 public sealed record HomePresentationState(IReadOnlySet<string> ExpandedAccountGroups)
 {
-    /// <summary>Creates the source page's initially collapsed account details.</summary>
+    /// <summary>Creates initially collapsed account details.</summary>
     public static HomePresentationState Default { get; } = new(new HashSet<string>(StringComparer.Ordinal));
 }
 
@@ -49,7 +49,7 @@ public sealed record SpendingPresentationState(
     bool AdjustViewOpen,
     bool ExcludedRowsExpanded)
 {
-    /// <summary>Creates the source page's initial detail state.</summary>
+    /// <summary>Creates the initial detail state.</summary>
     public static SpendingPresentationState Default { get; } = new(null, null, "all", "", false, false);
 
     /// <summary>Gets the selected entity for the current breakdown.</summary>
@@ -79,7 +79,7 @@ public sealed record YearOverYearPresentationState(
     string? SingleGroup,
     IReadOnlySet<string> ExpandedDetails)
 {
-    /// <summary>Creates the source page's initial configured-preset state.</summary>
+    /// <summary>Creates the initial configured-preset state.</summary>
     public static YearOverYearPresentationState Default { get; } = new(
         YearOverYearViewMode.Preset,
         null,
@@ -98,7 +98,7 @@ public sealed record SubscriptionsPresentationState(
     bool MonthlyTotalsExpanded,
     bool IndividualChargesExpanded)
 {
-    /// <summary>Creates the source page's initially closed detail state.</summary>
+    /// <summary>Creates the initially closed detail state.</summary>
     public static SubscriptionsPresentationState Default { get; } = new(null, "12m", "active_recent", false, false, false);
 }
 
@@ -110,14 +110,14 @@ public sealed record MerchantsPresentationState(
     bool AdjustViewOpen,
     string Search)
 {
-    /// <summary>Creates the source page's initial detail state.</summary>
+    /// <summary>Creates the initial detail state.</summary>
     public static MerchantsPresentationState Default { get; } = new(null, "all", "Breakdown", false, string.Empty);
 }
 
 /// <summary>Holds Transactions display state without mixing it into report inputs.</summary>
 public sealed record TransactionsPresentationState(bool MoreFiltersOpen)
 {
-    /// <summary>Creates the source page's initially closed More filters popover.</summary>
+    /// <summary>Creates the initially closed More filters popover.</summary>
     public static TransactionsPresentationState Default { get; } = new(false);
 }
 
@@ -128,7 +128,7 @@ public sealed record BudgetPresentationState(
     bool AdjustViewOpen,
     bool YearToDateOpen)
 {
-    /// <summary>Creates the source page's initially closed detail state.</summary>
+    /// <summary>Creates the initially closed detail state.</summary>
     public static BudgetPresentationState Default { get; } = new(null, "all", false, false);
 }
 
@@ -260,7 +260,7 @@ public sealed class DashboardPresentationState
         IncomeSavings = IncomeSavings with { DetailMonth = value };
     }
 
-    /// <summary>Sets whether the source-style Adjust calculation popover is open.</summary>
+    /// <summary>Sets whether the Income and savings calculation popover is open.</summary>
     public void SetIncomeAdjustCalculationOpen(bool open)
         => IncomeSavings = IncomeSavings with { AdjustCalculationOpen = open };
 
@@ -292,7 +292,7 @@ public sealed class DashboardPresentationState
         Spending = Spending with { DetailTab = value };
     }
 
-    /// <summary>Sets whether the source-style Adjust view popover is open.</summary>
+    /// <summary>Sets whether the Spending Adjust view popover is open.</summary>
     public void SetSpendingAdjustViewOpen(bool open)
         => Spending = Spending with { AdjustViewOpen = open };
 
@@ -366,7 +366,7 @@ public sealed class DashboardPresentationState
         Subscriptions = Subscriptions with { TimelineScope = value };
     }
 
-    /// <summary>Sets whether the source-style Subscription settings expander is open.</summary>
+    /// <summary>Sets whether the Subscription settings panel is open.</summary>
     public void SetSubscriptionSettingsOpen(bool open)
         => Subscriptions = Subscriptions with { SettingsOpen = open };
 
@@ -400,7 +400,7 @@ public sealed class DashboardPresentationState
         Merchants = Merchants with { DetailTab = value };
     }
 
-    /// <summary>Sets whether the source-style Spending by merchant Adjust view popover is open.</summary>
+    /// <summary>Sets whether the Spending by merchant Adjust view popover is open.</summary>
     public void SetMerchantAdjustViewOpen(bool open)
         => Merchants = Merchants with { AdjustViewOpen = open };
 
@@ -411,7 +411,7 @@ public sealed class DashboardPresentationState
         Merchants = Merchants with { Search = value };
     }
 
-    /// <summary>Sets whether the source-style Transactions More filters popover is open.</summary>
+    /// <summary>Sets whether the Transactions More filters popover is open.</summary>
     public void SetTransactionsMoreFiltersOpen(bool open)
         => Transactions = Transactions with { MoreFiltersOpen = open };
 

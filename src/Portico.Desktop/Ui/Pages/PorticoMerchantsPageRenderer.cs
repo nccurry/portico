@@ -10,7 +10,7 @@ using Roci.Ui.Widgets;
 
 namespace Portico.Desktop.Ui.Pages;
 
-/// <summary>Builds the source-shaped Spending by merchant page from typed reports and configured controls.</summary>
+/// <summary>Builds the Spending by merchant page from report data and configured controls.</summary>
 internal sealed class PorticoMerchantsPageRenderer
 {
     private static readonly string[] RequiredWidgets =
@@ -39,7 +39,7 @@ internal sealed class PorticoMerchantsPageRenderer
         _adjustmentsControl = new PorticoSpendingAdjustmentsControl(_session, _requestRebuild, DashboardPageId.Merchants);
     }
 
-    /// <summary>Gets whether the page declares the complete Spending by merchant grammar.</summary>
+    /// <summary>Gets whether the page declares every required merchant widget.</summary>
     public bool CanRender(DashboardPageDefinition page)
     {
         ArgumentNullException.ThrowIfNull(page);
@@ -342,7 +342,7 @@ internal sealed class PorticoMerchantsPageRenderer
         if (view.SelectedMerchant is null)
             return;
 
-        ui.SectionPanel("Section:merchant_detail", view.SelectedMerchant, "Monthly trend, spending breakdown, and source transaction detail.");
+        ui.SectionPanel("Section:merchant_detail", view.SelectedMerchant, "Monthly trend, spending breakdown, and transaction details.");
         BuildMetricDeck(ui, "MerchantDetailMetricDeck", "MerchantDetailMetric", ReportFor(report, "merchants.detail_summary"), display);
         buildWidget(Widget(page, "detail-history"), ReportFor(report, "merchants.detail_history"), false);
         BuildDetailMonth(ui, page);

@@ -9,7 +9,7 @@ using Roci.Ui.Widgets;
 
 namespace Portico.Desktop.Ui.Pages;
 
-/// <summary>Builds the source-shaped Subscriptions page from typed reports and configured controls.</summary>
+/// <summary>Builds the Subscriptions page from report data and configured controls.</summary>
 internal sealed class PorticoSubscriptionsPageRenderer
 {
     private static readonly string[] RequiredWidgets =
@@ -37,7 +37,7 @@ internal sealed class PorticoSubscriptionsPageRenderer
         _requestRebuild = requestRebuild ?? throw new ArgumentNullException(nameof(requestRebuild));
     }
 
-    /// <summary>Gets whether the page declares the complete subscriptions grammar.</summary>
+    /// <summary>Gets whether the page declares every required subscription widget.</summary>
     public bool CanRender(DashboardPageDefinition page)
     {
         ArgumentNullException.ThrowIfNull(page);

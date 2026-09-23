@@ -29,7 +29,7 @@ public sealed record PorticoCommand(
 /// <summary>A safe command-line syntax error.</summary>
 public sealed class CommandLineException(string message) : Exception(message);
 
-/// <summary>Parses Portico's finite, non-interactive command grammar.</summary>
+/// <summary>Parses Portico's supported non-interactive command syntax.</summary>
 public static class PorticoCommandLine
 {
     public static PorticoCommand Parse(IReadOnlyList<string> arguments)

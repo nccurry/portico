@@ -74,7 +74,7 @@ public enum BudgetEmptyReason
     NoGroupsSelected
 }
 
-/// <summary>Contains all source-shaped Budget data for a selected month and group set.</summary>
+/// <summary>Contains budget totals and transactions for a selected month and group set.</summary>
 public sealed record BudgetAnalysisResult(
     BudgetRequest Request,
     decimal MonthProgress,

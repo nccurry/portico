@@ -9,7 +9,7 @@ using Roci.Ui.Widgets;
 
 namespace Portico.Desktop.Ui.Pages;
 
-/// <summary>Builds the source-shaped Transactions page from typed reports and configured controls.</summary>
+/// <summary>Builds the Transactions page from report data and configured controls.</summary>
 internal sealed class PorticoTransactionsPageRenderer
 {
     private static readonly string[] RequiredWidgets = ["summary", "history", "breakdown", "transactions"];
@@ -25,7 +25,7 @@ internal sealed class PorticoTransactionsPageRenderer
         _requestRebuild = requestRebuild ?? throw new ArgumentNullException(nameof(requestRebuild));
     }
 
-    /// <summary>Gets whether the page declares the complete Transactions grammar.</summary>
+    /// <summary>Gets whether the page declares every required Transactions widget.</summary>
     public bool CanRender(DashboardPageDefinition page)
     {
         ArgumentNullException.ThrowIfNull(page);
@@ -47,7 +47,7 @@ internal sealed class PorticoTransactionsPageRenderer
                 "breakdown");
     }
 
-    /// <summary>Builds the source page title and newest transaction caption.</summary>
+    /// <summary>Builds the page title and newest-transaction caption.</summary>
     public void BuildHeader(UiBuilder ui, DashboardPageDefinition page, DashboardPageReport report)
     {
         ArgumentNullException.ThrowIfNull(ui);

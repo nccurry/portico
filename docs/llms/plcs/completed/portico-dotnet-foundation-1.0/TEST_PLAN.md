@@ -175,5 +175,7 @@ The final implementation records:
 - architecture-test evidence showing the graph is enforced;
 - coverage output for Finance and Application;
 - retained visual capture evidence;
-- a short manual desktop smoke result; and
+- a short manual desktop smoke result when an interactive display is available;
+  otherwise, record an ordinary `task run` startup result, review retained
+  captures, and state that live interaction was not observed; and
 - git diff --check output.

@@ -1,6 +1,6 @@
 ﻿namespace Portico.Finance;
 
-/// <summary>Represents one source-shaped merchant ranking row.</summary>
+/// <summary>Represents one merchant's spending rank and totals.</summary>
 public sealed record MerchantOverviewEntry(
     string Merchant,
     decimal Spending,

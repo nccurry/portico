@@ -1,65 +1,59 @@
 # Portico
 
-Portico is being rebuilt as a local .NET personal-finance application. The
-current C# dashboard remains available while the project establishes its new
-foundation.
+Portico is a local .NET personal-finance app. It reads CSV files or Google
+Sheets, checks the data, and opens a desktop dashboard. It does not change the
+source data. The included data is synthetic.
 
-## Current status
+## Build from local source
 
-The active application is the C# code under `src/Portico.*`. Its future design
-is being delivered in phases under the .NET foundation PLC. The project
-boundaries and in-process Application reports exist; the active CLI and desktop
-still use their older paths:
-
-- [Foundation PLC](docs/llms/plcs/planned/portico-dotnet-foundation-1.0/README.md)
-- [Deferred Desktop and MCP PLC](docs/llms/plcs/planned/portico-desktop-and-mcp-adapters-1.0/README.md)
-
-## Local Roci checkout
-
-Portico builds directly against a sibling Roci source checkout at `../roci`.
-Clone Roci there before running the .NET tasks. To use another local checkout,
-set `ROCI_ROOT`:
+Install the .NET 11 preview SDK pinned in [global.json](global.json) and the
+`task` CLI. Portico builds directly against a sibling Roci source checkout at
+`../roci`.
+Set `ROCI_ROOT` if your checkout is elsewhere:
 
 ```powershell
-$env:ROCI_ROOT = "C:\worktrees\roci-feature"
+$env:ROCI_ROOT = "C:\worktrees\roci"
 task
 ```
 
-Continuous integration is intentionally deferred while Portico consumes Roci
-directly from a local folder.
+`task` runs the normal non-visual .NET checks. `task visual` runs the opt-in
+desktop capture tests. Continuous integration is deferred while Roci is a
+local source dependency.
 
-Run the normal local .NET gate with:
+## Check data and open the dashboard
 
-```powershell
-task
-```
-
-It restores, checks formatting and analyzers, builds with warnings as errors,
-and runs the non-visual C# tests. The visual capture lane is opt-in:
-
-```powershell
-task visual
-```
-
-The current demo can also be checked without opening a desktop window:
+The checked-in [portico.toml](portico.toml) uses the synthetic CSV files in
+[demo/data](demo/data). [dashboard.toml](dashboard.toml) supplies the desktop
+layout and marks this example as demo data. From the repository root:
 
 ```powershell
 task doctor
+task run
 ```
 
-`portico-demo.toml`, `dashboard.toml`, and `demo/data` are the active C# demo
-fixtures. The new-schema `portico.toml` and `portico.secrets.example.toml` are
-for the foundation's Configuration/Data path; the current desktop does not yet
-read them. The old demo file is removed when Phase 4 rewires the App.
+For the complete command set and exit codes, run:
 
-## Legacy Python reference
+```powershell
+dotnet run --project src/Portico.App/Portico.App.csproj -- --help
+```
 
-The former Streamlit application is archived under
-[legacy/python](legacy/python/README.md). It is reference material only. It is
-not the active runtime, supported deployment path, or normal test target.
+The headless checks are `config check`, `data check`, and `doctor`. Each accepts
+`--output json` for scripts. `config check` reads configuration but not source
+data; the other two load and validate it. `run` opens the desktop window and
+does not support JSON output. No command is the same as `run`.
 
-## Architecture
+To use your own files, start with the [configuration cutover guide](docs/configuration.md).
+The current configuration follows the `portico.toml` schema. Old
+`config.toml` and `portico-demo.toml` document shapes are not accepted, even
+when selected with `--config`.
 
-[docs/architecture.md](docs/architecture.md) describes the active transition
-state and points to the planned target design. Do not treat the planned project
-boundaries as already implemented.
+## Code and plans
+
+[Architecture](docs/architecture.md) shows the active .NET boundaries. The
+[foundation PLC](docs/llms/plcs/completed/portico-dotnet-foundation-1.0/README.md)
+tracks the remaining quality and documentation checks. Desktop feature changes
+and MCP are deferred to the [next PLC](docs/llms/plcs/planned/portico-desktop-and-mcp-adapters-1.0/README.md).
+
+The former Python/Streamlit app is archived under
+[legacy/python](legacy/python/README.md). It is reference material, not an
+active runtime or normal test target.

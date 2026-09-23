@@ -9,7 +9,7 @@ using Roci.Ui.Widgets;
 
 namespace Portico.Desktop.Ui.Pages;
 
-/// <summary>Builds the source-shaped Year over year comparison page from its typed report and controls.</summary>
+/// <summary>Builds the Year over year comparison page from report data and configured controls.</summary>
 internal sealed class PorticoYearOverYearPageRenderer
 {
     private readonly DashboardSession _session;
@@ -23,7 +23,7 @@ internal sealed class PorticoYearOverYearPageRenderer
         _requestRebuild = requestRebuild ?? throw new ArgumentNullException(nameof(requestRebuild));
     }
 
-    /// <summary>Gets whether a page has the complete source-shaped Year over year grammar.</summary>
+    /// <summary>Checks whether the Year over year page defines every required widget and control.</summary>
     public bool CanRender(DashboardPageDefinition page)
     {
         ArgumentNullException.ThrowIfNull(page);
@@ -73,7 +73,7 @@ internal sealed class PorticoYearOverYearPageRenderer
         ArgumentNullException.ThrowIfNull(display);
 
         YearOverYearPageView view = report.YearOverYearView
-            ?? throw new InvalidOperationException("Year over year report needs a source-shaped page view.");
+            ?? throw new InvalidOperationException("Year over year report needs a page view.");
         BuildControls(ui, page);
         if (view.Comparisons.Count == 0)
         {

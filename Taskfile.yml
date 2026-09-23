@@ -17,7 +17,8 @@ tasks:
       - task: restore
       - task: lint
       - task: build:strict
-      - task: test
+      - task: dotnet:test
+      - task: dotnet:coverage
       - task: test:roci-source
 
   roci:source:check:
@@ -63,9 +64,78 @@ tasks:
   test:
     aliases: [roci:test]
     desc: "Run non-visual .NET tests"
+    cmds:
+      - task: dotnet:test
+
+  dotnet:test:
+    desc: "Run every non-visual .NET test lane, including the published-process check"
+    cmds:
+      - task: dotnet:test:architecture
+      - task: dotnet:test:finance
+      - task: dotnet:test:application
+      - task: dotnet:test:configuration
+      - task: dotnet:test:data
+      - task: dotnet:test:cli
+      - task: dotnet:test:app
+      - task: dotnet:test:desktop
+      - task: dotnet:test:e2e
+
+  dotnet:test:architecture:
+    desc: "Test project boundaries after restore and build"
+    cmds:
+      - dotnet test tests/Portico.Architecture.Tests/Portico.Architecture.Tests.csproj --no-build --no-restore -p:Configuration={{.CONFIGURATION}}
+
+  dotnet:test:finance:
+    desc: "Test financial rules after restore and build"
+    cmds:
+      - dotnet test tests/Portico.Finance.Tests/Portico.Finance.Tests.csproj --no-build --no-restore -p:Configuration={{.CONFIGURATION}}
+
+  dotnet:test:application:
+    desc: "Test application use cases after restore and build"
+    cmds:
+      - dotnet test tests/Portico.Application.Tests/Portico.Application.Tests.csproj --no-build --no-restore -p:Configuration={{.CONFIGURATION}}
+
+  dotnet:test:configuration:
+    desc: "Test TOML configuration after restore and build"
+    cmds:
+      - dotnet test tests/Portico.Configuration.Tests/Portico.Configuration.Tests.csproj --no-build --no-restore -p:Configuration={{.CONFIGURATION}}
+
+  dotnet:test:data:
+    desc: "Test CSV and Google source readers after restore and build"
+    cmds:
+      - dotnet test tests/Portico.Data.Tests/Portico.Data.Tests.csproj --no-build --no-restore -p:Configuration={{.CONFIGURATION}}
+
+  dotnet:test:cli:
+    desc: "Test command parsing and output after restore and build"
+    cmds:
+      - dotnet test tests/Portico.Cli.Tests/Portico.Cli.Tests.csproj --no-build --no-restore -p:Configuration={{.CONFIGURATION}}
+
+  dotnet:test:app:
+    desc: "Test executable composition after restore and build"
     deps: [roci:source:check]
     cmds:
-      - dotnet test {{.SOLUTION}} --no-restore -p:Configuration={{.CONFIGURATION}} -p:ShouldUnsetParentConfigurationAndPlatform=false --filter "Category!=VisualCapture&Category!=PublishedProcess"
+      - dotnet test tests/Portico.App.Tests/Portico.App.Tests.csproj --no-build --no-restore -p:Configuration={{.CONFIGURATION}}
+
+  dotnet:test:desktop:
+    desc: "Test desktop behavior without visual capture after restore and build"
+    deps: [roci:source:check]
+    cmds:
+      - dotnet test tests/Portico.Desktop.Tests/Portico.Desktop.Tests.csproj --no-build --no-restore -p:Configuration={{.CONFIGURATION}} --filter "Category!=VisualCapture"
+
+  dotnet:test:e2e:
+    desc: "Test the published executable with synthetic files"
+    cmds:
+      - task: test:published
+
+  dotnet:test:visual:
+    desc: "Capture the Roci desktop pages"
+    cmds:
+      - task: visual
+
+  dotnet:coverage:
+    desc: "Require 95% line and 90% branch coverage in Finance and Application"
+    cmds:
+      - powershell -NoProfile -ExecutionPolicy Bypass -File tests/Portico.BuildContract/Measure-Coverage.ps1 -Configuration {{.CONFIGURATION}}
 
   test:published:
     desc: "Publish Portico and exercise its headless commands as a process"

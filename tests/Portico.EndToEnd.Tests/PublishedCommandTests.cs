@@ -57,6 +57,11 @@ public sealed class PublishedCommandTests
         Assert.Empty(oldShape.Error);
         AssertResponse(oldShape.Output, "config-check", "failure", problemCode: "config.missing-field");
 
+        ProcessResult invalidDoctor = await RunAsync(executable, scenario, "doctor", "--output", "json");
+        Assert.Equal(3, invalidDoctor.ExitCode);
+        Assert.Empty(invalidDoctor.Error);
+        AssertResponse(invalidDoctor.Output, "doctor", "failure", problemCode: "config.missing-field");
+
         await File.WriteAllTextAsync(mainFile, valid, TestContext.Current.CancellationToken);
         File.Delete(Path.Combine(scenario, "demo", "data", "accounts.csv"));
         ProcessResult missing = await RunAsync(executable, scenario, "doctor", "--output", "json");
@@ -64,6 +69,11 @@ public sealed class PublishedCommandTests
         Assert.Empty(missing.Error);
         AssertResponse(missing.Output, "doctor", "failure", problemCode: "data.missing-file");
         Assert.DoesNotContain(scenario, missing.Output, StringComparison.OrdinalIgnoreCase);
+
+        ProcessResult missingDataCheck = await RunAsync(executable, scenario, "data", "check", "--output", "json");
+        Assert.Equal(4, missingDataCheck.ExitCode);
+        Assert.Empty(missingDataCheck.Error);
+        AssertResponse(missingDataCheck.Output, "data-check", "failure", problemCode: "data.missing-file");
     }
 
     private static void AssertResponse(

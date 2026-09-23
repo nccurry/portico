@@ -1,6 +1,6 @@
 ﻿namespace Portico.Finance;
 
-/// <summary>Chooses the source transaction type view.</summary>
+/// <summary>Chooses which transaction types to show.</summary>
 public enum TransactionExplorerType
 {
     /// <summary>Shows every transaction type.</summary>
@@ -16,7 +16,7 @@ public enum TransactionExplorerType
     Transfers
 }
 
-/// <summary>Chooses one source transaction quick-focus view.</summary>
+/// <summary>Chooses a quick filter for transaction inspection.</summary>
 public enum TransactionExplorerFocus
 {
     /// <summary>Shows all matching transactions.</summary>
@@ -35,7 +35,7 @@ public enum TransactionExplorerFocus
     RefundsReversals
 }
 
-/// <summary>Chooses the dimension used for the source transaction breakdown.</summary>
+/// <summary>Chooses how to group the transaction breakdown.</summary>
 public enum TransactionExplorerBreakdown
 {
     /// <summary>Groups rows by group.</summary>
@@ -54,7 +54,7 @@ public enum TransactionExplorerBreakdown
     Type
 }
 
-/// <summary>Holds the source-shaped transaction workbench inputs.</summary>
+/// <summary>Holds the filters used to inspect transactions.</summary>
 public sealed record TransactionExplorerFilters(
     int? LookbackDays,
     TransactionExplorerType Type,
@@ -68,7 +68,7 @@ public sealed record TransactionExplorerFilters(
     int LargestCount,
     TransactionExplorerBreakdown Breakdown)
 {
-    /// <summary>Creates the source page's initial filter values.</summary>
+    /// <summary>Creates the initial transaction filters.</summary>
     public static TransactionExplorerFilters Default { get; } = new(
         365,
         TransactionExplorerType.All,
@@ -83,7 +83,7 @@ public sealed record TransactionExplorerFilters(
         TransactionExplorerBreakdown.Group);
 }
 
-/// <summary>Represents one filtered transaction with its source inspection flags.</summary>
+/// <summary>Represents one filtered transaction and its inspection flags.</summary>
 public sealed record TransactionExplorerEntry(
     FinancialTransaction Transaction,
     string Merchant,
@@ -93,7 +93,7 @@ public sealed record TransactionExplorerEntry(
     bool IsUnusual,
     bool IsReversal);
 
-/// <summary>Represents one source transaction-result summary value.</summary>
+/// <summary>Summarizes the selected transactions.</summary>
 public sealed record TransactionExplorerSummary(
     int TransactionCount,
     decimal Inflow,
@@ -111,7 +111,7 @@ public sealed record TransactionExplorerBreakdownEntry(
     decimal Magnitude,
     decimal SharePercent);
 
-/// <summary>Contains the typed financial output for the source Transactions page.</summary>
+/// <summary>Contains the transaction inventory, results, and breakdown.</summary>
 public sealed record TransactionExplorerAnalysisResult(
     DateOnly? StartDate,
     DateOnly? EndDate,
@@ -120,10 +120,10 @@ public sealed record TransactionExplorerAnalysisResult(
     TransactionExplorerSummary Summary,
     IReadOnlyList<TransactionExplorerBreakdownEntry> Breakdown);
 
-/// <summary>Builds the source transaction workbench inventory, focus results, and breakdown.</summary>
+/// <summary>Builds the transaction inventory, focused results, and breakdown.</summary>
 public static class TransactionExplorerAnalysisCalculator
 {
-    /// <summary>Builds the current source-shaped transaction inspection result.</summary>
+    /// <summary>Builds transaction counts, focused rows, and breakdowns for the selected filters.</summary>
     public static TransactionExplorerAnalysisResult Build(
         IEnumerable<FinancialTransaction> transactions,
         IReadOnlyDictionary<string, IReadOnlyList<string>> aliases,

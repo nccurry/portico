@@ -575,10 +575,10 @@ public sealed class DashboardSession
         };
     }
 
-    /// <summary>Gets a source-shaped label for the active named spending view.</summary>
+    /// <summary>Gets the configured label for a named spending view.</summary>
     public string SpendingSetLabel(string key) => _workspace.ReportChoices.TransactionSetLabels[key];
 
-    /// <summary>Gets the source-shaped label for one configured Year over year preset.</summary>
+    /// <summary>Gets the configured label for a Year over year preset.</summary>
     public string YearOverYearSetLabel(string key) => _workspace.ReportChoices.TransactionSetLabels[key];
 
     /// <summary>Gets the configured defaults for the selected Income calculation view.</summary>

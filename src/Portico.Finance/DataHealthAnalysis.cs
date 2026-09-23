@@ -123,7 +123,7 @@ public sealed record DataHealthCheckResult(
     public int FindingCount => Records.Count;
 }
 
-/// <summary>Contains all source-shaped Data Health checks for one snapshot.</summary>
+/// <summary>Contains data quality checks for one transaction snapshot.</summary>
 public sealed record DataHealthAnalysisResult(
     DataHealthCheckOptions Options,
     IReadOnlyList<DataHealthCheckResult> Checks,

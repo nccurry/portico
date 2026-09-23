@@ -2,13 +2,12 @@
 
 ## Lifecycle
 
-- Status: In progress
+- Status: Complete
 - Created: 2026-09-21
 - Owner: Portico maintainers
-- Implementation status: Phases 0 through 3 are complete. The project
-  boundaries, semantic Application reports, versioned Configuration reader,
-  and typed CSV/Google Data reader are in place. Phase 4 (CLI, App, and
-  Desktop rewire) is next.
+- Implementation status: Phases 0 through 5 are complete. The active .NET app
+  uses the enforced project graph, Application reports, Configuration and Data
+  readers, CLI, and Desktop. The local test and coverage gates pass.
 - Depends on: the completed Python archive move in legacy/python
 
 ## Purpose
@@ -73,8 +72,9 @@ construction, and desktop rendering together.
 - [TEST_PLAN.md](TEST_PLAN.md) defines the evidence required for completion.
 - [PHASE_0_BASELINE.md](PHASE_0_BASELINE.md) records the measured C# baseline,
   setting inventory, target configuration contract, and behavior-test trace.
+- [COMPLETION_EVIDENCE.md](COMPLETION_EVIDENCE.md) records final checks and limits.
 
-## Proposed project graph
+## Implemented project graph
 
     Portico.App -> Portico.Cli, Portico.Desktop, Portico.Configuration,
                    Portico.Data, Portico.Application
@@ -92,12 +92,9 @@ Portico.Cli parses a typed command. For run, Portico.App dispatches that typed
 command to Application and then Desktop, so Portico.Cli never references
 Desktop.
 
-Phase 1 keeps three exact transition exceptions while the existing code moves:
-App retains its current Adapters, Dashboard, Finance, and Roci references
-through Phase 4; Adapters retains Dashboard and Finance through Phase 3; and
-Dashboard retains Finance through Phase 4. Architecture tests freeze those
-sets and reject added Portico or external Roci references. These exceptions do
-not change the final graph above.
+The Phase 1 transition exceptions for the former App, Adapters, and Dashboard
+paths were removed during Phase 4. Architecture tests now enforce only the
+final graph above.
 
 ## Phase order
 
@@ -133,8 +130,8 @@ demo source, 10 pages, 986 transactions, 432 balances, and 1344 budgets.
 
 The built-in coverage collector measured the named `Portico.Finance` package
 at 97.13% lines and 90.20% branches and `Portico.Application` at 98.56% lines
-and 93.80% branches. Both exceed the 95%/90% PLC target. The local failing
-coverage task remains due by 2026-09-30; Phase 5 cannot pass without it.
+and 93.80% branches. Both exceeded the 95%/90% PLC target. Phase 5 added the
+local failing coverage task ahead of the 2026-09-30 deadline.
 
 ## Phase 3 verification (2026-09-23)
 
@@ -149,7 +146,27 @@ Roci checkout: formatting, strict build with zero warnings, all 418 nonvisual
 tests, and the local Roci source contract. The existing `task doctor` remained
 ready with unchanged demo counts. The aggregate 11-gate audit passed after
 fixing blank text-array entries and testing all required CSV headers. The old
-App/Adapters route remains only until the Phase 4 rewire.
+App/Adapters route was removed in Phase 4.
+
+## Phase 4 verification (2026-09-23)
+
+The active `Portico.App` executable now composes Application, Configuration,
+Data, CLI, and Desktop. The former Dashboard and Adapters projects and the old
+App UI path are gone. Finance returns typed report values and classifications;
+Desktop owns display wording. `task check`, the published-process E2E test,
+and all 48 retained visual captures passed against the clean local Roci
+checkout. The final eleven-gate phase audit found no P1 or P2 issue.
+
+## Phase 5 verification (2026-09-23)
+
+`task check` now runs the focused architecture, Finance, Application,
+Configuration, Data, CLI, App, Desktop, and published-process E2E lanes,
+followed by a failing coverage gate and the local Roci source contract. All
+461 non-visual tests passed, the strict build had zero warnings, and the
+visual lane produced 48 captures. Finance measured 97.15% lines and 90.42%
+branches; Application measured 98.69% lines and 94.30% branches. Both pass
+the 95%/90% gate. [Completion evidence](COMPLETION_EVIDENCE.md) records the
+CLI examples, review results, and environmental limits.
 
 ## Completion condition
 
@@ -158,5 +175,5 @@ does not depend on outer layers, expected failures have stable safe results,
 the declared CLI/configuration contracts work from a published process, and
 the existing desktop experience still passes its retained UI and visual checks.
 
-The later [Desktop and MCP PLC](../portico-desktop-and-mcp-adapters-1.0/README.md)
+The later [Desktop and MCP PLC](../../planned/portico-desktop-and-mcp-adapters-1.0/README.md)
 may start only after these conditions are met.

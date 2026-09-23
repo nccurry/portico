@@ -26,14 +26,14 @@ The active project files define this graph:
 | Current project | Direct responsibility today | Target disposition | Owning phase |
 | --- | --- | --- | --- |
 | [Portico.Finance](../../../../../src/Portico.Finance/Portico.Finance.csproj) | Financial rules and the source-selection records `WorkbookSourceKind` and `DataSourceSettings`. | Keep financial rules. Move source selection out to Application-owned requests. | 2 |
-| [Portico.Dashboard](../../../../../src/Portico.Dashboard/Portico.Dashboard.csproj) | Semantic reports, dashboard TOML grammar, and mutable presentation state. | Split semantic reports to Application and desktop presentation to Desktop. Delete the project only after its tests move. | 2 and 4 |
-| [Portico.Adapters](../../../../../src/Portico.Adapters/Portico.Adapters.csproj) | TOML parsing, secrets, CSV, Google Sheets, and normalization. | Split into Configuration and Data, each implementing an Application-owned input interface. | 3 |
+| `Portico.Dashboard` (historical project) | Semantic reports, dashboard TOML grammar, and mutable presentation state. | Split semantic reports to Application and desktop presentation to Desktop. Delete the project only after its tests move. | 2 and 4 |
+| `Portico.Adapters` (historical project) | TOML parsing, secrets, CSV, Google Sheets, and normalization. | Split into Configuration and Data, each implementing an Application-owned input interface. | 3 |
 | [Portico.App](../../../../../src/Portico.App/Portico.App.csproj) | CLI parsing, output, adapter construction, Roci startup, and desktop rendering. | Keep only entry point and object wiring. Dispatch the typed `run` command to Application and Desktop. | 4 |
 
 ### Reviewed target project-reference matrix
 
 This matrix is the reviewed replacement for the graph above. It matches the
-[PLC packet's proposed graph](README.md#proposed-project-graph) and is the
+[PLC packet's implemented graph](README.md#implemented-project-graph) and is the
 matrix Phase 1 architecture tests must evaluate from the effective MSBuild
 project items, including imported references.
 
@@ -114,8 +114,7 @@ The retained visual lane passed with 48 PNG captures from the synthetic demo.
 
 ### CLI surface today
 
-The current CLI is implemented in
-[PorticoCli.cs](../../../../../src/Portico.App/PorticoCli.cs). Its default command
+The baseline CLI was implemented in the removed `src/Portico.App/PorticoCli.cs`. Its default command
 is `run`; it also supports `doctor` and help.
 
 | Current item | Current behavior | Target disposition |
@@ -145,7 +144,7 @@ are not part of this foundation.
 
 ### Current configuration and data loading
 
-The mixed [TomlConfigurationLoader](../../../../../src/Portico.Adapters/TomlConfigurationLoader.cs)
+The former `Portico.Adapters/TomlConfigurationLoader.cs`
 currently accepts the old finance document shape in `portico-demo.toml`. It has
 no main-file schema version and does not reject unknown keys; the checked-in
 `weekly_summary` table is therefore ignored by C# today.
@@ -154,7 +153,7 @@ For local data, `data.source = "local"` selects four files beneath
 `data.directory`: `transactions.csv`, `balance_history.csv`, `categories.csv`,
 and `accounts.csv`. For Google Sheets, `data.source = "remote"` or
 `"google-sheets"` uses four same-named values from `[sheets]`. Both paths feed
-the same [WorkbookNormalizer](../../../../../src/Portico.Adapters/WorkbookNormalizer.cs)
+the former `Portico.Adapters/WorkbookNormalizer.cs`
 and produce a `PortfolioSnapshot`.
 
 The current App resolves a relative `data.directory` from the selected

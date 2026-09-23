@@ -5,7 +5,7 @@ using Roci.Ui;
 
 namespace Portico.Desktop.Ui.Pages;
 
-/// <summary>Builds the source-shaped Budget page from typed reports and configured controls.</summary>
+/// <summary>Builds the Budget page from report data and configured controls.</summary>
 internal sealed class PorticoBudgetPageRenderer
 {
     private static readonly string[] RequiredWidgets =
@@ -27,7 +27,7 @@ internal sealed class PorticoBudgetPageRenderer
         _adjustments = new PorticoSpendingAdjustmentsControl(_session, _requestRebuild, DashboardPageId.Budget);
     }
 
-    /// <summary>Gets whether a page declares the complete source-shaped Budget grammar.</summary>
+    /// <summary>Checks whether the Budget page defines every required widget and control.</summary>
     public bool CanRender(DashboardPageDefinition page)
     {
         ArgumentNullException.ThrowIfNull(page);
@@ -49,7 +49,7 @@ internal sealed class PorticoBudgetPageRenderer
                 "year_to_date");
     }
 
-    /// <summary>Builds the source page title and latest-spending caption.</summary>
+    /// <summary>Builds the page title and latest-spending caption.</summary>
     public void BuildHeader(UiBuilder ui, DashboardPageDefinition page, DashboardPageReport report)
     {
         ArgumentNullException.ThrowIfNull(ui);

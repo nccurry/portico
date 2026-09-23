@@ -5,7 +5,7 @@ using Roci.Ui;
 
 namespace Portico.Desktop.Ui.Pages;
 
-/// <summary>Builds the source-shaped Home report while leaving other pages configuration-driven.</summary>
+/// <summary>Builds the Home page from its configured sections and report data.</summary>
 internal sealed class PorticoHomePageRenderer
 {
     private static readonly string[] RequiredSections =
@@ -24,7 +24,7 @@ internal sealed class PorticoHomePageRenderer
         _session = session ?? throw new ArgumentNullException(nameof(session));
     }
 
-    /// <summary>Gets whether a configured page supplies the complete source-shaped Home grammar.</summary>
+    /// <summary>Checks whether the Home page defines every required section and widget.</summary>
     public bool CanRender(DashboardPageDefinition page)
     {
         ArgumentNullException.ThrowIfNull(page);
@@ -83,7 +83,7 @@ internal sealed class PorticoHomePageRenderer
                     BuildConfiguredWidget(ui, page, report, section, buildWidget);
                     break;
                 default:
-                    throw new InvalidOperationException($"Home section '{section.Id}' is not supported by the source-shaped layout.");
+                    throw new InvalidOperationException($"Home section '{section.Id}' is not supported by this layout.");
             }
         }
     }
