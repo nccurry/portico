@@ -175,6 +175,17 @@ public sealed class ExploreReportTests
     }
 
     [Fact]
+    public async Task Merchants_RejectsUnknownComparison()
+    {
+        Workspace workspace = await Open([
+            Expense("coffee", 2026, 2, 1, "Coffee", "Food", "Living", -20m)
+        ]);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => workspace.Merchants(
+            new MerchantsReportRequest(Comparison: (SpendingComparison)99)));
+    }
+
+    [Fact]
     public async Task Transactions_AppliesFiltersAliasesAndHiddenRows()
     {
         Workspace workspace = await Open([

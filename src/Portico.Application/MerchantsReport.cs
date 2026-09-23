@@ -29,6 +29,8 @@ public sealed partial class Workspace
     public MerchantsReport Merchants(MerchantsReportRequest? request = null)
     {
         request ??= new MerchantsReportRequest();
+        if (!Enum.IsDefined(request.Comparison))
+            throw new ArgumentOutOfRangeException(nameof(request), "Unsupported merchant comparison.");
         FinancialTransaction[] visible = _snapshot.Transactions.Where(transaction => !transaction.IsHidden).ToArray();
         MerchantAnalysisResult analysis = MerchantAnalysisCalculator.Build(
             visible,

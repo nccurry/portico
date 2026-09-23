@@ -101,4 +101,23 @@ public sealed class IncomeReportTests
         Assert.Equal(new YearMonth(9999, 12), report.DetailMonth);
         Assert.Equal(10m, report.Detail!.Income);
     }
+
+    [Fact]
+    public async Task Income_ReturnedAdjustmentsCannotChangeWorkspacePolicy()
+    {
+        Workspace workspace = await ReportWorkspaceFixture.Open(new PortfolioSnapshot(
+        [
+            ReportWorkspaceFixture.Transaction("salary", 2026, 3, 1, "Work", "Salary", 100m, TransactionKind.Income),
+            ReportWorkspaceFixture.Transaction("gift", 2026, 3, 2, "Other", "Gift", 50m, TransactionKind.Income)
+        ], [], []));
+
+        IncomeReport first = workspace.Income(new IncomeReportRequest(LookbackMonths: 1));
+        Assert.Equal(100m, first.Detail!.Income);
+
+        ((string[])first.Adjustments.ExcludedIncomeCategories)[0] = "Salary";
+
+        IncomeReport second = workspace.Income(new IncomeReportRequest(LookbackMonths: 1));
+        Assert.Equal(100m, second.Detail!.Income);
+        Assert.Equal("Gift", second.Adjustments.ExcludedIncomeCategories[0]);
+    }
 }

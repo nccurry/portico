@@ -57,8 +57,8 @@ public sealed partial class Workspace
 
         bool regular = request.RegularIncome
             ?? string.Equals(_settings.IncomeSavings.DefaultView, "regular", StringComparison.OrdinalIgnoreCase);
-        IncomeSavingsAdjustments adjustments = request.Adjustments
-            ?? IncomeSavingsAdjustments.Default(_settings, regular);
+        IncomeSavingsAdjustments adjustments = CopyAdjustments(request.Adjustments
+            ?? IncomeSavingsAdjustments.Default(_settings, regular));
         IncomeSavingsAnalysisResult analysis = IncomeSavingsAnalysisCalculator.Build(
             _snapshot.Transactions.Where(transaction => !transaction.IsHidden),
             lookback,
@@ -123,4 +123,14 @@ public sealed partial class Workspace
             included,
             excluded);
     }
+
+    private static IncomeSavingsAdjustments CopyAdjustments(IncomeSavingsAdjustments adjustments)
+        => adjustments with
+        {
+            ExcludedIncomeCategories = adjustments.ExcludedIncomeCategories.ToArray(),
+            ExcludedExpenseGroups = adjustments.ExcludedExpenseGroups.ToArray(),
+            ExcludedExpenseCategories = adjustments.ExcludedExpenseCategories.ToArray(),
+            IncludedDescriptions = adjustments.IncludedDescriptions.ToArray(),
+            ExcludedDescriptions = adjustments.ExcludedDescriptions.ToArray()
+        };
 }
