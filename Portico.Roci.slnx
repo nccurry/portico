@@ -13,6 +13,7 @@
   <Folder Name="/tests/">
     <Project Path="tests/Portico.CaptureHost/Portico.CaptureHost.csproj" />
     <Project Path="tests/Portico.Finance.Tests/Portico.Finance.Tests.csproj" />
+    <Project Path="tests/Portico.Application.Tests/Portico.Application.Tests.csproj" />
     <Project Path="tests/Portico.Dashboard.Tests/Portico.Dashboard.Tests.csproj" />
     <Project Path="tests/Portico.Adapters.Tests/Portico.Adapters.Tests.csproj" />
     <Project Path="tests/Portico.App.Tests/Portico.App.Tests.csproj" />

@@ -147,6 +147,13 @@ Expected problem groups are command input, configuration, missing secret, data
 contract, source unavailable, cancellation, and unexpected failure at the outer
 host boundary.
 
+Application check results contain only a source kind and, for data checks,
+normalized row counts. Reader results carry settings or snapshots for the
+in-process handoff, but their default text and JSON forms do not print those
+payloads. Problems are nonempty and sorted by field, code, then message. Input
+readers must provide safe messages and setting or option names as fields; a
+field is never a path or URL.
+
 Do not use a result type for an invalid argument inside a finance calculator or
 a broken internal invariant. Those remain ordinary exceptions and fail tests.
 Do not return raw exceptions in a public outcome. The host may log a safe
@@ -198,6 +205,11 @@ Keep source selection outside Finance. Configuration maps finance-policy fields
 to immutable Finance records and maps source fields to an Application-owned
 source request. That request describes a supported source without exposing a
 TOML table or client type.
+
+The source request has two forms: one local directory or four separate Google
+Sheets tab URLs (transactions, balance_history, categories, and accounts).
+Only the data reader accesses those locations. They do not appear in check
+summaries, default request text, or default request JSON.
 
 A configuration reader interface is justified because TOML files are an outer
 effect. A separate generic configuration framework is not justified.
