@@ -51,7 +51,7 @@ public sealed record DashboardWidgetReport(
 }
 
 /// <summary>Represents every configured widget report for one page selection.</summary>
-public sealed record DashboardPageReport(
+public sealed partial record DashboardPageReport(
     DashboardPageId PageId,
     IReadOnlyDictionary<string, DashboardWidgetReport> Widgets);
 
