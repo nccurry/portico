@@ -76,6 +76,20 @@ public sealed class DashboardSessionTests
         Assert.Equal("all", session.Filters.SpendingSet);
     }
 
+    [Fact]
+    public async Task InvalidDirectFilterDoesNotKeepBrokenScenarioState()
+    {
+        (Workspace workspace, DashboardDefinition definition) = await Open();
+        var session = new DashboardSession(workspace, definition);
+        DashboardReport report = session.Report;
+        FinancialIndependenceScenario? scenario = session.Filters.FinancialIndependenceScenario;
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => session.SetFilter("fi_assets", "-1"));
+
+        Assert.Equal(scenario, session.Filters.FinancialIndependenceScenario);
+        Assert.Same(report, session.Report);
+    }
+
     private static decimal? SpendingTotal(DashboardSession session)
         => Assert.Single(session.Report.Page(DashboardPageId.Spending)
             .Widgets["spending.summary"].Metrics, metric => metric.Label == "Total spending").Value;
