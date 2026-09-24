@@ -672,7 +672,8 @@ def main() -> None:
     default_lookback = next(
         label for label, months in lookback_options.items() if months == settings.lookback.default_lookback_months
     )
-    controls = st.container(horizontal=True, wrap=True, vertical_alignment="bottom")
+    with st.container(border=True):
+        controls = st.container(horizontal=True, wrap=True, vertical_alignment="bottom")
     with controls:
         lookback = render_time_frame_control(
             list(lookback_options),

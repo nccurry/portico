@@ -111,8 +111,18 @@ withdrawal_rate = 4.0
 target_amount = 1_000_000
 spending_lookback_months = 12
 projection_years = 50
+default_active_streams = ["Investments", "Social Security"]
+income_from_transactions = false
 included_account_patterns = []
 included_groups = ["Savings", "Investments", "Retirement"]
+real_estate_included_account_patterns = []
+real_estate_included_groups = []
+real_estate_monthly_cash_flow = 0
+real_estate_appreciation_rate = 3.0
+social_security_annual_income = 24000
+social_security_start_year = 20
+pension_annual_income = 12000
+pension_start_year = 20
 
 [weekly_summary]
 watched_transaction_sets = ["discretionary"]

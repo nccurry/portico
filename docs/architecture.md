@@ -233,9 +233,10 @@ Configuration owns initial control values and named transaction selections. This
 includes shared lookback choices, named transaction sets, page filter sets,
 discretionary and regular-report exclusions, budget history, subscription
 discovery, data-health thresholds, emergency-fund and debt policy, FI funding
-goals and assumptions, weekly summary transaction-set selection and windows,
-and merchant aliases. The same named transaction set must mean the same thing
-on every page. In particular, the
+goals, assumptions, stream defaults (including initially active streams), and
+account sources, weekly summary transaction-set selection and windows, and
+merchant aliases. The same named
+transaction set must mean the same thing on every page. In particular, the
 spending, merchant, and year-over-year Discretionary views resolve the same
 `[transaction_sets.discretionary]` policy.
 
@@ -257,6 +258,20 @@ subscriptions, merchants, net worth, financial safety, data health, and
 financial independence.
 These modules return DataFrames or typed summaries instead of rendered UI.
 
+Financial-independence calculations use concrete streams rather than a generic
+plug-in model: spending and earned income, Investments, Real estate, Social
+Security, and Pension. The page selects account-backed asset sources and turns
+specific streams on or off. Real estate can supply an expected monthly net cash
+flow and an appreciation rate. Investments and real estate grow at their own
+rates. Income left after expenses goes into investments, and expenses use
+property value only after investments run out. The expense-coverage chart uses
+projected available assets, marks unmet expenses, and combines consecutive
+years with the same funding mix. Optional expense- and earned-income-period
+modes each present year 1 and later changes as one schedule. Projections and
+runway use both schedules; snapshot target metrics use year 1 amounts. Social
+Security and pensions remain separate, additive income streams. The page marks the selected
+projection covered when its yearly expense-coverage rows have no shortfall.
+
 Some existing calculations still accept spreadsheet wrappers or read settings
 directly. If explicit inputs make a function easier to test, new calculation
 code accepts DataFrames and typed values.
@@ -270,6 +285,9 @@ Each page follows the same general flow:
 3. Call calculation functions.
 4. Render metrics, charts, tables, and transaction details.
 5. Handle empty results with a clear message.
+
+Page-specific filter popovers sit with their related controls in a bordered
+control group, not on a separate row above the content they affect.
 
 Home renders Financial safety before the net-worth summary. The net-worth trend
 and its What changed chart stay together. Account-group cards keep time-series

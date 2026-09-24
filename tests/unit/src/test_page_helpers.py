@@ -4,7 +4,57 @@ from types import SimpleNamespace
 
 from pytest import MonkeyPatch
 
-from src.page_helpers import extract_merchant_name, render_demo_banner, render_time_frame_control
+from src.page_helpers import (
+    _format_currency_input,
+    _parse_currency_input,
+    _set_currency_input_value,
+    extract_merchant_name,
+    render_demo_banner,
+    render_time_frame_control,
+)
+
+
+def test_currency_input_formats_dollar_amounts() -> None:
+    assert _format_currency_input(100_000.0) == "$100,000"
+    assert _format_currency_input(1_234.5) == "$1,234.50"
+    assert _format_currency_input(-500.0) == "-$500"
+    assert _format_currency_input(None) == ""
+
+
+def test_currency_input_parses_plain_and_formatted_amounts() -> None:
+    assert _parse_currency_input("100000") == 100_000.0
+    assert _parse_currency_input("$100,000.25") == 100_000.25
+    assert _parse_currency_input("-$500") == -500.0
+
+
+def test_currency_input_rejects_invalid_amounts() -> None:
+    assert _parse_currency_input("$1,00") is None
+    assert _parse_currency_input("$100.123") is None
+    assert _parse_currency_input("one hundred") is None
+
+
+def test_currency_input_restores_invalid_or_out_of_range_text(monkeypatch: MonkeyPatch) -> None:
+    state = {"amount": 100.0, "amount_currency": "$1,00", "amount_currency_synced": 100.0}
+    monkeypatch.setattr("src.page_helpers.st.session_state", state)
+
+    _set_currency_input_value("amount", "amount_currency", "amount_currency_synced", 0.0, 1_000.0, False)
+    assert state == {"amount": 100.0, "amount_currency": "$100", "amount_currency_synced": 100.0}
+
+    state["amount_currency"] = "$2,000"
+    _set_currency_input_value("amount", "amount_currency", "amount_currency_synced", 0.0, 1_000.0, False)
+    assert state == {"amount": 100.0, "amount_currency": "$100", "amount_currency_synced": 100.0}
+
+
+def test_currency_input_accepts_negative_amount_and_optional_empty(monkeypatch: MonkeyPatch) -> None:
+    state = {"amount": 100.0, "amount_currency": "-50", "amount_currency_synced": 100.0}
+    monkeypatch.setattr("src.page_helpers.st.session_state", state)
+
+    _set_currency_input_value("amount", "amount_currency", "amount_currency_synced", -1_000.0, None, True)
+    assert state == {"amount": -50.0, "amount_currency": "-$50", "amount_currency_synced": -50.0}
+
+    state["amount_currency"] = ""
+    _set_currency_input_value("amount", "amount_currency", "amount_currency_synced", -1_000.0, None, True)
+    assert state == {"amount": None, "amount_currency": "", "amount_currency_synced": None}
 
 
 def test_demo_banner_identifies_synthetic_data(monkeypatch: MonkeyPatch) -> None:

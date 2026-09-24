@@ -342,7 +342,8 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
     single_views = ["Single category", "Single group"]
     default_view = settings.transaction_set(configured_filter_set.default).label
 
-    controls = st.columns([3, 2], vertical_alignment="bottom")
+    with st.container(border=True):
+        controls = st.columns([3, 2], vertical_alignment="bottom")
     with controls[0]:
         view = st.segmented_control(
             "View",
