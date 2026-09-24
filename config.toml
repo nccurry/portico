@@ -186,8 +186,6 @@ debt_baseline_date = ""
 [financial_independence]
 # Annual investment return percentage used in the projection.
 expected_return_rate = 7.0
-# Annual withdrawal percentage used to calculate the goal.
-withdrawal_rate = 4.0
 # Dollar amount used as the financial-independence goal.
 target_amount = 1_000_000
 # Months used to average spending. Allowed values are 6, 12, 24, and 36.

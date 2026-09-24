@@ -192,6 +192,14 @@ def test_unknown_keys_are_rejected(tmp_path: Path) -> None:
         _load(config)
 
 
+def test_removed_withdrawal_rate_setting_is_rejected(tmp_path: Path) -> None:
+    config = _copy_config(tmp_path)
+    _replace(config, "expected_return_rate = 7.0", "expected_return_rate = 7.0\nwithdrawal_rate = 4.0")
+
+    with pytest.raises(ConfigError, match=r"Unknown key.*withdrawal_rate"):
+        _load(config)
+
+
 def test_unknown_transaction_set_references_are_rejected(tmp_path: Path) -> None:
     config = _copy_config(tmp_path)
     _replace(

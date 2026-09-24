@@ -2343,7 +2343,7 @@ class TestFinancialIndependenceSmoke:
             ],
         )
         assert not at.exception
-        assert _metric_labels(at) == ["Runway", "Yearly gap", "Needed from portfolio", "Investment target"]
+        assert _metric_labels(at) == ["Runway", "Yearly gap", "Needed from portfolio"]
         assert at.title[0].value == "Financial independence"
         assert len(at.get("popover")) == 1
         assert at.multiselect(key="fi_include_investment_accounts").value
@@ -2379,7 +2379,7 @@ class TestFinancialIndependenceSmoke:
         assert scenario_values["Social Security starts in (years)"] == 20
         assert "Yearly pension" not in {widget.label for widget in at.text_input}
         assert scenario_values["Yearly investment growth (%)"] == 7.0
-        assert scenario_values["Portfolio withdrawal rate (%)"] == 4.0
+        assert "Portfolio withdrawal rate (%)" not in scenario_values
         assert scenario_values["Years to project"] == 50
         assert at.text_input(key="fi_scenario_investments_currency").label == "Investment balance"
         charts = at.get("vega_lite_chart")
@@ -2427,11 +2427,12 @@ class TestFinancialIndependenceSmoke:
             _set_fi_scenario,
         )
         assert not at.exception
-        assert _metric_labels(at) == ["Runway", "Yearly gap", "Needed from portfolio", "Investment target"]
+        assert _metric_labels(at) == ["Runway", "Yearly gap", "Needed from portfolio"]
         assert at.text_input(key="fi_scenario_spending_currency").value == "$50,000"
         assert at.text_input(key="fi_scenario_income_currency").value == "$20,000"
         assert at.session_state["fi_scenario_spending"] == 50_000.0
         assert at.session_state["fi_scenario_income"] == 20_000.0
+        assert next(metric for metric in at.metric if metric.label == "Needed from portfolio").value == "$30,000"
         assert at.number_input(key="fi_scenario_return_rate").value == 5.0
 
     def test_delayed_social_security_can_make_runway_sustainable(
@@ -2534,7 +2535,7 @@ class TestFinancialIndependenceSmoke:
         assert at.number_input(key="fi_spending_start_2").value == 6
         assert at.text_input(key="fi_spending_amount_2_currency").value == "$30,000"
         assert next(metric for metric in at.metric if metric.label == "Runway").value == "6.0 years"
-        assert at.metric[-1].help == "Based on year 1 expenses. Runway uses every spending change."
+        assert at.metric[-1].help == "Based on year 1 expenses and income. Runway uses every scheduled change."
 
         at.number_input(key="fi_scenario_years").set_value(6)
         at.run()

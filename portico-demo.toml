@@ -107,7 +107,6 @@ debt_baseline_date = ""
 
 [financial_independence]
 expected_return_rate = 7.0
-withdrawal_rate = 4.0
 target_amount = 1_000_000
 spending_lookback_months = 12
 projection_years = 50

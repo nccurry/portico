@@ -86,35 +86,18 @@ class TestCalculateFiMetrics:
         assert result["total_spending"] == 30_000
         assert result["annual_surplus"] == -15_000
         assert result["net_annual_spending"] == 30_000.0
-        assert result["sustainable_spending"] == 10_000.0
-        assert result["fi_target"] == 750_000.0
-        assert result["fi_gap"] == -500_000.0
 
-    def test_income_reduces_the_fi_target(self) -> None:
+    def test_income_reduces_the_amount_needed_from_assets(self) -> None:
         result = calculate_fi_metrics(
             500_000,
             60_000,
             5.0,
             annual_income=20_000,
-            withdrawal_rate_pct=4.0,
         )
 
         assert result["net_annual_spending"] == 40_000.0
-        assert result["fi_target"] == 1_000_000.0
-        assert result["fi_gap"] == -500_000.0
 
-    def test_withdrawal_rate_changes_the_fi_target(self) -> None:
-        result = calculate_fi_metrics(
-            500_000,
-            40_000,
-            5.0,
-            withdrawal_rate_pct=5.0,
-        )
-
-        assert result["sustainable_spending"] == 25_000.0
-        assert result["fi_target"] == 800_000.0
-
-    def test_income_covering_spending_has_no_fi_target(self) -> None:
+    def test_income_covering_spending_needs_no_assets(self) -> None:
         result = calculate_fi_metrics(
             100_000,
             50_000,
@@ -123,8 +106,6 @@ class TestCalculateFiMetrics:
         )
 
         assert result["net_annual_spending"] == 0.0
-        assert result["fi_target"] == 0.0
-        assert result["fi_gap"] == 100_000.0
 
 
 class TestCalculateFiMetricsWithSupplementalIncome:
@@ -218,7 +199,7 @@ class TestSpendingChanges:
             "Years 3-4",
         ]
 
-    def test_later_increase_shortens_runway_but_does_not_change_year_one_target(self) -> None:
+    def test_later_increase_shortens_runway_but_does_not_change_year_one_need(self) -> None:
         baseline = calculate_fi_metrics(100.0, 10.0, 0.0)
         scheduled = calculate_fi_metrics(
             100.0,
@@ -229,7 +210,7 @@ class TestSpendingChanges:
 
         assert baseline["runway_years"] == 10.0
         assert scheduled["runway_years"] == pytest.approx(4.0)
-        assert scheduled["fi_target"] == baseline["fi_target"]
+        assert scheduled["net_annual_spending"] == baseline["net_annual_spending"]
 
     def test_later_decrease_cannot_rescue_a_plan_that_runs_out_first(self) -> None:
         result = calculate_fi_metrics(
@@ -326,7 +307,7 @@ class TestIncomeChanges:
         assert coverage.loc[coverage["Stream"].eq("Income"), "Amount"].tolist() == [20.0, 20.0, 0.0, 0.0]
         assert coverage.loc[coverage["Stream"].eq("Social Security"), "Amount"].tolist() == [0.0, 0.0, 10.0, 10.0]
 
-    def test_later_income_drop_shortens_runway_but_keeps_year_one_target(self) -> None:
+    def test_later_income_drop_shortens_runway_but_keeps_year_one_need(self) -> None:
         baseline = calculate_fi_metrics(100.0, 20.0, 0.0, annual_income=10.0)
         scheduled = calculate_fi_metrics(
             100.0,
@@ -338,7 +319,7 @@ class TestIncomeChanges:
 
         assert baseline["runway_years"] == pytest.approx(10.0)
         assert scheduled["runway_years"] == pytest.approx(6.0)
-        assert scheduled["fi_target"] == baseline["fi_target"]
+        assert scheduled["net_annual_spending"] == baseline["net_annual_spending"]
 
     def test_later_income_cannot_rescue_a_plan_that_runs_out_first(self) -> None:
         result = calculate_fi_metrics(

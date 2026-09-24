@@ -63,7 +63,6 @@ SCENARIO_KEYS = {
     "pension": "fi_scenario_pension",
     "pension_start_year": "fi_scenario_pension_start_year",
     "return_rate": "fi_scenario_return_rate",
-    "withdrawal_rate": "fi_scenario_withdrawal_rate",
     "years": "fi_scenario_years",
 }
 SOURCE_KEYS = {
@@ -128,7 +127,6 @@ def _set_scenario_defaults(source_values: dict[str, float]) -> None:
         _set_source_default(name, source_value)
     defaults = {
         SCENARIO_KEYS["return_rate"]: defaults_config.expected_return_rate,
-        SCENARIO_KEYS["withdrawal_rate"]: defaults_config.withdrawal_rate,
         SCENARIO_KEYS["years"]: defaults_config.projection_years,
     }
     for key, value in defaults.items():
@@ -208,7 +206,6 @@ def _reset_scenario(source_values: dict[str, float]) -> None:
         st.session_state[SCENARIO_KEYS[name]] = source_value
         st.session_state[SOURCE_KEYS[name]] = source_value
     st.session_state[SCENARIO_KEYS["return_rate"]] = defaults_config.expected_return_rate
-    st.session_state[SCENARIO_KEYS["withdrawal_rate"]] = defaults_config.withdrawal_rate
     st.session_state[SCENARIO_KEYS["years"]] = defaults_config.projection_years
     st.session_state[ACTIVE_STREAMS_KEY] = _default_active_streams()
     for row_id in st.session_state[SPENDING_ROWS_KEY]:
@@ -258,7 +255,6 @@ def _scenario_from_state() -> FIScenario:
         pension_annual_income=float(st.session_state[SCENARIO_KEYS["pension"]]),
         pension_start_year=int(st.session_state[SCENARIO_KEYS["pension_start_year"]]),
         return_rate=float(st.session_state[SCENARIO_KEYS["return_rate"]]),
-        withdrawal_rate=float(st.session_state[SCENARIO_KEYS["withdrawal_rate"]]),
         years=int(st.session_state[SCENARIO_KEYS["years"]]),
         active_streams=active_streams,
         spending_schedule=spending_schedule,
@@ -540,27 +536,14 @@ def _render_scenario_controls(
                     )
 
         st.markdown("**Plan settings**")
-        assumption_columns = st.columns(2)
-        with assumption_columns[0]:
-            st.number_input(
-                "Portfolio withdrawal rate (%)",
-                min_value=0.5,
-                max_value=10.0,
-                step=0.25,
-                format="%.2f",
-                help="The share of your included assets you plan to use each year. It sets your target.",
-                key=SCENARIO_KEYS["withdrawal_rate"],
-                persist_state="session",
-            )
-        with assumption_columns[1]:
-            st.number_input(
-                "Years to project",
-                min_value=1,
-                max_value=100,
-                step=5,
-                key=SCENARIO_KEYS["years"],
-                persist_state="session",
-            )
+        st.number_input(
+            "Years to project",
+            min_value=1,
+            max_value=100,
+            step=5,
+            key=SCENARIO_KEYS["years"],
+            persist_state="session",
+        )
     try:
         return _scenario_from_state()
     except ValueError as error:
@@ -573,7 +556,6 @@ def _render_metrics(
     *,
     years_to_project: int,
     all_years_covered: bool,
-    has_spending_changes: bool = False,
 ) -> None:
     runway = summary["runway_years"]
     if runway is None:
@@ -587,8 +569,6 @@ def _render_metrics(
         runway_delta = f"Until portfolio reaches {mask_value('$0')}"
     gap = summary["annual_surplus"]
     gap_delta = "Yearly surplus" if gap >= 0 else "Yearly shortfall"
-    fi_gap = summary["fi_gap"]
-    fi_delta = f"{_currency(fi_gap)} above target" if fi_gap >= 0 else f"{_currency(-fi_gap)} still needed"
     with st.container(horizontal=True):
         st.metric(
             "Runway",
@@ -603,22 +583,13 @@ def _render_metrics(
             _currency(gap, signed=True),
             delta=gap_delta,
             delta_color="normal",
-            help="Based on year 1 expenses. Runway uses every spending change." if has_spending_changes else None,
+            help="Year 1 investment growth and income minus expenses. Runway uses every year.",
             border=True,
         )
         st.metric(
             "Needed from portfolio",
             _currency(summary["net_annual_spending"]),
-            delta=f"{_currency(summary['sustainable_spending'])} is sustainable at this rate",
-            delta_color="off",
-            border=True,
-        )
-        st.metric(
-            "Investment target",
-            _currency(summary["fi_target"]),
-            delta=fi_delta,
-            delta_color="normal",
-            help="Based on year 1 expenses. Runway uses every spending change." if has_spending_changes else None,
+            help="Based on year 1 expenses and income. Runway uses every scheduled change.",
             border=True,
         )
 
@@ -958,7 +929,6 @@ def configure_page(
         scenario.annual_spending,
         scenario.return_rate,
         annual_income=annual_earned_income,
-        withdrawal_rate_pct=scenario.withdrawal_rate,
         income_streams=tuple(income_streams),
         real_estate_value=property_value,
         real_estate_rate_pct=property_growth_rate,
@@ -983,7 +953,6 @@ def configure_page(
         summary,
         years_to_project=scenario.years,
         all_years_covered=all_years_covered,
-        has_spending_changes=bool(scenario.spending_schedule),
     )
 
     with st.container(border=True):

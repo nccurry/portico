@@ -67,7 +67,8 @@ financial records.
 
 ### Financial independence
 
-![Demo financial independence plan with stream controls and dollar-formatted inputs](assets/screenshots/demo-financial-independence.png)
+Use the [interactive demo](https://nccurry.github.io/portico/) to explore expense,
+income, investment, real-estate, and retirement streams.
 
 ### Data health
 
@@ -330,7 +331,7 @@ settings you may want to change:
 | `subscriptions` | `default_exclude_categories` | Categories selected by default in Additional discovery exclusions. |
 | `data_health` | `stale_account_days` | Age at which an account balance is stale. |
 | `data_health` | `duplicate_require_same_*` | Initial duplicate-detection matching rules. |
-| `financial_independence` | Return, withdrawal, history, projection, earned-income, investment, real-estate, and retirement-stream settings | Home-page FI funding progress and Financial independence source defaults. |
+| `financial_independence` | Return, history, projection, earned-income, investment, real-estate, and retirement-stream settings | Home-page FI funding progress and Financial independence source defaults. |
 | `financial_safety` | Emergency-fund target, expense baseline, liquid-account scope, and debt baseline | Home-page safety progress. Emergency spending uses complete months only; leave `debt_baseline_date` empty to use the first recorded balance. |
 | `weekly_summary` | `watched_transaction_sets`, `average_weeks`, `rolling_weeks`, `top_merchant_count` | Named transaction sets, comparison windows, and merchant detail for Discord. |
 | `merchants.aliases` | Merchant name and description fragments | Combine several transaction descriptions under one merchant name. |
@@ -354,15 +355,20 @@ Expenses start as one yearly amount. Turn on **Change expenses over time** in
 The first row starts in year 1; select **Add expense period** for each later
 amount and the year it begins. You can remove later periods or turn the option
 off to return to one amount. Runway, coverage, and sensitivity use the full
-schedule; the yearly gap and investment target use year 1 expenses.
+schedule; the yearly gap and amount needed from assets use year 1 expenses.
 All amounts are in today's dollars.
 
 When Income is included, **Change income over time** works the same way: year 1
 starts with one earned-income amount, and each added period replaces it from
 its selected year onward. Enter $0 for a year when earned income stops. Social
 Security and pensions are separate streams and are added on top. Projections,
-coverage, and runway use every income period; the yearly gap and investment
-target use year 1 income.
+coverage, and runway use every income period; the yearly gap and amount needed
+from assets use year 1 income.
+
+Your expenses and income determine how much the plan draws from assets. There
+is no separate withdrawal-rate setting or rate-based investment target. If you
+have a custom `config.toml` from an earlier version, remove its
+`withdrawal_rate` line before upgrading; unknown settings are rejected.
 
 Runway shows **Covered** when income and assets pay expenses in every selected
 projection year, even if they would run out later. **Sustainable** means the

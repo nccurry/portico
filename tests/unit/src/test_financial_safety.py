@@ -27,7 +27,6 @@ def _safety_settings(*, baseline_date: date | None = None) -> FinancialSafetySet
 def _fi_settings() -> FinancialIndependenceSettings:
     return FinancialIndependenceSettings(
         expected_return_rate=7.0,
-        withdrawal_rate=4.0,
         target_amount=150_000,
         spending_lookback_months=3,
         projection_years=50,
