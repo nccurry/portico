@@ -6,6 +6,8 @@ annotations stay at their usage site.
 """
 
 from collections.abc import Sequence
+from dataclasses import dataclass
+from math import isfinite
 from typing import ReadOnly, TypedDict
 
 from streamlit.elements.lib.column_config_utils import ColumnConfigMappingInput
@@ -66,12 +68,14 @@ class BudgetFilters(TransactionFilterOptions):
 class FIFilters(TransactionFilterOptions):
     """Source-data filter state for the Financial Independence page."""
 
-    include_accounts: list[str]
+    include_investment_accounts: list[str]
+    include_real_estate_accounts: list[str]
     exclude_groups: list[str]
     exclude_categories: list[str]
     filter_large_expenses: bool
     expense_threshold: int
     spending_lookback_months: int
+    income_from_transactions: bool
 
 
 class TransactionExplorerSummary(TypedDict):
@@ -169,6 +173,56 @@ class FISummary(TypedDict):
     sustainable_spending: float
     fi_target: float
     fi_gap: float
+
+
+@dataclass(frozen=True)
+class SpendingChange:
+    """A new yearly expense amount beginning in a future year."""
+
+    start_year: int
+    annual_amount: float
+
+    def __post_init__(self) -> None:
+        if self.start_year < 2:
+            raise ValueError("Spending changes must start in year 2 or later.")
+        if not isfinite(self.annual_amount) or self.annual_amount < 0:
+            raise ValueError("Expenses must be a nonnegative, finite amount.")
+
+
+@dataclass(frozen=True)
+class IncomeChange:
+    """A new yearly earned-income amount beginning in a future year."""
+
+    start_year: int
+    annual_amount: float
+
+    def __post_init__(self) -> None:
+        if self.start_year < 2:
+            raise ValueError("Income changes must start in year 2 or later.")
+        if not isfinite(self.annual_amount) or self.annual_amount < 0:
+            raise ValueError("Income must be a nonnegative, finite amount.")
+
+
+@dataclass(frozen=True)
+class FIScenario:
+    """Active Financial Independence scenario values."""
+
+    investments: float
+    real_estate: float
+    real_estate_monthly_cash_flow: float
+    real_estate_appreciation_rate: float
+    annual_spending: float
+    annual_income: float
+    social_security_annual_income: float
+    social_security_start_year: int
+    pension_annual_income: float
+    pension_start_year: int
+    return_rate: float
+    withdrawal_rate: float
+    years: int
+    active_streams: tuple[str, ...]
+    spending_schedule: tuple[SpendingChange, ...] = ()
+    income_schedule: tuple[IncomeChange, ...] = ()
 
 
 class FinancialSafetySummary(TypedDict):

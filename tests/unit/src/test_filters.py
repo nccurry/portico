@@ -12,6 +12,7 @@ from src.custom_types import FIFilters, TransactionFilterOptions
 from src.filters import (
     calculate_date_range,
     default_fi_accounts,
+    render_budget_filters,
     render_fi_filters,
     render_income_expense_filters,
     render_spending_filters,
@@ -651,10 +652,12 @@ class TestPageFilterDefaults:
                 ["Misc Travel", "Given Gift", "Tax Return Payment", "Home Improvements"],
                 ["Bills", "Donations", "Income", "Maintenance", "Travel"],
                 ["Savings"],
+                [],
             )
 
         expected: FIFilters = {
-            "include_accounts": ["Savings"],
+            "include_investment_accounts": ["Savings"],
+            "include_real_estate_accounts": [],
             "exclude_groups": [],
             "exclude_categories": [],
             "include_transactions_like": [],
@@ -662,10 +665,105 @@ class TestPageFilterDefaults:
             "filter_large_expenses": False,
             "expense_threshold": get_settings().thresholds.expense,
             "spending_lookback_months": get_settings().financial_independence.spending_lookback_months,
+            "income_from_transactions": False,
         }
         assert result == expected
         mock_st.popover.assert_called_once_with(
-            "Adjust source data",
-            icon=":material/tune:",
-            width="stretch",
+            ":material/tune:",
+            help="Configure streams",
+            width="content",
         )
+        assert mock_st.selectbox.call_args.args[0] == "Expense period"
+        assert [call.args[0] for call in mock_st.toggle.call_args_list] == [
+            "Change expenses over time",
+            "Use income from transactions",
+            "Change income over time",
+            "Leave out large transactions",
+        ]
+        assert mock_st.toggle.call_args_list[0].kwargs["key"] == "fi_variable_spending"
+        assert mock_st.toggle.call_args_list[2].kwargs["key"] == "fi_variable_income"
+        assert [call.args[0] for call in mock_st.multiselect.call_args_list] == [
+            "Groups to leave out",
+            "Categories to leave out",
+            "Transaction words to include",
+            "Transaction words to leave out",
+            "Investment accounts to include",
+            "Property accounts to include",
+        ]
+
+    def test_fi_keeps_asset_streams_and_income_source_separate(self) -> None:
+        with patch("src.filters.st") as mock_st:
+            _mock_filter_widgets(mock_st)
+            mock_st.session_state.update(
+                {
+                    "fi_include_investment_accounts": ["Brokerage"],
+                    "fi_include_real_estate_accounts": ["Home"],
+                    "fi_income_from_transactions": True,
+                }
+            )
+            result = render_fi_filters(
+                ["Checking", "Brokerage", "Home"],
+                ["Groceries"],
+                ["Food"],
+                ["Brokerage"],
+                ["Home"],
+            )
+
+        assert result["include_investment_accounts"] == ["Brokerage"]
+        assert result["include_real_estate_accounts"] == ["Home"]
+        assert result["income_from_transactions"]
+
+    def test_money_limits_use_currency_inputs(self) -> None:
+        with (
+            patch("src.filters.st") as mock_st,
+            patch("src.filters.currency_input") as mock_currency_input,
+        ):
+            _mock_filter_widgets(mock_st)
+            mock_st.session_state.update(
+                {
+                    "income_regular_filter_large_income": True,
+                    "income_regular_income_threshold": 12_000,
+                    "income_regular_filter_large_expenses": True,
+                    "income_regular_expense_threshold": 8_000,
+                    "spending_all_filter_large_expenses": True,
+                    "spending_all_expense_threshold": 7_000,
+                    "budget_filter_large_expenses": True,
+                    "budget_expense_threshold": 6_000,
+                    "fi_filter_large_expenses": True,
+                    "fi_expense_threshold": 5_000,
+                }
+            )
+            mock_currency_input.side_effect = lambda *args, **kwargs: float(mock_st.session_state[kwargs["key"]])
+
+            income = render_income_expense_filters(
+                ["Salary"],
+                ["Groceries"],
+                ["Food"],
+                view="Regular",
+            )
+            spending = render_spending_filters(
+                ["Groceries"],
+                ["Food"],
+                transaction_set=get_settings().transaction_set("all"),
+            )
+            budget = render_budget_filters(["Groceries"], ["Food"])
+            fi = render_fi_filters(
+                ["Checking", "Brokerage", "Home"],
+                ["Groceries"],
+                ["Food"],
+                ["Brokerage"],
+                ["Home"],
+            )
+
+        assert [call.args[0] for call in mock_currency_input.call_args_list] == [
+            "Income limit",
+            "Expense limit",
+            "Expense limit",
+            "Maximum individual expense",
+            "Largest expense to include",
+        ]
+        assert income["income_threshold"] == 12_000
+        assert income["expense_threshold"] == 8_000
+        assert spending["expense_threshold"] == 7_000
+        assert budget["expense_threshold"] == 6_000
+        assert fi["expense_threshold"] == 5_000

@@ -115,18 +115,142 @@ def _search_for_missing_transactions(at: AppTest) -> None:
 
 
 def _limit_transaction_maximum(at: AppTest) -> None:
-    at.number_input(key="top_transactions_maximum").set_value(1_000.0)
+    at.text_input(key="top_transactions_maximum_currency").set_value("$1,000")
 
 
 def _set_fi_scenario(at: AppTest) -> None:
-    at.number_input(key="fi_scenario_spending").set_value(50_000.0)
-    at.number_input(key="fi_scenario_income").set_value(20_000.0)
+    at.pills(key="fi_active_streams").set_value(["Earned income", "Investments"])
+    at.run()
+    at.text_input(key="fi_scenario_spending_currency").set_value("$50,000")
+    at.text_input(key="fi_scenario_income_currency").set_value("$20,000")
     at.number_input(key="fi_scenario_return_rate").set_value(5.0)
 
 
+def _set_fi_delayed_social_security_scenario(at: AppTest) -> None:
+    at.pills(key="fi_active_streams").set_value(["Investments", "Social Security"])
+    at.run()
+    at.text_input(key="fi_scenario_investments_currency").set_value("$120,000")
+    at.text_input(key="fi_scenario_spending_currency").set_value("$20,000")
+    at.text_input(key="fi_scenario_social_security_currency").set_value("$20,000")
+    at.number_input(key="fi_scenario_social_security_start_year").set_value(6)
+    at.number_input(key="fi_scenario_return_rate").set_value(0.0)
+
+
 def _set_fi_spending_and_adjust_source(at: AppTest) -> None:
-    at.number_input(key="fi_scenario_spending").set_value(50_000.0)
+    at.text_input(key="fi_scenario_spending_currency").set_value("$50,000")
     at.multiselect(key="fi_exclude_groups").set_value(["Food"])
+
+
+def _show_fi_retirement_streams(at: AppTest) -> None:
+    at.pills(key="fi_active_streams").set_value(["Investments", "Social Security", "Pension"])
+
+
+def _set_fi_real_estate_assumptions(at: AppTest) -> None:
+    at.pills(key="fi_active_streams").set_value(["Investments", "Real estate"])
+    at.run()
+    at.text_input(key="fi_scenario_real_estate_currency").set_value("$200,000")
+    at.text_input(key="fi_scenario_real_estate_monthly_cash_flow_currency").set_value("$1,500")
+    at.number_input(key="fi_scenario_real_estate_appreciation_rate").set_value(3.5)
+
+
+def _set_fi_variable_spending(at: AppTest) -> None:
+    at.pills(key="fi_active_streams").set_value(["Investments"])
+    at.text_input(key="fi_scenario_investments_currency").set_value("$100,000")
+    at.text_input(key="fi_scenario_spending_currency").set_value("$20,000")
+    at.number_input(key="fi_scenario_return_rate").set_value(0.0)
+    at.toggle(key="fi_variable_spending").set_value(True)
+    at.run()
+    next(button for button in at.button if button.label == "Add expense period").click()
+    at.run()
+    at.number_input(key="fi_spending_start_1").set_value(3)
+    at.text_input(key="fi_spending_amount_1_currency").set_value("$10,000")
+    at.run()
+    assert next(metric for metric in at.metric if metric.label == "Runway").value == "8.0 years"
+    next(button for button in at.button if button.label == "Add expense period").click()
+    at.run()
+    at.number_input(key="fi_spending_start_2").set_value(6)
+    at.text_input(key="fi_spending_amount_2_currency").set_value("$30,000")
+    at.run()
+    assert next(metric for metric in at.metric if metric.label == "Runway").value == "6.0 years"
+    at.toggle(key="fi_variable_spending").set_value(False)
+    at.run()
+    assert next(metric for metric in at.metric if metric.label == "Runway").value == "5.0 years"
+    at.toggle(key="fi_variable_spending").set_value(True)
+
+
+def _set_fi_variable_income(at: AppTest) -> None:
+    at.pills(key="fi_active_streams").set_value(["Earned income", "Investments"])
+    at.run()
+    at.text_input(key="fi_scenario_investments_currency").set_value("$100,000")
+    at.text_input(key="fi_scenario_spending_currency").set_value("$20,000")
+    at.text_input(key="fi_scenario_income_currency").set_value("$10,000")
+    at.number_input(key="fi_scenario_return_rate").set_value(0.0)
+    at.toggle(key="fi_variable_income").set_value(True)
+    at.run()
+    next(button for button in at.button if button.label == "Add income period").click()
+    at.run()
+    at.number_input(key="fi_income_start_1").set_value(3)
+    at.text_input(key="fi_income_amount_1_currency").set_value("$0")
+    at.run()
+    assert next(metric for metric in at.metric if metric.label == "Runway").value == "6.0 years"
+    next(button for button in at.button if button.label == "Add income period").click()
+    at.run()
+    at.number_input(key="fi_income_start_2").set_value(6)
+    at.text_input(key="fi_income_amount_2_currency").set_value("$20,000")
+    at.run()
+    assert next(metric for metric in at.metric if metric.label == "Runway").value == "Sustainable"
+    at.toggle(key="fi_variable_income").set_value(False)
+    at.run()
+    assert next(metric for metric in at.metric if metric.label == "Runway").value == "10.0 years"
+    at.toggle(key="fi_variable_income").set_value(True)
+
+
+def _remove_and_reset_fi_spending(at: AppTest) -> None:
+    at.toggle(key="fi_variable_spending").set_value(True)
+    at.run()
+    next(button for button in at.button if button.label == "Add expense period").click()
+    at.run()
+    at.button(key="fi_remove_spending_1").click()
+    at.run()
+    assert at.session_state["fi_spending_rows"] == []
+    next(button for button in at.button if button.label == "Add expense period").click()
+    at.run()
+    assert at.session_state["fi_spending_rows"] == [2]
+    at.button(key="fi_reset_plan").click()
+
+
+def _set_duplicate_fi_spending_years(at: AppTest) -> None:
+    at.toggle(key="fi_variable_spending").set_value(True)
+    at.run()
+    for _ in range(2):
+        next(button for button in at.button if button.label == "Add expense period").click()
+        at.run()
+    at.number_input(key="fi_spending_start_2").set_value(6)
+
+
+def _remove_and_reset_fi_income(at: AppTest) -> None:
+    at.pills(key="fi_active_streams").set_value(["Earned income", "Investments"])
+    at.toggle(key="fi_variable_income").set_value(True)
+    at.run()
+    next(button for button in at.button if button.label == "Add income period").click()
+    at.run()
+    at.button(key="fi_remove_income_1").click()
+    at.run()
+    assert at.session_state["fi_income_rows"] == []
+    next(button for button in at.button if button.label == "Add income period").click()
+    at.run()
+    assert at.session_state["fi_income_rows"] == [2]
+    at.button(key="fi_reset_plan").click()
+
+
+def _set_duplicate_fi_income_years(at: AppTest) -> None:
+    at.pills(key="fi_active_streams").set_value(["Earned income", "Investments"])
+    at.toggle(key="fi_variable_income").set_value(True)
+    at.run()
+    for _ in range(2):
+        next(button for button in at.button if button.label == "Add income period").click()
+        at.run()
+    at.number_input(key="fi_income_start_2").set_value(6)
 
 
 def _clear_subscription_categories(at: AppTest) -> None:
@@ -724,6 +848,35 @@ class TestConfigurationOverrides:
         assert income.segmented_control(key="income_calculation_view").value == "Actual"
         assert spending.segmented_control(key="spending_lookback").value == "3M"
         assert spending.segmented_control(key="spending_view").value == "All spending"
+
+    def test_financial_independence_defaults_come_from_config(
+        self,
+        make_full_dataset: FullDatasetFactory,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        override_config = _copy_demo_config(tmp_path, name="override.toml")
+        _replace_config(
+            override_config,
+            'default_active_streams = ["Investments", "Social Security"]',
+            'default_active_streams = ["Income", "Social Security"]',
+        )
+        _replace_config(override_config, "social_security_start_year = 20", "social_security_start_year = 17")
+        monkeypatch.setenv("PORTICO_CONFIG_PATH", str(override_config))
+        clear_settings_cache()
+
+        financial_independence = _make_app(
+            "9_Financial_Independence.py",
+            make_full_dataset,
+            [
+                "src.spreadsheet.load_transactions_data",
+                "src.spreadsheet.load_balance_history_data",
+            ],
+        )
+
+        assert not financial_independence.exception
+        assert financial_independence.pills(key="fi_active_streams").value == ["Earned income", "Social Security"]
+        assert financial_independence.number_input(key="fi_scenario_social_security_start_year").value == 17
 
     def test_configured_spending_set_is_available_on_category_and_merchant_pages(
         self,
@@ -2032,8 +2185,8 @@ class TestTopTransactionsSmoke:
         assert _metric_labels(at) == ["Transactions", "Money out", "Money in", "Net amount"]
         assert len(at.get("popover")) == 1
         assert [widget.value for widget in at.multiselect] == [[], [], []]
-        assert at.number_input(key="top_transactions_minimum").value == 0.0
-        assert at.number_input(key="top_transactions_maximum").value is None
+        assert at.text_input(key="top_transactions_minimum_currency").value == "$0"
+        assert at.text_input(key="top_transactions_maximum_currency").value == ""
         assert at.number_input(key="top_transactions_largest_count").value == 25
         assert len(at.get("download_button")) == 1
 
@@ -2190,29 +2343,49 @@ class TestFinancialIndependenceSmoke:
             ],
         )
         assert not at.exception
-        assert _metric_labels(at) == ["Runway", "Annual gap", "Net portfolio spending", "FI target"]
+        assert _metric_labels(at) == ["Runway", "Yearly gap", "Needed from portfolio", "Investment target"]
         assert at.title[0].value == "Financial independence"
         assert len(at.get("popover")) == 1
-        assert at.multiselect(key="fi_include_accounts").value
+        assert at.multiselect(key="fi_include_investment_accounts").value
+        assert at.multiselect(key="fi_include_real_estate_accounts").value == []
         assert at.selectbox(key="fi_spending_lookback").value == 12
+        assert not at.toggle(key="fi_income_from_transactions").value
+        assert not at.toggle(key="fi_variable_spending").value
+        assert not at.toggle(key="fi_variable_income").value
+        assert at.button(key="fi_reset_plan").label == ":material/restore:"
+        assert at.button(key="fi_reset_plan").help == "Reset plan to defaults"
+        assert at.text_input(key="fi_scenario_spending_currency").label == "Expenses"
+        assert not any(widget.label == "Starts in year" for widget in at.number_input)
         assert at.multiselect(key="fi_include_transactions_like").value == []
         assert at.multiselect(key="fi_exclude_transactions_like").value == []
+        active_streams = at.pills(key="fi_active_streams").value
+        assert isinstance(active_streams, list)
+        assert set(active_streams) == {"Investments", "Social Security"}
         scenario_values = {
             widget.label: widget.value for widget in at.number_input if str(widget.key).startswith("fi_scenario_")
         }
-        investable_assets = scenario_values["Investable assets"]
-        annual_spending = scenario_values["Annual spending"]
-        assert isinstance(investable_assets, int | float)
-        assert isinstance(annual_spending, int | float)
-        assert investable_assets > 0
-        assert annual_spending > 0
-        assert scenario_values["Annual earned income"] == 0.0
-        assert scenario_values["Expected real return (%)"] == 7.0
-        assert scenario_values["Withdrawal rate (%)"] == 4.0
-        assert scenario_values["Projection horizon"] == 50
+        investments = at.session_state["fi_scenario_investments"]
+        expenses = at.session_state["fi_scenario_spending"]
+        assert isinstance(investments, int | float)
+        assert isinstance(expenses, int | float)
+        assert investments > 0
+        assert expenses > 0
+        investment_display = at.text_input(key="fi_scenario_investments_currency").value
+        expense_display = at.text_input(key="fi_scenario_spending_currency").value
+        assert investment_display is not None and investment_display.startswith("$")
+        assert expense_display is not None and expense_display.startswith("$")
+        assert "Income" not in {widget.label for widget in at.text_input}
+        assert at.text_input(key="fi_scenario_social_security_currency").value == "$24,000"
+        assert scenario_values["Social Security starts in (years)"] == 20
+        assert "Yearly pension" not in {widget.label for widget in at.text_input}
+        assert scenario_values["Yearly investment growth (%)"] == 7.0
+        assert scenario_values["Portfolio withdrawal rate (%)"] == 4.0
+        assert scenario_values["Years to project"] == 50
+        assert at.text_input(key="fi_scenario_investments_currency").label == "Investment balance"
         charts = at.get("vega_lite_chart")
         assert len(charts) == 4
         projection = json.loads(charts[0].proto.spec)
+        coverage = json.loads(charts[1].proto.spec)
         sensitivity = json.loads(charts[2].proto.spec)
         assert {layer["mark"]["type"] for layer in projection["layer"]} == {
             "area",
@@ -2220,10 +2393,27 @@ class TestFinancialIndependenceSmoke:
             "point",
             "rule",
         }
+        projection_tooltips = {
+            item["title"] for item in projection["layer"][0]["encoding"]["tooltip"] if "title" in item
+        }
+        assert {"Investment growth", "Property growth", "Investments", "Real estate"} <= projection_tooltips
+        assert coverage["mark"]["type"] == "bar"
+        assert coverage["height"] == {"step": 58}
+        assert coverage["encoding"]["x"]["title"] == "Amount per year"
+        assert len(coverage["encoding"]["y"]["sort"]) < 10
+        assert coverage["encoding"]["color"]["legend"] == {
+            "orient": "bottom",
+            "direction": "vertical",
+            "columns": 1,
+            "labelLimit": 250,
+        }
+        assert {"From assets", "Social Security", "Not covered"} <= set(
+            coverage["encoding"]["color"]["scale"]["domain"]
+        )
         assert sensitivity["layer"][0]["mark"]["type"] == "rect"
         assert sensitivity["layer"][1]["mark"]["type"] == "text"
 
-    def test_return_rate_scenario_updates_fi_metrics(
+    def test_scenario_money_inputs_store_numeric_values(
         self,
         make_full_dataset: FullDatasetFactory,
     ) -> None:
@@ -2237,10 +2427,31 @@ class TestFinancialIndependenceSmoke:
             _set_fi_scenario,
         )
         assert not at.exception
-        assert _metric_labels(at) == ["Runway", "Annual gap", "Net portfolio spending", "FI target"]
-        assert at.number_input(key="fi_scenario_spending").value == 50_000.0
-        assert at.number_input(key="fi_scenario_income").value == 20_000.0
+        assert _metric_labels(at) == ["Runway", "Yearly gap", "Needed from portfolio", "Investment target"]
+        assert at.text_input(key="fi_scenario_spending_currency").value == "$50,000"
+        assert at.text_input(key="fi_scenario_income_currency").value == "$20,000"
+        assert at.session_state["fi_scenario_spending"] == 50_000.0
+        assert at.session_state["fi_scenario_income"] == 20_000.0
         assert at.number_input(key="fi_scenario_return_rate").value == 5.0
+
+    def test_delayed_social_security_can_make_runway_sustainable(
+        self,
+        make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        at = _make_app(
+            "9_Financial_Independence.py",
+            make_full_dataset,
+            [
+                "src.spreadsheet.load_transactions_data",
+                "src.spreadsheet.load_balance_history_data",
+            ],
+            _set_fi_delayed_social_security_scenario,
+        )
+
+        assert not at.exception
+        runway = next(metric for metric in at.metric if metric.label == "Runway")
+        assert runway.value == "Sustainable"
+        assert runway.delta == "Your plan remains funded"
 
     def test_custom_scenario_survives_source_filter_changes(
         self,
@@ -2258,7 +2469,185 @@ class TestFinancialIndependenceSmoke:
 
         assert not at.exception
         assert at.multiselect(key="fi_exclude_groups").value == ["Food"]
-        assert at.number_input(key="fi_scenario_spending").value == 50_000.0
+        assert at.text_input(key="fi_scenario_spending_currency").value == "$50,000"
+
+    def test_retirement_streams_can_be_enabled_for_the_scenario(
+        self,
+        make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        at = _make_app(
+            "9_Financial_Independence.py",
+            make_full_dataset,
+            [
+                "src.spreadsheet.load_transactions_data",
+                "src.spreadsheet.load_balance_history_data",
+            ],
+            _show_fi_retirement_streams,
+        )
+
+        assert not at.exception
+        assert at.text_input(key="fi_scenario_social_security_currency").value == "$24,000"
+        assert at.number_input(key="fi_scenario_social_security_start_year").value == 20
+        assert at.text_input(key="fi_scenario_pension_currency").value == "$12,000"
+        assert at.number_input(key="fi_scenario_pension_start_year").value == 20
+
+    def test_real_estate_assumptions_can_be_edited_for_the_scenario(
+        self,
+        make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        at = _make_app(
+            "9_Financial_Independence.py",
+            make_full_dataset,
+            [
+                "src.spreadsheet.load_transactions_data",
+                "src.spreadsheet.load_balance_history_data",
+            ],
+            _set_fi_real_estate_assumptions,
+        )
+
+        assert not at.exception
+        assert at.text_input(key="fi_scenario_real_estate_currency").value == "$200,000"
+        assert at.text_input(key="fi_scenario_real_estate_monthly_cash_flow_currency").value == "$1,500"
+        assert at.number_input(key="fi_scenario_real_estate_appreciation_rate").value == 3.5
+
+    def test_spending_changes_can_be_enabled_and_turned_back_off(
+        self,
+        make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        at = _make_app(
+            "9_Financial_Independence.py",
+            make_full_dataset,
+            [
+                "src.spreadsheet.load_transactions_data",
+                "src.spreadsheet.load_balance_history_data",
+            ],
+            _set_fi_variable_spending,
+        )
+
+        assert not at.exception
+        assert at.toggle(key="fi_variable_spending").value
+        assert at.text_input(key="fi_scenario_spending_currency").label == "Expenses per year"
+        assert not any(widget.label == "Expenses" for widget in at.text_input)
+        assert next(widget for widget in at.number_input if widget.label == "Starts in year").value == 1
+        assert at.number_input(key="fi_spending_start_1").value == 3
+        assert at.text_input(key="fi_spending_amount_1_currency").value == "$10,000"
+        assert at.number_input(key="fi_spending_start_2").value == 6
+        assert at.text_input(key="fi_spending_amount_2_currency").value == "$30,000"
+        assert next(metric for metric in at.metric if metric.label == "Runway").value == "6.0 years"
+        assert at.metric[-1].help == "Based on year 1 expenses. Runway uses every spending change."
+
+        at.number_input(key="fi_scenario_years").set_value(6)
+        at.run()
+        runway = next(metric for metric in at.metric if metric.label == "Runway")
+        assert runway.value == "Covered"
+        assert runway.delta == "All 6 projected years funded"
+
+        at.number_input(key="fi_scenario_years").set_value(7)
+        at.run()
+        assert next(metric for metric in at.metric if metric.label == "Runway").value == "6.0 years"
+
+    def test_income_changes_can_be_enabled_and_turned_back_off(
+        self,
+        make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        at = _make_app(
+            "9_Financial_Independence.py",
+            make_full_dataset,
+            [
+                "src.spreadsheet.load_transactions_data",
+                "src.spreadsheet.load_balance_history_data",
+            ],
+            _set_fi_variable_income,
+        )
+
+        assert not at.exception
+        assert at.toggle(key="fi_variable_income").value
+        assert at.text_input(key="fi_scenario_income_currency").label == "Income per year"
+        assert not any(widget.label == "Income" for widget in at.text_input)
+        assert at.number_input(key="fi_income_start_1").value == 3
+        assert at.text_input(key="fi_income_amount_1_currency").value == "$0"
+        assert at.number_input(key="fi_income_start_2").value == 6
+        assert at.text_input(key="fi_income_amount_2_currency").value == "$20,000"
+        assert next(metric for metric in at.metric if metric.label == "Runway").value == "Sustainable"
+
+        at.pills(key="fi_active_streams").set_value(["Investments"])
+        at.run()
+        assert not at.exception
+        assert not any(widget.label == "Income per year" for widget in at.text_input)
+        assert at.session_state["fi_income_rows"] == [1, 2]
+
+    def test_income_changes_can_be_removed_and_reset(
+        self,
+        make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        at = _make_app(
+            "9_Financial_Independence.py",
+            make_full_dataset,
+            [
+                "src.spreadsheet.load_transactions_data",
+                "src.spreadsheet.load_balance_history_data",
+            ],
+            _remove_and_reset_fi_income,
+        )
+
+        assert not at.exception
+        assert not at.toggle(key="fi_variable_income").value
+        assert at.session_state["fi_income_rows"] == []
+
+    def test_duplicate_income_start_years_show_an_error(
+        self,
+        make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        at = _make_app(
+            "9_Financial_Independence.py",
+            make_full_dataset,
+            [
+                "src.spreadsheet.load_transactions_data",
+                "src.spreadsheet.load_balance_history_data",
+            ],
+            _set_duplicate_fi_income_years,
+        )
+
+        assert not at.exception
+        assert [message.value for message in at.error] == ["Use a different start year for each income change."]
+        assert not at.metric
+
+    def test_spending_changes_can_be_removed_and_reset(
+        self,
+        make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        at = _make_app(
+            "9_Financial_Independence.py",
+            make_full_dataset,
+            [
+                "src.spreadsheet.load_transactions_data",
+                "src.spreadsheet.load_balance_history_data",
+            ],
+            _remove_and_reset_fi_spending,
+        )
+
+        assert not at.exception
+        assert not at.toggle(key="fi_variable_spending").value
+        assert at.session_state["fi_spending_rows"] == []
+        assert not any(widget.label == "Starts in year" for widget in at.number_input)
+
+    def test_duplicate_spending_start_years_show_an_error(
+        self,
+        make_full_dataset: FullDatasetFactory,
+    ) -> None:
+        at = _make_app(
+            "9_Financial_Independence.py",
+            make_full_dataset,
+            [
+                "src.spreadsheet.load_transactions_data",
+                "src.spreadsheet.load_balance_history_data",
+            ],
+            _set_duplicate_fi_spending_years,
+        )
+
+        assert not at.exception
+        assert [message.value for message in at.error] == ["Use a different start year for each spending change."]
+        assert not at.metric
 
     def test_empty_source_data_has_clear_state(
         self,
@@ -2321,7 +2710,7 @@ class TestDataHealthSmoke:
         assert at.dataframe[2].value["Total_Amount"].sum() == pytest.approx(249.49)
         assert at.slider(key="data_health_stale_days").value == 7
         assert at.number_input(key="data_health_duplicate_days").value == 1
-        assert at.number_input(key="data_health_duplicate_minimum").value == 10.0
+        assert at.text_input(key="data_health_duplicate_minimum_currency").value == "$10"
 
         passed = _make_app(
             "10_Data_Health.py",

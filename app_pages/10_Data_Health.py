@@ -13,7 +13,7 @@ from src.analysis.duplicates import (
 )
 from src.config import get_settings
 from src.custom_types import ColumnConfig
-from src.page_helpers import get_transaction_column_config, render_data_refresh_controls
+from src.page_helpers import currency_input, get_transaction_column_config, render_data_refresh_controls
 from src.reporting_periods import current_timestamp
 from src.spreadsheet import (
     BalanceHistorySpreadsheet,
@@ -192,14 +192,15 @@ def _render_settings() -> tuple[int, int, float, bool, bool, bool]:
             key="data_health_duplicate_days",
             persist_state="page",
         )
-        min_amount = st.number_input(
-            "Minimum amount",
-            min_value=0.0,
-            max_value=1000.0,
-            value=thresholds.duplicate_minimum,
-            step=10.0,
-            key="data_health_duplicate_minimum",
-            persist_state="page",
+        min_amount = float(
+            currency_input(
+                "Minimum amount",
+                min_value=0.0,
+                max_value=1000.0,
+                value=thresholds.duplicate_minimum,
+                key="data_health_duplicate_minimum",
+                persist_state="page",
+            )
         )
         check_same_account = st.toggle(
             "Require the same account",
@@ -418,7 +419,8 @@ def configure_page(
     transactions = transactions_spreadsheet.scrubbed_df.copy()
     balances = balance_history_spreadsheet.scrubbed_df.copy()
 
-    controls = st.columns([5, 1], vertical_alignment="bottom")
+    with st.container(border=True):
+        controls = st.columns([5, 1], vertical_alignment="bottom")
     with controls[0]:
         st.caption("Review source freshness, mapping gaps, and suspicious records.")
     with controls[1]:

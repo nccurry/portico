@@ -194,10 +194,32 @@ target_amount = 1_000_000
 spending_lookback_months = 12
 # Future years shown in the projection.
 projection_years = 50
-# Account-name fragments included in the portfolio.
+# Streams selected when the page opens or you reset your plan. Choose from
+# Income, Investments, Real estate, Social Security, and Pension.
+default_active_streams = ["Investments", "Social Security"]
+# Use Income transactions from the selected history as the scenario income default.
+# Turn this off to start from a manual annual income amount instead.
+income_from_transactions = false
+# Account-name fragments included in the Investments stream.
 included_account_patterns = []
-# Exact account groups included in the portfolio.
+# Exact account groups included in the Investments stream.
 included_groups = []
+# Account-name fragments included in the Real estate stream.
+real_estate_included_account_patterns = []
+# Exact account groups included in the Real estate stream.
+real_estate_included_groups = []
+# Expected net cash flow from selected real estate each month. This can be negative.
+real_estate_monthly_cash_flow = 0
+# Expected annual real appreciation percentage for selected real estate.
+real_estate_appreciation_rate = 3.0
+# Yearly Social Security payment, in today's dollars.
+social_security_annual_income = 0
+# Years from now when Social Security starts.
+social_security_start_year = 20
+# Yearly pension payment, in today's dollars.
+pension_annual_income = 0
+# Years from now when the pension starts.
+pension_start_year = 1
 
 # Weekly Discord summary
 # These values choose the reusable transaction sets and comparison windows for the scheduled summary.

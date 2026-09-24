@@ -39,6 +39,7 @@ COLOR_BUDGET: Final[str] = "#94A3B8"
 COLOR_OVER_BUDGET: Final[str] = "#E07A75"
 COLOR_UNDER_BUDGET: Final[str] = "#57CC57"
 COLOR_ADDITIONAL_SPENDING: Final[str] = "#A78BFA"
+COLOR_RETIREMENT: Final[str] = "#5CC8BE"
 
 # Restrained categorical palette shared by charts
 COLOR_PALETTE: Final[list[str]] = [

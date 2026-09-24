@@ -67,7 +67,7 @@ financial records.
 
 ### Financial independence
 
-![Demo financial independence dashboard with progress and projection charts](assets/screenshots/demo-financial-independence.png)
+![Demo financial independence plan with stream controls and dollar-formatted inputs](assets/screenshots/demo-financial-independence.png)
 
 ### Data health
 
@@ -330,7 +330,7 @@ settings you may want to change:
 | `subscriptions` | `default_exclude_categories` | Categories selected by default in Additional discovery exclusions. |
 | `data_health` | `stale_account_days` | Age at which an account balance is stale. |
 | `data_health` | `duplicate_require_same_*` | Initial duplicate-detection matching rules. |
-| `financial_independence` | FI funding target, return, withdrawal, history, projection, account, and group settings | Home-page FI funding progress and FI scenario assumptions. |
+| `financial_independence` | Return, withdrawal, history, projection, earned-income, investment, real-estate, and retirement-stream settings | Home-page FI funding progress and Financial independence source defaults. |
 | `financial_safety` | Emergency-fund target, expense baseline, liquid-account scope, and debt baseline | Home-page safety progress. Emergency spending uses complete months only; leave `debt_baseline_date` empty to use the first recorded balance. |
 | `weekly_summary` | `watched_transaction_sets`, `average_weeks`, `rolling_weeks`, `top_merchant_count` | Named transaction sets, comparison windows, and merchant detail for Discord. |
 | `merchants.aliases` | Merchant name and description fragments | Combine several transaction descriptions under one merchant name. |
@@ -338,6 +338,66 @@ settings you may want to change:
 The View controls choose among the configured transaction sets. Other page
 controls can narrow that set for exploration, but cannot broaden it. Those
 choices last for the browser session only.
+
+### Financial independence streams
+
+The Financial independence page separates data setup from the plan you can adjust.
+Open **Configure streams** with the settings icon in **Your plan** to choose
+an expense period and exclusions, whether income comes from transactions,
+whether income or expenses change over time, and the accounts behind Investments
+and Real estate.
+**Include in plan** chooses which of Income, Investments, Real estate, Social
+Security, and Pension affect the plan and charts.
+
+Expenses start as one yearly amount. Turn on **Change expenses over time** in
+**Configure streams** to replace that field with one list of expense periods.
+The first row starts in year 1; select **Add expense period** for each later
+amount and the year it begins. You can remove later periods or turn the option
+off to return to one amount. Runway, coverage, and sensitivity use the full
+schedule; the yearly gap and investment target use year 1 expenses.
+All amounts are in today's dollars.
+
+When Income is included, **Change income over time** works the same way: year 1
+starts with one earned-income amount, and each added period replaces it from
+its selected year onward. Enter $0 for a year when earned income stops. Social
+Security and pensions are separate streams and are added on top. Projections,
+coverage, and runway use every income period; the yearly gap and investment
+target use year 1 income.
+
+Runway shows **Covered** when income and assets pay expenses in every selected
+projection year, even if they would run out later. **Sustainable** means the
+model does not project an end to that funding.
+
+Money fields show dollar signs and commas. You can type `$100,000` or `100000`;
+the app formats the value after you finish editing.
+
+`default_active_streams` sets which streams are selected when the page opens
+or you reset your plan. Use any of `Income`, `Investments`, `Real estate`,
+`Social Security`, and `Pension`.
+
+`social_security_*` and `pension_*` in `config.toml` provide a yearly amount
+and the number of years until each benefit starts. These values use today's
+dollars. You can change them for the current browser session without changing
+your configuration file.
+
+`real_estate_monthly_cash_flow` is the money left from a property each month
+after its costs (and can be negative). `real_estate_appreciation_rate` is the
+expected yearly property growth after inflation. Both appear under Real estate
+in Your plan when that stream is included.
+
+The projection grows Investments at the investment rate and Real estate at the
+property growth rate. Income left after expenses is added to Investments at
+year-end, even when the current investment balance is excluded. It starts
+earning the investment rate the following year. If Investments run out, the
+model uses property value to cover the remaining expenses. It does not estimate
+sale costs or taxes.
+
+**How expenses are covered** groups consecutive years that have the same mix
+of income and asset use. Red shows expenses the plan cannot cover. Income above
+expenses is saved, not counted as expense coverage.
+
+The other starting assumptions come from `[financial_independence]`. Account
+balances, expenses, and income still come from the data sources you choose.
 
 ### Use local CSV data
 
@@ -557,6 +617,10 @@ uv run --locked pytest
 Set `PORTICO_CONFIG_PATH=portico-demo.toml` and run
 `uv run --locked streamlit run Home.py` to start the synthetic demo without
 Task. PowerShell uses `$env:PORTICO_CONFIG_PATH = "portico-demo.toml"`.
+
+Before sharing a local demo, run `task demo:smoke`. It loads every page against
+the committed synthetic configuration and catches page-load and import errors
+without starting a server.
 
 ### Checks
 

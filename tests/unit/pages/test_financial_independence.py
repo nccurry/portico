@@ -10,12 +10,19 @@ import pandas as pd
 import pytest
 
 from src.analysis.financial_independence import (
+    IncomeStream,
+    build_income_projection,
     build_runway_sensitivity,
+    build_spending_coverage,
+    calculate_avg_monthly_income,
     calculate_avg_monthly_spending,
     calculate_fi_metrics,
+    income_for_year,
     project_portfolio,
+    spending_for_year,
+    summarize_spending_coverage,
 )
-from src.custom_types import TransactionFilterOptions
+from src.custom_types import IncomeChange, SpendingChange, TransactionFilterOptions
 from src.transaction_filters import apply_transaction_filters
 
 
@@ -165,6 +172,350 @@ class TestCalculateFiMetricsWithSupplementalIncome:
         b = calculate_fi_metrics(500_000, 50_000, 5.0, annual_income=0.0)
         assert a == b
 
+    def test_delayed_income_can_make_the_plan_sustainable(self) -> None:
+        result = calculate_fi_metrics(
+            120_000,
+            20_000,
+            0.0,
+            income_streams=(IncomeStream("Social Security", 20_000, start_year=6),),
+        )
+
+        assert result["annual_income"] == 0.0
+        assert result["runway_years"] is None
+
+
+class TestSpendingChanges:
+    @pytest.mark.parametrize(
+        ("start_year", "annual_amount"),
+        [(1, 20.0), (3, -1.0), (3, float("nan")), (3, float("inf"))],
+    )
+    def test_rejects_invalid_changes(self, start_year: int, annual_amount: float) -> None:
+        with pytest.raises(ValueError):
+            SpendingChange(start_year, annual_amount)
+
+    def test_new_amount_starts_in_its_selected_year(self) -> None:
+        schedule = (SpendingChange(6, 40.0), SpendingChange(11, 15.0))
+
+        assert [spending_for_year(20.0, schedule, year) for year in (1, 5, 6, 10, 11)] == [
+            20.0,
+            20.0,
+            40.0,
+            40.0,
+            15.0,
+        ]
+
+    def test_projection_and_expense_coverage_use_each_years_amount(self) -> None:
+        schedule = (SpendingChange(3, 10.0),)
+        projection = project_portfolio(100.0, 20.0, 0.0, 4, spending_schedule=schedule)
+        income_projection = build_income_projection(0.0, (), 4)
+        coverage = build_spending_coverage(income_projection, projection)
+
+        assert projection["Spending"].tolist() == [0.0, 20.0, 20.0, 10.0, 10.0]
+        assert projection["Balance"].tolist() == [100.0, 80.0, 60.0, 50.0, 40.0]
+        assert coverage.groupby("Year")["Amount"].sum().tolist() == [20.0, 20.0, 10.0, 10.0]
+        assert summarize_spending_coverage(coverage)["Years"].drop_duplicates().tolist() == [
+            "Years 1-2",
+            "Years 3-4",
+        ]
+
+    def test_later_increase_shortens_runway_but_does_not_change_year_one_target(self) -> None:
+        baseline = calculate_fi_metrics(100.0, 10.0, 0.0)
+        scheduled = calculate_fi_metrics(
+            100.0,
+            10.0,
+            0.0,
+            spending_schedule=(SpendingChange(3, 40.0),),
+        )
+
+        assert baseline["runway_years"] == 10.0
+        assert scheduled["runway_years"] == pytest.approx(4.0)
+        assert scheduled["fi_target"] == baseline["fi_target"]
+
+    def test_later_decrease_cannot_rescue_a_plan_that_runs_out_first(self) -> None:
+        result = calculate_fi_metrics(
+            10.0,
+            20.0,
+            0.0,
+            spending_schedule=(SpendingChange(3, 0.0),),
+        )
+
+        assert result["runway_years"] == pytest.approx(0.5)
+
+    def test_spending_and_social_security_can_change_in_the_same_year(self) -> None:
+        result = calculate_fi_metrics(
+            100.0,
+            20.0,
+            0.0,
+            income_streams=(IncomeStream("Social Security", 10.0, start_year=3),),
+            spending_schedule=(SpendingChange(3, 40.0),),
+        )
+
+        assert result["runway_years"] == pytest.approx(4.0)
+
+    def test_property_value_covers_a_later_spending_period(self) -> None:
+        result = calculate_fi_metrics(
+            10.0,
+            15.0,
+            0.0,
+            real_estate_value=10.0,
+            spending_schedule=(SpendingChange(2, 5.0),),
+        )
+
+        assert result["runway_years"] == pytest.approx(2.0)
+
+    def test_zero_expenses_still_fund_negative_property_cash_flow(self) -> None:
+        result = calculate_fi_metrics(
+            10.0,
+            0.0,
+            0.0,
+            income_streams=(IncomeStream("Real estate cash flow", -5.0),),
+        )
+
+        assert result["runway_years"] == pytest.approx(2.0)
+
+    def test_sensitivity_adjusts_every_spending_amount(self) -> None:
+        sensitivity = build_runway_sensitivity(
+            100.0,
+            10.0,
+            0.0,
+            spending_changes=(0, 20),
+            return_rates=(0.0,),
+            spending_schedule=(SpendingChange(2, 40.0),),
+        )
+
+        assert sensitivity["Runway_Years"].tolist() == pytest.approx([3.25, 1 + 88 / 48])
+
+
+class TestIncomeChanges:
+    @pytest.mark.parametrize(
+        ("start_year", "annual_amount"),
+        [(1, 20.0), (3, -1.0), (3, float("nan")), (3, float("inf"))],
+    )
+    def test_rejects_invalid_changes(self, start_year: int, annual_amount: float) -> None:
+        with pytest.raises(ValueError):
+            IncomeChange(start_year, annual_amount)
+
+    def test_income_changes_start_in_the_selected_year(self) -> None:
+        schedule = (IncomeChange(6, 40.0), IncomeChange(11, 0.0))
+
+        assert [income_for_year(20.0, schedule, year) for year in (1, 5, 6, 10, 11)] == [
+            20.0,
+            20.0,
+            40.0,
+            40.0,
+            0.0,
+        ]
+
+    def test_projection_and_coverage_use_the_income_active_each_year(self) -> None:
+        schedule = (IncomeChange(3, 0.0),)
+        incomes = build_income_projection(20.0, (IncomeStream("Social Security", 10.0, 3),), 4, schedule)
+        portfolio = project_portfolio(
+            100.0,
+            30.0,
+            0.0,
+            4,
+            annual_income=20.0,
+            income_streams=(IncomeStream("Social Security", 10.0, 3),),
+            income_schedule=schedule,
+        )
+        coverage = build_spending_coverage(incomes, portfolio)
+
+        assert incomes.loc[incomes["Stream"].eq("Income"), "Income"].tolist() == [20.0, 20.0, 0.0, 0.0]
+        assert portfolio["Income"].tolist() == [0.0, 20.0, 20.0, 10.0, 10.0]
+        assert portfolio["Balance"].tolist() == [100.0, 90.0, 80.0, 60.0, 40.0]
+        assert coverage.loc[coverage["Stream"].eq("Income"), "Amount"].tolist() == [20.0, 20.0, 0.0, 0.0]
+        assert coverage.loc[coverage["Stream"].eq("Social Security"), "Amount"].tolist() == [0.0, 0.0, 10.0, 10.0]
+
+    def test_later_income_drop_shortens_runway_but_keeps_year_one_target(self) -> None:
+        baseline = calculate_fi_metrics(100.0, 20.0, 0.0, annual_income=10.0)
+        scheduled = calculate_fi_metrics(
+            100.0,
+            20.0,
+            0.0,
+            annual_income=10.0,
+            income_schedule=(IncomeChange(3, 0.0),),
+        )
+
+        assert baseline["runway_years"] == pytest.approx(10.0)
+        assert scheduled["runway_years"] == pytest.approx(6.0)
+        assert scheduled["fi_target"] == baseline["fi_target"]
+
+    def test_later_income_cannot_rescue_a_plan_that_runs_out_first(self) -> None:
+        result = calculate_fi_metrics(
+            10.0,
+            20.0,
+            0.0,
+            income_schedule=(IncomeChange(3, 20.0),),
+        )
+
+        assert result["runway_years"] == pytest.approx(0.5)
+
+    def test_income_and_expenses_can_change_together(self) -> None:
+        result = calculate_fi_metrics(
+            100.0,
+            20.0,
+            0.0,
+            annual_income=10.0,
+            spending_schedule=(SpendingChange(3, 40.0),),
+            income_schedule=(IncomeChange(3, 30.0),),
+        )
+
+        assert result["runway_years"] == pytest.approx(10.0)
+
+    def test_sensitivity_keeps_income_periods(self) -> None:
+        sensitivity = build_runway_sensitivity(
+            100.0,
+            20.0,
+            10.0,
+            spending_changes=(0, 20),
+            return_rates=(0.0,),
+            income_schedule=(IncomeChange(3, 0.0),),
+        )
+
+        assert sensitivity["Runway_Years"].tolist() == pytest.approx([6.0, 2 + 72 / 24])
+
+
+class TestRealEstateAssumptions:
+    def test_cash_flow_and_appreciation_change_the_projection(self) -> None:
+        projection = project_portfolio(
+            600_000,
+            50_000,
+            7.0,
+            years=1,
+            income_streams=(IncomeStream("Real estate cash flow", 12_000),),
+            real_estate_value=400_000,
+            real_estate_rate_pct=3.0,
+        )
+
+        year_one = projection.iloc[1]
+        assert year_one["Investment_Return"] == pytest.approx(42_000)
+        assert year_one["Property_Growth"] == pytest.approx(12_000)
+        assert year_one["Income"] == pytest.approx(12_000)
+        assert year_one["Investments"] == pytest.approx(604_000)
+        assert year_one["Real_Estate"] == pytest.approx(412_000)
+        assert year_one["Balance"] == pytest.approx(1_016_000)
+
+    def test_saved_income_earns_the_investment_rate_next_year(self) -> None:
+        projection = project_portfolio(
+            100.0,
+            20.0,
+            10.0,
+            years=2,
+            annual_income=30.0,
+            real_estate_value=100.0,
+            real_estate_rate_pct=0.0,
+        )
+
+        assert projection["Investments"].tolist() == pytest.approx([100.0, 120.0, 142.0])
+        assert projection["Real_Estate"].tolist() == pytest.approx([100.0, 100.0, 100.0])
+        assert projection["Balance"].tolist() == pytest.approx([200.0, 220.0, 242.0])
+
+    def test_property_growth_applies_only_to_property(self) -> None:
+        projection = project_portfolio(
+            0.0,
+            0.0,
+            7.0,
+            years=2,
+            real_estate_value=100.0,
+            real_estate_rate_pct=3.0,
+        )
+
+        assert projection["Investments"].tolist() == [0.0, 0.0, 0.0]
+        assert projection["Real_Estate"].tolist() == pytest.approx([100.0, 103.0, 106.09])
+
+    def test_saved_income_creates_investments_without_a_starting_balance(self) -> None:
+        projection = project_portfolio(
+            0.0,
+            20.0,
+            10.0,
+            years=2,
+            annual_income=30.0,
+            real_estate_value=100.0,
+            real_estate_rate_pct=0.0,
+        )
+
+        assert projection["Investments"].tolist() == pytest.approx([0.0, 10.0, 21.0])
+        assert projection["Real_Estate"].tolist() == [100.0, 100.0, 100.0]
+
+    def test_property_value_covers_expenses_after_investments(self) -> None:
+        projection = project_portfolio(
+            10.0,
+            15.0,
+            0.0,
+            years=2,
+            real_estate_value=10.0,
+            real_estate_rate_pct=0.0,
+        )
+        summary = calculate_fi_metrics(
+            10.0,
+            15.0,
+            0.0,
+            real_estate_value=10.0,
+            real_estate_rate_pct=0.0,
+        )
+
+        assert projection["Investments"].tolist() == [10.0, 0.0, 0.0]
+        assert projection["Real_Estate"].tolist() == [10.0, 5.0, 0.0]
+        assert summary["runway_years"] == pytest.approx(20.0 / 15.0)
+
+    def test_remaining_property_keeps_its_own_growth_rate(self) -> None:
+        projection = project_portfolio(
+            10.0,
+            15.0,
+            0.0,
+            years=2,
+            real_estate_value=10.0,
+            real_estate_rate_pct=10.0,
+        )
+
+        assert projection.loc[1, "Real_Estate"] == pytest.approx(6.0)
+        assert projection.loc[2, "Property_Growth"] == pytest.approx(0.6)
+        assert projection.loc[2, "Investments"] == 0.0
+
+    def test_negative_property_growth_shortens_runway(self) -> None:
+        summary = calculate_fi_metrics(
+            0.0,
+            10.0,
+            7.0,
+            real_estate_value=100.0,
+            real_estate_rate_pct=-10.0,
+        )
+
+        assert summary["annual_return"] == pytest.approx(-10.0)
+        assert summary["runway_years"] == pytest.approx(math.log(0.5) / math.log(0.9))
+
+    def test_property_growth_does_not_change_investment_growth(self) -> None:
+        summary = calculate_fi_metrics(
+            100.0,
+            10.0,
+            7.0,
+            real_estate_value=100.0,
+            real_estate_rate_pct=3.0,
+        )
+
+        assert summary["annual_return"] == pytest.approx(10.0)
+
+    def test_negative_property_equity_reduces_investments_and_runway(self) -> None:
+        projection = project_portfolio(
+            100.0,
+            20.0,
+            10.0,
+            years=1,
+            real_estate_value=-50.0,
+            real_estate_rate_pct=0.0,
+        )
+        summary = calculate_fi_metrics(
+            100.0,
+            20.0,
+            10.0,
+            real_estate_value=-50.0,
+            real_estate_rate_pct=0.0,
+        )
+
+        assert projection.loc[1, "Investments"] == pytest.approx(40.0)
+        assert projection.loc[1, "Real_Estate"] == 0.0
+        assert summary["runway_years"] == pytest.approx(1 + math.log(20 / 16) / math.log(1.1))
+
 
 class TestProjectPortfolio:
     """Row-by-row recurrence verification for project_portfolio."""
@@ -243,9 +594,12 @@ class TestProjectPortfolio:
             "Year",
             "Starting_Balance",
             "Investment_Return",
+            "Property_Growth",
             "Income",
             "Spending",
             "Net_Cash_Flow",
+            "Investments",
+            "Real_Estate",
             "Balance",
         }
         assert year_one["Starting_Balance"] == 100_000.0
@@ -253,6 +607,92 @@ class TestProjectPortfolio:
         assert year_one["Income"] == 5_000.0
         assert year_one["Spending"] == 20_000.0
         assert year_one["Balance"] == 90_000.0
+
+    def test_retirement_income_starts_in_its_configured_year(self) -> None:
+        # P=100, r=0, S=20. Social Security adds 10 starting in year 3.
+        # The first two years withdraw 20; later years withdraw 10.
+        projection = project_portfolio(
+            100.0,
+            20.0,
+            0.0,
+            years=4,
+            income_streams=(IncomeStream("Social Security", 10.0, start_year=3),),
+        )
+
+        assert projection["Income"].tolist() == pytest.approx([0.0, 0.0, 0.0, 10.0, 10.0])
+        assert projection["Balance"].tolist() == pytest.approx([100.0, 80.0, 60.0, 50.0, 40.0])
+
+
+class TestIncomeStreams:
+    def test_builds_a_year_by_year_income_schedule(self) -> None:
+        projection = build_income_projection(
+            12_000.0,
+            (IncomeStream("Social Security", 18_000.0, start_year=2),),
+            years=3,
+        )
+
+        income_by_stream = projection.pivot(index="Year", columns="Stream", values="Income")
+        assert income_by_stream["Income"].tolist() == pytest.approx([12_000.0, 12_000.0, 12_000.0])
+        assert income_by_stream["Social Security"].tolist() == pytest.approx([0.0, 18_000.0, 18_000.0])
+
+    def test_splits_spending_between_income_and_withdrawals(self) -> None:
+        streams = (IncomeStream("Social Security", 20_000.0, start_year=2),)
+        income_projection = build_income_projection(
+            10_000.0,
+            streams,
+            years=2,
+        )
+        portfolio_projection = project_portfolio(100_000.0, 50_000.0, 0.0, 2, 10_000.0, streams)
+
+        coverage = build_spending_coverage(income_projection, portfolio_projection)
+        coverage_by_stream = coverage.pivot(index="Year", columns="Stream", values="Amount").fillna(0.0)
+
+        assert coverage_by_stream.loc[1, "Income"] == pytest.approx(10_000.0)
+        assert coverage_by_stream.loc[1, "Social Security"] == pytest.approx(0.0)
+        assert coverage_by_stream.loc[1, "From assets"] == pytest.approx(40_000.0)
+        assert coverage_by_stream.loc[2, "Social Security"] == pytest.approx(20_000.0)
+        assert coverage_by_stream.loc[2, "From assets"] == pytest.approx(20_000.0)
+        assert coverage_by_stream["Not covered"].tolist() == [0.0, 0.0]
+
+    def test_shows_uncovered_expenses_after_assets_run_out(self) -> None:
+        streams = (IncomeStream("Social Security", 10.0, start_year=3),)
+        income_projection = build_income_projection(0.0, streams, years=4)
+        portfolio_projection = project_portfolio(10.0, 20.0, 0.0, 4, income_streams=streams)
+
+        coverage = build_spending_coverage(income_projection, portfolio_projection)
+        by_stream = coverage.pivot(index="Year", columns="Stream", values="Amount").fillna(0.0)
+
+        assert by_stream["From assets"].tolist() == [10.0, 0.0, 0.0, 0.0]
+        assert by_stream["Not covered"].tolist() == [10.0, 20.0, 10.0, 10.0]
+        assert by_stream["Social Security"].tolist() == [0.0, 0.0, 10.0, 10.0]
+        assert by_stream.sum(axis=1).tolist() == [20.0] * 4
+
+        periods = summarize_spending_coverage(coverage)
+        assert periods["Years"].drop_duplicates().tolist() == ["Year 1", "Year 2", "Years 3-4"]
+
+    def test_income_above_expenses_is_saved_instead_of_plotted_as_coverage(self) -> None:
+        income_projection = build_income_projection(30.0, (), years=1)
+        portfolio_projection = project_portfolio(0.0, 20.0, 7.0, 1, annual_income=30.0)
+
+        coverage = build_spending_coverage(income_projection, portfolio_projection)
+        by_stream = coverage.set_index("Stream")["Amount"]
+
+        assert by_stream["Income"] == 20.0
+        assert by_stream["From assets"] == 0.0
+        assert by_stream["Not covered"] == 0.0
+        assert portfolio_projection.loc[1, "Investments"] == 10.0
+
+    def test_negative_property_cash_flow_increases_the_amount_needed(self) -> None:
+        streams = (IncomeStream("Real estate cash flow", -5.0),)
+        income_projection = build_income_projection(0.0, streams, years=1)
+        portfolio_projection = project_portfolio(0.0, 20.0, 0.0, 1, income_streams=streams)
+
+        coverage = build_spending_coverage(income_projection, portfolio_projection)
+        by_stream = coverage.set_index("Stream")["Amount"]
+
+        assert coverage["Needed"].unique().tolist() == [25.0]
+        assert by_stream["Real estate cash flow"] == 0.0
+        assert by_stream["Not covered"] == 25.0
 
 
 class TestCalculateAvgMonthlySpending:
@@ -345,7 +785,43 @@ class TestCalculateAvgMonthlySpending:
         assert totals["Spending"].tolist() == [300.0, 0.0, 600.0]
 
 
+class TestCalculateAvgMonthlyIncome:
+    def test_averages_income_totals_over_the_window(self, fi_transactions_df: pd.DataFrame) -> None:
+        average, totals = calculate_avg_monthly_income(fi_transactions_df, "2024-01", "2024-12")
+
+        assert average == pytest.approx(3_000.0)
+        assert totals["Income"].tolist() == pytest.approx([3_000.0] * 12)
+
+    def test_zero_income_months_are_included_in_the_average(self) -> None:
+        df = pd.DataFrame(
+            {
+                "Date": pd.to_datetime(["2024-01-05", "2024-03-05"], utc=True),
+                "Amount": [300.0, 600.0],
+                "Type": ["Income", "Income"],
+                "Month": ["2024-01", "2024-03"],
+            }
+        )
+
+        average, totals = calculate_avg_monthly_income(df, "2024-01", "2024-03")
+
+        assert average == pytest.approx(300.0)
+        assert totals["Income"].tolist() == [300.0, 0.0, 600.0]
+
+
 class TestRunwaySensitivity:
+    def test_investment_rate_scenarios_leave_property_growth_unchanged(self) -> None:
+        sensitivity = build_runway_sensitivity(
+            0.0,
+            10.0,
+            0.0,
+            spending_changes=(0,),
+            return_rates=(0.0, 20.0),
+            real_estate_value=100.0,
+            real_estate_rate_pct=0.0,
+        )
+
+        assert sensitivity["Runway_Years"].tolist() == pytest.approx([10.0, 10.0])
+
     def test_builds_every_spending_and_return_combination(self) -> None:
         sensitivity = build_runway_sensitivity(
             1_000_000,
@@ -388,3 +864,28 @@ class TestRunwaySensitivity:
 
         assert set(sensitivity["Return_Rate"]) == {0.0, 2.0, 4.0}
         assert len(sensitivity) == 5 * 3
+
+    def test_negative_baseline_includes_the_selected_return(self) -> None:
+        sensitivity = build_runway_sensitivity(
+            500_000,
+            50_000,
+            0.0,
+            baseline_return_rate=-5.0,
+        )
+
+        assert set(sensitivity["Return_Rate"]) == {-9.0, -7.0, -5.0, -3.0, -1.0}
+        assert sensitivity.loc[sensitivity["Is_Baseline_Return"], "Return_Rate"].unique().tolist() == [-5.0]
+
+    def test_uses_delayed_income_streams(self) -> None:
+        sensitivity = build_runway_sensitivity(
+            120_000,
+            20_000,
+            0.0,
+            spending_changes=(0,),
+            return_rates=(0.0,),
+            income_streams=(IncomeStream("Social Security", 20_000, start_year=6),),
+        )
+
+        result = sensitivity.iloc[0]
+        assert result["Runway_Label"] == "Sustainable"
+        assert result["Runway_Years"] == 100.0

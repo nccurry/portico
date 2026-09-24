@@ -592,7 +592,8 @@ def main() -> None:
         return
 
     available_groups = transactions_spreadsheet.get_all_groups()
-    controls = st.container(horizontal=True, wrap=True, vertical_alignment="bottom")
+    with st.container(border=True):
+        controls = st.container(horizontal=True, wrap=True, vertical_alignment="bottom")
     with controls:
         selected_month = st.selectbox(
             "Month",

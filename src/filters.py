@@ -18,6 +18,7 @@ from src.custom_types import (
     IncomeExpenseFilters,
     SpendingFilters,
 )
+from src.page_helpers import currency_input
 from src.reporting_periods import calculate_date_range as _calculate_date_range
 
 
@@ -193,11 +194,10 @@ def render_income_expense_filters(
         income_threshold = int(st.session_state[f"{prefix}_income_threshold"])
         if filter_large_income:
             income_threshold = int(
-                st.number_input(
+                currency_input(
                     "Income limit",
                     min_value=5000,
                     max_value=100000,
-                    step=1000,
                     key=f"{prefix}_income_threshold",
                     persist_state="page",
                 )
@@ -211,11 +211,10 @@ def render_income_expense_filters(
         expense_threshold = int(st.session_state[f"{prefix}_expense_threshold"])
         if filter_large_expenses:
             expense_threshold = int(
-                st.number_input(
+                currency_input(
                     "Expense limit",
                     min_value=1000,
                     max_value=100000,
-                    step=500,
                     key=f"{prefix}_expense_threshold",
                     persist_state="page",
                 )
@@ -323,11 +322,10 @@ def render_spending_filters(
         expense_threshold = int(st.session_state[f"{prefix}_expense_threshold"])
         if filter_large_expenses:
             expense_threshold = int(
-                st.number_input(
+                currency_input(
                     "Expense limit",
                     min_value=1000,
                     max_value=100000,
-                    step=500,
                     key=f"{prefix}_expense_threshold",
                     persist_state="page",
                 )
@@ -391,14 +389,15 @@ def render_budget_filters(
             )
             expense_threshold = default_expense_threshold
             if filter_large_expenses:
-                expense_threshold = st.number_input(
-                    "Maximum individual expense",
-                    min_value=1000,
-                    max_value=100000,
-                    value=default_expense_threshold,
-                    step=500,
-                    key="budget_expense_threshold",
-                    persist_state="page",
+                expense_threshold = int(
+                    currency_input(
+                        "Maximum individual expense",
+                        min_value=1000,
+                        max_value=100000,
+                        value=default_expense_threshold,
+                        key="budget_expense_threshold",
+                        persist_state="page",
+                    )
                 )
 
     return {
@@ -439,82 +438,121 @@ def render_fi_filters(
     all_accounts: list[str],
     all_categories: list[str],
     all_groups: list[str],
-    included_group_accounts: list[str],
+    included_investment_accounts: list[str],
+    included_real_estate_accounts: list[str],
 ) -> FIFilters:
     """Render compact controls for the data behind the FI scenario."""
     settings = get_settings()
     fi_defaults = settings.financial_independence
     default_expense_threshold = settings.thresholds.expense
-    default_accounts = default_fi_accounts(all_accounts, included_group_accounts)
+    default_investments = default_fi_accounts(all_accounts, included_investment_accounts)
+    default_real_estate = default_fi_accounts(
+        all_accounts,
+        included_real_estate_accounts,
+        fi_defaults.real_estate_included_account_patterns,
+    )
     with st.popover(
-        "Adjust source data",
-        icon=":material/tune:",
-        width="stretch",
+        ":material/tune:",
+        help="Configure streams",
+        width="content",
     ):
         columns = st.columns(2)
         with columns[0]:
-            st.markdown("**Portfolio**")
-            include_accounts = st.multiselect(
-                "Included accounts",
-                options=all_accounts,
-                default=default_accounts,
-                key="fi_include_accounts",
-                persist_state="page",
-            )
+            st.markdown("**Expenses**")
             spending_lookback_months = st.selectbox(
-                "Spending history",
+                "Expense period",
                 options=FI_SPENDING_LOOKBACK_OPTIONS,
                 index=FI_SPENDING_LOOKBACK_OPTIONS.index(fi_defaults.spending_lookback_months),
                 format_func=lambda n: f"Last {n} months",
                 key="fi_spending_lookback",
                 persist_state="page",
             )
+            st.toggle(
+                "Change expenses over time",
+                help="Enter an expense amount for year 1 and each later year when it changes.",
+                key="fi_variable_spending",
+                persist_state="session",
+            )
+            st.markdown("**Income**")
+            income_from_transactions = st.toggle(
+                "Use income from transactions",
+                value=fi_defaults.income_from_transactions,
+                key="fi_income_from_transactions",
+                persist_state="page",
+            )
+            st.toggle(
+                "Change income over time",
+                help="Enter earned income for year 1 and each later year when it changes. Social Security and pensions stay separate.",
+                key="fi_variable_income",
+                persist_state="session",
+            )
         with columns[1]:
-            st.markdown("**Spending baseline**")
+            st.markdown("**Expenses to leave out**")
             exclude_groups = st.multiselect(
-                "Exclude groups",
+                "Groups to leave out",
                 options=all_groups,
                 default=[],
                 key="fi_exclude_groups",
                 persist_state="page",
             )
             exclude_categories = st.multiselect(
-                "Exclude categories",
+                "Categories to leave out",
                 options=all_categories,
                 default=[],
                 key="fi_exclude_categories",
                 persist_state="page",
             )
             include_transactions_like = _transaction_like_multiselect(
-                "Include transaction names containing",
+                "Transaction words to include",
                 default_terms=[],
                 key="fi_include_transactions_like",
             )
             exclude_transactions_like = _transaction_like_multiselect(
-                "Exclude transaction names containing",
+                "Transaction words to leave out",
                 default_terms=[],
                 key="fi_exclude_transactions_like",
             )
             filter_large_expenses = st.toggle(
-                "Exclude large transactions",
+                "Leave out large transactions",
                 value=False,
                 key="fi_filter_large_expenses",
                 persist_state="page",
             )
             expense_threshold = default_expense_threshold
             if filter_large_expenses:
-                expense_threshold = st.number_input(
-                    "Maximum individual expense",
-                    min_value=1000,
-                    max_value=100000,
-                    value=default_expense_threshold,
-                    step=500,
-                    key="fi_expense_threshold",
-                    persist_state="page",
+                expense_threshold = int(
+                    currency_input(
+                        "Largest expense to include",
+                        min_value=1000,
+                        max_value=100000,
+                        value=default_expense_threshold,
+                        key="fi_expense_threshold",
+                        persist_state="page",
+                    )
                 )
 
+        asset_columns = st.columns(2)
+        with asset_columns[0]:
+            st.markdown("**Investments**")
+            include_investment_accounts = st.multiselect(
+                "Investment accounts to include",
+                options=all_accounts,
+                default=default_investments,
+                key="fi_include_investment_accounts",
+                persist_state="page",
+            )
+        with asset_columns[1]:
+            st.markdown("**Real estate**")
+            include_real_estate_accounts = st.multiselect(
+                "Property accounts to include",
+                options=all_accounts,
+                default=default_real_estate,
+                key="fi_include_real_estate_accounts",
+                persist_state="page",
+            )
     return {
-        "include_accounts": include_accounts,
+        "include_investment_accounts": include_investment_accounts,
+        "include_real_estate_accounts": include_real_estate_accounts,
         "exclude_groups": exclude_groups,
         "exclude_categories": exclude_categories,
         "include_transactions_like": include_transactions_like,
@@ -522,6 +560,7 @@ def render_fi_filters(
         "filter_large_expenses": filter_large_expenses,
         "expense_threshold": expense_threshold,
         "spending_lookback_months": int(spending_lookback_months),
+        "income_from_transactions": income_from_transactions,
     }
 
 
