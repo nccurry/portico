@@ -31,8 +31,18 @@ def _fi_settings() -> FinancialIndependenceSettings:
         target_amount=150_000,
         spending_lookback_months=3,
         projection_years=50,
+        default_active_streams=("Investments", "Social Security"),
+        income_from_transactions=False,
         included_account_patterns=(),
         included_groups=("Savings",),
+        real_estate_included_account_patterns=(),
+        real_estate_included_groups=(),
+        real_estate_monthly_cash_flow=0.0,
+        real_estate_appreciation_rate=3.0,
+        social_security_annual_income=0.0,
+        social_security_start_year=1,
+        pension_annual_income=0.0,
+        pension_start_year=1,
     )
 
 

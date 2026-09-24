@@ -441,7 +441,8 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
     spending_filter_set = settings.filter_set("spending")
     transaction_sets = [settings.transaction_set(key) for key in spending_filter_set.options]
     default_transaction_set = settings.transaction_set(spending_filter_set.default)
-    controls = st.container(horizontal=True, wrap=True, vertical_alignment="bottom")
+    with st.container(border=True):
+        controls = st.container(horizontal=True, wrap=True, vertical_alignment="bottom")
     with controls:
         lookback = render_time_frame_control(
             list(lookback_options),

@@ -10,7 +10,6 @@ vars:
   TASK: '{{default .LOCAL_TASK .PORTICO_TASK}}'
   UV_PYTHON_DIR: '{{default ".tools/python" .UV_PYTHON_INSTALL_DIR}}'
   UV_CACHE: '{{default ".local/uv-cache" .UV_CACHE_DIR}}'
-  PYTEST_TEMP: '{{default ".local/pytest-tmp" .PYTEST_TEMP}}'
   COVERAGE_INPUTS: '{{default "." .COVERAGE_INPUTS}}'
   LINT_PATHS: src/ app_pages/ demo/ tests/ scripts/ Home.py
   ADDRESS: '{{default "127.0.0.1" .ADDRESS}}'
@@ -148,42 +147,47 @@ tasks:
   test:unit:
     desc: "Run unit tests"
     cmds:
-      - '{{.UV}} run --locked --dev pytest --basetemp={{.PYTEST_TEMP | quote}} tests/unit'
+      - '{{.UV}} run --locked --dev pytest tests/unit'
 
   test:integration:
     desc: "Run integration tests"
     cmds:
-      - '{{.UV}} run --locked --dev pytest --basetemp={{.PYTEST_TEMP | quote}} tests/integration'
+      - '{{.UV}} run --locked --dev pytest tests/integration'
+
+  demo:smoke:
+    desc: "Load every Streamlit page against committed synthetic demo data"
+    cmds:
+      - '{{.UV}} run --locked --dev pytest tests/integration/test_apptest_smoke.py::TestValuePrivacyMode'
 
   test:verbose:
     desc: "Run all tests with verbose output"
     cmds:
-      - '{{.UV}} run --locked --dev pytest --basetemp={{.PYTEST_TEMP | quote}} -v'
+      - '{{.UV}} run --locked --dev pytest -v'
 
   test:file:
     desc: "Run tests for a specific file (usage: task test:file -- test_spreadsheet.py)"
     cmds:
-      - '{{.UV}} run --locked --dev pytest --basetemp={{.PYTEST_TEMP | quote}} tests/{{.CLI_ARGS}} -v'
+      - '{{.UV}} run --locked --dev pytest tests/{{.CLI_ARGS}} -v'
 
   test:match:
     desc: "Run tests matching a pattern (usage: task test:match -- test_filter)"
     cmds:
-      - '{{.UV}} run --locked --dev pytest --basetemp={{.PYTEST_TEMP | quote}} -k "{{.CLI_ARGS}}" -v'
+      - '{{.UV}} run --locked --dev pytest -k "{{.CLI_ARGS}}" -v'
 
   test:coverage:
     desc: "Run all tests and record coverage"
     cmds:
-      - '{{.UV}} run --locked --dev pytest --basetemp={{.PYTEST_TEMP | quote}} --cov=src --cov=app_pages --cov-branch --cov-report='
+      - '{{.UV}} run --locked --dev pytest --cov=src --cov=app_pages --cov-branch --cov-report='
 
   test:unit:coverage:
     desc: "Run unit tests and write parallel coverage data"
     cmds:
-      - '{{.UV}} run --locked --dev coverage run --branch --parallel-mode --source=src,app_pages -m pytest --basetemp={{.PYTEST_TEMP | quote}} tests/unit'
+      - '{{.UV}} run --locked --dev coverage run --branch --parallel-mode --source=src,app_pages -m pytest tests/unit'
 
   test:integration:coverage:
     desc: "Run integration tests and write parallel coverage data"
     cmds:
-      - '{{.UV}} run --locked --dev coverage run --branch --parallel-mode --source=src,app_pages -m pytest --basetemp={{.PYTEST_TEMP | quote}} tests/integration'
+      - '{{.UV}} run --locked --dev coverage run --branch --parallel-mode --source=src,app_pages -m pytest tests/integration'
 
   coverage:combine:
     desc: "Combine unit and integration coverage data"

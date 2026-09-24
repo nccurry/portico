@@ -21,7 +21,12 @@ from src.constants import (
     COLOR_PLACEHOLDER,
     TRANSACTION_TABLE_HEIGHT,
 )
-from src.page_helpers import configured_merchant_aliases, render_data_refresh_controls, render_time_frame_control
+from src.page_helpers import (
+    configured_merchant_aliases,
+    currency_input,
+    render_data_refresh_controls,
+    render_time_frame_control,
+)
 from src.reporting_periods import latest_data_timestamp, reporting_anchor
 from src.spreadsheet import TransactionsSpreadsheet, load_transactions_data
 from src.value_visibility import mask_value, value_safe_altair_chart, value_safe_dataframe
@@ -188,7 +193,9 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
     """Render the transaction filtering and inspection workbench."""
     st.title("Transactions")
     transactions = transactions_spreadsheet.scrubbed_df.copy()
-    controls = st.container(horizontal=True, wrap=True, vertical_alignment="bottom")
+    control_box = st.container(border=True)
+    with control_box:
+        controls = st.container(horizontal=True, wrap=True, vertical_alignment="bottom")
     with controls:
         lookback = render_time_frame_control(
             list(LOOKBACK_DAYS),
@@ -224,7 +231,8 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
     all_groups = sorted(transactions["Group"].dropna().astype(str).unique())
     all_categories = sorted(transactions["Category"].dropna().astype(str).unique())
     all_accounts = sorted(transactions["Account"].dropna().astype(str).unique())
-    filter_columns = st.columns([5, 1], vertical_alignment="bottom")
+    with control_box:
+        filter_columns = st.columns([5, 1], vertical_alignment="bottom")
     with filter_columns[0]:
         search = st.text_input(
             "Search transactions",
@@ -262,20 +270,21 @@ def configure_page(transactions_spreadsheet: TransactionsSpreadsheet) -> None:
             persist_state="page",
         )
         minimum_magnitude = float(
-            st.number_input(
+            currency_input(
                 "Minimum amount",
                 min_value=0.0,
+                max_value=None,
                 value=0.0,
-                step=50.0,
                 key="top_transactions_minimum",
                 persist_state="page",
             )
         )
-        maximum_input = st.number_input(
+        maximum_input = currency_input(
             "Maximum amount",
             min_value=0.0,
+            max_value=None,
             value=None,
-            step=1_000.0,
+            allow_empty=True,
             placeholder="No maximum",
             key="top_transactions_maximum",
             persist_state="page",

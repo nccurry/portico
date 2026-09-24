@@ -16,6 +16,7 @@ from src.constants import FI_SPENDING_LOOKBACK_OPTIONS
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 CONFIG_PATH = PROJECT_ROOT / "config.toml"
+FI_DEFAULT_STREAM_OPTIONS = ("Income", "Investments", "Real estate", "Social Security", "Pension")
 
 
 class ConfigError(ValueError):
@@ -119,8 +120,18 @@ class FinancialIndependenceSettings:
     target_amount: float
     spending_lookback_months: int
     projection_years: int
+    default_active_streams: tuple[str, ...]
+    income_from_transactions: bool
     included_account_patterns: tuple[str, ...]
     included_groups: tuple[str, ...]
+    real_estate_included_account_patterns: tuple[str, ...]
+    real_estate_included_groups: tuple[str, ...]
+    real_estate_monthly_cash_flow: float
+    real_estate_appreciation_rate: float
+    social_security_annual_income: float
+    social_security_start_year: int
+    pension_annual_income: float
+    pension_start_year: int
 
 
 @dataclass(frozen=True)
@@ -214,8 +225,18 @@ _SECTION_KEYS = {
         "target_amount",
         "spending_lookback_months",
         "projection_years",
+        "default_active_streams",
+        "income_from_transactions",
         "included_account_patterns",
         "included_groups",
+        "real_estate_included_account_patterns",
+        "real_estate_included_groups",
+        "real_estate_monthly_cash_flow",
+        "real_estate_appreciation_rate",
+        "social_security_annual_income",
+        "social_security_start_year",
+        "pension_annual_income",
+        "pension_start_year",
     },
     "financial_safety": {
         "emergency_fund_target_months",
@@ -558,6 +579,12 @@ def _build_settings(document: Mapping[str, Any], directory_base: Path, *, is_dem
     if spending_lookback_months not in FI_SPENDING_LOOKBACK_OPTIONS:
         options = ", ".join(str(value) for value in FI_SPENDING_LOOKBACK_OPTIONS)
         raise ConfigError(f"spending_lookback_months must be one of: {options}")
+    default_active_streams = _strings(financial_independence, "default_active_streams")
+    unknown_default_streams = set(default_active_streams) - set(FI_DEFAULT_STREAM_OPTIONS)
+    if unknown_default_streams:
+        names = ", ".join(sorted(unknown_default_streams))
+        choices = ", ".join(FI_DEFAULT_STREAM_OPTIONS)
+        raise ConfigError(f"default_active_streams contains unknown stream(s): {names}. Choose from: {choices}")
     emergency_fund_spending_lookback_months = _integer(
         financial_safety,
         "emergency_fund_spending_lookback_months",
@@ -621,8 +648,41 @@ def _build_settings(document: Mapping[str, Any], directory_base: Path, *, is_dem
             target_amount=_number(financial_independence, "target_amount", 1, 100_000_000),
             spending_lookback_months=spending_lookback_months,
             projection_years=_integer(financial_independence, "projection_years", 1, 100),
+            default_active_streams=default_active_streams,
+            income_from_transactions=_boolean(financial_independence, "income_from_transactions"),
             included_account_patterns=_strings(financial_independence, "included_account_patterns"),
             included_groups=_strings(financial_independence, "included_groups"),
+            real_estate_included_account_patterns=_strings(
+                financial_independence,
+                "real_estate_included_account_patterns",
+            ),
+            real_estate_included_groups=_strings(financial_independence, "real_estate_included_groups"),
+            real_estate_monthly_cash_flow=_number(
+                financial_independence,
+                "real_estate_monthly_cash_flow",
+                -10_000_000,
+                10_000_000,
+            ),
+            real_estate_appreciation_rate=_number(
+                financial_independence,
+                "real_estate_appreciation_rate",
+                -20,
+                20,
+            ),
+            social_security_annual_income=_number(
+                financial_independence,
+                "social_security_annual_income",
+                0,
+                10_000_000,
+            ),
+            social_security_start_year=_integer(financial_independence, "social_security_start_year", 1, 100),
+            pension_annual_income=_number(
+                financial_independence,
+                "pension_annual_income",
+                0,
+                10_000_000,
+            ),
+            pension_start_year=_integer(financial_independence, "pension_start_year", 1, 100),
         ),
         financial_safety=FinancialSafetySettings(
             emergency_fund_target_months=_integer(financial_safety, "emergency_fund_target_months", 1, 24),
