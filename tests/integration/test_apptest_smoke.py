@@ -2375,7 +2375,7 @@ class TestFinancialIndependenceSmoke:
         assert investment_display is not None and investment_display.startswith("$")
         assert expense_display is not None and expense_display.startswith("$")
         assert "Income" not in {widget.label for widget in at.text_input}
-        assert at.text_input(key="fi_scenario_social_security_currency").value == "$24,000"
+        assert at.text_input(key="fi_scenario_social_security_currency").value == "$25,032"
         assert scenario_values["Social Security starts in (years)"] == 20
         assert "Yearly pension" not in {widget.label for widget in at.text_input}
         assert scenario_values["Yearly investment growth (%)"] == 7.0
@@ -2487,7 +2487,7 @@ class TestFinancialIndependenceSmoke:
         )
 
         assert not at.exception
-        assert at.text_input(key="fi_scenario_social_security_currency").value == "$24,000"
+        assert at.text_input(key="fi_scenario_social_security_currency").value == "$25,032"
         assert at.number_input(key="fi_scenario_social_security_start_year").value == 20
         assert at.text_input(key="fi_scenario_pension_currency").value == "$12,000"
         assert at.number_input(key="fi_scenario_pension_start_year").value == 20

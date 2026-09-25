@@ -343,6 +343,8 @@ choices last for the browser session only.
 ### Financial independence streams
 
 The Financial independence page separates data setup from the plan you can adjust.
+Set **Years to project** at the top of **Your plan**. Income and expenses share
+one row when Income is included; expenses use the full row otherwise.
 Open **Configure streams** with the settings icon in **Your plan** to choose
 an expense period and exclusions, whether income comes from transactions,
 whether income or expenses change over time, and the accounts behind Investments
@@ -384,7 +386,10 @@ or you reset your plan. Use any of `Income`, `Investments`, `Real estate`,
 `social_security_*` and `pension_*` in `config.toml` provide a yearly amount
 and the number of years until each benefit starts. These values use today's
 dollars. You can change them for the current browser session without changing
-your configuration file.
+your configuration file. The Social Security default is $25,032 per year,
+based on the [SSA's July 2026 average retired-worker benefit of $2,085.98 per
+month](https://www.ssa.gov/policy/docs/quickfacts/stat_snapshot/2026-07.html).
+It is a general starting point, not a personal benefit estimate.
 
 `real_estate_monthly_cash_flow` is the money left from a property each month
 after its costs (and can be negative). `real_estate_appreciation_rate` is the

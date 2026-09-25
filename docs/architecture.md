@@ -269,8 +269,11 @@ projected available assets, marks unmet expenses, and combines consecutive
 years with the same funding mix. Optional expense- and earned-income-period
 modes each present year 1 and later changes as one schedule. Projections and
 runway use both schedules; year-one funding metrics use year 1 amounts. Social
-Security and pensions remain separate, additive income streams. The page marks the selected
-projection covered when its yearly expense-coverage rows have no shortfall.
+Security and pensions remain separate, additive income streams. The page puts
+projection length first and shows expenses beside earned income when that stream
+is active. The configured Social Security starting amount uses an SSA retired-worker
+average, which users can replace. The page marks the selected projection covered
+when its yearly expense-coverage rows have no shortfall.
 
 Some existing calculations still accept spreadsheet wrappers or read settings
 directly. If explicit inputs make a function easier to test, new calculation

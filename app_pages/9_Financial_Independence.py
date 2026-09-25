@@ -302,6 +302,16 @@ def _render_scenario_controls(
                 args=(source_values,),
             )
 
+        with st.columns(2)[0]:
+            st.number_input(
+                "Years to project",
+                min_value=1,
+                max_value=100,
+                step=5,
+                key=SCENARIO_KEYS["years"],
+                persist_state="session",
+            )
+
         selected_streams = st.pills(
             "Include in plan",
             options=STREAM_OPTIONS,
@@ -317,24 +327,90 @@ def _render_scenario_controls(
         )
         active_streams = cast(list[str], selected_streams or [])
 
-        if "Earned income" in active_streams:
-            if st.session_state[VARIABLE_INCOME_KEY]:
-                st.markdown("**Income over time**")
-                first_income_columns = st.columns([1, 2, 1], vertical_alignment="bottom")
-                with first_income_columns[0]:
-                    st.number_input("Starts in year", value=1, disabled=True)
-                with first_income_columns[1]:
+        income_expense_columns = st.columns(1 + int("Earned income" in active_streams))
+        expense_column = income_expense_columns[0]
+        income_column = income_expense_columns[-1]
+        with income_column:
+            if "Earned income" in active_streams:
+                if st.session_state[VARIABLE_INCOME_KEY]:
+                    st.markdown("**Income over time**")
+                    first_income_columns = st.columns([1, 2, 1], vertical_alignment="bottom")
+                    with first_income_columns[0]:
+                        st.number_input("Starts in year", value=1, disabled=True)
+                    with first_income_columns[1]:
+                        currency_input(
+                            "Income per year",
+                            min_value=0.0,
+                            max_value=10_000_000.0,
+                            key=SCENARIO_KEYS["income"],
+                            persist_state="session",
+                        )
+                    for row_id in st.session_state[INCOME_ROWS_KEY]:
+                        start_key, amount_key = _income_row_keys(row_id)
+                        income_columns = st.columns([1, 2, 1], vertical_alignment="bottom")
+                        with income_columns[0]:
+                            st.number_input(
+                                "Starts in year",
+                                min_value=2,
+                                max_value=100,
+                                step=1,
+                                key=start_key,
+                                persist_state="session",
+                            )
+                        with income_columns[1]:
+                            currency_input(
+                                "Income per year",
+                                min_value=0.0,
+                                max_value=10_000_000.0,
+                                key=amount_key,
+                                persist_state="session",
+                            )
+                        with income_columns[2]:
+                            st.button(
+                                "Remove",
+                                icon=":material/delete:",
+                                key=f"fi_remove_income_{row_id}",
+                                on_click=_remove_income_change,
+                                args=(row_id,),
+                                width="stretch",
+                            )
+                    st.button(
+                        "Add income period",
+                        icon=":material/add:",
+                        on_click=_add_income_change,
+                        disabled=any(
+                            st.session_state[_income_row_keys(row_id)[0]] == 100
+                            for row_id in st.session_state[INCOME_ROWS_KEY]
+                        ),
+                    )
+                else:
+                    st.markdown("**Income**")
                     currency_input(
-                        "Income per year",
+                        "Income",
                         min_value=0.0,
                         max_value=10_000_000.0,
                         key=SCENARIO_KEYS["income"],
                         persist_state="session",
                     )
-                for row_id in st.session_state[INCOME_ROWS_KEY]:
-                    start_key, amount_key = _income_row_keys(row_id)
-                    income_columns = st.columns([1, 2, 1], vertical_alignment="bottom")
-                    with income_columns[0]:
+
+        with expense_column:
+            if st.session_state[VARIABLE_SPENDING_KEY]:
+                st.markdown("**Expenses over time**")
+                first_period_columns = st.columns([1, 2, 1], vertical_alignment="bottom")
+                with first_period_columns[0]:
+                    st.number_input("Starts in year", value=1, disabled=True)
+                with first_period_columns[1]:
+                    currency_input(
+                        "Expenses per year",
+                        min_value=0.0,
+                        max_value=10_000_000.0,
+                        key=SCENARIO_KEYS["spending"],
+                        persist_state="session",
+                    )
+                for row_id in st.session_state[SPENDING_ROWS_KEY]:
+                    start_key, amount_key = _spending_row_keys(row_id)
+                    period_columns = st.columns([1, 2, 1], vertical_alignment="bottom")
+                    with period_columns[0]:
                         st.number_input(
                             "Starts in year",
                             min_value=2,
@@ -343,102 +419,41 @@ def _render_scenario_controls(
                             key=start_key,
                             persist_state="session",
                         )
-                    with income_columns[1]:
+                    with period_columns[1]:
                         currency_input(
-                            "Income per year",
+                            "Expenses per year",
                             min_value=0.0,
                             max_value=10_000_000.0,
                             key=amount_key,
                             persist_state="session",
                         )
-                    with income_columns[2]:
+                    with period_columns[2]:
                         st.button(
                             "Remove",
                             icon=":material/delete:",
-                            key=f"fi_remove_income_{row_id}",
-                            on_click=_remove_income_change,
+                            key=f"fi_remove_spending_{row_id}",
+                            on_click=_remove_spending_change,
                             args=(row_id,),
                             width="stretch",
                         )
                 st.button(
-                    "Add income period",
+                    "Add expense period",
                     icon=":material/add:",
-                    on_click=_add_income_change,
+                    on_click=_add_spending_change,
                     disabled=any(
-                        st.session_state[_income_row_keys(row_id)[0]] == 100
-                        for row_id in st.session_state[INCOME_ROWS_KEY]
+                        st.session_state[_spending_row_keys(row_id)[0]] == 100
+                        for row_id in st.session_state[SPENDING_ROWS_KEY]
                     ),
                 )
             else:
-                st.markdown("**Income**")
+                st.markdown("**Expenses**")
                 currency_input(
-                    "Income",
-                    min_value=0.0,
-                    max_value=10_000_000.0,
-                    key=SCENARIO_KEYS["income"],
-                    persist_state="session",
-                )
-
-        if st.session_state[VARIABLE_SPENDING_KEY]:
-            st.markdown("**Expenses over time**")
-            first_period_columns = st.columns([1, 2, 1], vertical_alignment="bottom")
-            with first_period_columns[0]:
-                st.number_input("Starts in year", value=1, disabled=True)
-            with first_period_columns[1]:
-                currency_input(
-                    "Expenses per year",
+                    "Expenses",
                     min_value=0.0,
                     max_value=10_000_000.0,
                     key=SCENARIO_KEYS["spending"],
                     persist_state="session",
                 )
-            for row_id in st.session_state[SPENDING_ROWS_KEY]:
-                start_key, amount_key = _spending_row_keys(row_id)
-                period_columns = st.columns([1, 2, 1], vertical_alignment="bottom")
-                with period_columns[0]:
-                    st.number_input(
-                        "Starts in year",
-                        min_value=2,
-                        max_value=100,
-                        step=1,
-                        key=start_key,
-                        persist_state="session",
-                    )
-                with period_columns[1]:
-                    currency_input(
-                        "Expenses per year",
-                        min_value=0.0,
-                        max_value=10_000_000.0,
-                        key=amount_key,
-                        persist_state="session",
-                    )
-                with period_columns[2]:
-                    st.button(
-                        "Remove",
-                        icon=":material/delete:",
-                        key=f"fi_remove_spending_{row_id}",
-                        on_click=_remove_spending_change,
-                        args=(row_id,),
-                        width="stretch",
-                    )
-            st.button(
-                "Add expense period",
-                icon=":material/add:",
-                on_click=_add_spending_change,
-                disabled=any(
-                    st.session_state[_spending_row_keys(row_id)[0]] == 100
-                    for row_id in st.session_state[SPENDING_ROWS_KEY]
-                ),
-            )
-        else:
-            st.markdown("**Expenses**")
-            currency_input(
-                "Expenses",
-                min_value=0.0,
-                max_value=10_000_000.0,
-                key=SCENARIO_KEYS["spending"],
-                persist_state="session",
-            )
 
         active_assets = "Investments" in active_streams or "Real estate" in active_streams
         if active_assets:
@@ -505,6 +520,7 @@ def _render_scenario_controls(
                         "Yearly Social Security",
                         min_value=0.0,
                         max_value=10_000_000.0,
+                        help="The default uses the average U.S. retired-worker benefit. Replace it with your own estimate.",
                         key=SCENARIO_KEYS["social_security"],
                         persist_state="session",
                     )
@@ -535,15 +551,6 @@ def _render_scenario_controls(
                         persist_state="session",
                     )
 
-        st.markdown("**Plan settings**")
-        st.number_input(
-            "Years to project",
-            min_value=1,
-            max_value=100,
-            step=5,
-            key=SCENARIO_KEYS["years"],
-            persist_state="session",
-        )
     try:
         return _scenario_from_state()
     except ValueError as error:
