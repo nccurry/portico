@@ -336,6 +336,12 @@ settings you may want to change:
 | `weekly_summary` | `watched_transaction_sets`, `average_weeks`, `rolling_weeks`, `top_merchant_count` | Named transaction sets, comparison windows, and merchant detail for Discord. |
 | `merchants.aliases` | Merchant name and description fragments | Combine several transaction descriptions under one merchant name. |
 
+Financial-safety account patterns match the **Account name in Balance History**,
+not the composite label or account number in the Accounts sheet. Debt decreases
+show a green downward arrow; increases show a red upward arrow and the percentage
+above the starting balance. The baseline includes only balances recorded by that
+date, so accounts first recorded later can increase the comparison total.
+
 The View controls choose among the configured transaction sets. Other page
 controls can narrow that set for exploration, but cannot broaden it. Those
 choices last for the browser session only.
