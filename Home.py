@@ -355,6 +355,7 @@ def _render_financial_safety(summary: FinancialSafetySummary) -> None:
             "Financial safety",
             help=(
                 "Emergency-fund and debt settings come from `[financial_safety]`. "
+                "Debt change uses the selected time frame. "
                 "The FI funding target and account scope come from `[financial_independence]`."
             ),
         )
@@ -537,6 +538,8 @@ def configure_page(
             get_settings().financial_safety,
             get_settings().financial_independence,
             as_of=reporting_anchor(transactions),
+            debt_start_date=pd.Timestamp(history["Date"].min()),
+            debt_end_date=end_date,
         )
     )
     _render_financial_position(history, groups, start_date, lookback)

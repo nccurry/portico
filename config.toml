@@ -178,7 +178,7 @@ debt_included_groups = []
 # Account-name fragments included in the debt balance.
 debt_included_account_patterns = []
 # ISO 8601 date used as the debt-progress starting point. Leave empty to use the
-# first recorded balance.
+# first recorded balance. The Home time-frame selector takes precedence.
 debt_baseline_date = ""
 
 # Financial independence page

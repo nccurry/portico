@@ -83,13 +83,13 @@ income, investment, real-estate, and retirement streams.
 Install Docker Engine. Then pull the current release and start the demo:
 
 ```console
-docker pull ghcr.io/nccurry/portico:1.3.0
+docker pull ghcr.io/nccurry/portico:1.4.0
 docker run --rm --init --name portico \
   --read-only --tmpfs /tmp:size=64m,mode=1777 \
   --cap-drop ALL --security-opt no-new-privileges:true \
   --env PORTICO_CONFIG_PATH=/app/portico-demo.toml \
   --publish 127.0.0.1:8501:8501 \
-  ghcr.io/nccurry/portico:1.3.0
+  ghcr.io/nccurry/portico:1.4.0
 ```
 
 Open <http://127.0.0.1:8501>. The local demo accepts connections only from the
@@ -332,15 +332,17 @@ settings you may want to change:
 | `data_health` | `stale_account_days` | Age at which an account balance is stale. |
 | `data_health` | `duplicate_require_same_*` | Initial duplicate-detection matching rules. |
 | `financial_independence` | Return, history, projection, earned-income, investment, real-estate, and retirement-stream settings | Home-page FI funding progress and Financial independence source defaults. |
-| `financial_safety` | Emergency-fund target, expense baseline, liquid-account scope, and debt baseline | Home-page safety progress. Emergency spending uses complete months only; leave `debt_baseline_date` empty to use the first recorded balance. |
+| `financial_safety` | Emergency-fund target, expense baseline, liquid-account scope, and debt baseline | Home-page safety progress. Emergency spending uses complete months only. The Home time frame takes precedence over `debt_baseline_date`. |
 | `weekly_summary` | `watched_transaction_sets`, `average_weeks`, `rolling_weeks`, `top_merchant_count` | Named transaction sets, comparison windows, and merchant detail for Discord. |
 | `merchants.aliases` | Merchant name and description fragments | Combine several transaction descriptions under one merchant name. |
 
 Financial-safety account patterns match the **Account name in Balance History**,
 not the composite label or account number in the Accounts sheet. Debt decreases
 show a green downward arrow; increases show a red upward arrow and the percentage
-above the starting balance. The baseline includes only balances recorded by that
-date, so accounts first recorded later can increase the comparison total.
+above the starting balance. Debt change compares the latest recorded balances
+at the start and end of the selected Home time frame; All uses the full available
+history. The baseline includes only balances recorded by that date, so accounts
+first recorded later can increase the comparison total.
 
 The View controls choose among the configured transaction sets. Other page
 controls can narrow that set for exploration, but cannot broaden it. Those

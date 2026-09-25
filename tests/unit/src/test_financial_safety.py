@@ -184,6 +184,58 @@ def test_financial_safety_uses_the_configured_debt_baseline_date() -> None:
     assert summary["debt_baseline_label"] == "Feb 2024"
 
 
+@pytest.mark.parametrize(
+    ("start", "end", "opening", "closing", "progress"),
+    [
+        ("2024-02-01", "2024-02-15", 500, 500, 0.0),
+        ("2024-02-01", "2024-03-20", 500, 300, 40.0),
+        ("2024-03-01", "2024-04-15", 300, 900, -200.0),
+        ("2024-01-01", "2024-04-15", 500, 900, -80.0),
+        ("2023-12-01", "2024-01-15", 0, 500, None),
+        ("2023-11-01", "2023-12-01", 0, 0, None),
+    ],
+)
+def test_debt_range_uses_latest_balances_at_each_boundary(
+    start: str, end: str, opening: float, closing: float, progress: float | None
+) -> None:
+    extra = _balance_df(
+        [
+            {
+                "Date": day,
+                "Time": f"{day} 09:00",
+                "Account": account,
+                "Account ID": account.lower(),
+                "Group": "Credit Cards",
+                "Class": "Liability",
+                "Balance": balance,
+                "Hide": hide,
+            }
+            for day, account, balance, hide in [
+                ("2024-04-01", "Card", 700, ""),
+                ("2024-04-10", "New loan", 200, ""),
+                ("2024-03-01", "Hidden loan", 10_000, "Hide"),
+                ("2024-05-01", "Card", 900, ""),
+                ("2024-05-01", "Future loan", 20_000, ""),
+            ]
+        ]
+    )
+    summary = build_financial_safety_summary(
+        pd.concat([_balances(), extra], ignore_index=True),
+        _transactions(),
+        _safety_settings(baseline_date=date(2024, 4, 1)),
+        _fi_settings(),
+        as_of=pd.Timestamp("2024-05-01", tz="UTC"),
+        debt_start_date=pd.Timestamp(start, tz="UTC"),
+        debt_end_date=pd.Timestamp(end, tz="UTC"),
+    )
+
+    assert summary["debt_baseline_balance"] == opening
+    assert summary["debt_balance"] == closing
+    assert summary["debt_paid_down"] == opening - closing
+    assert summary["debt_progress_pct"] == progress
+    assert summary["debt_baseline_label"] == (pd.Timestamp(start).strftime("%b %d, %Y") if closing else None)
+
+
 def test_select_accounts_matches_groups_or_name_fragments_and_hides_accounts() -> None:
     selected = select_accounts(_balances(), (), ("card",))
 

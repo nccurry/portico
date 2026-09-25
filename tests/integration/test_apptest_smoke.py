@@ -744,6 +744,7 @@ class TestHomeSmoke:
         )
         assert help_by_heading["Financial safety"] == (
             "Emergency-fund and debt settings come from `[financial_safety]`. "
+            "Debt change uses the selected time frame. "
             "The FI funding target and account scope come from `[financial_independence]`."
         )
         charts = at.get("vega_lite_chart")
@@ -832,6 +833,40 @@ class TestHomeSmoke:
         assert at.metric[3].delta.endswith("over 3M")
         assert len(at.get("vega_lite_chart")) == 12
         assert "Investments" in _metric_labels(at)
+
+    def test_debt_change_follows_time_frame_selector(self, make_full_dataset: FullDatasetFactory) -> None:
+        transactions, balances, _, _ = make_full_dataset()
+        history = pd.concat([balances.scrubbed_df.iloc[[0]]] * 5, ignore_index=True)
+        history["Date"] = pd.to_datetime(
+            ["1993-04-20", "1994-04-20", "1995-01-19", "1995-04-01", "1995-04-20"], utc=True
+        )
+        history["Time"] = history["Date"]
+        history["Account"] = "Test card"
+        history["Account ID"] = "test-card"
+        history["Group"] = "Credit Cards"
+        history["Class"] = "Liability"
+        history["Hide"] = ""
+        history["Balance"] = [1200.0, 1000.0, 600.0, 800.0, 700.0]
+        balances.scrubbed_df = history
+
+        with (
+            patch("src.spreadsheet.load_balance_history_data", return_value=balances),
+            patch("src.spreadsheet.load_transactions_data", return_value=transactions),
+        ):
+            at = AppTest.from_file(_PROJECT_ROOT / "Home.py", default_timeout=30).run()
+            for lookback, expected, color, direction in [
+                ("1Y", "$300 paid down since Apr 20, 1994", Metric.GREEN, Metric.DOWN),
+                ("3M", "$100 increase since Jan 20, 1995", Metric.RED, Metric.UP),
+                ("All", "$500 paid down since Apr 20, 1993", Metric.GREEN, Metric.DOWN),
+                ("1Y", "$300 paid down since Apr 20, 1994", Metric.GREEN, Metric.DOWN),
+            ]:
+                at.segmented_control(key="home_balance_lookback").set_value(lookback).run()
+                assert not at.exception
+                debt = next(metric for metric in at.metric if metric.label == "Debt balance")
+                assert debt.value == "$700"
+                assert debt.delta == expected
+                assert debt.proto.color == color
+                assert debt.proto.direction == direction
 
     def test_navigation_switches_to_registered_page(
         self,

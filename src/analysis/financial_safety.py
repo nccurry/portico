@@ -82,8 +82,10 @@ def build_financial_safety_summary(
     financial_independence: FinancialIndependenceSettings,
     *,
     as_of: pd.Timestamp,
+    debt_start_date: pd.Timestamp | None = None,
+    debt_end_date: pd.Timestamp | None = None,
 ) -> FinancialSafetySummary:
-    """Summarize configurable emergency-fund, debt, and FI funding progress."""
+    """Summarize safety goals, using the selected debt range when supplied."""
     emergency_accounts = select_accounts(
         balance_history,
         financial_safety.emergency_fund_included_groups,
@@ -100,24 +102,27 @@ def build_financial_safety_summary(
     emergency_target = emergency_spending * financial_safety.emergency_fund_target_months
     emergency_months = emergency_balance / emergency_spending if emergency_spending > 0 else None
 
+    debt_history = balance_history
+    if debt_end_date is not None:
+        debt_history = debt_history[debt_history["Date"] <= debt_end_date]
     debt_accounts = select_accounts(
-        balance_history,
+        debt_history,
         financial_safety.debt_included_groups,
         financial_safety.debt_included_account_patterns,
     )
-    debt_balance = abs(_signed_balance(balance_history, debt_accounts))
-    debt_rows = balance_history[balance_history["Account"].isin(debt_accounts)] if debt_accounts else pd.DataFrame()
+    debt_balance = abs(_signed_balance(debt_history, debt_accounts))
+    debt_rows = debt_history[debt_history["Account"].isin(debt_accounts)] if debt_accounts else pd.DataFrame()
     baseline_label: str | None = None
     baseline_balance = 0.0
     if not debt_rows.empty:
-        if financial_safety.debt_baseline_date is None:
+        if debt_start_date is not None:
+            baseline_timestamp = debt_start_date
+        elif financial_safety.debt_baseline_date is None:
             baseline_timestamp = pd.Timestamp(debt_rows["Date"].min())
         else:
             baseline_timestamp = pd.Timestamp(financial_safety.debt_baseline_date, tz="UTC")
-        baseline_balance = abs(
-            _signed_balance(balance_history, debt_accounts, as_of=baseline_timestamp.to_pydatetime())
-        )
-        baseline_label = baseline_timestamp.strftime("%b %Y")
+        baseline_balance = abs(_signed_balance(debt_history, debt_accounts, as_of=baseline_timestamp.to_pydatetime()))
+        baseline_label = baseline_timestamp.strftime("%b %d, %Y" if debt_start_date is not None else "%b %Y")
     debt_paid_down = baseline_balance - debt_balance
     debt_progress = debt_paid_down / baseline_balance * 100 if baseline_balance > 0 else None
 
