@@ -170,9 +170,6 @@ class FISummary(TypedDict):
     annual_surplus: float
     runway_years: float | None
     net_annual_spending: float
-    sustainable_spending: float
-    fi_target: float
-    fi_gap: float
 
 
 @dataclass(frozen=True)
@@ -218,7 +215,6 @@ class FIScenario:
     pension_annual_income: float
     pension_start_year: int
     return_rate: float
-    withdrawal_rate: float
     years: int
     active_streams: tuple[str, ...]
     spending_schedule: tuple[SpendingChange, ...] = ()

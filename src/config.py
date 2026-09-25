@@ -116,7 +116,6 @@ class FinancialIndependenceSettings:
     """Defaults for financial-independence scenarios."""
 
     expected_return_rate: float
-    withdrawal_rate: float
     target_amount: float
     spending_lookback_months: int
     projection_years: int
@@ -221,7 +220,6 @@ _SECTION_KEYS = {
     },
     "financial_independence": {
         "expected_return_rate",
-        "withdrawal_rate",
         "target_amount",
         "spending_lookback_months",
         "projection_years",
@@ -644,7 +642,6 @@ def _build_settings(document: Mapping[str, Any], directory_base: Path, *, is_dem
         ),
         financial_independence=FinancialIndependenceSettings(
             expected_return_rate=_number(financial_independence, "expected_return_rate", 0, 20),
-            withdrawal_rate=_number(financial_independence, "withdrawal_rate", 0.5, 10),
             target_amount=_number(financial_independence, "target_amount", 1, 100_000_000),
             spending_lookback_months=spending_lookback_months,
             projection_years=_integer(financial_independence, "projection_years", 1, 100),

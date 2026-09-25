@@ -186,8 +186,6 @@ debt_baseline_date = ""
 [financial_independence]
 # Annual investment return percentage used in the projection.
 expected_return_rate = 7.0
-# Annual withdrawal percentage used to calculate the goal.
-withdrawal_rate = 4.0
 # Dollar amount used as the financial-independence goal.
 target_amount = 1_000_000
 # Months used to average spending. Allowed values are 6, 12, 24, and 36.
@@ -212,8 +210,10 @@ real_estate_included_groups = []
 real_estate_monthly_cash_flow = 0
 # Expected annual real appreciation percentage for selected real estate.
 real_estate_appreciation_rate = 3.0
-# Yearly Social Security payment, in today's dollars.
-social_security_annual_income = 0
+# Yearly Social Security payment, in today's dollars. Default: July 2026 SSA
+# average retired-worker benefit ($2,085.98 monthly, rounded to the nearest dollar yearly).
+# https://www.ssa.gov/policy/docs/quickfacts/stat_snapshot/2026-07.html
+social_security_annual_income = 25_032
 # Years from now when Social Security starts.
 social_security_start_year = 20
 # Yearly pension payment, in today's dollars.

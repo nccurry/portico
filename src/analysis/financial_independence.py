@@ -188,7 +188,6 @@ def calculate_fi_metrics(
     annual_spending: float,
     rate_pct: float,
     annual_income: float = 0.0,
-    withdrawal_rate_pct: float = 4.0,
     income_streams: tuple[IncomeStream, ...] = (),
     *,
     real_estate_value: float = 0.0,
@@ -196,25 +195,15 @@ def calculate_fi_metrics(
     spending_schedule: tuple[SpendingChange, ...] = (),
     income_schedule: tuple[IncomeChange, ...] = (),
 ) -> FISummary:
-    """Return annual funding, FI target, and portfolio runway."""
+    """Return year-one funding and portfolio runway."""
     rate = rate_pct / 100.0
     real_estate_rate = real_estate_rate_pct / 100.0
-    total_assets = portfolio_value + real_estate_value
     year_one_income = annual_income + sum(stream.annual_amount for stream in income_streams if stream.start_year <= 1)
     annual_return = portfolio_value * rate + real_estate_value * real_estate_rate
     total_inflow = annual_return + year_one_income
     annual_surplus = total_inflow - annual_spending
     net_withdrawal = annual_spending - year_one_income
     net_annual_spending = max(net_withdrawal, 0.0)
-    withdrawal_rate = withdrawal_rate_pct / 100.0
-    sustainable_spending = total_assets * withdrawal_rate
-    if net_annual_spending <= 0:
-        fi_target = 0.0
-    elif withdrawal_rate <= 0:
-        fi_target = float("inf")
-    else:
-        fi_target = net_annual_spending / withdrawal_rate
-    fi_gap = total_assets - fi_target
 
     runway = _calculate_scheduled_runway(
         portfolio_value,
@@ -235,9 +224,6 @@ def calculate_fi_metrics(
         annual_surplus=annual_surplus,
         runway_years=runway,
         net_annual_spending=net_annual_spending,
-        sustainable_spending=sustainable_spending,
-        fi_target=fi_target,
-        fi_gap=fi_gap,
     )
 
 

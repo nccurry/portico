@@ -47,7 +47,7 @@ def test_config_is_generic_complete_and_not_a_demo() -> None:
     assert settings.financial_independence.real_estate_appreciation_rate == 3
     assert not settings.financial_independence.income_from_transactions
     assert settings.financial_independence.default_active_streams == ("Investments", "Social Security")
-    assert settings.financial_independence.social_security_annual_income == 0
+    assert settings.financial_independence.social_security_annual_income == 25_032
     assert settings.financial_independence.social_security_start_year == 20
     assert settings.financial_independence.pension_annual_income == 0
     assert settings.merchants.aliases == ()
@@ -89,7 +89,7 @@ def test_demo_config_is_complete_local_data_and_is_detected_by_name() -> None:
     assert settings.filter_set("spending").default == "discretionary"
     assert settings.filter_set("year_over_year").default == "utilities"
     assert settings.financial_independence.default_active_streams == ("Investments", "Social Security")
-    assert settings.financial_independence.social_security_annual_income == 24_000
+    assert settings.financial_independence.social_security_annual_income == 25_032
     assert settings.financial_independence.social_security_start_year == 20
     assert settings.financial_independence.pension_annual_income == 12_000
     assert settings.financial_independence.pension_start_year == 20
@@ -189,6 +189,14 @@ def test_unknown_keys_are_rejected(tmp_path: Path) -> None:
     _replace(config, "expense = 3000", "expense = 3000\nexpnese = 1250")
 
     with pytest.raises(ConfigError, match=r"Unknown key.*expnese"):
+        _load(config)
+
+
+def test_removed_withdrawal_rate_setting_is_rejected(tmp_path: Path) -> None:
+    config = _copy_config(tmp_path)
+    _replace(config, "expected_return_rate = 7.0", "expected_return_rate = 7.0\nwithdrawal_rate = 4.0")
+
+    with pytest.raises(ConfigError, match=r"Unknown key.*withdrawal_rate"):
         _load(config)
 
 
