@@ -5,6 +5,41 @@ This file records notable changes to Portico.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Portico uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-09-25
+
+### Added
+
+- Financial-independence plans can combine earned income, investments, real
+  estate, Social Security, and pensions, with configurable starting years and
+  income and expense changes over time.
+- Expense coverage, runway, and sensitivity views show how income and assets
+  fund the plan, including property cash flow and appreciation.
+
+### Changed
+
+- Home groups financial safety, net-worth history, and account details with
+  charts explaining changes by group and account.
+- Financial-independence projections use expenses and income directly to
+  calculate asset withdrawals; money inputs accept formatted dollar amounts.
+- Home debt changes follow the selected time frame, using recorded balances
+  at each boundary. The selector takes precedence over `debt_baseline_date`.
+
+### Fixed
+
+- Debt decreases display a green downward arrow. Increases display a red
+  upward arrow and the amount above the starting balance, rather than a
+  negative amount paid down. Unchanged balances display neutrally.
+
+### Upgrade notes
+
+- Remove `financial_independence.withdrawal_rate` from older configuration
+  files; this setting is no longer supported and unknown settings are rejected.
+- Add the new stream settings from the current `[financial_independence]`
+  section to older configuration files, preserving your account selections and
+  assumptions. Configuration files are complete and do not inherit missing keys.
+- Account patterns match Balance History account names, not the composite
+  labels in the Accounts sheet.
+
 ## [1.3.0] - 2026-09-06
 
 ### Changed
@@ -93,7 +128,8 @@ Portico uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - A configurable weekly Discord expense summary with an optional built-in schedule.
 - A shared development container, native bootstrap scripts, tests, and release checks.
 
-[Unreleased]: https://github.com/nccurry/portico/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/nccurry/portico/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/nccurry/portico/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/nccurry/portico/compare/v1.2.3...v1.3.0
 [1.2.3]: https://github.com/nccurry/portico/compare/v1.2.2...v1.2.3
 [1.2.2]: https://github.com/nccurry/portico/compare/v1.2.1...v1.2.2

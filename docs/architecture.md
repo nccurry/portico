@@ -293,7 +293,11 @@ Page-specific filter popovers sit with their related controls in a bordered
 control group, not on a separate row above the content they affect.
 
 Home renders Financial safety before the net-worth summary. The net-worth trend
-and its What changed chart stay together. Account-group cards keep time-series
+and debt change use the selected time frame. Debt compares the latest recorded
+balance per selected account at each boundary, including observations before
+the start when needed. Accounts first recorded within the range have no opening
+balance. The selected range takes precedence over a configured debt baseline.
+The net-worth trend and its What changed chart stay together. Account-group cards keep time-series
 balance context separate from period movement: a sparkline shows the group's
 balance history, while a signed bar chart shows each account's net-worth impact
 in the selected time frame. Account, balance, and change details appear
