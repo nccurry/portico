@@ -16,9 +16,11 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 from pytest import MonkeyPatch
+from streamlit.proto.Metric_pb2 import Metric
 from streamlit.testing.v1 import AppTest
 
-from src.config import clear_settings_cache
+from src.analysis.financial_safety import build_financial_safety_summary
+from src.config import clear_settings_cache, get_settings
 from src.constants import COLOR_ASSET, COLOR_LIABILITY
 from tests.custom_types import FullDatasetFactory, SpreadsheetBundle
 
@@ -639,6 +641,65 @@ class TestValuePrivacyMode:
 
 @pytest.mark.uses_real_dates
 class TestHomeSmoke:
+    @pytest.mark.parametrize("hidden", [False, True])
+    @pytest.mark.parametrize(
+        ("paid_down", "baseline", "delta", "caption", "color", "direction"),
+        [
+            (
+                200.0,
+                "Jan 1995",
+                "$200 paid down since Jan 1995",
+                "20% of starting balance paid down",
+                Metric.GREEN,
+                Metric.DOWN,
+            ),
+            (-200.0, "Jan 1995", "$200 increase since Jan 1995", "20% above starting balance", Metric.RED, Metric.UP),
+            (0.0, "Jan 1995", "Unchanged since Jan 1995", "0% of starting balance paid down", Metric.GRAY, Metric.NONE),
+            (0.0, None, "Set debt groups to track payoff progress", None, Metric.GRAY, Metric.NONE),
+        ],
+    )
+    def test_debt_change_wording_color_and_direction(
+        self,
+        make_full_dataset: FullDatasetFactory,
+        hidden: bool,
+        paid_down: float,
+        baseline: str | None,
+        delta: str,
+        caption: str | None,
+        color: int,
+        direction: int,
+    ) -> None:
+        transactions, balances, _, _ = make_full_dataset()
+        settings = get_settings()
+        summary = build_financial_safety_summary(
+            balances.scrubbed_df,
+            transactions.scrubbed_df,
+            settings.financial_safety,
+            settings.financial_independence,
+            as_of=pd.Timestamp("1995-04-20", tz="UTC"),
+        )
+        summary["debt_balance"] = 1000.0 - paid_down
+        summary["debt_baseline_balance"] = 1000.0
+        summary["debt_paid_down"] = paid_down
+        summary["debt_progress_pct"] = paid_down / 10 if baseline else None
+        summary["debt_baseline_label"] = baseline
+
+        def set_visibility(at: AppTest) -> None:
+            at.toggle(key="hide_values").set_value(hidden)
+
+        with patch("src.analysis.financial_safety.build_financial_safety_summary", return_value=summary):
+            at = _make_app(
+                "../Home.py", make_full_dataset, ["src.spreadsheet.load_balance_history_data"], set_visibility
+            )
+        assert not at.exception
+        debt = next(metric for metric in at.metric if metric.label == "Debt balance")
+        assert debt.delta == (delta.replace("$200", _MASKED_VALUE) if hidden else delta)
+        assert debt.proto.color == color
+        assert debt.proto.direction == direction
+        if caption is not None:
+            expected = re.sub(r"\d+%", _MASKED_VALUE, caption) if hidden else caption
+            assert expected in {item.value for item in at.caption}
+
     def test_runs_without_exception(
         self,
         make_full_dataset: FullDatasetFactory,

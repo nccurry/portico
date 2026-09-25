@@ -382,19 +382,26 @@ def _render_financial_safety(summary: FinancialSafetySummary) -> None:
             st.caption(f"Target {_format_currency(summary['emergency_fund_target'])}")
         with columns[1]:
             debt_label = summary["debt_baseline_label"]
-            debt_delta = (
-                f"{_format_currency(summary['debt_paid_down'], show_plus=True)} paid down since {debt_label}"
-                if debt_label is not None
-                else "Set debt groups to track payoff progress"
-            )
+            debt_paid_down = summary["debt_paid_down"]
+            if debt_label is None:
+                debt_delta = "Set debt groups to track payoff progress"
+            elif debt_paid_down == 0:
+                debt_delta = f"Unchanged since {debt_label}"
+            else:
+                direction = "paid down" if debt_paid_down > 0 else "increase"
+                debt_delta = f"{_format_currency(abs(debt_paid_down))} {direction} since {debt_label}"
+            has_debt_change = debt_label is not None and debt_paid_down != 0
             st.metric(
                 "Debt balance",
                 _format_currency(summary["debt_balance"]),
                 delta=debt_delta,
+                delta_color=("green" if debt_paid_down > 0 else "red") if has_debt_change else "off",
+                delta_arrow=("down" if debt_paid_down > 0 else "up") if has_debt_change else "off",
             )
             st.progress(_progress_bar(debt_progress))
             if debt_progress is not None:
-                st.caption(f"{mask_value(f'{debt_progress:.0f}%')} of starting balance paid down")
+                progress_label = "of starting balance paid down" if debt_progress >= 0 else "above starting balance"
+                st.caption(f"{mask_value(f'{abs(debt_progress):.0f}%')} {progress_label}")
         with columns[2]:
             fi_delta = (
                 f"{_format_currency(summary['fi_portfolio_value'] - summary['fi_target'], show_plus=True)} vs target"
